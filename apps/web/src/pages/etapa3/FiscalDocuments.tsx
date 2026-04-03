@@ -6,8 +6,10 @@
  * Plan: §XII L9478 — "proforma/factură/eFactura timeline"
  * Workers: G39-G45 (Oblio), H46-H50 (eFactura SPV)
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { api } from "@/lib/api.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { SBadge } from "@/components/ui/badge.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
@@ -51,86 +53,119 @@ interface FiscalDocument {
   oblioId: string;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+type OblioDocRow = {
+  id: string;
+  documentType?: string | null;
+  series?: string | null;
+  number?: number | null;
+  oblioId?: string | null;
+  status?: string | null;
+  subtotal?: string | null;
+  vat?: string | null;
+  total?: string | null;
+  issuedAt?: string | null;
+  createdAt?: string | null;
+};
 
-const MOCK_DOCS: FiscalDocument[] = [
-  {
-    id: "d-001",
-    series: "CERN",
-    number: "000123",
-    type: "PROFORMA",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    issueDate: "2026-04-01",
-    dueDate: "2026-04-08",
-    amount: 19664.71,
-    vat: 3736.29,
-    total: 23401,
-    oblioStatus: "CREATED",
-    spvStatus: "NOT_SENT",
-    spvDeadline: "N/A",
-    daysToDeadline: 0,
-    hashChain: "sha256:a3f8c2d9e1b4f7a2...",
-    oblioId: "OBL-2026-0123",
-  },
-  {
-    id: "d-002",
-    series: "CERN",
-    number: "000124",
-    type: "INVOICE",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    issueDate: "2026-03-28",
-    dueDate: "2026-04-27",
-    amount: 10084.03,
-    vat: 1915.97,
-    total: 12000,
-    oblioStatus: "CREATED",
-    spvStatus: "VALIDATED",
-    spvDeadline: "2026-04-02",
-    daysToDeadline: -1,
-    hashChain: "sha256:b7d4e1f9c2a8b3e6...",
-    oblioId: "OBL-2026-0124",
-  },
-  {
-    id: "d-003",
-    series: "CERN",
-    number: "000125",
-    type: "INVOICE",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    issueDate: "2026-03-30",
-    dueDate: "2026-04-29",
-    amount: 6890.76,
-    vat: 1309.24,
-    total: 8200,
-    oblioStatus: "CREATED",
-    spvStatus: "SENDING",
-    spvDeadline: "2026-04-04",
-    daysToDeadline: 1,
-    hashChain: "sha256:c9e2a4f1d7b5c3a8...",
-    oblioId: "OBL-2026-0125",
-  },
-  {
-    id: "d-004",
-    series: "CERN",
-    number: "000120",
-    type: "INVOICE",
-    company: "SC Ferma Dunărea SA",
-    cui: "99887766",
-    issueDate: "2026-03-25",
-    dueDate: "2026-04-24",
-    amount: 37815.13,
-    vat: 7184.87,
-    total: 45000,
-    oblioStatus: "PAID",
-    spvStatus: "OVERDUE",
-    spvDeadline: "2026-03-30",
-    daysToDeadline: -4,
-    hashChain: "sha256:d2f7b9e4a1c6d3f0...",
-    oblioId: "OBL-2026-0120",
-  },
-];
+type EinvoiceRow = {
+  oblioDocumentId?: string | null;
+  status?: string | null;
+  indexSpv?: string | null;
+  deadlineAt?: string | null;
+  submittedAt?: string | null;
+  validatedAt?: string | null;
+};
+
+function parseNum(v: string | null | undefined): number {
+  if (v == null || v === "") return 0;
+  const n = Number.parseFloat(String(v));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return d.toLocaleDateString("ro-RO");
+}
+
+function mapEinvoiceToSpv(sub: EinvoiceRow | undefined): SPVStatus {
+  if (!sub?.status) return "NOT_SENT";
+  const s = sub.status.toUpperCase();
+  if (s === "VALIDATED") return "VALIDATED";
+  if (s === "REJECTED") return "REJECTED";
+  if (s === "ERROR") return "ERROR";
+  if (s === "PENDING" || s === "SENDING" || s === "SENT" || s === "PROCESSING") return "SENDING";
+  return "NOT_SENT";
+}
+
+function daysUntil(iso: string | null | undefined): number {
+  if (!iso) return 999;
+  const end = new Date(iso).getTime();
+  if (Number.isNaN(end)) return 999;
+  const start = Date.now();
+  return Math.ceil((end - start) / 86400000);
+}
+
+function buildFiscalDocuments(
+  oblioRows: OblioDocRow[],
+  einvoiceByDocId: Map<string, EinvoiceRow>,
+): FiscalDocument[] {
+  return oblioRows.map((doc) => {
+    const sub = einvoiceByDocId.get(doc.id);
+    const spvStatus = mapEinvoiceToSpv(sub);
+    const deadlineRaw = sub?.deadlineAt ?? null;
+    const spvDeadline = deadlineRaw ? fmtDate(deadlineRaw) : "N/A";
+    let daysToDeadline = deadlineRaw ? daysUntil(deadlineRaw) : 999;
+    if (spvStatus === "VALIDATED") daysToDeadline = 999;
+    if (spvStatus === "NOT_SENT" && doc.documentType === "PROFORMA") daysToDeadline = 999;
+
+    const oblioSt = (doc.status ?? "PENDING").toUpperCase();
+    const oblioStatus: OblioStatus =
+      oblioSt === "PAID" ||
+      oblioSt === "CREATED" ||
+      oblioSt === "PENDING" ||
+      oblioSt === "CANCELLED"
+        ? (oblioSt as OblioStatus)
+        : "PENDING";
+
+    const docType = (doc.documentType ?? "PROFORMA").toUpperCase();
+    const type: DocumentType =
+      docType === "INVOICE" || docType === "PROFORMA" || docType === "CREDIT_NOTE"
+        ? (docType as DocumentType)
+        : "PROFORMA";
+
+    let displaySpv = spvStatus;
+    if (
+      type === "INVOICE" &&
+      sub?.deadlineAt &&
+      spvStatus !== "VALIDATED" &&
+      daysUntil(sub.deadlineAt) < 0
+    ) {
+      displaySpv = "OVERDUE";
+    }
+
+    return {
+      id: doc.id,
+      series: doc.series?.trim() || "—",
+      number: doc.number != null ? String(doc.number) : "—",
+      type,
+      company: "—",
+      cui: "—",
+      issueDate: fmtDate(doc.issuedAt ?? doc.createdAt),
+      dueDate: fmtDate(sub?.deadlineAt ?? doc.issuedAt ?? doc.createdAt),
+      amount: parseNum(doc.subtotal),
+      vat: parseNum(doc.vat),
+      total: parseNum(doc.total),
+      oblioStatus,
+      spvStatus: displaySpv,
+      spvDeadline,
+      daysToDeadline: displaySpv === "OVERDUE" ? Math.min(daysToDeadline, 0) : daysToDeadline,
+      hashChain: sub?.indexSpv ? `SPV index: ${sub.indexSpv}` : "—",
+      oblioId: doc.oblioId?.trim() || doc.id.slice(0, 8),
+    };
+  });
+}
 
 // ─── Timeline Step Types ──────────────────────────────────────────────────────
 
@@ -274,6 +309,7 @@ function docTimelineSteps(doc: FiscalDocument): TimelineStep[] {
 function spvRisk(doc: FiscalDocument): "none" | "warning" | "critical" {
   if (doc.type === "PROFORMA") return "none";
   if (doc.spvStatus === "VALIDATED") return "none";
+  if (doc.spvStatus === "OVERDUE") return "critical";
   if (doc.daysToDeadline <= 0) return "critical";
   if (doc.daysToDeadline <= 1) return "warning";
   return "none";
@@ -468,16 +504,58 @@ function DocumentRow({ doc }: { readonly doc: FiscalDocument }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function FiscalDocuments() {
-  const overdueCount = MOCK_DOCS.filter((d) => spvRisk(d) === "critical").length;
-  const warningCount = MOCK_DOCS.filter((d) => spvRisk(d) === "warning").length;
-  const validatedCount = MOCK_DOCS.filter((d) => d.spvStatus === "VALIDATED").length;
+  const oblioQuery = useQuery({
+    queryKey: ["fiscal", "oblio-documents"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: OblioDocRow[] }>(
+        "/api/v1/fiscal/oblio/documents?page=1&limit=100",
+      ),
+  });
+
+  const einvoiceQuery = useQuery({
+    queryKey: ["fiscal", "einvoice-submissions"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: EinvoiceRow[] }>(
+        "/api/v1/fiscal/einvoice/submissions?page=1&limit=200",
+      ),
+  });
+
+  const docs = useMemo(() => {
+    const rows = oblioQuery.data?.data ?? [];
+    const subs = einvoiceQuery.data?.data ?? [];
+    const byDoc = new Map<string, EinvoiceRow>();
+    for (const s of subs) {
+      const oid = s.oblioDocumentId;
+      if (oid) byDoc.set(oid, s);
+    }
+    return buildFiscalDocuments(rows, byDoc);
+  }, [oblioQuery.data, einvoiceQuery.data]);
+
+  const overdueCount = docs.filter((d) => spvRisk(d) === "critical").length;
+  const warningCount = docs.filter((d) => spvRisk(d) === "warning").length;
+  const validatedCount = docs.filter((d) => d.spvStatus === "VALIDATED").length;
+
+  const err =
+    oblioQuery.error instanceof Error
+      ? oblioQuery.error.message
+      : einvoiceQuery.error instanceof Error
+        ? einvoiceQuery.error.message
+        : null;
 
   return (
     <PageWrapper title="Documente Fiscale" actions={<EtapaBadge label="Etapa 3" />}>
+      {err ? (
+        <p className="text-sm text-er mb-4" role="alert">
+          {err}
+        </p>
+      ) : null}
+      {oblioQuery.isLoading || einvoiceQuery.isLoading ? (
+        <p className="text-sm text-t3 mb-4">Se încarcă documentele fiscale…</p>
+      ) : null}
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         <KpiCard
           label="Total Documente"
-          value={String(MOCK_DOCS.length)}
+          value={String(docs.length)}
           icon="FileText"
           color="var(--color-b5)"
         />
@@ -528,7 +606,12 @@ export function FiscalDocuments() {
           <CardTitle>Timeline Documente Fiscale</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
-          {[...MOCK_DOCS]
+          {!oblioQuery.isLoading && !einvoiceQuery.isLoading && docs.length === 0 ? (
+            <div className="p-4 text-sm text-t3">
+              Nu există documente Oblio pentru acest tenant.
+            </div>
+          ) : null}
+          {[...docs]
             .sort((a, b) => {
               const riskOrder = { critical: 0, warning: 1, none: 2 };
               return riskOrder[spvRisk(a)] - riskOrder[spvRisk(b)];

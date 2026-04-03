@@ -1,118 +1,124 @@
-import { useState, useRef } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Button, Card, CardBody, Input } from "@/components/ui/index.js";
 import { ChatMessage } from "@/components/data/ChatMessage.js";
 import { SBadge } from "@/components/ui/badge.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { cn } from "@/lib/utils.js";
+import { api } from "@/lib/api.js";
+import { toast } from "sonner";
 
-const MOCK_NEGOTIATIONS = [
-  { id: "1", company: "SC AgroSud SRL", status: "NEGOTIATION", value: "EUR 23K" },
-  { id: "2", company: "Cooperativa Agriland", status: "PROPOSAL", value: "EUR 12K" },
-  { id: "3", company: "OUAI Ialomita Nord", status: "CLOSING", value: "EUR 8K" },
-  { id: "4", company: "SC Ferma Dunarea SA", status: "DISCOVERY", value: "EUR 45K" },
-];
-
-const BASE_MESSAGES: Record<
-  string,
-  Array<{ type: "outgoing" | "incoming" | "ai" | "system"; content: string; timestamp?: string }>
-> = {
-  "1": [
-    { type: "outgoing", content: "Bună, am trimis oferta.", timestamp: "10:32" },
-    { type: "incoming", content: "Mulțumesc, o analizez.", timestamp: "10:45" },
-    {
-      type: "ai",
-      content: "✦ Sugestie: menționează livrare în 48h și discount sezonier.",
-      timestamp: "10:46",
-    },
-  ],
-  "2": [
-    {
-      type: "ai",
-      content: "✦ Lead calificat: scor 8.2/10. Ofertă standard recomandată.",
-      timestamp: "09:00",
-    },
-    {
-      type: "outgoing",
-      content: "Bună ziua! Vă trimitem oferta pentru sezonul 2026.",
-      timestamp: "09:02",
-    },
-    { type: "incoming", content: "Mulțumesc, analizăm.", timestamp: "09:30" },
-  ],
-  "3": [
-    { type: "incoming", content: "Confirmăm comanda conform ultimei oferte.", timestamp: "14:00" },
-    {
-      type: "ai",
-      content: "✦ Toate guardrailele PASS. Tranziție FSM → PROFORMA_SENT.",
-      timestamp: "14:00",
-    },
-  ],
-  "4": [
-    {
-      type: "ai",
-      content: "✦ Lead nou. Profil Gold complet. Context window inițializat.",
-      timestamp: "15:00",
-    },
-    { type: "outgoing", content: "Bună ziua! Mulțumim pentru interes.", timestamp: "15:01" },
-  ],
+type NegotiationRow = {
+  id: string;
+  currentState?: string;
+  companyName?: string | null;
+  totalValue?: string | number | null;
+  leadId?: string;
 };
 
-const AI_REPLIES = [
-  "✦ Am recepționat mesajul. Analizez contextul și istoricul clientului...",
-  "✦ Recomand o abordare consultativă. Limita discount aprobat automat: 15%.",
-  "✦ Guardrail M71 verificat: prețul propus este în parametri.",
-  "✦ Context actualizat. Propun tranziție FSM la etapa următoare.",
-  "✦ Am identificat pattern sezonier. Recomand bundle Sezon 2026.",
-];
+type ListResponse = {
+  success?: boolean;
+  data?: NegotiationRow[];
+  meta?: { total?: number; page?: number; limit?: number; pages?: number };
+};
+
+type AiMessageRow = {
+  id?: string;
+  role?: string;
+  content?: string | null;
+  createdAt?: string;
+};
+
+type MessagesResponse = {
+  success?: boolean;
+  data?: AiMessageRow[];
+};
+
+function formatMoney(v: string | number | null | undefined): string {
+  if (v == null || v === "") return "—";
+  const n = typeof v === "number" ? v : Number.parseFloat(String(v));
+  if (!Number.isFinite(n)) return String(v);
+  return `RON ${n.toLocaleString("ro-RO", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function mapMessageRole(role: string | undefined): "outgoing" | "incoming" | "ai" | "system" {
+  const r = (role ?? "").toLowerCase();
+  if (r === "assistant" || r === "ai" || r === "model") return "ai";
+  if (r === "user" || r === "human") return "outgoing";
+  if (r === "system" || r === "tool") return "system";
+  return "incoming";
+}
 
 export function Negotiations() {
   const [selected, setSelected] = useState<string | null>(null);
-  const [extra, setExtra] = useState<Record<string, (typeof BASE_MESSAGES)["1"]>>({});
   const [input, setInput] = useState("");
-  const aiIdxRef = useRef(0);
 
-  const msgs = selected ? [...(BASE_MESSAGES[selected] ?? []), ...(extra[selected] ?? [])] : [];
+  const listQuery = useQuery({
+    queryKey: ["negotiation", "list"],
+    queryFn: () => api.get<ListResponse>("/api/v1/negotiation?page=1&limit=100"),
+  });
+
+  const negotiations = listQuery.data?.data ?? [];
+
+  const messagesQuery = useQuery({
+    queryKey: ["negotiation", "messages", selected],
+    queryFn: () => api.get<MessagesResponse>(`/api/v1/negotiation/${selected}/messages?limit=80`),
+    enabled: Boolean(selected),
+  });
+
+  const msgs = useMemo(() => {
+    const raw = messagesQuery.data?.data ?? [];
+    return raw.map((m) => ({
+      type: mapMessageRole(m.role),
+      content: m.content ?? "",
+      timestamp: m.createdAt
+        ? new Date(m.createdAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
+        : undefined,
+    }));
+  }, [messagesQuery.data]);
 
   function handleSend() {
     const text = input.trim();
     if (!text || !selected) return;
-    const now = new Date();
-    const ts = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    setExtra((prev) => ({
-      ...prev,
-      [selected]: [
-        ...(prev[selected] ?? []),
-        { type: "outgoing", content: text, timestamp: ts },
-        {
-          type: "ai",
-          content: AI_REPLIES[aiIdxRef.current % AI_REPLIES.length] ?? AI_REPLIES[0] ?? "",
-          timestamp: ts,
-        },
-      ],
-    }));
-    aiIdxRef.current += 1;
+    toast.info(
+      "Trimiterea mesajelor din UI nu are încă endpoint POST pe API — folosiți workerii/canalul configurat sau extindeți negotiation routes.",
+    );
     setInput("");
   }
 
+  const err = listQuery.error instanceof Error ? listQuery.error.message : null;
+
   return (
     <PageWrapper title="Negotiations" actions={<EtapaBadge label="Etapa 3" />}>
+      {err ? (
+        <p className="text-sm text-er mb-4" role="alert">
+          {err}
+        </p>
+      ) : null}
       <div className="flex min-h-100 gap-4">
         <div className={cn("w-80 shrink-0 space-y-2", selected && "max-[768px]:hidden")}>
-          {MOCK_NEGOTIATIONS.map((n) => (
-            <Card
-              key={n.id}
-              className={cn("cursor-pointer", selected === n.id && "border-b5")}
-              onClick={() => setSelected(n.id)}
-            >
-              <CardBody className="py-3">
-                <div className="font-medium text-t1">{n.company}</div>
-                <div className="flex justify-between items-center mt-1">
-                  <SBadge status={n.status} />
-                  <span className="text-xs text-t3">{n.value}</span>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
+          {listQuery.isLoading ? (
+            <p className="text-sm text-t3">Se încarcă negocierile…</p>
+          ) : negotiations.length === 0 ? (
+            <p className="text-sm text-t3">Nicio negociere în tenant.</p>
+          ) : (
+            negotiations.map((n) => (
+              <Card
+                key={n.id}
+                className={cn("cursor-pointer", selected === n.id && "border-b5")}
+                onClick={() => setSelected(n.id)}
+              >
+                <CardBody className="py-3">
+                  <div className="font-medium text-t1">{n.companyName ?? n.leadId ?? n.id}</div>
+                  <div className="flex justify-between items-center mt-1">
+                    <SBadge status={n.currentState ?? "DISCOVERY"} />
+                    <span className="text-xs text-t3">{formatMoney(n.totalValue)}</span>
+                  </div>
+                </CardBody>
+              </Card>
+            ))
+          )}
         </div>
 
         <div className={cn("flex-1 min-w-0", !selected && "max-[768px]:hidden")}>
@@ -128,17 +134,25 @@ export function Negotiations() {
                   ← Back
                 </Button>
                 <div className="mb-4 flex-1 space-y-3 overflow-y-auto max-h-96">
-                  {msgs.map((m, i) => (
-                    <ChatMessage key={`${m.type}-${i}`} type={m.type} timestamp={m.timestamp}>
-                      {m.content}
-                    </ChatMessage>
-                  ))}
+                  {messagesQuery.isLoading ? (
+                    <p className="text-xs text-t3">Se încarcă mesajele…</p>
+                  ) : msgs.length === 0 ? (
+                    <p className="text-xs text-t3">
+                      Niciun mesaj în conversațiile AI pentru această negociere.
+                    </p>
+                  ) : (
+                    msgs.map((m, i) => (
+                      <ChatMessage key={`${m.type}-${i}`} type={m.type} timestamp={m.timestamp}>
+                        {m.content}
+                      </ChatMessage>
+                    ))
+                  )}
                 </div>
                 <div className="flex gap-2 mt-auto">
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Scrie mesajul sau comandă AI..."
+                    placeholder="Mesaj (UI — așteaptă endpoint POST pe API)"
                     className="flex-1"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && input.trim()) handleSend();

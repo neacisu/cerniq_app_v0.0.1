@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { api } from "@/lib/api.js";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { StatusDot } from "@/components/data/StatusDot.js";
@@ -21,6 +23,7 @@ interface GuardType {
 }
 
 interface AuditEntry {
+  id?: string;
   time: string;
   guardCode: string;
   guard: string;
@@ -36,99 +39,98 @@ const GUARD_TYPES: GuardType[] = [
     name: "Price Guard",
     description: "Prețul propus ≥ gold_products.unit_price. Discount max 15% fără HITL.",
     status: "ok",
-    passCount: 1243,
-    blockedCount: 3,
+    passCount: 0,
+    blockedCount: 0,
   },
   {
     code: "M72",
     name: "Stock Guard",
     description: "Cantitate ≤ get_available_stock(sku). Blocare automată la stoc insuficient.",
     status: "ok",
-    passCount: 987,
-    blockedCount: 12,
+    passCount: 0,
+    blockedCount: 0,
   },
   {
     code: "M73",
     name: "Discount Guard",
     description: "Discount >15% → HITL escalare SLA 4h. Discount >30% → blocare automată.",
     status: "warning",
-    passCount: 445,
-    blockedCount: 28,
+    passCount: 0,
+    blockedCount: 0,
   },
   {
     code: "M74",
     name: "SKU Guard",
     description: "SKU validat în gold_products. Coduri inexistente blocate automat.",
     status: "ok",
-    passCount: 2341,
-    blockedCount: 7,
+    passCount: 0,
+    blockedCount: 0,
   },
   {
     code: "M75",
     name: "Fiscal Guard",
     description: "CUI validat modulo-11 + TVA 19% corect + totaluri consistente.",
     status: "ok",
-    passCount: 876,
-    blockedCount: 2,
+    passCount: 0,
+    blockedCount: 0,
   },
 ];
 
-const MOCK_AUDIT: AuditEntry[] = [
-  {
-    time: "14:32:01",
-    guardCode: "M71",
-    guard: "Price Guard",
-    input: "Semințe Grâu × 40 — RON 5.800",
-    result: "PASS",
-    action: "Permis",
-    detail: "Preț unit: 145 RON ≥ floor 140 RON. Discount 0%.",
-  },
-  {
-    time: "14:31:58",
-    guardCode: "M72",
-    guard: "Stock Guard",
-    input: "SKU-NPK-50 × 200 saci",
-    result: "BLOCKED",
-    action: "Respins",
-    detail: "Stoc disponibil: 150 saci. Depășire cu 50 unități.",
-  },
-  {
-    time: "14:30:12",
-    guardCode: "M73",
-    guard: "Discount Guard",
-    input: "Discount 22% propus de agent",
-    result: "WARN",
-    action: "HITL Escalare",
-    detail: "Discount 22% > 15%. Escalare la manager cont. SLA: 4h.",
-  },
-  {
-    time: "14:28:45",
-    guardCode: "M75",
-    guard: "Fiscal Guard",
-    input: "CUI: 12345678, TVA 19%",
-    result: "PASS",
-    action: "Permis",
-    detail: "CUI valid modulo-11. TVA 19% corect. Totaluri OK.",
-  },
-  {
-    time: "14:25:00",
-    guardCode: "M71",
-    guard: "Price Guard",
-    input: "Preț propus: RON -10",
-    result: "BLOCKED",
-    action: "Respins",
-    detail: "Preț negativ detectat. Tentativă hallucination blocată.",
-  },
-  {
-    time: "14:20:33",
-    guardCode: "M74",
-    guard: "SKU Guard",
-    input: "SKU-INVALID-999",
-    result: "BLOCKED",
-    action: "Respins",
-    detail: "SKU inexistent în gold_products. Hallucination blocată.",
-  },
-];
+type ViolationApiRow = {
+  id?: string;
+  violationType?: string | null;
+  severity?: string | null;
+  details?: Record<string, unknown> | null;
+  createdAt?: string;
+};
+
+function violationTypeToCode(t: string | undefined | null): string {
+  const x = (t ?? "").toLowerCase();
+  if (x === "price") return "M71";
+  if (x === "stock") return "M72";
+  if (x === "discount") return "M73";
+  if (x === "sku") return "M74";
+  if (x === "fiscal") return "M75";
+  return "M73";
+}
+
+function codeToGuardName(code: string): string {
+  const g = GUARD_TYPES.find((x) => x.code === code);
+  return g?.name ?? code;
+}
+
+function mapViolationToAudit(row: ViolationApiRow): AuditEntry {
+  const code = violationTypeToCode(row.violationType);
+  const det = row.details;
+  let inputStr = "—";
+  let detailStr = "—";
+  if (det && typeof det === "object") {
+    if (typeof det.violation === "string") detailStr = det.violation;
+    else detailStr = JSON.stringify(det).slice(0, 500);
+    inputStr =
+      typeof det.response === "string"
+        ? det.response.slice(0, 200)
+        : JSON.stringify(det).slice(0, 200);
+  }
+  const sev = (row.severity ?? "").toUpperCase();
+  const result: AuditResult = sev === "LOW" || sev === "MEDIUM" ? "WARN" : "BLOCKED";
+  return {
+    id: row.id,
+    time: row.createdAt
+      ? new Date(row.createdAt).toLocaleString("ro-RO", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : "—",
+    guardCode: code,
+    guard: codeToGuardName(code),
+    input: inputStr,
+    result,
+    action: result === "WARN" ? "Atenție / HITL" : "Respins",
+    detail: detailStr,
+  };
+}
 
 const resultIcon = { PASS: ShieldCheck, BLOCKED: ShieldX, WARN: ShieldAlert };
 const resultColor = {
@@ -261,12 +263,59 @@ function AuditDetailDrawer({
 export function Guardrails() {
   const [selectedAudit, setSelectedAudit] = useState<AuditEntry | null>(null);
 
-  const totalPass = GUARD_TYPES.reduce((s, g) => s + g.passCount, 0);
-  const totalBlocked = GUARD_TYPES.reduce((s, g) => s + g.blockedCount, 0);
-  const blockRate = ((totalBlocked / (totalPass + totalBlocked)) * 100).toFixed(1);
+  const violationsQuery = useQuery({
+    queryKey: ["negotiation", "guardrails", "tenant"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: ViolationApiRow[] }>(
+        "/api/v1/negotiation/guardrails?limit=100",
+      ),
+  });
+
+  const auditRows = useMemo(() => {
+    const raw = violationsQuery.data?.data ?? [];
+    return raw.map(mapViolationToAudit);
+  }, [violationsQuery.data]);
+
+  const guardCards = useMemo(() => {
+    const byCode: Record<string, { pass: number; blocked: number; status: GuardStatus }> = {};
+    for (const g of GUARD_TYPES) {
+      byCode[g.code] = { pass: 0, blocked: 0, status: "ok" };
+    }
+    for (const r of auditRows) {
+      const code = r.guardCode;
+      if (!byCode[code]) continue;
+      if (r.result === "PASS") byCode[code].pass += 1;
+      else {
+        byCode[code].blocked += 1;
+        if (r.result === "WARN") byCode[code].status = "warning";
+        else byCode[code].status = "error";
+      }
+    }
+    return GUARD_TYPES.map((g) => ({
+      ...g,
+      passCount: byCode[g.code]?.pass ?? 0,
+      blockedCount: byCode[g.code]?.blocked ?? 0,
+      status: (byCode[g.code]?.status ?? g.status) as GuardStatus,
+    }));
+  }, [auditRows]);
+
+  const totalPass = guardCards.reduce((s, g) => s + g.passCount, 0);
+  const totalBlocked = guardCards.reduce((s, g) => s + g.blockedCount, 0);
+  const blockRateDenom = totalPass + totalBlocked;
+  const blockRate = blockRateDenom > 0 ? ((totalBlocked / blockRateDenom) * 100).toFixed(1) : "0.0";
+
+  const err = violationsQuery.error instanceof Error ? violationsQuery.error.message : null;
 
   return (
     <PageWrapper title="Anti-Hallucination Guardrails" actions={<EtapaBadge label="Etapa 3" />}>
+      {err ? (
+        <p className="text-sm text-er mb-4" role="alert">
+          {err}
+        </p>
+      ) : null}
+      {violationsQuery.isLoading ? (
+        <p className="text-sm text-t3 mb-4">Se încarcă violările din API…</p>
+      ) : null}
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         <div
           style={{
@@ -400,7 +449,7 @@ export function Guardrails() {
 
       {/* Guard status cards */}
       <div className="grid grid-cols-5 gap-3 mb-6 max-[900px]:grid-cols-3">
-        {GUARD_TYPES.map((g) => (
+        {guardCards.map((g) => (
           <Card key={g.code} className="p-3">
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <StatusDot status={g.status} />
@@ -451,11 +500,18 @@ export function Guardrails() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_AUDIT.map((r) => {
+              {!violationsQuery.isLoading && auditRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-t3 text-sm">
+                    Nu există violări înregistrate în `guardrail_violations` pentru acest tenant.
+                  </td>
+                </tr>
+              ) : null}
+              {auditRows.map((r) => {
                 const Icon = resultIcon[r.result];
                 return (
                   <tr
-                    key={`${r.time}-${r.guardCode}`}
+                    key={r.id ?? `${r.time}-${r.guardCode}-${r.input.slice(0, 20)}`}
                     onClick={() => setSelectedAudit(r)}
                     className="border-b border-s800 hover:bg-s800/50 cursor-pointer"
                   >

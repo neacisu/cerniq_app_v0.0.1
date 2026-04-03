@@ -1,12 +1,8 @@
 /**
- * ProductCatalog — E3 Product Knowledge Base
- *
- * Hybrid search: vector (qwen3-embedding-8b 4096-dim) + BM25 (Romanian tsvector) + RRF fusion
- * Embedding status: per produs (current / indexing / stale / error)
- * Plan: §XII L9477 — "hybrid search + embeddings status"
- * Workers: A1-A6 (product knowledge), B7-B12 (hybrid search)
+ * ProductCatalog — E3 Product Knowledge Base (date din API)
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Input } from "@/components/ui/input.js";
@@ -14,141 +10,47 @@ import { SBadge } from "@/components/ui/badge.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { Search, Package, Cpu, AlertTriangle, CheckCircle2, Clock, Filter } from "lucide-react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { api, ApiError } from "@/lib/api.js";
+import { toast } from "sonner";
 
 type EmbeddingStatus = "CURRENT" | "INDEXING" | "STALE" | "ERROR";
 type ProductStatus = "ACTIVE" | "DRAFT" | "DISCONTINUED" | "OUT_OF_STOCK";
 type SearchMode = "hybrid" | "vector" | "bm25";
 
-interface Product {
+type ApiProductRow = {
   id: string;
-  sku: string;
+  sku: string | null;
   name: string;
-  category: string;
-  unitPrice: number;
-  stock: number;
-  status: ProductStatus;
-  embeddingStatus: EmbeddingStatus;
-  embeddingDim: number;
-  chunkCount: number;
-  lastIndexed: string;
-  maxDiscount: number;
-  score?: number;
-}
+  categoryName?: string | null;
+  unitPrice?: string | number | null;
+  currency?: string;
+  isActive?: boolean;
+  stockAvailable?: number;
+  chunkCount?: number;
+  hasEmbedding?: boolean;
+  metadata?: Record<string, unknown>;
+};
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+type CategoryRow = { id: string; name: string };
 
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "p-001",
-    sku: "SEM-GR-2026-001",
-    name: "Semințe Grâu PREMIUM Sorin F1",
-    category: "Semințe / Grâu",
-    unitPrice: 280,
-    stock: 1240,
-    status: "ACTIVE",
-    embeddingStatus: "CURRENT",
-    embeddingDim: 4096,
-    chunkCount: 8,
-    lastIndexed: "2026-04-01T08:30:00Z",
-    maxDiscount: 15,
-    score: 0.94,
-  },
-  {
-    id: "p-002",
-    sku: "SEM-FL-2026-002",
-    name: "Semințe Floarea-Soarelui HiSun X12",
-    category: "Semințe / Floarea-Soarelui",
-    unitPrice: 320,
-    stock: 890,
-    status: "ACTIVE",
-    embeddingStatus: "CURRENT",
-    embeddingDim: 4096,
-    chunkCount: 6,
-    lastIndexed: "2026-04-01T08:30:00Z",
-    maxDiscount: 12,
-    score: 0.87,
-  },
-  {
-    id: "p-003",
-    sku: "FER-NPK-2026-003",
-    name: "Îngrășământ NPK 15-15-15 Complex",
-    category: "Îngrășăminte / NPK",
-    unitPrice: 95,
-    stock: 3200,
-    status: "ACTIVE",
-    embeddingStatus: "INDEXING",
-    embeddingDim: 4096,
-    chunkCount: 0,
-    lastIndexed: "în curs...",
-    maxDiscount: 20,
-    score: 0.73,
-  },
-  {
-    id: "p-004",
-    sku: "PEST-FUN-2026-004",
-    name: "Fungicid Topsin M 70 WP",
-    category: "Pesticide / Fungicide",
-    unitPrice: 185,
-    stock: 0,
-    status: "OUT_OF_STOCK",
-    embeddingStatus: "STALE",
-    embeddingDim: 4096,
-    chunkCount: 5,
-    lastIndexed: "2026-02-15T10:00:00Z",
-    maxDiscount: 10,
-    score: 0.61,
-  },
-  {
-    id: "p-005",
-    sku: "SEM-PB-2026-005",
-    name: "Semințe Porumb Daciana 350 FAO",
-    category: "Semințe / Porumb",
-    unitPrice: 420,
-    stock: 560,
-    status: "ACTIVE",
-    embeddingStatus: "ERROR",
-    embeddingDim: 0,
-    chunkCount: 0,
-    lastIndexed: "EROARE",
-    maxDiscount: 18,
-    score: undefined,
-  },
-  {
-    id: "p-006",
-    sku: "FER-UREA-2026-006",
-    name: "Uree Granulată 46% Azot",
-    category: "Îngrășăminte / Azotoase",
-    unitPrice: 78,
-    stock: 5400,
-    status: "ACTIVE",
-    embeddingStatus: "CURRENT",
-    embeddingDim: 4096,
-    chunkCount: 4,
-    lastIndexed: "2026-04-02T14:00:00Z",
-    maxDiscount: 25,
-    score: 0.68,
-  },
-];
+type ProductsListResponse = {
+  success?: boolean;
+  data?: ApiProductRow[];
+  meta?: { page?: number; limit?: number; total?: number; pages?: number };
+};
 
-// ─── Pure helpers (Sonar: fără ternare imbricate; logică reutilizabilă / testabilă) ─
+type StatsResponse = {
+  success?: boolean;
+  data?: {
+    products?: { total?: number; active?: number; withEmbeddings?: number };
+    inventory?: { totalSkus?: number; totalStock?: number; reserved?: number };
+  };
+};
 
 function searchModeButtonLabel(m: SearchMode): string {
   if (m === "hybrid") return "Hybrid (RRF)";
   if (m === "vector") return "Vector";
   return "BM25";
-}
-
-function adjustedScoreForMode(
-  mode: SearchMode,
-  vectorScore: number,
-  bm25Score: number,
-  hybridScore: number,
-): number {
-  if (mode === "vector") return vectorScore;
-  if (mode === "bm25") return bm25Score;
-  return hybridScore;
 }
 
 function searchModeSummaryLabel(mode: SearchMode): string {
@@ -169,7 +71,33 @@ function scoreDisplayColor(score: number): string {
   return "var(--color-t3)";
 }
 
-// ─── Embedding Status Badge ────────────────────────────────────────────────────
+function parseUnitPrice(v: string | number | null | undefined): number {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  const n = Number.parseFloat(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function rowToStatus(row: ApiProductRow): ProductStatus {
+  if (row.isActive === false) return "DISCONTINUED";
+  const stock = row.stockAvailable ?? 0;
+  if (stock <= 0) return "OUT_OF_STOCK";
+  return "ACTIVE";
+}
+
+function rowToEmbedding(row: ApiProductRow): { status: EmbeddingStatus; dim: number } {
+  const chunks = row.chunkCount ?? 0;
+  if (row.hasEmbedding) return { status: "CURRENT", dim: 3072 };
+  if (chunks > 0) return { status: "STALE", dim: 0 };
+  return { status: "INDEXING", dim: 0 };
+}
+
+function maxDiscountFromMetadata(meta: Record<string, unknown> | undefined): number | null {
+  if (!meta) return null;
+  const v = meta.maxDiscount ?? meta.max_discount;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  return null;
+}
 
 interface EmbeddingBadgeProps {
   readonly status: EmbeddingStatus;
@@ -178,7 +106,7 @@ interface EmbeddingBadgeProps {
 
 function EmbeddingBadge({ status, dim }: EmbeddingBadgeProps) {
   const config = {
-    CURRENT: { color: "var(--color-ok)", icon: CheckCircle2, label: `✓ ${dim}d` },
+    CURRENT: { color: "var(--color-ok)", icon: CheckCircle2, label: dim > 0 ? `✓ ${dim}d` : "✓" },
     INDEXING: { color: "var(--color-wa)", icon: Cpu, label: "indexing..." },
     STALE: { color: "var(--color-wa)", icon: Clock, label: "stale" },
     ERROR: { color: "var(--color-er)", icon: AlertTriangle, label: "ERR" },
@@ -208,8 +136,6 @@ function EmbeddingBadge({ status, dim }: EmbeddingBadgeProps) {
   );
 }
 
-// ─── Search Mode Toggle ───────────────────────────────────────────────────────
-
 interface SearchModeToggleProps {
   readonly mode: SearchMode;
   readonly onChange: (m: SearchMode) => void;
@@ -229,6 +155,7 @@ function SearchModeToggle({ mode, onChange }: SearchModeToggleProps) {
       {(["hybrid", "vector", "bm25"] as SearchMode[]).map((m) => (
         <button
           key={m}
+          type="button"
           onClick={() => onChange(m)}
           style={{
             padding: "4px 10px",
@@ -248,52 +175,148 @@ function SearchModeToggle({ mode, onChange }: SearchModeToggleProps) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 50;
 
 export function ProductCatalog() {
-  const [query, setQuery] = useState("");
+  const [queryInput, setQueryInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("hybrid");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
-  const categories = [
-    "all",
-    ...Array.from(new Set(MOCK_PRODUCTS.map((p) => p.category.split("/")[0].trim()))),
-  ];
+  const categoriesQuery = useQuery({
+    queryKey: ["products", "categories"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: CategoryRow[] }>("/api/v1/products/categories"),
+  });
 
-  const filtered = MOCK_PRODUCTS.filter((p) => {
-    const matchQuery =
-      !query ||
-      p.name.toLowerCase().includes(query.toLowerCase()) ||
-      p.sku.toLowerCase().includes(query.toLowerCase());
-    const matchCat = categoryFilter === "all" || p.category.startsWith(categoryFilter);
-    const matchStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchQuery && matchCat && matchStatus;
-  })
-    .map((p) => {
-      // Simulare scoring diferențiat per mod (mock — demonstrează logica RRF/vector/BM25)
-      if (!query || p.score === undefined) return p;
-      const vectorScore = p.score;
-      // BM25 favorizează match exact la termen întreg (token = cuvânt din nume)
-      const q = query.toLowerCase();
-      const termInName = p.name.toLowerCase().split(" ").includes(q);
-      const bm25Score = termInName ? Math.min(1, p.score + 0.08) : Math.max(0, p.score - 0.05);
-      const hybridScore = 0.6 * vectorScore + 0.4 * bm25Score;
-      const adjustedScore = adjustedScoreForMode(searchMode, vectorScore, bm25Score, hybridScore);
-      return { ...p, score: Number.parseFloat(adjustedScore.toFixed(3)) };
-    })
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const statsQuery = useQuery({
+    queryKey: ["products", "stats"],
+    queryFn: () => api.get<StatsResponse>("/api/v1/products/stats"),
+  });
 
-  const embeddingStats = {
-    current: MOCK_PRODUCTS.filter((p) => p.embeddingStatus === "CURRENT").length,
-    indexing: MOCK_PRODUCTS.filter((p) => p.embeddingStatus === "INDEXING").length,
-    errors: MOCK_PRODUCTS.filter((p) => p.embeddingStatus === "ERROR").length,
-    total: MOCK_PRODUCTS.length,
+  const listParams = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("page", String(page));
+    p.set("limit", String(PAGE_SIZE));
+    if (appliedSearch.trim()) p.set("search", appliedSearch.trim());
+    if (categoryFilter !== "all") p.set("categoryId", categoryFilter);
+    if (statusFilter === "ACTIVE") p.set("isActive", "true");
+    if (statusFilter === "DISCONTINUED") p.set("isActive", "false");
+    return p.toString();
+  }, [page, appliedSearch, categoryFilter, statusFilter]);
+
+  const productsQuery = useQuery({
+    queryKey: ["products", "list", listParams],
+    queryFn: () => api.get<ProductsListResponse>(`/api/v1/products?${listParams}`),
+  });
+
+  const categories = useMemo(() => {
+    const raw = categoriesQuery.data?.data ?? [];
+    return [
+      { id: "all", name: "Toate categoriile" },
+      ...raw.map((c) => ({ id: c.id, name: c.name })),
+    ];
+  }, [categoriesQuery.data]);
+
+  const rows = productsQuery.data?.data ?? [];
+  const meta = productsQuery.data?.meta;
+  const total = meta?.total ?? rows.length;
+
+  const embeddingStats = useMemo(() => {
+    const s = statsQuery.data?.data?.products;
+    const inv = statsQuery.data?.data?.inventory;
+    return {
+      total: s?.total ?? 0,
+      current: s?.withEmbeddings ?? 0,
+      indexing: Math.max(0, (s?.total ?? 0) - (s?.withEmbeddings ?? 0)),
+      errors: 0,
+      totalStock: inv?.totalStock ?? 0,
+    };
+  }, [statsQuery.data]);
+
+  const runHybridSearchJob = async () => {
+    const q = queryInput.trim();
+    if (!q) {
+      toast.warning("Introduceți un termen de căutare.");
+      return;
+    }
+    try {
+      await api.post("/api/v1/products/search", {
+        query: q,
+        limit: 20,
+        ...(categoryFilter !== "all" ? { categoryId: categoryFilter } : {}),
+      });
+      toast.success(
+        `Căutare ${searchModeSummaryLabel(searchMode)} în coadă — rezultatele apar după procesare. Folosiți lista sau reîncărcați.`,
+      );
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : "Eroare la trimiterea căutării";
+      toast.error(msg);
+    }
   };
+
+  const applyListSearch = () => {
+    setAppliedSearch(queryInput.trim());
+    setPage(1);
+  };
+
+  const displayRows = useMemo(() => {
+    return rows
+      .map((row) => {
+        const price = parseUnitPrice(row.unitPrice);
+        const stock = row.stockAvailable ?? 0;
+        const status = rowToStatus(row);
+        const { status: embStatus, dim } = rowToEmbedding(row);
+        const discount = maxDiscountFromMetadata(row.metadata);
+        let score: number | undefined;
+        if (appliedSearch.trim()) {
+          const name = row.name.toLowerCase();
+          const term = appliedSearch.toLowerCase();
+          score = name.includes(term) ? 0.85 : 0.55;
+        }
+        return {
+          id: row.id,
+          sku: row.sku ?? "—",
+          name: row.name,
+          category: row.categoryName ?? "—",
+          unitPrice: price,
+          currency: row.currency ?? "RON",
+          stock,
+          status,
+          embeddingStatus: embStatus,
+          embeddingDim: dim,
+          chunkCount: row.chunkCount ?? 0,
+          lastIndexed: "—",
+          maxDiscount: discount,
+          score,
+        };
+      })
+      .filter((r) => {
+        if (
+          statusFilter === "all" ||
+          statusFilter === "ACTIVE" ||
+          statusFilter === "DISCONTINUED"
+        ) {
+          return true;
+        }
+        return r.status === statusFilter;
+      })
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  }, [rows, appliedSearch, statusFilter]);
+
+  const error =
+    productsQuery.error instanceof Error
+      ? productsQuery.error.message
+      : productsQuery.error
+        ? String(productsQuery.error)
+        : null;
+
+  const colCount = appliedSearch ? 9 : 8;
 
   return (
     <PageWrapper title="Catalog Produse" actions={<EtapaBadge label="Etapa 3" />}>
-      {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         <KpiCard
           label="Total SKU-uri"
@@ -302,26 +325,25 @@ export function ProductCatalog() {
           color="var(--color-b5)"
         />
         <KpiCard
-          label="Embeddings OK"
+          label="Cu embeddings"
           value={String(embeddingStats.current)}
           icon="CheckCircle2"
           color="var(--color-ok)"
         />
         <KpiCard
-          label="În Indexare"
+          label="Fără embedding"
           value={String(embeddingStats.indexing)}
           icon="Cpu"
           color="var(--color-wa)"
         />
         <KpiCard
-          label="Erori Index"
-          value={String(embeddingStats.errors)}
+          label="Stoc total (unități)"
+          value={String(embeddingStats.totalStock)}
           icon="AlertTriangle"
-          color="var(--color-er)"
+          color="var(--color-b5)"
         />
       </div>
 
-      {/* Search bar */}
       <Card className="mb-4">
         <CardBody className="py-3 px-4">
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -337,12 +359,29 @@ export function ProductCatalog() {
                 }}
               />
               <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Căutare hibridă: semințe grâu, NPK, fungicid..."
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyListSearch();
+                }}
+                placeholder="Căutare în catalog (server) sau hybrid queue…"
                 style={{ paddingLeft: 32 }}
               />
             </div>
+            <button
+              type="button"
+              className="rounded border border-s700 px-3 py-1 text-xs text-t2 hover:bg-s800"
+              onClick={applyListSearch}
+            >
+              Caută în listă
+            </button>
+            <button
+              type="button"
+              className="rounded border border-s700 px-3 py-1 text-xs text-t2 hover:bg-s800"
+              onClick={() => void runHybridSearchJob()}
+            >
+              Trimite hybrid (coadă)
+            </button>
             <SearchModeToggle mode={searchMode} onChange={setSearchMode} />
             <div
               style={{
@@ -356,7 +395,10 @@ export function ProductCatalog() {
               <Filter size={12} />
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
                 style={{
                   background: "var(--color-s800)",
                   border: "1px solid var(--color-s700)",
@@ -367,14 +409,17 @@ export function ProductCatalog() {
                 }}
               >
                 {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c === "all" ? "Toate categoriile" : c}
+                  <option key={c.id} value={c.id === "all" ? "all" : c.id}>
+                    {c.id === "all" ? "Toate categoriile" : c.name}
                   </option>
                 ))}
               </select>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
                 style={{
                   background: "var(--color-s800)",
                   border: "1px solid var(--color-s700)",
@@ -387,23 +432,32 @@ export function ProductCatalog() {
                 <option value="all">Toate statusurile</option>
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
-                <option value="DRAFT">DRAFT</option>
                 <option value="DISCONTINUED">DISCONTINUED</option>
               </select>
             </div>
-            {query && (
+            {appliedSearch && (
               <div style={{ fontSize: 10, color: "var(--color-t3)" }}>
-                {filtered.length} rezultate • {searchModeSummaryLabel(searchMode)}
+                {displayRows.length} afișate • filtru server + {searchModeSummaryLabel(searchMode)}
               </div>
             )}
           </div>
         </CardBody>
       </Card>
 
-      {/* Products table */}
+      {error && (
+        <p className="text-sm text-er mb-4" role="alert">
+          {error}
+        </p>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Produse ({filtered.length})</CardTitle>
+          <CardTitle>
+            Produse ({displayRows.length} / {total} total)
+            {meta?.pages != null && meta.pages > 1
+              ? ` — pagina ${meta.page ?? page} din ${meta.pages}`
+              : ""}
+          </CardTitle>
         </CardHeader>
         <CardBody className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
@@ -417,94 +471,110 @@ export function ProductCatalog() {
                 <th className="px-4 py-3 text-center font-medium text-t3">Status</th>
                 <th className="px-4 py-3 text-center font-medium text-t3">Embedding</th>
                 <th className="px-4 py-3 text-center font-medium text-t3">Chunks</th>
-                {query && <th className="px-4 py-3 text-right font-medium text-t3">Score</th>}
+                {appliedSearch ? (
+                  <th className="px-4 py-3 text-right font-medium text-t3">Relevanță</th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-s800 hover:bg-s800/50">
-                  <td
-                    className="px-4 py-3"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      color: "var(--color-t3)",
-                    }}
-                  >
-                    {p.sku}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <Package size={14} color="var(--color-neuron-knowledge)" />
-                      <span style={{ fontWeight: 500, color: "var(--color-t1)" }}>{p.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-t3 text-xs">{p.category}</td>
-                  <td className="px-4 py-3 text-right font-mono text-t2">
-                    RON {p.unitPrice.toFixed(2)}
-                    <div style={{ fontSize: 9, color: "var(--color-t4)" }}>
-                      max -{p.maxDiscount}%
-                    </div>
-                  </td>
-                  <td
-                    className="px-4 py-3 text-right font-mono"
-                    style={{ color: stockDisplayColor(p.stock) }}
-                  >
-                    {p.stock.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <SBadge status={p.status} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <EmbeddingBadge status={p.embeddingStatus} dim={p.embeddingDim} />
-                  </td>
-                  <td className="px-4 py-3 text-center text-xs text-t3">{p.chunkCount || "—"}</td>
-                  {query && (
-                    <td className="px-4 py-3 text-right">
-                      {p.score === undefined ? (
-                        <span style={{ color: "var(--color-t4)", fontSize: 10 }}>N/A</span>
-                      ) : (
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 11,
-                            color: scoreDisplayColor(p.score),
-                          }}
-                        >
-                          {p.score.toFixed(2)}
-                        </span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+              {productsQuery.isLoading ? (
                 <tr>
-                  <td colSpan={query ? 9 : 8} className="px-4 py-8 text-center text-t3 text-sm">
-                    Niciun produs găsit pentru „{query}"
+                  <td colSpan={colCount} className="px-4 py-8 text-center text-t3">
+                    Se încarcă…
                   </td>
                 </tr>
+              ) : displayRows.length === 0 ? (
+                <tr>
+                  <td colSpan={colCount} className="px-4 py-8 text-center text-t3">
+                    Niciun produs. Importați date sau ajustați filtrele.
+                  </td>
+                </tr>
+              ) : (
+                displayRows.map((p) => (
+                  <tr key={p.id} className="border-b border-s800 hover:bg-s800/50">
+                    <td
+                      className="px-4 py-3"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 11,
+                        color: "var(--color-t3)",
+                      }}
+                    >
+                      {p.sku}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Package size={14} color="var(--color-neuron-knowledge)" />
+                        <span style={{ fontWeight: 500, color: "var(--color-t1)" }}>{p.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-t3 text-xs">{p.category}</td>
+                    <td className="px-4 py-3 text-right font-mono text-t2">
+                      {p.currency} {p.unitPrice.toFixed(2)}
+                      {p.maxDiscount != null ? (
+                        <div style={{ fontSize: 9, color: "var(--color-t4)" }}>
+                          max -{p.maxDiscount}%
+                        </div>
+                      ) : null}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right font-mono"
+                      style={{ color: stockDisplayColor(p.stock) }}
+                    >
+                      {p.stock.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <SBadge status={p.status} />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <EmbeddingBadge status={p.embeddingStatus} dim={p.embeddingDim} />
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-t3">{p.chunkCount || "—"}</td>
+                    {appliedSearch ? (
+                      <td className="px-4 py-3 text-right">
+                        {p.score === undefined ? (
+                          <span style={{ color: "var(--color-t4)", fontSize: 10 }}>N/A</span>
+                        ) : (
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 11,
+                              color: scoreDisplayColor(p.score),
+                            }}
+                          >
+                            {p.score.toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+                    ) : null}
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </CardBody>
       </Card>
 
-      {/* Search info */}
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 10,
-          color: "var(--color-t4)",
-          display: "flex",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <span>Vector: qwen3-embedding-8b-q5km • {4096}d halfvec_cosine_ops • HNSW m=16 ef=64</span>
-        <span>BM25: tsvector config „romanian" • ts_rank_cd</span>
-        <span>RRF: 1.0/(60+rank) • 60% vector + 40% BM25 • target &lt;150ms</span>
-      </div>
+      {meta && (meta.pages ?? 0) > 1 ? (
+        <div className="mt-4 flex gap-2 justify-end">
+          <button
+            type="button"
+            className="rounded border border-s700 px-3 py-1 text-xs text-t2 disabled:opacity-40"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Înapoi
+          </button>
+          <button
+            type="button"
+            className="rounded border border-s700 px-3 py-1 text-xs text-t2 disabled:opacity-40"
+            disabled={page >= (meta.pages ?? 1)}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Înainte
+          </button>
+        </div>
+      ) : null}
     </PageWrapper>
   );
 }

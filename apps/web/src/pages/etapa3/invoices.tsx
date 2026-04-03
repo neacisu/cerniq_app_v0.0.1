@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { api } from "@/lib/api.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Badge, SBadge } from "@/components/ui/index.js";
@@ -28,90 +30,104 @@ interface Invoice {
   eFacturaId?: string;
 }
 
-const MOCK_INVOICES: Invoice[] = [
-  {
-    nr: "FV-2026-001",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    amount: "RON 23.000",
-    amountNum: 23000,
-    vat: "RON 4.370",
-    vatNum: 4370,
-    status: "PAID",
-    spv: "ok",
-    date: "2026-03-15",
-    dueDate: "2026-04-15",
-    overdue: false,
-    eFacturaId: "EF-2026-18234",
-  },
-  {
-    nr: "FV-2026-002",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    amount: "RON 12.000",
-    amountNum: 12000,
-    vat: "RON 2.280",
-    vatNum: 2280,
-    status: "PENDING",
-    spv: "pending",
-    date: "2026-03-18",
-    dueDate: "2026-04-18",
-    overdue: true,
-  },
-  {
-    nr: "FV-2026-003",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    amount: "RON 8.200",
-    amountNum: 8200,
-    vat: "RON 1.558",
-    vatNum: 1558,
-    status: "PAID",
-    spv: "ok",
-    date: "2026-03-10",
-    dueDate: "2026-04-10",
-    overdue: false,
-    eFacturaId: "EF-2026-17890",
-  },
-  {
-    nr: "FV-2026-004",
-    company: "SC Ferma Dunărea SA",
-    cui: "99887766",
-    amount: "RON 45.000",
-    amountNum: 45000,
-    vat: "RON 8.550",
-    vatNum: 8550,
-    status: "OVERDUE",
-    spv: "pending",
-    date: "2026-01-20",
-    dueDate: "2026-02-20",
-    overdue: true,
-  },
-  {
-    nr: "FV-2026-005",
-    company: "Agro Nord Impex SRL",
-    cui: "55667788",
-    amount: "RON 16.800",
-    amountNum: 16800,
-    vat: "RON 3.192",
-    vatNum: 3192,
-    status: "PENDING",
-    spv: "pending",
-    date: "2026-04-01",
-    dueDate: "2026-05-01",
-    overdue: false,
-  },
-];
+type OblioDocRow = {
+  id: string;
+  documentType?: string | null;
+  series?: string | null;
+  number?: number | null;
+  status?: string | null;
+  subtotal?: string | null;
+  vat?: string | null;
+  total?: string | null;
+  issuedAt?: string | null;
+  createdAt?: string | null;
+};
+
+type EinvoiceRow = {
+  oblioDocumentId?: string | null;
+  status?: string | null;
+  indexSpv?: string | null;
+  deadlineAt?: string | null;
+};
+
+function parseNum(v: string | null | undefined): number {
+  if (v == null || v === "") return 0;
+  const n = Number.parseFloat(String(v));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function fmtDay(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+  return d.toLocaleDateString("ro-RO");
+}
+
+function formatMoney(n: number): string {
+  return `RON ${n.toLocaleString("ro-RO", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function mapSpvUi(sub: EinvoiceRow | undefined): SpvStatus {
+  const s = (sub?.status ?? "").toUpperCase();
+  if (s === "VALIDATED") return "ok";
+  if (s === "REJECTED" || s === "ERROR") return "rejected";
+  return "pending";
+}
+
+function buildInvoices(
+  oblioRows: OblioDocRow[],
+  einvoiceByDocId: Map<string, EinvoiceRow>,
+): Invoice[] {
+  return oblioRows
+    .filter((d) => (d.documentType ?? "").toUpperCase() === "INVOICE")
+    .map((doc) => {
+      const sub = einvoiceByDocId.get(doc.id);
+      const subtotal = parseNum(doc.subtotal);
+      const vatNum = parseNum(doc.vat);
+      const oblioSt = (doc.status ?? "").toUpperCase();
+      let status: InvoiceStatus = "PENDING";
+      if (oblioSt === "PAID") status = "PAID";
+      else if (oblioSt === "CANCELLED") status = "CANCELLED";
+      const spv = mapSpvUi(sub);
+      const deadline = sub?.deadlineAt ? new Date(sub.deadlineAt).getTime() : NaN;
+      const spvLate =
+        Number.isFinite(deadline) &&
+        deadline < Date.now() &&
+        (sub?.status ?? "").toUpperCase() !== "VALIDATED";
+      if (spvLate && status === "PENDING") status = "OVERDUE";
+
+      const dueDate = fmtDay(sub?.deadlineAt ?? doc.issuedAt ?? doc.createdAt);
+      const overdue = status === "OVERDUE" || spvLate;
+
+      return {
+        nr: doc.series && doc.number != null ? `${doc.series}/${doc.number}` : doc.id.slice(0, 8),
+        company: "—",
+        cui: "—",
+        amount: formatMoney(subtotal),
+        amountNum: subtotal,
+        vat: formatMoney(vatNum),
+        vatNum,
+        status,
+        spv,
+        date: fmtDay(doc.issuedAt ?? doc.createdAt),
+        dueDate,
+        overdue,
+        eFacturaId: sub?.indexSpv ?? undefined,
+      };
+    });
+}
 
 function InvoiceDrawer({ inv, onClose }: { readonly inv: Invoice; readonly onClose: () => void }) {
   function handleDownload() {
-    toast.success(`PDF ${inv.nr} descărcat.`);
+    toast.info("Descărcare PDF: folosiți fluxul Oblio sau endpoint dedicat când e disponibil.");
   }
   function handleRetransmit() {
-    toast.success(`Factura ${inv.nr} retransmisă la SPV ANAF e-Factura.`);
+    toast.info(
+      "Retransmitere SPV: folosiți POST /api/v1/fiscal/oblio/einvoice/:id din UI admin sau API.",
+    );
   }
   function handleSendReminder() {
-    toast.info(`Reminder plată trimis către ${inv.company}.`);
+    toast.info("Reminder plată: necesită integrare outreach/billing.");
   }
 
   return (
@@ -281,16 +297,58 @@ function InvoiceDrawer({ inv, onClose }: { readonly inv: Invoice; readonly onClo
 export function Invoices() {
   const [selected, setSelected] = useState<Invoice | null>(null);
 
-  const paid = MOCK_INVOICES.filter((i) => i.status === "PAID").length;
-  const overdue = MOCK_INVOICES.filter((i) => i.overdue).length;
-  const totalVat = MOCK_INVOICES.reduce((s, i) => s + i.vatNum, 0);
+  const oblioQuery = useQuery({
+    queryKey: ["invoices", "oblio-documents"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: OblioDocRow[] }>(
+        "/api/v1/fiscal/oblio/documents?page=1&limit=100",
+      ),
+  });
+
+  const einvoiceQuery = useQuery({
+    queryKey: ["invoices", "einvoice-submissions"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: EinvoiceRow[] }>(
+        "/api/v1/fiscal/einvoice/submissions?page=1&limit=200",
+      ),
+  });
+
+  const invoices = useMemo(() => {
+    const rows = oblioQuery.data?.data ?? [];
+    const subs = einvoiceQuery.data?.data ?? [];
+    const byDoc = new Map<string, EinvoiceRow>();
+    for (const s of subs) {
+      const oid = s.oblioDocumentId;
+      if (oid) byDoc.set(oid, s);
+    }
+    return buildInvoices(rows, byDoc);
+  }, [oblioQuery.data, einvoiceQuery.data]);
+
+  const paid = invoices.filter((i) => i.status === "PAID").length;
+  const overdue = invoices.filter((i) => i.overdue).length;
+  const totalVat = invoices.reduce((s, i) => s + i.vatNum, 0);
+
+  const err =
+    oblioQuery.error instanceof Error
+      ? oblioQuery.error.message
+      : einvoiceQuery.error instanceof Error
+        ? einvoiceQuery.error.message
+        : null;
 
   return (
     <PageWrapper title="e-Factura SPV ANAF" actions={<EtapaBadge label="Etapa 3" />}>
+      {err ? (
+        <p className="text-sm text-er mb-4" role="alert">
+          {err}
+        </p>
+      ) : null}
+      {oblioQuery.isLoading || einvoiceQuery.isLoading ? (
+        <p className="text-sm text-t3 mb-4">Se încarcă facturile și trimiterile SPV…</p>
+      ) : null}
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         <KpiCard
           label="Total Facturi"
-          value={String(MOCK_INVOICES.length)}
+          value={String(invoices.length)}
           icon="FileText"
           color="var(--color-b5)"
         />
@@ -328,7 +386,14 @@ export function Invoices() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_INVOICES.map((inv) => (
+              {!oblioQuery.isLoading && !einvoiceQuery.isLoading && invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-6 text-t3 text-sm">
+                    Nu există facturi (documente Oblio de tip INVOICE) pentru acest tenant.
+                  </td>
+                </tr>
+              ) : null}
+              {invoices.map((inv) => (
                 <tr
                   key={inv.nr}
                   onClick={() => setSelected(inv)}

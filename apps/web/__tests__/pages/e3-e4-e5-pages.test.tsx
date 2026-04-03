@@ -7,9 +7,10 @@
  * - Verifică: headline text, KPI badges, table headers, formulare, butoane
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
 // ─── Global mocks ─────────────────────────────────────────────────────────────
@@ -32,8 +33,16 @@ vi.mock("@xyflow/react", () => ({
 
 // ─── Wrapper ──────────────────────────────────────────────────────────────────
 
+const testQueryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 function wrap(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <QueryClientProvider client={testQueryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 // ─── Imports (lazy after mocks) ───────────────────────────────────────────────
@@ -64,51 +73,64 @@ describe("NegotiationConversation page", () => {
     expect(heading.length).toBeGreaterThan(0);
   });
 
-  it("renders FSM stepper with DISCOVERY state", () => {
+  it("renders FSM stepper with DISCOVERY state", async () => {
     wrap(<NegotiationConversation />);
-    // DISCOVERY appears multiple times (list + stepper)
-    expect(screen.getAllByText("DISCOVERY").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText("DISCOVERY").length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders PROPOSAL FSM step", () => {
+  it("renders PROPOSAL FSM step", async () => {
     wrap(<NegotiationConversation />);
-    expect(screen.getAllByText("PROPOSAL").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText("PROPOSAL").length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders guardrail badges (M71–M75)", () => {
+  it("renders guardrail badges (M71–M75)", async () => {
     wrap(<NegotiationConversation />);
-    const guardrails = screen.getAllByText(/Preț|Stoc|Discount|SKU|Fiscal/i);
-    expect(guardrails.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const guardrails = screen.getAllByText(/Preț|Stoc|Discount|SKU|Fiscal/i);
+      expect(guardrails.length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders negotiation list (left panel)", () => {
+  it("renders negotiation list (left panel)", async () => {
     wrap(<NegotiationConversation />);
-    expect(screen.getAllByText(/Negociere|Agri|SRL|SA/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Negociere|Agri|SRL|SA/i).length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders a chat input area", () => {
+  it("renders a chat input area", async () => {
     wrap(<NegotiationConversation />);
-    // Input or textarea for chat
-    const inputs = document.querySelectorAll("input[type='text'],input:not([type]),textarea");
-    expect(inputs.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const inputs = document.querySelectorAll("input[type='text'],input:not([type]),textarea");
+      expect(inputs.length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders send button", () => {
+  it("renders send button", async () => {
     wrap(<NegotiationConversation />);
-    expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
+    });
   });
 
-  it("chat area contains AI message marker", () => {
+  it("chat area contains AI message marker", async () => {
     wrap(<NegotiationConversation />);
-    const allText = document.body.textContent ?? "";
-    // ✦ marker or "AI" label for AI messages
-    expect(allText).toMatch(/✦|AI Agent|Bot/);
+    await waitFor(() => {
+      const allText = document.body.textContent ?? "";
+      expect(allText).toMatch(/✦|AI Agent|Bot/);
+    });
   });
 
-  it("shows Gold sidebar company info", () => {
+  it("shows Gold sidebar company info", async () => {
     wrap(<NegotiationConversation />);
-    const matches = screen.getAllByText(/Gold|Profil|Credit|Scor/i);
-    expect(matches.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const matches = screen.getAllByText(/Gold|Profil|Credit|Scor/i);
+      expect(matches.length).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -154,8 +176,7 @@ describe("ProductCatalog page", () => {
   it("shows embedding status in product list", () => {
     wrap(<ProductCatalog />);
     const allText = document.body.textContent ?? "";
-    // Product data has embedding status: INDEXED (✓), PENDING/indexing..., FAILED/ERR, stale
-    expect(allText).toMatch(/INDEXED|PENDING|FAILED|indexed|indexing|ERR|stale|✓/i);
+    expect(allText).toMatch(/✓|indexing|stale|ERR/i);
   });
 
   it("shows RRF score column or label", () => {
@@ -183,7 +204,8 @@ describe("ProductCatalog page", () => {
     const input = document.querySelector("input");
     expect(input).toBeTruthy();
     await user.type(input as HTMLInputElement, "gr");
-    expect(screen.getByText(/rezultate.*RRF\(60%v\+40%BM25\)/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /Caută în listă/i }));
+    expect(await screen.findByText(/afișate.*RRF\(60%v\+40%BM25\)/)).toBeTruthy();
   });
 });
 

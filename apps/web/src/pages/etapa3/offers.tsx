@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { api } from "@/lib/api.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { Button, SBadge } from "@/components/ui/index.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
@@ -21,63 +23,89 @@ interface Offer {
   products: string[];
 }
 
-const MOCK_OFFERS: Offer[] = [
-  {
-    id: "OF-001",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    amount: "RON 23.400",
-    amountNum: 23400,
-    status: "SENT",
-    date: "2026-04-01",
-    validUntil: "2026-05-01",
-    products: ["Semințe Grâu PREMIUM Sorin F1 × 40", "Îngrășământ NPK 15-15-15 × 20"],
-  },
-  {
-    id: "OF-002",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    amount: "RON 12.000",
-    amountNum: 12000,
-    status: "DRAFT",
-    date: "2026-04-02",
-    validUntil: "2026-05-02",
-    products: ["Semințe Floarea-Soarelui HiSun X12 × 30"],
-  },
-  {
-    id: "OF-003",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    amount: "RON 8.200",
-    amountNum: 8200,
-    status: "DELIVERED",
-    date: "2026-03-30",
-    validUntil: "2026-04-30",
-    products: ["Fungicid Topsin M 70 WP × 10", "Uree Granulată 46% × 50"],
-  },
-  {
-    id: "OF-004",
-    company: "SC Ferma Dunărea SA",
-    cui: "99887766",
-    amount: "RON 45.000",
-    amountNum: 45000,
-    status: "PAID",
-    date: "2026-03-25",
-    validUntil: "2026-04-25",
-    products: ["Semințe Porumb Daciana 350 FAO × 80", "Îngrășământ NPK × 100"],
-  },
-  {
-    id: "OF-005",
-    company: "Agro Nord Impex SRL",
-    cui: "55667788",
-    amount: "RON 16.800",
-    amountNum: 16800,
-    status: "SENT",
-    date: "2026-04-02",
-    validUntil: "2026-05-02",
-    products: ["Semințe Grâu PREMIUM Sorin F1 × 60"],
-  },
-];
+type NegListRow = {
+  id: string;
+  currentState?: string;
+  companyName?: string | null;
+  totalValue?: string | number | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type NegDetail = {
+  currentState?: string;
+  totalValue?: string | number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  companyName?: string | null;
+  company?: {
+    denumire?: string | null;
+    denumireComerciala?: string | null;
+    cui?: string | null;
+  } | null;
+  items?: {
+    productName?: string | null;
+    sku?: string | null;
+    quantity?: number | null;
+  }[];
+};
+
+function formatMoney(v: string | number | null | undefined): string {
+  if (v == null || v === "") return "—";
+  const n = typeof v === "number" ? v : Number.parseFloat(String(v));
+  if (!Number.isFinite(n)) return String(v);
+  return `RON ${n.toLocaleString("ro-RO", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function fmtDay(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+  return d.toLocaleDateString("ro-RO");
+}
+
+function stateToOfferStatus(state: string | undefined): OfferStatus {
+  const s = (state ?? "DISCOVERY").toUpperCase();
+  if (s === "PAID") return "PAID";
+  if (s === "DEAD") return "REJECTED";
+  if (s === "PROFORMA_SENT" || s === "INVOICED") return "DELIVERED";
+  if (s === "DISCOVERY") return "DRAFT";
+  return "SENT";
+}
+
+function mergeOffer(row: NegListRow, detail: NegDetail | undefined): Offer {
+  const company =
+    detail?.company?.denumire ??
+    detail?.company?.denumireComerciala ??
+    detail?.companyName ??
+    row.companyName ??
+    "—";
+  const cui = detail?.company?.cui ?? "—";
+  const totalVal = detail?.totalValue ?? row.totalValue;
+  const amountNum =
+    typeof totalVal === "number" ? totalVal : Number.parseFloat(String(totalVal ?? "0")) || 0;
+  const items = detail?.items ?? [];
+  const products =
+    items.length > 0
+      ? items.map((i) => {
+          const label = i.productName?.trim() || i.sku?.trim() || "Produs";
+          const q = i.quantity != null ? ` × ${i.quantity}` : "";
+          return `${label}${q}`;
+        })
+      : ["Nicio linie în negociere (adăugați articole via API)"];
+
+  return {
+    id: row.id,
+    company,
+    cui,
+    amount: formatMoney(totalVal),
+    amountNum,
+    status: stateToOfferStatus(detail?.currentState ?? row.currentState),
+    date: fmtDay(detail?.createdAt ?? row.createdAt),
+    validUntil: fmtDay(detail?.updatedAt ?? row.updatedAt),
+    products,
+  };
+}
 
 function OfferDetailDrawer({
   offer,
@@ -87,10 +115,12 @@ function OfferDetailDrawer({
   readonly onClose: () => void;
 }) {
   function handleDownload() {
-    toast.success(`PDF ofertă ${offer.id} — descărcare simulată.`);
+    toast.info("Descărcarea PDF pentru ofertă necesită endpoint Oblio/export — nu este simulată.");
   }
   function handleSend() {
-    toast.success(`Oferta ${offer.id} trimisă via e-mail către ${offer.company}.`);
+    toast.info(
+      "Trimiterea ofertei pe email necesită integrare canal (WA/email) — nu este simulată.",
+    );
     onClose();
   }
 
@@ -120,7 +150,7 @@ function OfferDetailDrawer({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-t1)" }}>
-              {offer.id}
+              {offer.id.slice(0, 8)}…
             </div>
             <div style={{ fontSize: 11, color: "var(--color-t3)" }}>{offer.company}</div>
           </div>
@@ -207,15 +237,48 @@ function OfferDetailDrawer({
 export function Offers() {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
-  const sent = MOCK_OFFERS.filter((o) => o.status === "SENT" || o.status === "DELIVERED").length;
-  const paid = MOCK_OFFERS.filter((o) => o.status === "PAID").length;
+  const listQuery = useQuery({
+    queryKey: ["offers", "negotiation-list"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: NegListRow[] }>("/api/v1/negotiation?page=1&limit=100"),
+  });
+
+  const rows = listQuery.data?.data ?? [];
+  const ids = rows.map((r) => r.id);
+
+  const detailQueries = useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ["offers", "negotiation-detail", id],
+      queryFn: () => api.get<{ success?: boolean; data?: NegDetail }>(`/api/v1/negotiation/${id}`),
+      enabled: ids.length > 0,
+    })),
+  });
+
+  const offers = rows.map((row, i) => {
+    const raw = detailQueries[i]?.data as { success?: boolean; data?: NegDetail } | undefined;
+    return mergeOffer(row, raw?.data);
+  });
+
+  const sent = offers.filter((o) => o.status === "SENT" || o.status === "DELIVERED").length;
+  const paid = offers.filter((o) => o.status === "PAID").length;
+
+  const loadingDetails = detailQueries.some((q) => q.isLoading);
+  const err = listQuery.error instanceof Error ? listQuery.error.message : null;
 
   return (
     <PageWrapper title="Oferte" actions={<EtapaBadge label="Etapa 3" />}>
+      {err ? (
+        <p className="text-sm text-er mb-4" role="alert">
+          {err}
+        </p>
+      ) : null}
+      {listQuery.isLoading || loadingDetails ? (
+        <p className="text-sm text-t3 mb-4">Se încarcă ofertele din negocieri…</p>
+      ) : null}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <KpiCard
           label="Total Oferte"
-          value={String(MOCK_OFFERS.length)}
+          value={String(offers.length)}
           icon="FileText"
           color="var(--color-b5)"
         />
@@ -240,13 +303,20 @@ export function Offers() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_OFFERS.map((o) => (
+              {!listQuery.isLoading && !loadingDetails && offers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-t3 text-sm">
+                    Nu există negocieri — nu se pot afișa oferte.
+                  </td>
+                </tr>
+              ) : null}
+              {offers.map((o) => (
                 <tr
                   key={o.id}
                   className="border-b border-s800 hover:bg-s800/50 cursor-pointer"
                   onClick={() => setSelectedOffer(o)}
                 >
-                  <td className="px-4 py-3 text-t2 font-mono text-xs">{o.id}</td>
+                  <td className="px-4 py-3 text-t2 font-mono text-xs">{o.id.slice(0, 8)}…</td>
                   <td className="px-4 py-3">
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <Building2 size={12} color="var(--color-t3)" />
@@ -276,7 +346,7 @@ export function Offers() {
                         title="Descarcă PDF"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toast.success(`PDF ${o.id} — descărcare simulată.`);
+                          toast.info("PDF: necesită endpoint export Oblio.");
                         }}
                       >
                         <FileText size={15} />
@@ -288,7 +358,7 @@ export function Offers() {
                           title="Trimite oferta"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toast.success(`Oferta ${o.id} trimisă către ${o.company}.`);
+                            toast.info("Trimitere: necesită integrare canal configurată.");
                           }}
                         >
                           <Send size={15} />
