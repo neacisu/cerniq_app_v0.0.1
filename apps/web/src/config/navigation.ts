@@ -3,6 +3,8 @@ export interface NavItem {
   path: string;
   icon: string;
   badge?: { count: number; type: "danger" | "warning" };
+  /** If true, only admin/owner/superadmin see this link */
+  requiresAdmin?: boolean;
 }
 
 export interface NavSection {
@@ -13,7 +15,10 @@ export interface NavSection {
 export const navigation: NavSection[] = [
   {
     title: "PRINCIPAL",
-    items: [{ label: "Dashboard", path: "/dashboard", icon: "Home" }],
+    items: [
+      { label: "Dashboard", path: "/dashboard", icon: "Home" },
+      { label: "Dashboard E1", path: "/etapa1/dashboard", icon: "LayoutDashboard" },
+    ],
   },
   {
     title: "ETAPA 1 — ENRICHMENT",
@@ -91,7 +96,7 @@ export const navigation: NavSection[] = [
   {
     title: "SISTEM",
     items: [
-      { label: "Workers Status", path: "/workers", icon: "Activity" },
+      { label: "Workers Status", path: "/workers", icon: "Activity", requiresAdmin: true },
       { label: "Setări", path: "/settings", icon: "Settings" },
     ],
   },

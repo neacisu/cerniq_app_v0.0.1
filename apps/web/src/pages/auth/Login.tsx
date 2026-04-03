@@ -69,7 +69,10 @@ export function Login() {
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: DEMO_LOGIN_CREDENTIALS,
+    defaultValues:
+      import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_LOGIN === "true"
+        ? DEMO_LOGIN_CREDENTIALS
+        : { email: "", password: "" },
   });
 
   const signupForm = useForm<SignupForm>({

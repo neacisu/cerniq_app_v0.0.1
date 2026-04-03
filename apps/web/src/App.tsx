@@ -1,13 +1,12 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { REDIRECT_LOGIN_EVENT } from "./lib/api-url.js";
-import { Refine } from "@refinedev/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "./lib/api.js";
 import { Toaster } from "./components/ui/toast.js";
 import { ThemeProvider } from "./providers/theme-provider.js";
 import * as Auth from "./providers/auth-provider.js";
-import { cerniqDataProvider } from "./providers/data-provider.js";
+import { CerniqRefineProvider } from "./providers/refine-provider.js";
 import { AppLayout } from "./components/layout/AppLayout.js";
 import { Login } from "./pages/auth/Login.js";
 import { ForgotPassword } from "./pages/auth/ForgotPassword.js";
@@ -116,17 +115,8 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Auth.AuthProvider>
-          <Refine
-            dataProvider={cerniqDataProvider}
-            authProvider={{
-              login: async () => ({ success: true }),
-              logout: async () => ({ success: true, redirectTo: "/login" }),
-              check: async () => ({ authenticated: true }),
-              getIdentity: async () => null,
-              onError: async () => ({ logout: false }),
-            }}
-          >
-            <BrowserRouter>
+          <BrowserRouter>
+            <CerniqRefineProvider>
               <RedirectToLoginListener />
               <Toaster position="top-right" richColors />
               <ErrorBoundary>
@@ -230,8 +220,8 @@ export function App() {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ErrorBoundary>
-            </BrowserRouter>
-          </Refine>
+            </CerniqRefineProvider>
+          </BrowserRouter>
         </Auth.AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

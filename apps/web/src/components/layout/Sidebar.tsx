@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import * as Icons from "lucide-react";
 import { CerniqLogo } from "@/components/brand/CerniqLogo.js";
-import { navigation } from "@/config/navigation.js";
+import { getNavigationForRole } from "@/config/navigation-helpers.js";
 import { useAuth } from "@/providers/auth-provider.js";
 
 export function Sidebar() {
@@ -11,6 +11,7 @@ export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const navigation = getNavigationForRole(user?.role);
 
   return (
     <aside className={`sb${collapsed ? " col" : ""}`}>

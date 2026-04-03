@@ -1,6 +1,37 @@
 import type { DataProvider, BaseRecord } from "@refinedev/core";
 import { api } from "@/lib/api.js";
 import { getApiBase } from "@/lib/api-url.js";
+import { resourceToApiPath } from "@/lib/api-path.js";
+
+function extractList<T extends BaseRecord>(raw: unknown): { data: T[]; total: number } {
+  if (Array.isArray(raw)) {
+    return { data: raw as T[], total: raw.length };
+  }
+  if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    const inner = o.data;
+    if (Array.isArray(inner)) {
+      const meta = o.meta as { total?: number } | undefined;
+      const total = typeof meta?.total === "number" ? meta.total : inner.length;
+      return { data: inner as T[], total };
+    }
+  }
+  return { data: [], total: 0 };
+}
+
+function extractOneRecord(raw: unknown, fallbackId: string): BaseRecord {
+  if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    if ("data" in o && o.data !== null && typeof o.data === "object") {
+      const inner = o.data as BaseRecord;
+      return inner.id != null ? inner : { ...inner, id: fallbackId };
+    }
+    if ("id" in o || Object.keys(o).length > 0) {
+      return o as BaseRecord;
+    }
+  }
+  return { id: fallbackId } as BaseRecord;
+}
 
 export const cerniqDataProvider = {
   getApiUrl: getApiBase,
@@ -14,37 +45,23 @@ export const cerniqDataProvider = {
     const currentPage = pagination?.currentPage ?? 1;
     const pageSize = pagination?.pageSize ?? 10;
     const params = new URLSearchParams();
-    params.set("_page", String(currentPage));
-    params.set("_limit", String(pageSize));
-    const data = await api.get<
-      BaseRecord[] | { data?: BaseRecord[]; total?: number; meta?: { total?: number } }
-    >(`/api/${resource}?${params}`);
-    const list = Array.isArray(data)
-      ? data
-      : data && typeof data === "object" && "data" in data
-        ? (data.data ?? [])
-        : [];
-    const total =
-      data &&
-      typeof data === "object" &&
-      "total" in data &&
-      typeof (data as { total?: number }).total === "number"
-        ? (data as { total: number }).total
-        : data &&
-            typeof data === "object" &&
-            "meta" in data &&
-            (data as { meta?: { total?: number } }).meta?.total != null
-          ? (data as { meta: { total: number } }).meta.total
-          : list.length;
-    return { data: list, total };
+    params.set("page", String(currentPage));
+    params.set("limit", String(pageSize));
+    const path = `${resourceToApiPath(resource)}?${params}`;
+    const raw = await api.get<unknown>(path);
+    const { data, total } = extractList<BaseRecord>(raw);
+    return { data, total };
   },
   getOne: async ({ resource, id }: { resource: string; id: string }) => {
-    const data = await api.get<BaseRecord>(`/api/${resource}/${id}`);
-    return { data: data ?? ({ id } as BaseRecord) };
+    const raw = await api.get<unknown>(`${resourceToApiPath(resource)}/${encodeURIComponent(id)}`);
+    return { data: extractOneRecord(raw, id) };
   },
   getMany: async ({ resource, ids }: { resource: string; ids: (string | number)[] }) => {
-    const data = await api.get<BaseRecord[]>(`/api/${resource}?ids=${ids.join(",")}`);
-    return { data: Array.isArray(data) ? data : [] };
+    const params = new URLSearchParams();
+    params.set("ids", ids.join(","));
+    const raw = await api.get<unknown>(`${resourceToApiPath(resource)}?${params}`);
+    const { data } = extractList<BaseRecord>(raw);
+    return { data };
   },
   create: async ({
     resource,
@@ -53,9 +70,10 @@ export const cerniqDataProvider = {
     resource: string;
     variables: Record<string, unknown>;
   }) => {
-    const data = await api.post<{ data?: BaseRecord } & BaseRecord>(`/api/${resource}`, variables);
-    const created = (data as { data?: BaseRecord })?.data ?? (data as BaseRecord);
-    return { data: (created ?? { id: "" }) as BaseRecord };
+    const raw = await api.post<unknown>(resourceToApiPath(resource), variables);
+    const o = raw as { data?: BaseRecord };
+    const created = o?.data ?? extractOneRecord(raw, "");
+    return { data: (created.id != null ? created : { ...created, id: "" }) as BaseRecord };
   },
   update: async ({
     resource,
@@ -66,38 +84,21 @@ export const cerniqDataProvider = {
     id: string;
     variables: Record<string, unknown>;
   }) => {
-    const data = await api.patch<{ data?: BaseRecord } & BaseRecord>(
-      `/api/${resource}/${id}`,
+    const raw = await api.patch<unknown>(
+      `${resourceToApiPath(resource)}/${encodeURIComponent(id)}`,
       variables,
     );
-    const updated = (data as { data?: BaseRecord })?.data ?? (data as BaseRecord);
-    return { data: (updated ?? { id }) as BaseRecord };
+    const o = raw as { data?: BaseRecord };
+    const updated = o?.data ?? extractOneRecord(raw, id);
+    return { data: updated };
   },
   deleteOne: async ({ resource, id }: { resource: string; id: string }) => {
-    await api.delete(`/api/${resource}/${id}`);
+    await api.delete(`${resourceToApiPath(resource)}/${encodeURIComponent(id)}`);
     return { data: { id } as BaseRecord };
   },
   getManyReference: async ({ resource }: { resource: string }) => {
-    const data = await api.get<
-      BaseRecord[] | { data?: BaseRecord[]; total?: number; meta?: { total?: number } }
-    >(`/api/${resource}`);
-    const list = Array.isArray(data)
-      ? data
-      : data && typeof data === "object" && "data" in data
-        ? (data.data ?? [])
-        : [];
-    const total =
-      data &&
-      typeof data === "object" &&
-      "total" in data &&
-      typeof (data as { total?: number }).total === "number"
-        ? (data as { total: number }).total
-        : data &&
-            typeof data === "object" &&
-            "meta" in data &&
-            (data as { meta?: { total?: number } }).meta?.total != null
-          ? (data as { meta: { total: number } }).meta.total
-          : list.length;
-    return { data: list, total };
+    const raw = await api.get<unknown>(resourceToApiPath(resource));
+    const { data, total } = extractList<BaseRecord>(raw);
+    return { data, total };
   },
 } as DataProvider;
