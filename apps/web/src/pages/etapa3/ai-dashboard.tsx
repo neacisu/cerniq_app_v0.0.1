@@ -43,11 +43,9 @@ type StatsPayload = {
   byState?: { state?: string; count?: number; totalValue?: string }[];
   avgAiConfidence?: string;
   avgCloseProbability?: string;
-};
-
-type ViolationRow = {
-  violationType?: string | null;
-  severity?: string | null;
+  /** Agregate tenant-wide din DB (nu sunt limitate la primul page din GET /guardrails). */
+  guardrailViolationsTotal?: number;
+  guardrailViolationsByType?: { violationType?: string | null; count?: number }[];
 };
 
 function parseFloatSafe(s: string | undefined): number {
@@ -65,14 +63,6 @@ export function AiDashboard() {
   const statsQuery = useQuery({
     queryKey: ["ai-dashboard", "negotiation-stats"],
     queryFn: () => api.get<{ success?: boolean; data?: StatsPayload }>("/api/v1/negotiation/stats"),
-  });
-
-  const violationsQuery = useQuery({
-    queryKey: ["ai-dashboard", "guardrails-count"],
-    queryFn: () =>
-      api.get<{ success?: boolean; data?: ViolationRow[]; meta?: { total?: number } }>(
-        "/api/v1/negotiation/guardrails?limit=500",
-      ),
   });
 
   const fsmBars = useMemo(() => {
@@ -102,8 +92,7 @@ export function AiDashboard() {
 
   const winRate = totalNeg > 0 ? `${((paidCount / totalNeg) * 100).toFixed(1)}%` : "—";
 
-  const violationTotal =
-    violationsQuery.data?.meta?.total ?? violationsQuery.data?.data?.length ?? 0;
+  const violationTotal = statsQuery.data?.data?.guardrailViolationsTotal ?? 0;
 
   const countsByType = useMemo(() => {
     const m: Record<string, number> = {
@@ -113,12 +102,12 @@ export function AiDashboard() {
       sku: 0,
       fiscal: 0,
     };
-    for (const v of violationsQuery.data?.data ?? []) {
-      const t = (v.violationType ?? "").toLowerCase();
-      if (t in m) m[t] += 1;
+    for (const row of statsQuery.data?.data?.guardrailViolationsByType ?? []) {
+      const t = (row.violationType ?? "").toLowerCase();
+      if (t in m) m[t] += row.count ?? 0;
     }
     return m;
-  }, [violationsQuery.data]);
+  }, [statsQuery.data]);
 
   function guardStatus(key: string): "ok" | "warning" | "error" {
     const n = countsByType[key] ?? 0;
@@ -127,13 +116,12 @@ export function AiDashboard() {
   }
 
   const statsErr = statsQuery.error instanceof Error ? statsQuery.error.message : null;
-  const violErr = violationsQuery.error instanceof Error ? violationsQuery.error.message : null;
 
   return (
     <PageWrapper title="AI Sales Agent Dashboard" actions={<EtapaBadge label="Etapa 3" />}>
-      {statsErr || violErr ? (
+      {statsErr ? (
         <p className="text-sm text-er mb-4" role="alert">
-          {[statsErr, violErr].filter(Boolean).join(" · ")}
+          {statsErr}
         </p>
       ) : null}
 
@@ -158,7 +146,7 @@ export function AiDashboard() {
         />
         <KpiCard
           label="Violări guardrail"
-          value={violationsQuery.isLoading ? "…" : String(violationTotal)}
+          value={statsQuery.isLoading ? "…" : String(violationTotal)}
           icon="Wallet"
           color="var(--color-neuron-knowledge)"
         />
@@ -204,7 +192,7 @@ export function AiDashboard() {
             <CardTitle>Guardrails (din DB)</CardTitle>
           </CardHeader>
           <CardBody>
-            {violationsQuery.isLoading ? (
+            {statsQuery.isLoading ? (
               <div className="text-t3 text-sm">Se încarcă…</div>
             ) : (
               <div className="space-y-3">
@@ -301,7 +289,7 @@ export function AiDashboard() {
               marginBottom: 4,
             }}
           >
-            Violări (eșantion încărcat)
+            Violări guardrail (tenant)
           </div>
           <div
             style={{
@@ -311,10 +299,10 @@ export function AiDashboard() {
               fontFamily: "var(--font-mono)",
             }}
           >
-            {violationsQuery.isLoading ? "…" : String(violationsQuery.data?.data?.length ?? 0)}
+            {statsQuery.isLoading ? "…" : String(violationTotal)}
           </div>
           <div style={{ fontSize: 10, color: "var(--color-t4)", marginTop: 3 }}>
-            Total raportat: {violationTotal}
+            Agregat din GET /api/v1/negotiation/stats (nu lista paginată /guardrails).
           </div>
         </div>
         <div
@@ -336,7 +324,7 @@ export function AiDashboard() {
             Surse date
           </div>
           <div style={{ fontSize: 11, color: "var(--color-t2)", lineHeight: 1.5 }}>
-            GET /api/v1/negotiation/stats · GET /api/v1/negotiation/guardrails
+            GET /api/v1/negotiation/stats (inclusiv agregate guardrail)
           </div>
         </div>
       </div>

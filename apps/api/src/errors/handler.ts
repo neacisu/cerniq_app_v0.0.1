@@ -70,11 +70,11 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   }
 
   if (error instanceof ZodError) {
-    return reply.status(400).send({
+    return reply.status(422).send({
       success: false,
       error: "Validation failed",
       details: {
-        statusCode: 400,
+        statusCode: 422,
         code: "ZOD_ERROR",
         issues: error.issues,
       },

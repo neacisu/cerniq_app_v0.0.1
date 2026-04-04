@@ -1,5 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { Fragment, useState, type ReactNode } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
@@ -13,8 +13,10 @@ import { useAuth } from "@/providers/auth-provider.js";
 import { isAdminLikeRole } from "@/lib/auth-roles.js";
 import {
   fetchAdminLive,
+  fetchApiPluginPrometheusCatalog,
   fetchQueueDetail,
   postQueueControl,
+  type ApiPluginPrometheusCatalogResponse,
   type LiveResponse,
   type QueueRow,
 } from "./workers-fetch.js";
@@ -23,6 +25,8 @@ import {
 const COPY_QUEUE_DETAIL_HEADING = "Detaliu coadă (GET /api/admin/queues/:name)";
 const COPY_SYSTEM_CARD_TITLE = "Sistem (GET /api/admin/live → system, din /api/system/metrics)";
 const COPY_BULLMQ_CARD_TITLE = "BullMQ — cozi (live + POST control)";
+const COPY_API_PROM_CATALOG_TITLE =
+  "Metrici API (plugin Prometheus) — GET /api/admin/prometheus/api-plugin-catalog";
 
 function queueStatusLabel(q: QueueRow): "ACTIVE" | "PAUSED" | "FAILED" {
   if ((q.failed ?? 0) > 0) return "FAILED";
@@ -111,6 +115,58 @@ function QueueDetailRow({
   );
 }
 
+function ApiPluginPrometheusCatalogSection({
+  query,
+}: {
+  readonly query: UseQueryResult<ApiPluginPrometheusCatalogResponse, Error>;
+}) {
+  if (query.isLoading) {
+    return <p className="text-sm text-t3">Se încarcă catalogul…</p>;
+  }
+  if (query.isError) {
+    const msg =
+      query.error instanceof ApiError ? query.error.message : "Eroare la încărcarea catalogului";
+    return (
+      <p className="text-sm text-er" role="alert">
+        {msg}
+      </p>
+    );
+  }
+
+  const note = query.data?.data?.scrapeNote;
+  const metrics = query.data?.data?.metrics;
+
+  return (
+    <>
+      {note ? <p className="text-[11px] text-t3 mb-2 font-mono">{note}</p> : null}
+      {Array.isArray(metrics) ? (
+        <div className="overflow-x-auto max-h-64 border border-s700 rounded-md">
+          <table className="w-full text-left text-[11px]">
+            <thead className="sticky top-0 bg-s800 text-t3">
+              <tr>
+                <th className="px-2 py-1">Nume metrică</th>
+                <th className="px-2 py-1">Tip</th>
+                <th className="px-2 py-1">Help</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.map((m) => (
+                <tr key={m.name} className="border-t border-s700 text-t2">
+                  <td className="px-2 py-1 font-mono whitespace-nowrap">{m.name}</td>
+                  <td className="px-2 py-1">{m.type}</td>
+                  <td className="px-2 py-1">{m.help}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-sm text-t3">Indisponibil — răspuns fără listă de metrici.</p>
+      )}
+    </>
+  );
+}
+
 export function Workers() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -120,6 +176,12 @@ export function Workers() {
     queryKey: ["admin", "live"],
     queryFn: fetchAdminLive,
     refetchInterval: 15_000,
+    enabled: isAdminLikeRole(user?.role),
+  });
+
+  const apiPromCatalogQuery = useQuery({
+    queryKey: ["admin", "prometheus", "api-plugin-catalog"],
+    queryFn: fetchApiPluginPrometheusCatalog,
     enabled: isAdminLikeRole(user?.role),
   });
 
@@ -299,6 +361,20 @@ export function Workers() {
           </CardBody>
         </Card>
       ) : null}
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>{COPY_API_PROM_CATALOG_TITLE}</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="text-xs text-t3 mb-3">
+            Fiecare rând este o metrică înregistrată în codul API (nume + help + tip). Pentru
+            grafice și valori folosiți Prometheus/Grafana sau Monitoring intern — nu inventați KPI
+            fără serie; dacă seria lipsește în observabilitate, afișați „indisponibil”.
+          </p>
+          <ApiPluginPrometheusCatalogSection query={apiPromCatalogQuery} />
+        </CardBody>
+      </Card>
 
       <div className="mb-6">
         <Link to="/brain">

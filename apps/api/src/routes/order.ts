@@ -105,6 +105,14 @@ const reconciliationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+const tenantPaymentsQuerySchema = z.object({
+  reconciliationStatus: z
+    .enum(["PENDING", "MATCHED_EXACT", "MATCHED_FUZZY", "UNMATCHED", "MANUAL_MATCHED", "DISPUTED"])
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
 // ─── Route Registration ───────────────────────────────────────────────────────
 
 export async function orderRoutes(app: FastifyInstance) {
@@ -160,6 +168,124 @@ export async function orderRoutes(app: FastifyInstance) {
         total,
         pages: Math.ceil(total / query.limit),
       },
+    });
+  });
+
+  // ── GET /orders/stats (înainte de /:id — evită match pe id="stats") ─────────
+
+  app.get("/stats", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+
+    const byStatus = await db
+      .select({
+        status: goldOrders.status,
+        count: sql<number>`count(*)::int`,
+        totalAmount: sql<string>`coalesce(sum(${goldOrders.totalAmount}), 0)::text`,
+      })
+      .from(goldOrders)
+      .where(and(eq(goldOrders.tenantId, tenantId), sql`${goldOrders.deletedAt} IS NULL`))
+      .groupBy(goldOrders.status);
+
+    const [overdueStats] = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+        totalDue: sql<string>`coalesce(sum(${goldOrders.amountDue}), 0)::text`,
+      })
+      .from(goldOrders)
+      .where(
+        and(
+          eq(goldOrders.tenantId, tenantId),
+          sql`${goldOrders.deletedAt} IS NULL`,
+          inArray(goldOrders.status, ["OVERDUE", "PARTIALLY_PAID"]),
+        ),
+      );
+
+    return reply.send({
+      success: true,
+      data: { byStatus, overdue: overdueStats },
+    });
+  });
+
+  // ── GET /orders/payments/reconciliations (admin) ───────────────────────────
+
+  app.get("/payments/reconciliations", { ...adminAuth }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const query = reconciliationsQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
+
+    const paymentConditions = [eq(goldPayments.tenantId, tenantId)];
+    if (query.status) paymentConditions.push(eq(goldPayments.reconciliationStatus, query.status));
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select({
+          reconciliation: goldPaymentReconciliations,
+          payment: goldPayments,
+        })
+        .from(goldPaymentReconciliations)
+        .innerJoin(goldPayments, eq(goldPaymentReconciliations.paymentId, goldPayments.id))
+        .where(and(...paymentConditions))
+        .orderBy(desc(goldPaymentReconciliations.matchedAt))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(goldPaymentReconciliations)
+        .innerJoin(goldPayments, eq(goldPaymentReconciliations.paymentId, goldPayments.id))
+        .where(and(...paymentConditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: rows,
+      meta: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
+    });
+  });
+
+  // ── GET /orders/payments — listă plăți tenant (UI Payments) ─────────────────
+
+  app.get("/payments", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const query = tenantPaymentsQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
+
+    const conditions = [eq(goldPayments.tenantId, tenantId)];
+    if (query.reconciliationStatus) {
+      conditions.push(eq(goldPayments.reconciliationStatus, query.reconciliationStatus));
+    }
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select({
+          payment: goldPayments,
+          orderNumber: goldOrders.orderNumber,
+          companyName: goldCompanies.denumire,
+          cui: goldCompanies.cui,
+        })
+        .from(goldPayments)
+        .leftJoin(goldOrders, eq(goldPayments.orderId, goldOrders.id))
+        .leftJoin(goldCompanies, eq(goldOrders.leadId, goldCompanies.id))
+        .where(and(...conditions))
+        .orderBy(desc(goldPayments.createdAt))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(goldPayments)
+        .where(and(...conditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: rows.map((r) => ({
+        ...r.payment,
+        orderNumber: r.orderNumber,
+        companyName: r.companyName,
+        cui: r.cui,
+      })),
+      meta: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
     });
   });
 
@@ -384,78 +510,6 @@ export async function orderRoutes(app: FastifyInstance) {
       success: true,
       data: rows,
       meta: { page: query.page, limit: query.limit, total },
-    });
-  });
-
-  // ── GET /orders/payments/reconciliations (admin) ─────────────────────────
-
-  app.get("/payments/reconciliations", { ...adminAuth }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const query = reconciliationsQuerySchema.parse(req.query);
-    const offset = (query.page - 1) * query.limit;
-
-    const paymentConditions = [eq(goldPayments.tenantId, tenantId)];
-    if (query.status) paymentConditions.push(eq(goldPayments.reconciliationStatus, query.status));
-
-    const [rows, countResult] = await Promise.all([
-      db
-        .select({
-          reconciliation: goldPaymentReconciliations,
-          payment: goldPayments,
-        })
-        .from(goldPaymentReconciliations)
-        .innerJoin(goldPayments, eq(goldPaymentReconciliations.paymentId, goldPayments.id))
-        .where(and(...paymentConditions))
-        .orderBy(desc(goldPaymentReconciliations.matchedAt))
-        .limit(query.limit)
-        .offset(offset),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(goldPaymentReconciliations)
-        .innerJoin(goldPayments, eq(goldPaymentReconciliations.paymentId, goldPayments.id))
-        .where(and(...paymentConditions)),
-    ]);
-
-    const total = countResult[0]?.count ?? 0;
-    return reply.send({
-      success: true,
-      data: rows,
-      meta: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
-    });
-  });
-
-  // ── GET /orders/stats ─────────────────────────────────────────────────────
-
-  app.get("/stats", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-
-    const byStatus = await db
-      .select({
-        status: goldOrders.status,
-        count: sql<number>`count(*)::int`,
-        totalAmount: sql<string>`coalesce(sum(${goldOrders.totalAmount}), 0)::text`,
-      })
-      .from(goldOrders)
-      .where(and(eq(goldOrders.tenantId, tenantId), sql`${goldOrders.deletedAt} IS NULL`))
-      .groupBy(goldOrders.status);
-
-    const [overdueStats] = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-        totalDue: sql<string>`coalesce(sum(${goldOrders.amountDue}), 0)::text`,
-      })
-      .from(goldOrders)
-      .where(
-        and(
-          eq(goldOrders.tenantId, tenantId),
-          sql`${goldOrders.deletedAt} IS NULL`,
-          inArray(goldOrders.status, ["OVERDUE", "PARTIALLY_PAID"]),
-        ),
-      );
-
-    return reply.send({
-      success: true,
-      data: { byStatus, overdue: overdueStats },
     });
   });
 }

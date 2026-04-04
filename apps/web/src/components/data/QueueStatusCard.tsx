@@ -8,6 +8,12 @@ type QueueStatusCardProps = {
   readonly active: number;
   readonly failed: number;
   readonly delayed: number;
+  /** Din GET /api/v1/enrichment/queues — job-uri finalizate cu succes (BullMQ). */
+  readonly completed?: number;
+  /** Concurrency configurat în registry (worker-shared). */
+  readonly concurrency?: number;
+  /** ISO timestamp ultimul job completed/failed (dacă există). */
+  readonly lastJobAt?: string | null;
   readonly rateLimit?: { readonly max: number; readonly duration: number } | null;
 };
 
@@ -18,6 +24,9 @@ export function QueueStatusCard({
   active,
   failed,
   delayed,
+  completed,
+  concurrency,
+  lastJobAt,
   rateLimit,
 }: QueueStatusCardProps) {
   return (
@@ -45,6 +54,31 @@ export function QueueStatusCard({
           <span>delayed</span>
           <span>{delayed}</span>
         </div>
+        {completed === undefined ? null : (
+          <div className="flex justify-between">
+            <span>completed</span>
+            <span>{completed}</span>
+          </div>
+        )}
+        {concurrency === undefined ? null : (
+          <div className="flex justify-between">
+            <span>concurrency</span>
+            <span>{concurrency}</span>
+          </div>
+        )}
+        {lastJobAt ? (
+          <div className="flex justify-between gap-2">
+            <span>last job</span>
+            <span className="truncate text-end" title={lastJobAt}>
+              {new Date(lastJobAt).toLocaleString("ro-RO", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+        ) : null}
         {rateLimit ? (
           <div className="flex justify-between">
             <span>rate</span>

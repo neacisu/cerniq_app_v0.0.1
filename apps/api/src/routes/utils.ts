@@ -1,6 +1,44 @@
 import type { FastifyRequest } from "fastify";
 import { AppError, UnauthorizedError } from "../errors/app-error.js";
 
+type JwtUserShape = {
+  tenantId?: string;
+  tenant_id?: string;
+  role?: string;
+};
+
+/**
+ * Extrage tenant-ul din `request.user` după `jwtVerify()` — aceeași regulă ca în `tenant-context`.
+ * Folosit când autentificarea reușește în handler (ex. SSE cu ?token=) dar `request.tenantId`
+ * nu a fost setat în `onRequest` (path diferit în spatele proxy / ordine hook).
+ */
+export function resolveTenantIdFromJwtUser(request: FastifyRequest): string | null {
+  const user = request.user as JwtUserShape | undefined;
+  let tenantId: string | null = null;
+  if (typeof user?.tenantId === "string" && user.tenantId.trim().length > 0) {
+    tenantId = user.tenantId.trim();
+  } else if (typeof user?.tenant_id === "string" && user.tenant_id.trim().length > 0) {
+    tenantId = user.tenant_id.trim();
+  }
+  const role = user?.role;
+  const header = request.headers["x-tenant-id"];
+  if (role === "superadmin" && typeof header === "string" && header.trim().length > 0) {
+    tenantId = header.trim();
+  }
+  return tenantId;
+}
+
+/** Dacă `request.tenantId` lipsește după JWT valid, îl completează din payload. */
+export function ensureRequestTenantIdFromJwtIfMissing(request: FastifyRequest): void {
+  if (typeof request.tenantId === "string" && request.tenantId.trim().length > 0) {
+    return;
+  }
+  const tid = resolveTenantIdFromJwtUser(request);
+  if (tid) {
+    request.tenantId = tid;
+  }
+}
+
 export function requireTenantId(request: FastifyRequest): string {
   const tenantId = request.tenantId;
   if (!tenantId) {

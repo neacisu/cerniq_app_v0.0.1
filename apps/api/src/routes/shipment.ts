@@ -71,146 +71,34 @@ export async function shipmentRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
   const writeLimiter = app.rateLimit({ max: 20, timeWindow: "1 minute" });
 
-  // ── GET /shipments ─────────────────────────────────────────────────────────
+  // ── GET /shipments/stats (înainte de /:id) ─────────────────────────────────
 
-  app.get("/", { ...authOpts }, async (req, reply) => {
+  app.get("/stats", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);
-    const query = shipmentsQuerySchema.parse(req.query);
-    const offset = (query.page - 1) * query.limit;
 
-    const conditions = [eq(goldShipments.tenantId, tenantId)];
-    if (query.status) conditions.push(eq(goldShipments.status, query.status));
-    if (query.carrier) conditions.push(eq(goldShipments.carrier, query.carrier));
-
-    const [rows, countResult] = await Promise.all([
-      db
-        .select({
-          shipment: goldShipments,
-          orderNumber: goldOrders.orderNumber,
-          companyName: goldCompanies.denumire,
-        })
-        .from(goldShipments)
-        .leftJoin(goldOrders, eq(goldShipments.orderId, goldOrders.id))
-        .leftJoin(goldCompanies, eq(goldOrders.leadId, goldCompanies.id))
-        .where(and(...conditions))
-        .orderBy(desc(goldShipments.createdAt))
-        .limit(query.limit)
-        .offset(offset),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(goldShipments)
-        .where(and(...conditions)),
-    ]);
-
-    const total = countResult[0]?.count ?? 0;
-    return reply.send({
-      success: true,
-      data: rows.map((r) => ({
-        ...r.shipment,
-        orderNumber: r.orderNumber,
-        companyName: r.companyName,
-      })),
-      meta: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        pages: Math.ceil(total / query.limit),
-      },
-    });
-  });
-
-  // ── GET /shipments/:id ─────────────────────────────────────────────────────
-
-  app.get("/:id", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const { id } = idParamSchema.parse(req.params);
-
-    const [row] = await db
+    const byStatus = await db
       .select({
-        shipment: goldShipments,
-        orderNumber: goldOrders.orderNumber,
-        companyName: goldCompanies.denumire,
+        status: goldShipments.status,
+        count: sql<number>`count(*)::int`,
       })
       .from(goldShipments)
-      .leftJoin(goldOrders, eq(goldShipments.orderId, goldOrders.id))
-      .leftJoin(goldCompanies, eq(goldOrders.leadId, goldCompanies.id))
-      .where(and(eq(goldShipments.id, id), eq(goldShipments.tenantId, tenantId)))
-      .limit(1);
+      .where(eq(goldShipments.tenantId, tenantId))
+      .groupBy(goldShipments.status);
 
-    if (!row) return reply.status(404).send({ success: false, error: "Shipment not found" });
-
-    const [trackingEvents, codCollections, address] = await Promise.all([
-      db
-        .select()
-        .from(goldShipmentTracking)
-        .where(eq(goldShipmentTracking.shipmentId, id))
-        .orderBy(desc(goldShipmentTracking.eventTimestamp)),
-      db.select().from(goldCodCollections).where(eq(goldCodCollections.shipmentId, id)),
-      row.shipment.addressId
-        ? db
-            .select()
-            .from(goldAddresses)
-            .where(eq(goldAddresses.id, row.shipment.addressId))
-            .limit(1)
-        : Promise.resolve([]),
-    ]);
+    const [codStats] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        collected: sql<number>`count(*) filter (where ${goldShipments.codCollected} = true)::int`,
+        codAmount: sql<string>`coalesce(sum(${goldShipments.codAmount}), 0)::text`,
+      })
+      .from(goldShipments)
+      .where(and(eq(goldShipments.tenantId, tenantId), sql`${goldShipments.codType} != 'NONE'`));
 
     return reply.send({
       success: true,
-      data: {
-        ...row.shipment,
-        orderNumber: row.orderNumber,
-        companyName: row.companyName,
-        trackingEvents,
-        codCollections,
-        deliveryAddress: address[0] ?? null,
-      },
+      data: { byStatus, cod: codStats },
     });
   });
-
-  // ── POST /shipments/orders/:orderId/create-awb ─────────────────────────────
-
-  app.post(
-    "/orders/:orderId/create-awb",
-    { ...authOpts, preHandler: [writeLimiter] },
-    async (req, reply) => {
-      const tenantId = requireTenantId(req);
-      const { orderId } = orderIdParamSchema.parse(req.params);
-      const body = createAwbSchema.parse(req.body);
-
-      const [order] = await db
-        .select({ id: goldOrders.id, status: goldOrders.status })
-        .from(goldOrders)
-        .where(and(eq(goldOrders.id, orderId), eq(goldOrders.tenantId, tenantId)))
-        .limit(1);
-
-      if (!order) return reply.status(404).send({ success: false, error: "Order not found" });
-      if (!["READY_TO_SHIP", "STOCK_RESERVED"].includes(order.status)) {
-        return reply.status(400).send({
-          success: false,
-          error: `AWB creation requires order status READY_TO_SHIP or STOCK_RESERVED. Current: ${order.status}`,
-        });
-      }
-
-      const awbQueue = createQueue(QUEUES.E4_SAMEDAY_AWB_CREATE);
-      const job = await awbQueue.add("create-awb-manual", {
-        orderId,
-        tenantId,
-        addressId: body.addressId ?? null,
-        deliveryType: body.deliveryType,
-        codType: body.codType,
-        codAmount: body.codAmount,
-        weight: body.weight ?? null,
-        ...buildProvenanceContext(req),
-      });
-
-      e4ShipmentsRequestedTotal.inc();
-      return reply.send({
-        success: true,
-        data: { jobId: job.id ?? "queued", status: "PROCESSING" },
-      });
-    },
-  );
 
   app.get("/addresses/:clientId", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);
@@ -271,30 +159,148 @@ export async function shipmentRoutes(app: FastifyInstance) {
     return reply.status(201).send({ success: true, data: address });
   });
 
-  app.get("/stats", { ...authOpts }, async (req, reply) => {
+  // ── GET /shipments ─────────────────────────────────────────────────────────
+
+  app.get("/", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);
+    const query = shipmentsQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
 
-    const byStatus = await db
+    const conditions = [eq(goldShipments.tenantId, tenantId)];
+    if (query.status) conditions.push(eq(goldShipments.status, query.status));
+    if (query.carrier) conditions.push(eq(goldShipments.carrier, query.carrier));
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select({
+          shipment: goldShipments,
+          orderNumber: goldOrders.orderNumber,
+          companyName: goldCompanies.denumire,
+          currency: goldOrders.currency,
+        })
+        .from(goldShipments)
+        .leftJoin(goldOrders, eq(goldShipments.orderId, goldOrders.id))
+        .leftJoin(goldCompanies, eq(goldOrders.leadId, goldCompanies.id))
+        .where(and(...conditions))
+        .orderBy(desc(goldShipments.createdAt))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(goldShipments)
+        .where(and(...conditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: rows.map((r) => ({
+        ...r.shipment,
+        orderNumber: r.orderNumber,
+        companyName: r.companyName,
+        currency: r.currency,
+      })),
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        pages: Math.ceil(total / query.limit),
+      },
+    });
+  });
+
+  // ── GET /shipments/:id ─────────────────────────────────────────────────────
+
+  app.get("/:id", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const { id } = idParamSchema.parse(req.params);
+
+    const [row] = await db
       .select({
-        status: goldShipments.status,
-        count: sql<number>`count(*)::int`,
+        shipment: goldShipments,
+        orderNumber: goldOrders.orderNumber,
+        companyName: goldCompanies.denumire,
+        currency: goldOrders.currency,
       })
       .from(goldShipments)
-      .where(eq(goldShipments.tenantId, tenantId))
-      .groupBy(goldShipments.status);
+      .leftJoin(goldOrders, eq(goldShipments.orderId, goldOrders.id))
+      .leftJoin(goldCompanies, eq(goldOrders.leadId, goldCompanies.id))
+      .where(and(eq(goldShipments.id, id), eq(goldShipments.tenantId, tenantId)))
+      .limit(1);
 
-    const [codStats] = await db
-      .select({
-        total: sql<number>`count(*)::int`,
-        collected: sql<number>`count(*) filter (where ${goldShipments.codCollected} = true)::int`,
-        codAmount: sql<string>`coalesce(sum(${goldShipments.codAmount}), 0)::text`,
-      })
-      .from(goldShipments)
-      .where(and(eq(goldShipments.tenantId, tenantId), sql`${goldShipments.codType} != 'NONE'`));
+    if (!row) return reply.status(404).send({ success: false, error: "Shipment not found" });
+
+    const [trackingEvents, codCollections, address] = await Promise.all([
+      db
+        .select()
+        .from(goldShipmentTracking)
+        .where(eq(goldShipmentTracking.shipmentId, id))
+        .orderBy(desc(goldShipmentTracking.eventTimestamp)),
+      db.select().from(goldCodCollections).where(eq(goldCodCollections.shipmentId, id)),
+      row.shipment.addressId
+        ? db
+            .select()
+            .from(goldAddresses)
+            .where(eq(goldAddresses.id, row.shipment.addressId))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
 
     return reply.send({
       success: true,
-      data: { byStatus, cod: codStats },
+      data: {
+        ...row.shipment,
+        orderNumber: row.orderNumber,
+        companyName: row.companyName,
+        currency: row.currency,
+        trackingEvents,
+        codCollections,
+        deliveryAddress: address[0] ?? null,
+      },
     });
   });
+
+  // ── POST /shipments/orders/:orderId/create-awb ─────────────────────────────
+
+  app.post(
+    "/orders/:orderId/create-awb",
+    { ...authOpts, preHandler: [writeLimiter] },
+    async (req, reply) => {
+      const tenantId = requireTenantId(req);
+      const { orderId } = orderIdParamSchema.parse(req.params);
+      const body = createAwbSchema.parse(req.body);
+
+      const [order] = await db
+        .select({ id: goldOrders.id, status: goldOrders.status })
+        .from(goldOrders)
+        .where(and(eq(goldOrders.id, orderId), eq(goldOrders.tenantId, tenantId)))
+        .limit(1);
+
+      if (!order) return reply.status(404).send({ success: false, error: "Order not found" });
+      if (!["READY_TO_SHIP", "STOCK_RESERVED"].includes(order.status)) {
+        return reply.status(400).send({
+          success: false,
+          error: `AWB creation requires order status READY_TO_SHIP or STOCK_RESERVED. Current: ${order.status}`,
+        });
+      }
+
+      const awbQueue = createQueue(QUEUES.E4_SAMEDAY_AWB_CREATE);
+      const job = await awbQueue.add("create-awb-manual", {
+        orderId,
+        tenantId,
+        addressId: body.addressId ?? null,
+        deliveryType: body.deliveryType,
+        codType: body.codType,
+        codAmount: body.codAmount,
+        weight: body.weight ?? null,
+        ...buildProvenanceContext(req),
+      });
+
+      e4ShipmentsRequestedTotal.inc();
+      return reply.send({
+        success: true,
+        data: { jobId: job.id ?? "queued", status: "PROCESSING" },
+      });
+    },
+  );
 }

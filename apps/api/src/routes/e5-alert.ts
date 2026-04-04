@@ -14,33 +14,58 @@ import { e5AlertsTriggeredTotal } from "../plugins/metrics.js";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
-const weatherTriggerSchema = z.object({
-  county: z.string().max(100).optional(),
-  alertType: z.string().max(100).optional(),
-  force: z.boolean().default(false),
-});
+const weatherTriggerSchema = z
+  .object({
+    county: z.string().max(100).optional(),
+    alertType: z.string().max(100).optional(),
+    force: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasCounty = data.county !== undefined && data.county.trim().length > 0;
+    const hasAlert = data.alertType !== undefined && data.alertType.trim().length > 0;
+    if (!hasCounty && !hasAlert && data.force !== true) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Provide county, alertType, or force: true",
+      });
+    }
+  });
 
 const apiaSeasonalSchema = z.object({
   season: z.enum(["SPRING", "SUMMER", "AUTUMN", "WINTER"]).optional(),
   county: z.string().max(100).optional(),
 });
 
-const campaignTriggerSchema = z.object({
-  targetState: z
-    .enum([
-      "ONBOARDING",
-      "NURTURING_ACTIVE",
-      "AT_RISK",
-      "CHURNED",
-      "REACTIVATED",
-      "LOYAL_CLIENT",
-      "ADVOCATE",
-    ])
-    .optional(),
-  channel: z.enum(["EMAIL", "WHATSAPP", "SMS", "IN_APP"]).optional(),
-  templateId: z.string().max(255).optional(),
-  leadIds: z.array(z.uuid()).max(500).optional(),
-});
+const campaignTriggerSchema = z
+  .object({
+    targetState: z
+      .enum([
+        "ONBOARDING",
+        "NURTURING_ACTIVE",
+        "AT_RISK",
+        "CHURNED",
+        "REACTIVATED",
+        "LOYAL_CLIENT",
+        "ADVOCATE",
+      ])
+      .optional(),
+    channel: z.enum(["EMAIL", "WHATSAPP", "SMS", "IN_APP"]).optional(),
+    templateId: z.string().max(255).optional(),
+    leadIds: z.array(z.uuid()).max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const has =
+      data.targetState !== undefined ||
+      data.channel !== undefined ||
+      (data.templateId !== undefined && data.templateId.trim().length > 0) ||
+      (data.leadIds !== undefined && data.leadIds.length > 0);
+    if (!has) {
+      ctx.addIssue({
+        code: "custom",
+        message: "At least one of targetState, channel, templateId, or leadIds is required",
+      });
+    }
+  });
 
 const complianceCheckSchema = z.object({
   checkType: z.enum(["GDPR_CONSENT", "COMPETITION_LAW", "DATA_RETENTION"]),
@@ -124,7 +149,7 @@ export async function e5AlertRoutes(app: FastifyInstance) {
       tenantId,
       county: body.county ?? null,
       alertType: body.alertType ?? null,
-      force: body.force,
+      force: body.force ?? false,
       ...buildProvenanceContext(req),
     });
 

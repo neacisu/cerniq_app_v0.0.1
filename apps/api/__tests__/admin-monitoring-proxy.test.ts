@@ -268,4 +268,33 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
     expect(body.success).toBe(true);
     expect(body.data.paused).toBe(true);
   });
+
+  it("GET /api/admin/prometheus/api-plugin-catalog — 200, include cerniq_http_requests_total și cerniq_e3_*", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/prometheus/api-plugin-catalog",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload) as {
+      success: boolean;
+      data: { metrics: { name: string; help: string; type: string }[]; sourceModule?: string };
+    };
+    expect(body.success).toBe(true);
+    const names = body.data.metrics.map((m) => m.name);
+    expect(names).toContain("cerniq_http_requests_total");
+    expect(names.some((n) => n.startsWith("cerniq_e3_"))).toBe(true);
+    expect(names.some((n) => n.startsWith("cerniq_e4_"))).toBe(true);
+    expect(names.some((n) => n.startsWith("cerniq_e5_"))).toBe(true);
+    expect(body.data.metrics.every((m) => m.help.length > 0)).toBe(true);
+  });
+
+  it("GET /api/admin/prometheus/api-plugin-catalog — 403 pentru viewer", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/prometheus/api-plugin-catalog",
+      headers: { Authorization: `Bearer ${viewerToken}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
 });

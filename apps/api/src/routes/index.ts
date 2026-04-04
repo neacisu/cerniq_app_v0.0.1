@@ -40,6 +40,8 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(cognitiveBrainRoutes, { prefix: "/api/v1/brain" });
   // E3 AI Sales
   await app.register(negotiationRoutes, { prefix: "/api/v1/negotiation" });
+  /** Alias REST plural — același contract ca `/negotiation` (specificații + suite E3). */
+  await app.register(negotiationRoutes, { prefix: "/api/v1/negotiations" });
   await app.register(productRoutes, { prefix: "/api/v1/products" });
   await app.register(fiscalRoutes, { prefix: "/api/v1/fiscal" });
   // E4 Post-Sale

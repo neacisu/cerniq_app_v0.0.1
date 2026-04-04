@@ -6,8 +6,11 @@
  * Plan: §XII L9479 — "lifecycle + payment + tracking live"
  * Workers: E4 payment, credit, logistics, contracts
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { fetchOrdersList, type GoldOrderListRow } from "@/lib/etapa4-api.js";
+import { EmptyState } from "@/components/feedback/EmptyState.js";
 import { Card, CardBody } from "@/components/ui/card.js";
 import { SBadge } from "@/components/ui/badge.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
@@ -31,9 +34,14 @@ type OrderStatus =
   | "IN_TRANSIT"
   | "OUT_FOR_DELIVERY"
   | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "RETURNED"
+  | "RETURN_PROCESSING"
   | "INVOICED"
   | "PAID"
+  | "PARTIALLY_PAID"
   | "OVERDUE"
+  | "COMPLETED"
   | "CANCELLED";
 
 type PaymentMethod = "BANK_TRANSFER" | "REVOLUT" | "CARD" | "COD" | "CREDIT";
@@ -43,7 +51,7 @@ interface Order {
   orderNumber: string;
   company: string;
   status: OrderStatus;
-  paymentMethod: PaymentMethod;
+  paymentMethod: PaymentMethod | null;
   total: number;
   currency: string;
   carrier?: string;
@@ -79,6 +87,7 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
       "CREDIT_PENDING",
       "CREDIT_APPROVED",
       "CREDIT_REJECTED",
+      "PARTIALLY_PAID",
     ],
     color: "var(--color-neuron-credit)",
     icon: CreditCard,
@@ -93,114 +102,53 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   {
     id: "delivery",
     title: "Livrare",
-    statuses: ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"],
+    statuses: ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "DELIVERY_FAILED"],
     color: "var(--color-neuron-logistics)",
     icon: Truck,
   },
   {
     id: "closed",
     title: "Închis",
-    statuses: ["INVOICED", "PAID", "OVERDUE", "CANCELLED"],
+    statuses: [
+      "INVOICED",
+      "PAID",
+      "OVERDUE",
+      "CANCELLED",
+      "COMPLETED",
+      "RETURNED",
+      "RETURN_PROCESSING",
+    ],
     color: "var(--color-ok)",
     icon: CheckCircle2,
   },
 ];
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+const COLUMN_STATUS_SET: ReadonlySet<string> = new Set(
+  KANBAN_COLUMNS.flatMap((c) => c.statuses as string[]),
+);
 
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "o-001",
-    orderNumber: "ORD-2026-0001",
-    company: "SC AgroSud SRL",
-    status: "CONFIRMED",
-    paymentMethod: "BANK_TRANSFER",
-    total: 23401,
-    currency: "RON",
-    createdAt: "2026-04-01",
-    updatedAt: "2026-04-02",
-  },
-  {
-    id: "o-002",
-    orderNumber: "ORD-2026-0002",
-    company: "Cooperativa Agriland",
-    status: "CREDIT_APPROVED",
-    paymentMethod: "CREDIT",
-    total: 12000,
-    currency: "RON",
-    createdAt: "2026-03-30",
-    updatedAt: "2026-04-01",
-  },
-  {
-    id: "o-003",
-    orderNumber: "ORD-2026-0003",
-    company: "OUAI Ialomița Nord",
-    status: "IN_TRANSIT",
-    paymentMethod: "COD",
-    total: 8200,
-    currency: "RON",
-    carrier: "SAMEDAY",
-    awb: "AWB-2026-001234",
-    createdAt: "2026-03-28",
-    updatedAt: "2026-04-03",
-  },
-  {
-    id: "o-004",
-    orderNumber: "ORD-2026-0004",
-    company: "SC Ferma Dunărea SA",
-    status: "PAID",
-    paymentMethod: "REVOLUT",
-    total: 45000,
-    currency: "RON",
-    createdAt: "2026-03-20",
-    updatedAt: "2026-03-30",
-  },
-  {
-    id: "o-005",
-    orderNumber: "ORD-2026-0005",
-    company: "Agro Nord Impex SRL",
-    status: "PROFORMA_SENT",
-    paymentMethod: "BANK_TRANSFER",
-    total: 16800,
-    currency: "RON",
-    createdAt: "2026-04-02",
-    updatedAt: "2026-04-02",
-  },
-  {
-    id: "o-006",
-    orderNumber: "ORD-2026-0006",
-    company: "Ferma Integrated SRL",
-    status: "READY_TO_SHIP",
-    paymentMethod: "BANK_TRANSFER",
-    total: 9600,
-    currency: "RON",
-    carrier: "FAN_COURIER",
-    createdAt: "2026-03-29",
-    updatedAt: "2026-04-03",
-  },
-  {
-    id: "o-007",
-    orderNumber: "ORD-2026-0007",
-    company: "Grup Agrar Trans SRL",
-    status: "OVERDUE",
-    paymentMethod: "BANK_TRANSFER",
-    total: 31200,
-    currency: "RON",
-    createdAt: "2026-02-15",
-    updatedAt: "2026-03-15",
-  },
-  {
-    id: "o-008",
-    orderNumber: "ORD-2026-0008",
-    company: "Agro Plus SRL",
-    status: "CONFIRMED",
-    paymentMethod: "CARD",
-    total: 5400,
-    currency: "RON",
-    createdAt: "2026-04-03",
-    updatedAt: "2026-04-03",
-  },
-];
+function mapApiOrderRow(row: GoldOrderListRow): Order {
+  const pm = row.paymentMethod;
+  const paymentMethod: PaymentMethod | null =
+    pm === "BANK_TRANSFER" || pm === "REVOLUT" || pm === "CARD" || pm === "COD" || pm === "CREDIT"
+      ? pm
+      : null;
+
+  const created = row.createdAt?.slice(0, 10) ?? "—";
+  const updated = row.updatedAt?.slice(0, 10) ?? "—";
+
+  return {
+    id: row.id,
+    orderNumber: row.orderNumber,
+    company: row.companyName?.trim() ? row.companyName : "—",
+    status: row.status as OrderStatus,
+    paymentMethod,
+    total: Number(row.totalAmount),
+    currency: row.currency,
+    createdAt: created,
+    updatedAt: updated,
+  };
+}
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -246,6 +194,9 @@ function OrderCard({
     COD: "💵",
     CREDIT: "📋",
   };
+  const pmLabel = order.paymentMethod
+    ? `${paymentMethodIcon[order.paymentMethod]} ${order.paymentMethod.replaceAll("_", " ")}`
+    : "— plată nesetată";
 
   const borderColor = getOrderBorderColor(order.status);
 
@@ -316,9 +267,7 @@ function OrderCard({
         >
           {order.currency} {order.total.toLocaleString()}
         </span>
-        <span style={{ fontSize: 10, color: "var(--color-t3)" }}>
-          {paymentMethodIcon[order.paymentMethod]} {order.paymentMethod.replaceAll("_", " ")}
-        </span>
+        <span style={{ fontSize: 10, color: "var(--color-t3)" }}>{pmLabel}</span>
       </div>
       {!!order.carrier && !!order.awb && (
         <div
@@ -358,9 +307,14 @@ const STATUS_FLOW: OrderStatus[] = [
   "IN_TRANSIT",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
+  "DELIVERY_FAILED",
+  "RETURNED",
+  "RETURN_PROCESSING",
   "INVOICED",
+  "PARTIALLY_PAID",
   "PAID",
   "OVERDUE",
+  "COMPLETED",
   "CANCELLED",
 ];
 
@@ -454,7 +408,7 @@ function OrderDetailPanel({
               METODĂ PLATĂ
             </div>
             <div style={{ color: "var(--color-t2)" }}>
-              {order.paymentMethod.replaceAll("_", " ")}
+              {order.paymentMethod ? order.paymentMethod.replaceAll("_", " ") : "—"}
             </div>
           </div>
           <div>
@@ -564,15 +518,25 @@ export function OrderDashboard() {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
+  const ordersQuery = useQuery({
+    queryKey: ["etapa4", "orders", "kanban"],
+    queryFn: () => fetchOrdersList({ limit: 100, page: 1 }),
+  });
+
+  const orders: Order[] = useMemo(() => {
+    const rows = ordersQuery.data?.data ?? [];
+    return rows.map(mapApiOrderRow);
+  }, [ordersQuery.data?.data]);
+
   const selectedOrder = selectedOrderId
-    ? (MOCK_ORDERS.find((o) => o.id === selectedOrderId) ?? null)
+    ? (orders.find((o) => o.id === selectedOrderId) ?? null)
     : null;
 
-  const totalValue = MOCK_ORDERS.reduce((sum, o) => sum + o.total, 0);
-  const overdueCount = MOCK_ORDERS.filter((o) => o.status === "OVERDUE").length;
-  const paidCount = MOCK_ORDERS.filter((o) => o.status === "PAID").length;
-  const activeCount = MOCK_ORDERS.filter(
-    (o) => !["PAID", "CANCELLED", "OVERDUE"].includes(o.status),
+  const totalValue = orders.reduce((sum, o) => sum + o.total, 0);
+  const overdueCount = orders.filter((o) => o.status === "OVERDUE").length;
+  const paidCount = orders.filter((o) => o.status === "PAID" || o.status === "COMPLETED").length;
+  const activeCount = orders.filter(
+    (o) => !["PAID", "COMPLETED", "CANCELLED", "OVERDUE"].includes(o.status),
   ).length;
 
   return (
@@ -612,6 +576,21 @@ export function OrderDashboard() {
           </div>
         }
       >
+        {ordersQuery.isError && (
+          <div className="mb-4 rounded border border-er/40 bg-er/10 px-4 py-3 text-sm text-er">
+            Nu s-au putut încărca comenzile:{" "}
+            {ordersQuery.error instanceof Error ? ordersQuery.error.message : "Eroare API"}
+          </div>
+        )}
+        {ordersQuery.isSuccess && orders.length === 0 && (
+          <div className="mb-6">
+            <EmptyState
+              title="Nicio comandă"
+              description="Lista este goală pentru tenantul curent."
+            />
+          </div>
+        )}
+
         {/* KPIs */}
         <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
           <KpiCard
@@ -652,7 +631,7 @@ export function OrderDashboard() {
             }}
           >
             {KANBAN_COLUMNS.map((col) => {
-              const colOrders = MOCK_ORDERS.filter((o) => col.statuses.includes(o.status));
+              const colOrders = orders.filter((o) => col.statuses.includes(o.status));
               const Icon = col.icon;
 
               return (
@@ -719,6 +698,54 @@ export function OrderDashboard() {
                 </div>
               );
             })}
+            {orders.some((o) => !COLUMN_STATUS_SET.has(o.status)) && (
+              <div
+                style={{
+                  minWidth: 220,
+                  flex: "0 0 220px",
+                  background: "var(--color-s900)",
+                  borderRadius: 8,
+                  padding: 10,
+                  border: "1px solid var(--color-s800)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 10,
+                  }}
+                >
+                  <Package size={12} color="var(--color-t4)" />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-t4)" }}>
+                    Alte stări (API)
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      background: "var(--color-s800)",
+                      borderRadius: "50%",
+                      width: 18,
+                      height: 18,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "var(--color-t3)",
+                    }}
+                  >
+                    {orders.filter((o) => !COLUMN_STATUS_SET.has(o.status)).length}
+                  </span>
+                </div>
+                {orders
+                  .filter((o) => !COLUMN_STATUS_SET.has(o.status))
+                  .map((order) => (
+                    <OrderCard key={order.id} order={order} onSelect={setSelectedOrderId} />
+                  ))}
+              </div>
+            )}
           </div>
         ) : (
           <Card>
@@ -735,7 +762,7 @@ export function OrderDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_ORDERS.map((o) => (
+                  {orders.map((o) => (
                     <tr
                       key={o.id}
                       className="border-b border-s800 hover:bg-s800/50"
@@ -751,7 +778,7 @@ export function OrderDashboard() {
                         {o.currency} {o.total.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-xs text-t3">
-                        {o.paymentMethod.replaceAll("_", " ")}
+                        {o.paymentMethod ? o.paymentMethod.replaceAll("_", " ") : "—"}
                       </td>
                       <td className="px-4 py-3 text-xs text-t3">{o.updatedAt}</td>
                     </tr>

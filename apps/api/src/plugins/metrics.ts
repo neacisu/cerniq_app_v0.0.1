@@ -24,6 +24,21 @@ function isIpAllowed(ip: string): boolean {
 const register = new Registry();
 collectDefaultMetrics({ register, prefix: "cerniq_" });
 
+/** Intrări read-only pentru catalog UI admin — sursa unică este acest fișier + `register`. */
+export type ApiPrometheusMetricCatalogEntry = {
+  name: string;
+  help: string;
+  type: string;
+};
+
+export function getRegisteredPrometheusMetricsCatalog(): ApiPrometheusMetricCatalogEntry[] {
+  return register.getMetricsAsArray().map((m) => ({
+    name: m.name,
+    help: m.help,
+    type: String(m.type),
+  }));
+}
+
 export const httpRequestsTotal = new Counter({
   name: "cerniq_http_requests_total",
   help: "Total HTTP requests",

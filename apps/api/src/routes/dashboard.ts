@@ -2,7 +2,12 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { dailyStats, db, sql } from "@cerniq/db";
 import { z } from "zod";
 import { loadDashboardStatsPayload } from "../lib/dashboard-stats-payload.js";
-import { parseLimit, parseOffset, requireTenantId } from "./utils.js";
+import {
+  ensureRequestTenantIdFromJwtIfMissing,
+  parseLimit,
+  parseOffset,
+  requireTenantId,
+} from "./utils.js";
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -66,6 +71,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
         error: "Autentificare SSE eșuată — token lipsă sau expirat",
       });
     }
+    /* Paritate cu tenant-context: după JWT valid, tenantul trebuie pe request (SSE fără header). */
+    ensureRequestTenantIdFromJwtIfMissing(request);
     let tenantId: string;
     try {
       tenantId = requireTenantId(request);

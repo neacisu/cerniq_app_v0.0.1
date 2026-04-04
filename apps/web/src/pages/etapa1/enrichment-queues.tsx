@@ -5,7 +5,6 @@ import { usePauseQueue, useQueueStatuses, useResumeQueue } from "@/hooks/use-eta
 import { QueueStatusCard } from "@/components/data/QueueStatusCard.js";
 import { Button } from "@/components/ui/button.js";
 import { Brain } from "lucide-react";
-
 export function EnrichmentQueues() {
   const queuesQuery = useQueueStatuses();
   const pauseMutation = usePauseQueue();
@@ -23,10 +22,22 @@ export function EnrichmentQueues() {
   }
 
   if (queuesQuery.isError) {
+    const msg = queuesQuery.error?.message ?? "";
+    const forbidden = /403|forbidden/i.test(msg);
     return (
       <PageWrapper title="Enrichment Queues">
-        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
-          Eroare la încărcarea datelor: {queuesQuery.error?.message ?? "Eroare necunoscută"}
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er space-y-2">
+          <p>Eroare la încărcarea cozilor: {msg || "Eroare necunoscută"}</p>
+          {forbidden ? (
+            <p className="text-t2">
+              Lista cozilor necesită rol <strong>admin</strong>, <strong>owner</strong> sau{" "}
+              <strong>superadmin</strong> (GET{" "}
+              <code className="font-mono">/api/v1/enrichment/queues</code>
+              ). Pause/Resume folosesc POST{" "}
+              <code className="font-mono">/api/v1/enrichment/queues/:name/pause|resume</code> cu
+              aceeași restricție.
+            </p>
+          ) : null}
         </div>
       </PageWrapper>
     );
@@ -34,9 +45,18 @@ export function EnrichmentQueues() {
 
   return (
     <PageWrapper title="Enrichment Queues">
+      <p className="mb-2 text-xs text-t4">
+        Sursă: <code className="font-mono">GET /api/v1/enrichment/queues</code>
+        {" — "}
+        stări BullMQ reale ( <code className="font-mono">waiting</code>,{" "}
+        <code className="font-mono">active</code>, <code className="font-mono">completed</code>,{" "}
+        <code className="font-mono">failed</code>, <code className="font-mono">delayed</code>,{" "}
+        <code className="font-mono">paused</code>). Controale: POST pause/resume pe coadă.
+      </p>
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-t2">
-          Monitorizare și control cozi BullMQ pentru enrichment pipeline.
+          Monitorizare și control cozi BullMQ pentru pipeline enrichment (date din API,
+          reîmprospătare ~15s).
         </p>
         <Link to="/brain">
           <Button
@@ -58,6 +78,9 @@ export function EnrichmentQueues() {
               active={Number(q.active ?? 0)}
               failed={Number(q.failed ?? 0)}
               delayed={Number(q.delayed ?? 0)}
+              completed={q.completed === undefined ? undefined : Number(q.completed)}
+              concurrency={q.concurrency === undefined ? undefined : Number(q.concurrency)}
+              lastJobAt={typeof q.lastJobAt === "string" ? q.lastJobAt : null}
               rateLimit={
                 q.rateLimit && typeof q.rateLimit === "object"
                   ? {
@@ -67,10 +90,12 @@ export function EnrichmentQueues() {
                   : null
               }
             />
+            {/* Răspunsul 200 la GET /queues este permis doar admin/owner/superadmin — același rol pentru pause/resume. */}
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
+                disabled={pauseMutation.isPending}
                 onClick={async () => {
                   await pauseMutation.mutateAsync(String(q.name));
                 }}
@@ -79,6 +104,7 @@ export function EnrichmentQueues() {
               </Button>
               <Button
                 size="sm"
+                disabled={resumeMutation.isPending}
                 onClick={async () => {
                   await resumeMutation.mutateAsync(String(q.name));
                 }}

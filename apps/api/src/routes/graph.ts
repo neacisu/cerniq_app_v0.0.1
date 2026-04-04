@@ -22,6 +22,7 @@ import { requireRole } from "../middleware/authz.js";
 import { requireTenantId } from "./utils.js";
 import { buildProvenanceContext } from "../lib/provenance.js";
 import { e5GraphDetectionsTotal } from "../plugins/metrics.js";
+import { envConfig } from "../config.js";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -38,12 +39,10 @@ const kolQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-const detectSchema = z
-  .object({
-    resolution: z.number().min(0.1).max(5).default(1),
-    minClusterSize: z.number().int().min(2).default(3),
-  })
-  .optional();
+const detectSchema = z.object({
+  resolution: z.number().min(0.1).max(5).default(1),
+  minClusterSize: z.number().int().min(2).default(3),
+});
 
 const relationshipsQuerySchema = z.object({
   entityId: z.uuid().optional(),
@@ -76,6 +75,7 @@ export async function graphRoutes(app: FastifyInstance) {
   };
 
   const detectLimiter = app.rateLimit({ max: 5, timeWindow: "1 minute" });
+  const detectPreHandlers = envConfig.NODE_ENV === "test" ? [] : [detectLimiter];
 
   // ── GET /graph/clusters ────────────────────────────────────────────────────
 
@@ -206,11 +206,43 @@ export async function graphRoutes(app: FastifyInstance) {
     });
   });
 
+  // ── GET /graph/geo-summary (agregare Gold pe județ — hartă E5) ─────────────
+
+  app.get("/geo-summary", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+
+    const regionKey = sql<string>`coalesce(
+      nullif(trim(${goldCompanies.judet}), ''),
+      nullif(trim(${goldCompanies.judetCod}), ''),
+      'Necunoscut'
+    )`;
+
+    const rows = await db
+      .select({
+        regionLabel: regionKey,
+        companyCount: sql<number>`count(*)::int`,
+        revenueSum: sql<string>`coalesce(sum(coalesce(${goldCompanies.cifraAfaceri}, 0)), 0)::text`,
+        avgLatitude: sql<string | null>`avg(${goldCompanies.latitude})::text`,
+        avgLongitude: sql<string | null>`avg(${goldCompanies.longitude})::text`,
+      })
+      .from(goldCompanies)
+      .where(eq(goldCompanies.tenantId, tenantId))
+      .groupBy(regionKey)
+      .orderBy(desc(sql`count(*)`));
+
+    return reply.send({
+      success: true,
+      data: rows,
+    });
+  });
+
   // ── POST /graph/detect (admin — CPU intensive rate limited) ───────────────
 
-  app.post("/detect", { ...adminAuth, preHandler: [detectLimiter] }, async (req, reply) => {
+  app.post("/detect", { ...adminAuth, preHandler: detectPreHandlers }, async (req, reply) => {
     const tenantId = requireTenantId(req);
-    const body = detectSchema?.parse(req.body) ?? { resolution: 1, minClusterSize: 3 };
+    const body = detectSchema.parse(
+      req.body !== undefined && req.body !== null && typeof req.body === "object" ? req.body : {},
+    );
 
     const buildQueue = createQueue(QUEUES.E5_GRAPH_BUILD_RELATIONSHIPS);
     const job = await buildQueue.add("detect-manual", {

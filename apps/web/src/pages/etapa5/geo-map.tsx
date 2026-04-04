@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBanner, EtapaBadge } from "@/components/brand/EtapaBadge.js";
@@ -6,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js"
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/lib/utils.js";
 import { X, MapPin, Users, TrendingUp, Package, PhoneCall } from "lucide-react";
+import { fetchGraphGeoSummary, type GeoSummaryRow } from "@/lib/etapa5-api.js";
 
 interface RegionData {
   id: string;
@@ -18,107 +20,7 @@ interface RegionData {
   x: number;
   y: number;
   r: number;
-  topClients: Array<{ name: string; revenue: string; status: "LOYAL" | "AT_RISK" }>;
-  potential: string;
-  salesRep: string;
-  salesRepPhone: string;
 }
-
-const regions: RegionData[] = [
-  {
-    id: "r1",
-    label: "Timiș",
-    county: "Timiș",
-    value: 342,
-    revenue: "EUR 289K",
-    revenueNum: 289000,
-    density: 5,
-    x: 20,
-    y: 35,
-    r: 28,
-    topClients: [
-      { name: "Ferma Banat SRL", revenue: "EUR 124K", status: "LOYAL" },
-      { name: "Coop Agro Vest", revenue: "EUR 87K", status: "LOYAL" },
-      { name: "SC Cereale SA", revenue: "EUR 45K", status: "AT_RISK" },
-    ],
-    potential: "Expansiune spre Arad și Caraș-Severin estimată +40%",
-    salesRep: "Mihai Ionescu",
-    salesRepPhone: "0721 100 200",
-  },
-  {
-    id: "r2",
-    label: "Cluj",
-    county: "Cluj",
-    value: 298,
-    revenue: "EUR 241K",
-    revenueNum: 241000,
-    density: 4,
-    x: 45,
-    y: 25,
-    r: 26,
-    topClients: [
-      { name: "Agro Transilvania SRL", revenue: "EUR 98K", status: "LOYAL" },
-      { name: "OUAI Cluj Nord", revenue: "EUR 72K", status: "LOYAL" },
-    ],
-    potential: "Penetrare OUAI-uri din Bihor neacoperite",
-    salesRep: "Ana Popa",
-    salesRepPhone: "0732 300 400",
-  },
-  {
-    id: "r3",
-    label: "Iași",
-    county: "Iași",
-    value: 256,
-    revenue: "EUR 198K",
-    revenueNum: 198000,
-    density: 3,
-    x: 72,
-    y: 30,
-    r: 22,
-    topClients: [
-      { name: "Cooperativa Agriland", revenue: "EUR 84K", status: "AT_RISK" },
-      { name: "Ferma Moldova Est", revenue: "EUR 56K", status: "LOYAL" },
-    ],
-    potential: "Risc churn Cooperativa Agriland — intervenție urgentă",
-    salesRep: "Vasile Dumitrescu",
-    salesRepPhone: "0744 500 600",
-  },
-  {
-    id: "r4",
-    label: "Constanța",
-    county: "Constanța",
-    value: 234,
-    revenue: "EUR 187K",
-    revenueNum: 187000,
-    density: 2,
-    x: 75,
-    y: 65,
-    r: 20,
-    topClients: [
-      { name: "OUAI Ialomița Nord", revenue: "EUR 82K", status: "LOYAL" },
-      { name: "SC Cerealelor SA", revenue: "EUR 58K", status: "LOYAL" },
-    ],
-    potential: "Potențial mare OUAI Dobrogea — neabordat",
-    salesRep: "Elena Florescu",
-    salesRepPhone: "0756 700 800",
-  },
-  {
-    id: "r5",
-    label: "Dolj",
-    county: "Dolj",
-    value: 145,
-    revenue: "EUR 112K",
-    revenueNum: 112000,
-    density: 1,
-    x: 32,
-    y: 72,
-    r: 16,
-    topClients: [{ name: "Agrosud Oltenia SRL", revenue: "EUR 67K", status: "LOYAL" }],
-    potential: "Piață insuficient explorată — oportunitate 2026",
-    salesRep: "Ion Stoica",
-    salesRepPhone: "0721 900 100",
-  },
-];
 
 const densityColors = {
   5: "var(--color-b5)",
@@ -128,7 +30,44 @@ const densityColors = {
   1: "oklch(0.38 0.08 220)",
 };
 
-const maxValue = Math.max(...regions.map((r) => r.value), 1);
+function buildRegionsFromApi(rows: GeoSummaryRow[]): RegionData[] {
+  if (rows.length === 0) return [];
+  const counts = rows.map((x) => x.companyCount).sort((a, b) => a - b);
+  const p = (q: number) =>
+    counts[Math.min(counts.length - 1, Math.floor((q / 100) * counts.length))];
+
+  const sorted = [...rows].sort((a, b) => b.companyCount - a.companyCount);
+  const n = sorted.length;
+  const cols = Math.ceil(Math.sqrt(n));
+  const maxC = Math.max(...sorted.map((r) => r.companyCount), 1);
+
+  return sorted.map((row, i) => {
+    const col = i % cols;
+    const rowIdx = Math.floor(i / cols);
+    const x = ((col + 0.5) / cols) * 85 + 8;
+    const y = ((rowIdx + 0.5) / Math.ceil(n / cols)) * 75 + 10;
+    const r = 14 + Math.round((row.companyCount / maxC) * 22);
+    const rev = Number(row.revenueSum) || 0;
+    let density: 1 | 2 | 3 | 4 | 5 = 1;
+    if (row.companyCount >= p(80)) density = 5;
+    else if (row.companyCount >= p(60)) density = 4;
+    else if (row.companyCount >= p(40)) density = 3;
+    else if (row.companyCount >= p(20)) density = 2;
+
+    return {
+      id: row.regionLabel,
+      label: row.regionLabel,
+      county: row.regionLabel,
+      value: row.companyCount,
+      revenue: `RON ${Math.round(rev).toLocaleString("ro-RO")}`,
+      revenueNum: rev,
+      density,
+      x,
+      y,
+      r,
+    };
+  });
+}
 
 function RegionDetailPanel({
   region,
@@ -165,12 +104,15 @@ function RegionDetailPanel({
             <MapPin size={16} color="var(--color-b5)" />
             <div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "var(--color-t1)" }}>
-                Județul {region.label}
+                Regiune: {region.label}
               </div>
-              <div style={{ fontSize: 10, color: "var(--color-t3)" }}>PostGIS Cluster</div>
+              <div style={{ fontSize: 10, color: "var(--color-t3)" }}>
+                Agregare GET /api/v1/graph/geo-summary
+              </div>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "none",
@@ -195,16 +137,9 @@ function RegionDetailPanel({
           >
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
               <Users size={11} color="var(--color-b5)" />
-              <span style={{ color: "var(--color-t4)", fontSize: 9 }}>CLIENȚI ACTIVI</span>
+              <span style={{ color: "var(--color-t4)", fontSize: 9 }}>COMPANII</span>
             </div>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                color: "var(--color-b5)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--color-t1)" }}>
               {region.value}
             </div>
           </div>
@@ -218,75 +153,26 @@ function RegionDetailPanel({
           >
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
               <TrendingUp size={11} color="var(--color-ok)" />
-              <span style={{ color: "var(--color-t4)", fontSize: 9 }}>VENIT TOTAL</span>
+              <span style={{ color: "var(--color-t4)", fontSize: 9 }}>CIFRĂ AFACERI (SUMĂ)</span>
             </div>
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                color: "var(--color-ok)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ok)" }}>
               {region.revenue}
             </div>
           </div>
         </div>
 
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-t3)", marginBottom: 8 }}>
-            TOP CLIENȚI
-          </div>
-          {region.topClients.map((c) => (
-            <div
-              key={c.name}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "6px 0",
-                borderBottom: "1px solid var(--color-s800)",
-                fontSize: 11,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: c.status === "LOYAL" ? "var(--color-ok)" : "var(--color-wa)",
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ color: "var(--color-t1)" }}>{c.name}</span>
-              </div>
-              <span
-                style={{ color: "var(--color-b5)", fontFamily: "var(--font-mono)", fontSize: 10 }}
-              >
-                {c.revenue}
-              </span>
-            </div>
-          ))}
-        </div>
-
         <div
           style={{
             padding: "10px 12px",
-            background: "color-mix(in oklch, var(--color-neuron-environment) 10%, transparent)",
-            border:
-              "1px solid color-mix(in oklch, var(--color-neuron-environment) 30%, transparent)",
+            background: "var(--color-s800)",
             borderRadius: 6,
             fontSize: 11,
+            color: "var(--color-t3)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
-            <Package size={11} color="var(--color-neuron-environment)" />
-            <span style={{ color: "var(--color-neuron-environment)", fontWeight: 600 }}>
-              POTENȚIAL NEEXPLORAT
-            </span>
-          </div>
-          <div style={{ color: "var(--color-t2)", lineHeight: 1.5 }}>{region.potential}</div>
+          <Package size={11} style={{ display: "inline", marginRight: 6 }} />
+          Top clienți per județ nu sunt incluși în geo-summary — folosiți filtre Gold / rapoarte
+          dedicate.
         </div>
 
         <div
@@ -298,14 +184,12 @@ function RegionDetailPanel({
           }}
         >
           <div style={{ fontSize: 9, color: "var(--color-t4)", marginBottom: 4 }}>
-            MANAGER REGIONAL
+            MANAGER / CONTACT
           </div>
-          <div style={{ color: "var(--color-t1)", fontWeight: 600, marginBottom: 4 }}>
-            {region.salesRep}
-          </div>
+          <div style={{ color: "var(--color-t1)", fontWeight: 600, marginBottom: 4 }}>—</div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--color-b5)" }}>
             <PhoneCall size={10} />
-            {region.salesRepPhone}
+            Date de contact regionale nu sunt în agregare.
           </div>
         </div>
 
@@ -313,11 +197,13 @@ function RegionDetailPanel({
           size="sm"
           style={{ gap: 5 }}
           onClick={() => {
-            toast.success(`Campanie pentru județul ${region.label} creată.`);
+            toast.message(
+              "Campaniile outbound se lansează prin fluxul E2/E5 — nu este un POST în geo-summary.",
+            );
             onClose();
           }}
         >
-          <TrendingUp size={12} /> Lansează Campanie
+          <TrendingUp size={12} /> Notă campanie
         </Button>
       </div>
     </div>
@@ -327,17 +213,35 @@ function RegionDetailPanel({
 export function GeoMap() {
   const [selectedRegion, setSelectedRegion] = useState<RegionData | null>(null);
 
+  const geoQuery = useQuery({
+    queryKey: ["etapa5", "graph", "geo-summary"],
+    queryFn: () => fetchGraphGeoSummary(),
+  });
+
+  const regions = useMemo(
+    () => buildRegionsFromApi(geoQuery.data?.data ?? []),
+    [geoQuery.data?.data],
+  );
+  const maxValue = Math.max(...regions.map((r) => r.value), 1);
+
   const totalClients = regions.reduce((s, r) => s + r.value, 0);
-  const totalRevenue = `EUR ${Math.round(regions.reduce((s, r) => s + r.revenueNum, 0) / 1000)}K`;
+  const totalRevenueNum = regions.reduce((s, r) => s + r.revenueNum, 0);
+  const totalRevenue = `RON ${Math.round(totalRevenueNum).toLocaleString("ro-RO")}`;
 
   return (
-    <PageWrapper title="Geographic Map — PostGIS" actions={<EtapaBadge label="Etapa 5" />}>
+    <PageWrapper title="Geographic Map — agregare Gold" actions={<EtapaBadge label="Etapa 5" />}>
       <EtapaBanner
-        title="PostGIS Geographic Distribution"
-        description="Click pe regiuni pentru detalii clienți și potențial neexplorat"
+        title="Distribuție geografică (gold_companies)"
+        description="Date din GET /api/v1/graph/geo-summary — pozițiile bulelor sunt derive din grilă (nu GPS fictiv)."
         type="ok"
         className="mb-6"
       />
+
+      {geoQuery.isError && (
+        <div className="mb-4 rounded border border-er/40 bg-er/10 px-4 py-3 text-sm text-er">
+          Eroare la încărcarea agregării geografice.
+        </div>
+      )}
 
       <div
         style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}
@@ -346,9 +250,9 @@ export function GeoMap() {
         <Card>
           <CardHeader>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <CardTitle>Hartă Distribuție Clienți</CardTitle>
+              <CardTitle>Hartă (grilă) — companii pe regiune</CardTitle>
               <div style={{ fontSize: 11, color: "var(--color-t3)" }}>
-                {totalClients} clienți · {totalRevenue}
+                {totalClients} companii · {totalRevenue}
               </div>
             </div>
           </CardHeader>
@@ -362,7 +266,6 @@ export function GeoMap() {
                 overflow: "hidden",
               }}
             >
-              {/* Romania outline suggestion */}
               <div
                 style={{
                   position: "absolute",
@@ -372,12 +275,28 @@ export function GeoMap() {
                 }}
               />
 
+              {regions.length === 0 && geoQuery.isSuccess && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    color: "var(--color-t3)",
+                  }}
+                >
+                  Nu există companii Gold pentru acest tenant.
+                </div>
+              )}
+
               {regions.map((r) => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => setSelectedRegion(r)}
-                  title={`${r.label}: ${r.value} clienți`}
+                  title={`${r.label}: ${r.value} companii`}
                   style={{
                     position: "absolute",
                     left: `${r.x}%`,
@@ -413,12 +332,11 @@ export function GeoMap() {
                       lineHeight: 1,
                     }}
                   >
-                    {r.label}
+                    {r.label.length > 10 ? `${r.label.slice(0, 9)}…` : r.label}
                   </span>
                 </button>
               ))}
 
-              {/* Legend */}
               <div
                 style={{
                   position: "absolute",
@@ -460,7 +378,7 @@ export function GeoMap() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Card>
             <CardHeader>
-              <CardTitle>Top Județe</CardTitle>
+              <CardTitle>Top regiuni</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="space-y-3">
@@ -476,7 +394,7 @@ export function GeoMap() {
                       )}
                     >
                       <span
-                        style={{ fontSize: 11, color: "var(--color-t2)", width: 64, flexShrink: 0 }}
+                        style={{ fontSize: 11, color: "var(--color-t2)", width: 96, flexShrink: 0 }}
                       >
                         {r.label}
                       </span>
@@ -528,10 +446,10 @@ export function GeoMap() {
             <div
               style={{ fontWeight: 600, color: "var(--color-neuron-environment)", marginBottom: 4 }}
             >
-              🌾 Potențial neexplorat
+              Acoperire
             </div>
-            Județe fără acoperire Cerniq: Bihor, Satu Mare, Maramureș, Brăila. Estimare adresabilă:
-            +800 clienți noi.
+            Județele fără companii Gold nu apar în listă. Completați datele în E1 sau importuri
+            pentru acoperire reală.
           </div>
         </div>
       </div>

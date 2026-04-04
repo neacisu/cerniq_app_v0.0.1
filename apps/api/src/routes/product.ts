@@ -57,13 +57,28 @@ const patchProductSchema = z
   })
   .refine((b) => Object.keys(b).length > 0, { message: "At least one field required" });
 
-const hybridSearchSchema = z.object({
-  query: z.string().min(1).max(500),
-  categoryId: z.uuid().optional(),
-  limit: z.number().int().min(1).max(50).default(10),
-  minPrice: z.number().positive().optional(),
-  maxPrice: z.number().positive().optional(),
-});
+const hybridSearchSchema = z
+  .object({
+    query: z.string().min(1).max(500).optional(),
+    q: z.string().min(1).max(500).optional(),
+    categoryId: z.uuid().optional(),
+    limit: z.number().int().min(1).max(50).default(10),
+    minPrice: z.number().positive().optional(),
+    maxPrice: z.number().positive().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const text = (data.query ?? data.q ?? "").trim();
+    if (text.length === 0) {
+      ctx.addIssue({ code: "custom", message: "q or query is required" });
+    }
+  })
+  .transform((data) => ({
+    query: (data.query ?? data.q ?? "").trim(),
+    categoryId: data.categoryId,
+    limit: data.limit,
+    minPrice: data.minPrice,
+    maxPrice: data.maxPrice,
+  }));
 
 const createCategorySchema = z.object({
   name: z.string().min(1).max(255),

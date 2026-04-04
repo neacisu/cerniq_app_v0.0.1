@@ -214,6 +214,32 @@ describe("Etapa 1 API Integration Tests", () => {
     });
   });
 
+  describe("GET /api/v1/dashboard/kpi-stream (SSE)", () => {
+    /**
+     * Nu folosim app.inject cu răspuns 200 pe fluxul SSE real: handler-ul apelează
+     * reply.hijack() și ține conexiția deschisă — inject ar aștepta la infinit.
+     * Paritatea EventSource (?token=) este verificată prin 401 pentru token invalid
+     * (proba că query-ul este citit în tenant-context înainte de jwtVerify).
+     */
+    it("returnează 401 pentru ?token= invalid (fără header Authorization)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/dashboard/kpi-stream?token=not-a-valid-jwt",
+        headers: { "X-Tenant-ID": testTenantId },
+      });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("returnează 401 fără token în query și fără Authorization", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/dashboard/kpi-stream",
+        headers: { "X-Tenant-ID": testTenantId },
+      });
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
   describe("GET /api/v1/dashboard/activity", () => {
     it("returns 400 for invalid limit (Zod, fără query DB)", async () => {
       const res = await app.inject({

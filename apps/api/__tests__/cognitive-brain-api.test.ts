@@ -127,6 +127,17 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
       expect(body.data.nodes.length).toBe(CATALOG_STATS.total);
     });
 
+    it("acceptă JWT doar în ?token= (EventSource) — același răspuns ca cu Bearer", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/v1/brain/catalog?token=${encodeURIComponent(viewerToken)}`,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.success).toBe(true);
+      expect(body.data.nodes.length).toBe(CATALOG_STATS.total);
+    });
+
     it("fiecare nod are câmpurile obligatorii", async () => {
       const res = await app.inject({
         method: "GET",
@@ -784,6 +795,14 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
       const res = await app.inject({
         method: "GET",
         url: "/api/v1/brain/events/stream",
+      });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("returnează 401 pentru ?token= JWT invalid (fără header Authorization)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/brain/events/stream?token=not-a-valid-jwt",
       });
       expect(res.statusCode).toBe(401);
     });

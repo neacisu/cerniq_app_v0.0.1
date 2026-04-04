@@ -61,6 +61,18 @@ function livePayload() {
   };
 }
 
+function catalogPayload() {
+  return {
+    success: true,
+    data: {
+      metrics: [
+        { name: "cerniq_http_requests_total", type: "counter", help: "Total HTTP requests" },
+      ],
+      scrapeNote: "GET /metrics allowlist",
+    },
+  };
+}
+
 function wrap(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -77,6 +89,8 @@ describe("Workers page", () => {
     vi.mocked(toast.success).mockReset();
     getMock.mockImplementation((path: string) => {
       if (path === "/api/admin/live") return Promise.resolve(livePayload());
+      if (path === "/api/admin/prometheus/api-plugin-catalog")
+        return Promise.resolve(catalogPayload());
       if (path === `/api/admin/queues/${encodeURIComponent(QUEUE)}`) {
         return Promise.resolve({
           success: true,
@@ -95,6 +109,12 @@ describe("Workers page", () => {
     wrap(<Workers />);
     await waitFor(() => expect(screen.getByText(QUEUE)).toBeInTheDocument());
     expect(getMock).toHaveBeenCalledWith("/api/admin/live");
+    expect(getMock).toHaveBeenCalledWith("/api/admin/prometheus/api-plugin-catalog");
+  });
+
+  it("afișează catalogul metricilor API (nume din răspuns)", async () => {
+    wrap(<Workers />);
+    await waitFor(() => expect(screen.getByText("cerniq_http_requests_total")).toBeInTheDocument());
   });
 
   it("POST pauză la path corect și toast din corp răspuns", async () => {
@@ -123,6 +143,8 @@ describe("Workers page", () => {
           },
         });
       }
+      if (path === "/api/admin/prometheus/api-plugin-catalog")
+        return Promise.resolve(catalogPayload());
       return Promise.reject(new Error("unexpected"));
     });
     wrap(<Workers />);

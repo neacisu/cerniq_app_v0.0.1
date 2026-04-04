@@ -64,6 +64,10 @@ let testUserId: string;
 let authToken: string;
 let viewerToken: string;
 
+/** UUID sintactic valid (Zod); pentru „resursă inexistentă” în DB, nu pentru ID malformate. */
+const NONEXISTENT_ENTITY_UUID = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+const NONEXISTENT_LEAD_UUID = "b2b2b2b2-b2b2-42b2-b2b2-b2b2b2b2b2b2";
+
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 beforeAll(async () => {
@@ -132,11 +136,16 @@ afterAll(async () => {
 // ─── Utilitare auth ───────────────────────────────────────────────────────────
 
 function authed(url: string, method: HttpMethod = "GET", body?: unknown): TestInjectOptions {
+  const headers: Record<string, string> = { authorization: `Bearer ${authToken}` };
+  if (body === undefined) {
+    return { method, url, headers };
+  }
+  headers["content-type"] = "application/json";
   return {
     method,
     url,
-    headers: { authorization: `Bearer ${authToken}`, "content-type": "application/json" },
-    payload: body ? JSON.stringify(body) : undefined,
+    headers,
+    payload: JSON.stringify(body),
   };
 }
 
@@ -186,9 +195,7 @@ describe("E3 — Negotiation Routes /api/v1/negotiations", () => {
   });
 
   it("GET /:id → 404 pentru UUID inexistent", async () => {
-    const res = await app.inject(
-      authed("/api/v1/negotiations/00000000-0000-0000-0000-000000000001"),
-    );
+    const res = await app.inject(authed(`/api/v1/negotiations/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -215,7 +222,7 @@ describe("E3 — Negotiation Routes /api/v1/negotiations", () => {
   it("POST / → 404 cu leadId UUID valid dar inexistent", async () => {
     const res = await app.inject(
       authed("/api/v1/negotiations", "POST", {
-        leadId: "00000000-0000-0000-0000-000000000099",
+        leadId: NONEXISTENT_LEAD_UUID,
       }),
     );
     expect(res.statusCode).toBe(404);
@@ -223,7 +230,7 @@ describe("E3 — Negotiation Routes /api/v1/negotiations", () => {
 
   it("POST /:id/abandon → 401 pentru viewer (RBAC admin)", async () => {
     const res = await app.inject(
-      viewerAuthed("/api/v1/negotiations/00000000-0000-0000-0000-000000000001/abandon", "POST"),
+      viewerAuthed(`/api/v1/negotiations/${NONEXISTENT_ENTITY_UUID}/abandon`, "POST"),
     );
     expect(res.statusCode).toBe(403);
   });
@@ -231,7 +238,21 @@ describe("E3 — Negotiation Routes /api/v1/negotiations", () => {
   it("GET /stats → 200 cu JWT", async () => {
     const res = await app.inject(authed("/api/v1/negotiations/stats"));
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body).success).toBe(true);
+    const body = JSON.parse(res.body) as {
+      success: boolean;
+      data: {
+        guardrailViolationsTotal?: number;
+        guardrailViolationsByType?: unknown[];
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(typeof body.data.guardrailViolationsTotal).toBe("number");
+    expect(Array.isArray(body.data.guardrailViolationsByType)).toBe(true);
+  });
+
+  it("GET /guardrails?limit=500 → 422 (max 100 în schema Zod)", async () => {
+    const res = await app.inject(authed("/api/v1/negotiations/guardrails?limit=500"));
+    expect(res.statusCode).toBe(422);
   });
 });
 
@@ -351,7 +372,7 @@ describe("E3 — Product Routes /api/v1/products", () => {
     );
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body) as { data: { unitPrice: string | null } };
-    expect(body.data.unitPrice).toBe("99.5");
+    expect(body.data.unitPrice).toBe("99.50");
   });
 });
 
@@ -437,7 +458,7 @@ describe("E4 — Order Routes /api/v1/orders", () => {
   });
 
   it("GET /:id → 404 UUID inexistent", async () => {
-    const res = await app.inject(authed("/api/v1/orders/00000000-0000-0000-0000-000000000001"));
+    const res = await app.inject(authed(`/api/v1/orders/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -448,15 +469,13 @@ describe("E4 — Order Routes /api/v1/orders", () => {
 
   it("DELETE /:id → 401 pentru viewer (RBAC admin)", async () => {
     const res = await app.inject(
-      viewerAuthed("/api/v1/orders/00000000-0000-0000-0000-000000000001", "DELETE"),
+      viewerAuthed(`/api/v1/orders/${NONEXISTENT_ENTITY_UUID}`, "DELETE"),
     );
     expect(res.statusCode).toBe(403);
   });
 
   it("GET /:id/payments → 401 fără JWT", async () => {
-    const res = await app.inject(
-      unauthed("/api/v1/orders/00000000-0000-0000-0000-000000000001/payments"),
-    );
+    const res = await app.inject(unauthed(`/api/v1/orders/${NONEXISTENT_ENTITY_UUID}/payments`));
     expect(res.statusCode).toBe(401);
   });
 
@@ -467,6 +486,12 @@ describe("E4 — Order Routes /api/v1/orders", () => {
 
   it("GET /payments/reconciliations → 200 cu admin", async () => {
     const res = await app.inject(authed("/api/v1/orders/payments/reconciliations"));
+    expect(res.statusCode).toBe(200);
+    assertSuccessList(JSON.parse(res.body));
+  });
+
+  it("GET /payments → 200 cu JWT (listă plăți tenant)", async () => {
+    const res = await app.inject(authed("/api/v1/orders/payments"));
     expect(res.statusCode).toBe(200);
     assertSuccessList(JSON.parse(res.body));
   });
@@ -495,9 +520,7 @@ describe("E4 — Credit Routes /api/v1/credit", () => {
   });
 
   it("GET /profiles/:clientId → 404 UUID inexistent", async () => {
-    const res = await app.inject(
-      authed("/api/v1/credit/profiles/00000000-0000-0000-0000-000000000001"),
-    );
+    const res = await app.inject(authed(`/api/v1/credit/profiles/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -526,9 +549,9 @@ describe("E4 — Credit Routes /api/v1/credit", () => {
     expect(body.data).toHaveProperty("jobId");
   });
 
-  it("POST /profiles/:clientId/evaluate → 422 fără body", async () => {
+  it("POST /profiles/:clientId/evaluate → 404 client inexistent", async () => {
     const res = await app.inject(
-      authed("/api/v1/credit/profiles/00000000-0000-0000-0000-000000000001/evaluate", "POST", {}),
+      authed(`/api/v1/credit/profiles/${NONEXISTENT_ENTITY_UUID}/evaluate`, "POST", {}),
     );
     expect(res.statusCode).toBe(404);
   });
@@ -551,7 +574,7 @@ describe("E4 — Shipment Routes /api/v1/shipments", () => {
   });
 
   it("GET /:id → 404 UUID inexistent", async () => {
-    const res = await app.inject(authed("/api/v1/shipments/00000000-0000-0000-0000-000000000001"));
+    const res = await app.inject(authed(`/api/v1/shipments/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -563,7 +586,7 @@ describe("E4 — Shipment Routes /api/v1/shipments", () => {
 
   it("POST /orders/:orderId/create-awb → 401 fără JWT", async () => {
     const res = await app.inject(
-      unauthed("/api/v1/shipments/orders/00000000-0000-0000-0000-000000000001/create-awb", "POST"),
+      unauthed(`/api/v1/shipments/orders/${NONEXISTENT_ENTITY_UUID}/create-awb`, "POST"),
     );
     expect(res.statusCode).toBe(401);
   });
@@ -620,7 +643,9 @@ describe("E4 — Contract Routes /api/v1/contracts", () => {
 
   it("POST /orders/:orderId/generate → 404 UUID inexistent", async () => {
     const res = await app.inject(
-      authed("/api/v1/contracts/orders/00000000-0000-0000-0000-000000000001/generate", "POST", {}),
+      authed(`/api/v1/contracts/orders/${NONEXISTENT_ENTITY_UUID}/generate`, "POST", {
+        clientId: NONEXISTENT_ENTITY_UUID,
+      }),
     );
     expect(res.statusCode).toBe(404);
   });
@@ -643,9 +668,7 @@ describe("E5 — Nurturing Routes /api/v1/nurturing", () => {
   });
 
   it("GET /states/:leadId → 404 UUID inexistent", async () => {
-    const res = await app.inject(
-      authed("/api/v1/nurturing/states/00000000-0000-0000-0000-000000000001"),
-    );
+    const res = await app.inject(authed(`/api/v1/nurturing/states/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -680,7 +703,7 @@ describe("E5 — Nurturing Routes /api/v1/nurturing", () => {
 
   it("POST /states/:leadId/evaluate → 404 UUID inexistent", async () => {
     const res = await app.inject(
-      authed("/api/v1/nurturing/states/00000000-0000-0000-0000-000000000001/evaluate", "POST", {}),
+      authed(`/api/v1/nurturing/states/${NONEXISTENT_ENTITY_UUID}/evaluate`, "POST", {}),
     );
     expect(res.statusCode).toBe(404);
   });
@@ -709,9 +732,7 @@ describe("E5 — Churn Routes /api/v1/churn", () => {
   });
 
   it("GET /factors/:leadId → 404 UUID inexistent", async () => {
-    const res = await app.inject(
-      authed("/api/v1/churn/factors/00000000-0000-0000-0000-000000000001"),
-    );
+    const res = await app.inject(authed(`/api/v1/churn/factors/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -743,7 +764,7 @@ describe("E5 — Churn Routes /api/v1/churn", () => {
 
   it("POST /:leadId/evaluate → 404 UUID inexistent", async () => {
     const res = await app.inject(
-      authed("/api/v1/churn/00000000-0000-0000-0000-000000000001/evaluate", "POST", {}),
+      authed(`/api/v1/churn/${NONEXISTENT_ENTITY_UUID}/evaluate`, "POST", {}),
     );
     expect(res.statusCode).toBe(404);
   });
@@ -766,9 +787,7 @@ describe("E5 — Graph Routes /api/v1/graph", () => {
   });
 
   it("GET /clusters/:id → 404 UUID inexistent", async () => {
-    const res = await app.inject(
-      authed("/api/v1/graph/clusters/00000000-0000-0000-0000-000000000001"),
-    );
+    const res = await app.inject(authed(`/api/v1/graph/clusters/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -852,6 +871,14 @@ describe("E5 — Graph Routes /api/v1/graph", () => {
     expect(body.data).toHaveProperty("clusters");
     expect(body.data).toHaveProperty("relationships");
   });
+
+  it("GET /geo-summary → 200 cu JWT, data array", async () => {
+    const res = await app.inject(authed("/api/v1/graph/geo-summary"));
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -871,7 +898,7 @@ describe("E5 — Referral Routes /api/v1/referrals", () => {
   });
 
   it("GET /:id → 404 UUID inexistent", async () => {
-    const res = await app.inject(authed("/api/v1/referrals/00000000-0000-0000-0000-000000000001"));
+    const res = await app.inject(authed(`/api/v1/referrals/${NONEXISTENT_ENTITY_UUID}`));
     expect(res.statusCode).toBe(404);
   });
 
@@ -888,7 +915,7 @@ describe("E5 — Referral Routes /api/v1/referrals", () => {
 
   it("PATCH /:id/consent → 422 body gol", async () => {
     const res = await app.inject(
-      authed("/api/v1/referrals/00000000-0000-0000-0000-000000000001/consent", "PATCH", {}),
+      authed(`/api/v1/referrals/${NONEXISTENT_ENTITY_UUID}/consent`, "PATCH", {}),
     );
     expect(res.statusCode).toBe(422);
   });

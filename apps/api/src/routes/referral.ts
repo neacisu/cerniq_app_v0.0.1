@@ -4,7 +4,7 @@
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { db, sql, eq, and, desc, goldReferrals, goldCompanies } from "@cerniq/db";
+import { alias, db, sql, eq, and, desc, goldReferrals, goldCompanies } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
 import { QUEUES } from "@cerniq/worker-shared";
 import { requireTenantId } from "./utils.js";
@@ -68,14 +68,21 @@ export async function referralRoutes(app: FastifyInstance) {
     if (query.consentGiven !== undefined)
       conditions.push(eq(goldReferrals.consentGiven, query.consentGiven));
 
+    const referrerGc = alias(goldCompanies, "referrer_gc");
+    const referredGc = alias(goldCompanies, "referred_gc");
+
     const [rows, countResult] = await Promise.all([
       db
         .select({
           referral: goldReferrals,
-          referrerName: goldCompanies.denumire,
+          referrerName: referrerGc.denumire,
+          referrerCui: referrerGc.cui,
+          referredName: referredGc.denumire,
+          referredCui: referredGc.cui,
         })
         .from(goldReferrals)
-        .leftJoin(goldCompanies, eq(goldReferrals.referrerId, goldCompanies.id))
+        .leftJoin(referrerGc, eq(goldReferrals.referrerId, referrerGc.id))
+        .leftJoin(referredGc, eq(goldReferrals.referredId, referredGc.id))
         .where(and(...conditions))
         .orderBy(desc(goldReferrals.createdAt))
         .limit(query.limit)
@@ -89,7 +96,13 @@ export async function referralRoutes(app: FastifyInstance) {
     const total = countResult[0]?.count ?? 0;
     return reply.send({
       success: true,
-      data: rows.map((r) => ({ ...r.referral, referrerName: r.referrerName })),
+      data: rows.map((r) => ({
+        ...r.referral,
+        referrerName: r.referrerName,
+        referrerCui: r.referrerCui,
+        referredName: r.referredName,
+        referredCui: r.referredCui,
+      })),
       meta: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
     });
   });
@@ -100,14 +113,20 @@ export async function referralRoutes(app: FastifyInstance) {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
+    const referrerGc = alias(goldCompanies, "referrer_gc_detail");
+    const referredGc = alias(goldCompanies, "referred_gc_detail");
+
     const [row] = await db
       .select({
         referral: goldReferrals,
-        referrerName: goldCompanies.denumire,
-        referrerCui: goldCompanies.cui,
+        referrerName: referrerGc.denumire,
+        referrerCui: referrerGc.cui,
+        referredName: referredGc.denumire,
+        referredCui: referredGc.cui,
       })
       .from(goldReferrals)
-      .leftJoin(goldCompanies, eq(goldReferrals.referrerId, goldCompanies.id))
+      .leftJoin(referrerGc, eq(goldReferrals.referrerId, referrerGc.id))
+      .leftJoin(referredGc, eq(goldReferrals.referredId, referredGc.id))
       .where(and(eq(goldReferrals.id, id), eq(goldReferrals.tenantId, tenantId)))
       .limit(1);
 
@@ -119,6 +138,8 @@ export async function referralRoutes(app: FastifyInstance) {
         ...row.referral,
         referrerName: row.referrerName,
         referrerCui: row.referrerCui,
+        referredName: row.referredName,
+        referredCui: row.referredCui,
       },
     });
   });

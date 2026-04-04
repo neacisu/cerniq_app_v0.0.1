@@ -19,7 +19,7 @@ import type { CognitiveBrain, CognitiveEdge, CognitiveNode } from "@cerniq/share
 import { propagatePause } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
 import { requireRole } from "../middleware/authz.js";
-import { requireTenantId, parseLimit } from "./utils.js";
+import { requireTenantId, parseLimit, ensureRequestTenantIdFromJwtIfMissing } from "./utils.js";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -447,6 +447,13 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
           .code(401)
           .send({ success: false, error: "Autentificare SSE eșuată — token lipsă sau expirat" });
       }
+
+      // requireRole poate trimite 403 fără throw — nu continua spre hijack / writeHead
+      if (reply.sent) {
+        return;
+      }
+
+      ensureRequestTenantIdFromJwtIfMissing(request);
 
       // Extrage tenantId ÎNAINTE de hijack — necesitar pentru DB replay
       let tenantId: string | undefined;

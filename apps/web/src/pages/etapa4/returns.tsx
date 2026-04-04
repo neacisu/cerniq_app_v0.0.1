@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { fetchOrdersList, type GoldOrderListRow } from "@/lib/etapa4-api.js";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { Button } from "@/components/ui/index.js";
@@ -12,6 +14,7 @@ type RmaStatus = "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
 
 interface Rma {
   id: string;
+  orderRef: string;
   company: string;
   cui: string;
   status: RmaStatus;
@@ -25,49 +28,26 @@ interface Rma {
   contactEmail: string;
 }
 
-const INITIAL_RMAS: Rma[] = [
-  {
-    id: "RMA-001",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    status: "PENDING",
-    reason: "Produs defect — rata germinație sub 80%",
-    date: "2026-04-01",
-    value: "RON 450",
-    valueNum: 450,
-    carrier: "SAMEDAY",
-    awb: "SDY-RMA-001234",
-    products: ["Semințe Grâu PREMIUM Sorin F1 × 2 saci"],
-    contactEmail: "andrei@agrosud.ro",
-  },
-  {
-    id: "RMA-002",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    status: "APPROVED",
-    reason: "Livrare greșită — produs incorect expediat",
-    date: "2026-03-28",
-    value: "RON 230",
-    valueNum: 230,
-    carrier: "FAN_COURIER",
-    products: ["Fungicid Topsin M 70 WP × 1"],
-    contactEmail: "ion@agriland.ro",
-  },
-  {
-    id: "RMA-003",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    status: "PENDING",
-    reason: "Ambalaj deteriorat în transport",
-    date: "2026-03-30",
-    value: "RON 120",
-    valueNum: 120,
-    carrier: "SAMEDAY",
-    awb: "SDY-RMA-005678",
-    products: ["Uree Granulată 46% × 1 sac 50kg"],
-    contactEmail: "vasile@ouai-ialomita.ro",
-  },
-];
+function orderRowToRma(o: GoldOrderListRow): Rma {
+  const st = o.status;
+  const status: RmaStatus = st === "RETURNED" ? "COMPLETED" : "PENDING";
+
+  const amt = Number(o.totalAmount);
+  return {
+    id: o.id,
+    orderRef: o.orderNumber,
+    company: o.companyName?.trim() ? o.companyName : "—",
+    cui: o.cui?.trim() ? o.cui : "—",
+    status,
+    reason: `Comandă în starea „${st}” (flux retur / livrare eșuată).`,
+    date: (o.updatedAt ?? o.createdAt).slice(0, 10),
+    value: `${o.currency} ${amt.toLocaleString("ro-RO")}`,
+    valueNum: amt,
+    carrier: "—",
+    products: [],
+    contactEmail: "—",
+  };
+}
 
 function RmaDetailDrawer({
   rma,
@@ -105,7 +85,9 @@ function RmaDetailDrawer({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-t1)" }}>{rma.id}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-t1)" }}>
+              {rma.orderRef}
+            </div>
             <div style={{ fontSize: 11, color: "var(--color-t3)" }}>{rma.company}</div>
           </div>
           <button
@@ -192,23 +174,29 @@ function RmaDetailDrawer({
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-t3)", marginBottom: 8 }}>
             PRODUSE RETURNATE
           </div>
-          {rma.products.map((p) => (
-            <div
-              key={p}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 0",
-                borderBottom: "1px solid var(--color-s800)",
-                fontSize: 12,
-                color: "var(--color-t2)",
-              }}
-            >
-              <Package size={10} color="var(--color-t3)" />
-              {p}
+          {rma.products.length === 0 ? (
+            <div style={{ fontSize: 11, color: "var(--color-t4)" }}>
+              Nu există poziții de marfă atașate în acest view (datele vin din comanda Gold).
             </div>
-          ))}
+          ) : (
+            rma.products.map((p) => (
+              <div
+                key={p}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 0",
+                  borderBottom: "1px solid var(--color-s800)",
+                  fontSize: 12,
+                  color: "var(--color-t2)",
+                }}
+              >
+                <Package size={10} color="var(--color-t3)" />
+                {p}
+              </div>
+            ))
+          )}
         </div>
 
         {rma.status === "PENDING" && (
@@ -243,21 +231,42 @@ function RmaDetailDrawer({
 }
 
 export function Returns() {
-  const [rmas, setRmas] = useState<Rma[]>(INITIAL_RMAS);
+  const [localStatus, setLocalStatus] = useState<Record<string, RmaStatus>>({});
   const [selectedRma, setSelectedRma] = useState<Rma | null>(null);
 
+  const results = useQueries({
+    queries: (["RETURNED", "RETURN_PROCESSING", "DELIVERY_FAILED"] as const).map((status) => ({
+      queryKey: ["etapa4", "orders", "returns", status],
+      queryFn: () => fetchOrdersList({ status, limit: 50, page: 1 }),
+    })),
+  });
+
+  const rmas = useMemo(() => {
+    const byId = new Map<string, Rma>();
+    for (const q of results) {
+      const rows = q.data?.data ?? [];
+      for (const row of rows) {
+        byId.set(row.id, orderRowToRma(row));
+      }
+    }
+    return [...byId.values()].map((r) => ({
+      ...r,
+      status: localStatus[r.id] ?? r.status,
+    }));
+  }, [results, localStatus]);
+
+  const loadError = results.some((q) => q.isError);
+
   const handleApprove = (id: string) => {
-    setRmas((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "APPROVED" as RmaStatus } : r)),
+    setLocalStatus((prev) => ({ ...prev, [id]: "APPROVED" }));
+    toast.message(
+      "Aprobarea RMA nu apelează încă un endpoint API — actualizați starea comenzii prin fluxul E4 (PATCH /orders) sau worker.",
     );
-    toast.success(`RMA ${id} aprobat. AWB retur generat automat.`);
   };
 
   const handleReject = (id: string) => {
-    setRmas((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "REJECTED" as RmaStatus } : r)),
-    );
-    toast.error(`RMA ${id} respins. Clientul a fost notificat.`);
+    setLocalStatus((prev) => ({ ...prev, [id]: "REJECTED" }));
+    toast.message("Respingerea RMA este doar locală în UI până la integrarea API.");
   };
 
   const totalValue = rmas.reduce((s, r) => s + r.valueNum, 0);
@@ -265,6 +274,11 @@ export function Returns() {
 
   return (
     <PageWrapper title="Returns RMA" actions={<EtapaBadge label="Etapa 4" />}>
+      {loadError && (
+        <div className="mb-4 rounded border border-er/40 bg-er/10 px-4 py-3 text-sm text-er">
+          Eroare la încărcarea comenzilor pentru retur.
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="rounded-lg border border-s700 bg-s900/80 p-4">
           <div className="text-2xl font-bold text-t1">{rmas.length}</div>
@@ -286,7 +300,7 @@ export function Returns() {
             <Card key={r.id}>
               <CardBody>
                 <div className="flex justify-between items-start mb-2">
-                  <span className="font-mono text-sm text-t3">{r.id}</span>
+                  <span className="font-mono text-sm text-t3">{r.orderRef}</span>
                   <SBadge status={r.status} />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>

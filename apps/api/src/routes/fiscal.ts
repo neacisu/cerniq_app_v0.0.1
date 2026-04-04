@@ -25,12 +25,21 @@ import { e3FiscalDocumentsTotal } from "../plugins/metrics.js";
 
 const idParamSchema = z.object({ id: z.uuid() });
 
-const oblioDocumentsQuerySchema = z.object({
-  documentType: z.enum(["PROFORMA", "INVOICE", "CREDIT_NOTE"]).optional(),
-  status: z.string().max(50).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-});
+const oblioDocumentsQuerySchema = z
+  .object({
+    documentType: z.enum(["PROFORMA", "INVOICE", "CREDIT_NOTE"]).optional(),
+    /** Alias pentru `documentType` (compat suite / clienti vechi). */
+    docType: z.enum(["PROFORMA", "INVOICE", "CREDIT_NOTE"]).optional(),
+    status: z.string().max(50).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  })
+  .transform((q) => ({
+    documentType: q.documentType ?? q.docType,
+    status: q.status,
+    page: q.page,
+    limit: q.limit,
+  }));
 
 const createProformaSchema = z.object({
   leadId: z.uuid(),
@@ -55,7 +64,8 @@ const einvoiceQuerySchema = z.object({
 });
 
 const fiscalTimelineQuerySchema = z.object({
-  leadId: z.uuid(),
+  leadId: z.uuid().optional(),
+  page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(30),
 });
 
@@ -325,17 +335,31 @@ export async function fiscalRoutes(app: FastifyInstance) {
   app.get("/timeline", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = fiscalTimelineQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
 
-    const trail = await db
-      .select()
-      .from(fiscalAuditTrail)
-      .where(
-        and(eq(fiscalAuditTrail.tenantId, tenantId), eq(fiscalAuditTrail.entityId, query.leadId)),
-      )
-      .orderBy(desc(fiscalAuditTrail.createdAt))
-      .limit(query.limit);
+    const conditions = [eq(fiscalAuditTrail.tenantId, tenantId)];
+    if (query.leadId) conditions.push(eq(fiscalAuditTrail.entityId, query.leadId));
 
-    return reply.send({ success: true, data: trail });
+    const [trail, countResult] = await Promise.all([
+      db
+        .select()
+        .from(fiscalAuditTrail)
+        .where(and(...conditions))
+        .orderBy(desc(fiscalAuditTrail.createdAt))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(fiscalAuditTrail)
+        .where(and(...conditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: trail,
+      meta: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
+    });
   });
 
   // ── GET /fiscal/oblio/stats ───────────────────────────────────────────────

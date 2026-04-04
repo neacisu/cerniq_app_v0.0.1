@@ -22,6 +22,48 @@ function isPublicRoute(url: string): boolean {
   return url === "/" || PUBLIC_PREFIXES.some((p) => url.startsWith(p));
 }
 
+/**
+ * EventSource nu poate trimite `Authorization`. Rutele SSE care acceptă `?token=` trebuie
+ * mapate la Bearer înainte de `jwtVerify()` din acest hook, altfel `request.tenantId` și RLS
+ * nu se aplică corect (handler-ul poate re-verifica JWT, dar contextul deja rulat rămâne gol).
+ */
+function pathOnlyFromRequestUrl(url: string): string {
+  const withoutQuery = url.split("?")[0] ?? "";
+  if (withoutQuery.length > 1 && withoutQuery.endsWith("/")) {
+    return withoutQuery.slice(0, -1);
+  }
+  return withoutQuery;
+}
+
+/** Acceptă și variante în spatele unor gateway-uri (path scurt sau trailing slash). */
+function isSseTokenQueryPath(pathOnly: string): boolean {
+  return (
+    pathOnly === "/api/v1/dashboard/kpi-stream" ||
+    pathOnly.endsWith("/dashboard/kpi-stream") ||
+    pathOnly === "/api/v1/brain/events/stream" ||
+    pathOnly.endsWith("/brain/events/stream")
+  );
+}
+
+/**
+ * Mapare `?token=` → Bearer când header-ul lipsește: SSE + întreg namespace JSON `/api/v1/brain/*`
+ * (aceleași garanții ca la dashboard kpi-stream; nu suprascrie Authorization existent).
+ */
+function injectBearerFromTokenQueryWhereAllowed(request: FastifyRequest): void {
+  const raw = request.url ?? "";
+  const pathOnly = pathOnlyFromRequestUrl(raw);
+  const q = raw.indexOf("?");
+  if (q === -1) return;
+  const token = new URLSearchParams(raw.slice(q + 1)).get("token")?.trim();
+  if (!token) return;
+  const auth = request.headers.authorization;
+  if (typeof auth === "string" && auth.trim().length > 0) return;
+
+  if (isSseTokenQueryPath(pathOnly) || pathOnly.startsWith("/api/v1/brain/")) {
+    request.headers.authorization = `Bearer ${token}`;
+  }
+}
+
 async function tenantContextPlugin(app: FastifyInstance) {
   app.decorateRequest("tenantId", null);
 
@@ -49,6 +91,8 @@ async function tenantContextPlugin(app: FastifyInstance) {
       }
       return;
     }
+
+    injectBearerFromTokenQueryWhereAllowed(request);
 
     let tenantId: string | null = null;
     let userId: string | null;

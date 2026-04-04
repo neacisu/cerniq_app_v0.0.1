@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
@@ -8,108 +9,63 @@ import { Button } from "@/components/ui/button.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { cn } from "@/lib/utils.js";
 import { X, Building2, AlertTriangle, CheckCircle2, FileText, Search } from "lucide-react";
+import { fetchTenantPayments, type TenantPaymentRow } from "@/lib/etapa4-api.js";
+import { EmptyState } from "@/components/feedback/EmptyState.js";
 
-type PaymentStatus = "MATCHED" | "UNMATCHED" | "DISPUTED" | "PROCESSING";
-type PaymentType = "PAYMENT" | "REFUND" | "ADVANCE";
+type UiPayStatus = "MATCHED" | "UNMATCHED" | "DISPUTED" | "PROCESSING";
 
-interface Payment {
+function mapReconciliationStatus(s: string): UiPayStatus {
+  if (s === "MATCHED_EXACT" || s === "MATCHED_FUZZY" || s === "MANUAL_MATCHED") return "MATCHED";
+  if (s === "DISPUTED") return "DISPUTED";
+  if (s === "UNMATCHED") return "UNMATCHED";
+  if (s === "PENDING") return "PROCESSING";
+  return "PROCESSING";
+}
+
+interface PaymentView {
   id: string;
   date: string;
   company: string;
   cui: string;
   amount: number;
-  type: PaymentType;
-  status: PaymentStatus;
-  currency: "RON" | "EUR";
+  type: "PAYMENT";
+  status: UiPayStatus;
+  currency: string;
   reference?: string;
   invoiceNr?: string;
   bankAccount?: string;
 }
 
-const MOCK_PAYMENTS: Payment[] = [
-  {
-    id: "P001",
-    date: "2026-04-01",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    amount: 23000,
+function rowToPaymentView(r: TenantPaymentRow): PaymentView {
+  const company = r.companyName?.trim() ? r.companyName : (r.counterpartyName?.trim() ?? "—");
+  const cui = r.cui?.trim() ? r.cui : "—";
+  const dt = r.receivedAt ?? r.createdAt;
+  const date = dt ? dt.slice(0, 10) : "—";
+  return {
+    id: r.id,
+    date,
+    company,
+    cui,
+    amount: Number(r.amount),
     type: "PAYMENT",
-    status: "MATCHED",
-    currency: "RON",
-    reference: "Factura FV-2026-001",
-    invoiceNr: "FV-2026-001",
-    bankAccount: "RO49AAAA1B31007593840000",
-  },
-  {
-    id: "P002",
-    date: "2026-03-30",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    amount: -500,
-    type: "REFUND",
-    status: "MATCHED",
-    currency: "RON",
-    reference: "Retur marfă RMA-002",
-    invoiceNr: "FV-2026-002R",
-  },
-  {
-    id: "P003",
-    date: "2026-03-28",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    amount: 8000,
-    type: "PAYMENT",
-    status: "UNMATCHED",
-    currency: "RON",
-    bankAccount: "RO66BRDE445SV28291224450",
-    reference: "Transfer fără referință factură",
-  },
-  {
-    id: "P004",
-    date: "2026-03-25",
-    company: "SC Ferma Dunărea SA",
-    cui: "99887766",
-    amount: 45000,
-    type: "PAYMENT",
-    status: "MATCHED",
-    currency: "RON",
-    reference: "Factura FV-2026-004",
-    invoiceNr: "FV-2026-004",
-  },
-  {
-    id: "P005",
-    date: "2026-04-02",
-    company: "Agro Nord Impex SRL",
-    cui: "55667788",
-    amount: 10000,
-    type: "ADVANCE",
-    status: "UNMATCHED",
-    currency: "RON",
-    bankAccount: "RO12BTRL1234567890123456",
-    reference: "Avans nedistribuit",
-  },
-];
+    status: mapReconciliationStatus(r.reconciliationStatus),
+    currency: r.currency,
+    reference: r.reference ?? undefined,
+    bankAccount: r.counterpartyIban ?? undefined,
+  };
+}
 
-function PaymentDrawer({
-  p,
-  onMatch,
-  onClose,
-}: {
-  readonly p: Payment;
-  readonly onMatch: (id: string) => void;
-  readonly onClose: () => void;
-}) {
+function PaymentDrawer({ p, onClose }: { readonly p: PaymentView; readonly onClose: () => void }) {
   const [invoiceInput, setInvoiceInput] = useState(p.invoiceNr ?? "");
 
   function handleMatch() {
+    toast.message(
+      "Reconcilierea manuală nu este expusă prin POST în API — folosiți worker-ul E4 sau fluxul admin pentru reconcilieri.",
+    );
     if (!invoiceInput.trim()) {
-      toast.error("Introdu numărul facturii pentru reconciliere.");
+      toast.error("Introduceți referința facturii pentru uz intern.");
       return;
     }
-    onMatch(p.id);
-    toast.success(
-      `Plata ${p.id} reconciliată cu ${invoiceInput}. Reconciliation worker declanșat.`,
-    );
     onClose();
   }
 
@@ -139,11 +95,12 @@ function PaymentDrawer({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-t1)" }}>
-              Plată {p.id}
+              Plată {p.id.slice(0, 8)}…
             </div>
             <div style={{ fontSize: 11, color: "var(--color-t3)" }}>{p.date}</div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "none",
@@ -159,12 +116,7 @@ function PaymentDrawer({
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <SBadge status={p.status} />
-          {(() => {
-            let bv: "warning" | "brand" | "neutral" = "neutral";
-            if (p.type === "REFUND") bv = "warning";
-            else if (p.type === "ADVANCE") bv = "brand";
-            return <Badge variant={bv}>{p.type}</Badge>;
-          })()}
+          <Badge variant="neutral">{p.type}</Badge>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 11 }}>
@@ -183,14 +135,13 @@ function PaymentDrawer({
             <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>SUMĂ</div>
             <div
               style={{
-                color: p.amount >= 0 ? "var(--color-ok)" : "var(--color-er)",
+                color: "var(--color-ok)",
                 fontWeight: 800,
                 fontSize: 16,
                 fontFamily: "var(--font-mono)",
               }}
             >
-              {p.amount >= 0 ? "+" : ""}
-              {p.amount.toLocaleString()} {p.currency}
+              +{p.amount.toLocaleString("ro-RO")} {p.currency}
             </div>
           </div>
           <div>
@@ -230,7 +181,7 @@ function PaymentDrawer({
               </span>
             </div>
             <div style={{ fontSize: 11, color: "var(--color-t3)", marginBottom: 8 }}>
-              Introduceți numărul facturii pentru reconciliere manuală:
+              Notă internă / referință (fără POST API dedicat încă):
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <input
@@ -250,7 +201,7 @@ function PaymentDrawer({
                 }}
               />
               <Button size="sm" onClick={handleMatch} style={{ gap: 4 }}>
-                <CheckCircle2 size={12} /> Match
+                <CheckCircle2 size={12} /> Salvează notă
               </Button>
             </div>
           </div>
@@ -276,25 +227,34 @@ function PaymentDrawer({
 }
 
 export function Payments() {
-  const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS);
-  const [selected, setSelected] = useState<Payment | null>(null);
+  const [selected, setSelected] = useState<PaymentView | null>(null);
 
-  const handleMatch = (id: string) => {
-    setPayments((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: "MATCHED" as PaymentStatus } : p)),
-    );
-  };
+  const payQuery = useQuery({
+    queryKey: ["etapa4", "orders", "payments", "tenant"],
+    queryFn: () => fetchTenantPayments({ limit: 100, page: 1 }),
+  });
+
+  const payments = useMemo(
+    () => (payQuery.data?.data ?? []).map(rowToPaymentView),
+    [payQuery.data?.data],
+  );
 
   const matched = payments.filter((p) => p.status === "MATCHED").length;
   const unmatched = payments.filter((p) => p.status === "UNMATCHED").length;
-  const total = payments.filter((p) => p.amount > 0).reduce((s, p) => s + p.amount, 0);
+  const totalRon = payments.filter((p) => p.currency === "RON").reduce((s, p) => s + p.amount, 0);
 
   return (
-    <PageWrapper title="Payments Revolut — Reconciliere" actions={<EtapaBadge label="Etapa 4" />}>
+    <PageWrapper title="Payments — Reconciliere" actions={<EtapaBadge label="Etapa 4" />}>
+      {payQuery.isError && (
+        <div className="mb-4 rounded border border-er/40 bg-er/10 px-4 py-3 text-sm text-er">
+          Eroare la încărcarea plăților.
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4 mb-6">
         <KpiCard
-          label="Total Intrări"
-          value={`RON ${total.toLocaleString()}`}
+          label="Total RON (din listă)"
+          value={`RON ${totalRon.toLocaleString("ro-RO")}`}
           icon="Wallet"
           color="var(--color-b5)"
         />
@@ -314,86 +274,79 @@ export function Payments() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Extras Revolut Business</CardTitle>
+          <CardTitle>Plăți înregistrate (gold_payments)</CardTitle>
         </CardHeader>
         <CardBody className="p-0 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-s700">
-                <th className="text-left py-3 px-4 text-t3 font-medium">Data</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Client</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Sumă</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Tip</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Referință</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Acțiuni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr
-                  key={p.id}
-                  onClick={() => setSelected(p)}
-                  className={cn(
-                    "border-b border-s800 hover:bg-s800/50 cursor-pointer",
-                    p.status === "UNMATCHED" && "bg-wa/5",
-                  )}
-                >
-                  <td className="py-3 px-4 text-t3">{p.date}</td>
-                  <td className="py-3 px-4 text-t1 font-medium">{p.company}</td>
-                  <td
+          {payQuery.isSuccess && payments.length === 0 ? (
+            <div className="p-6">
+              <EmptyState title="Fără plăți" description="Nu există plăți pentru tenant." />
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-s700">
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Data</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Client</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Sumă</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Tip</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Status</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Referință</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Acțiuni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => setSelected(p)}
                     className={cn(
-                      "py-3 px-4 font-mono font-semibold",
-                      p.amount >= 0 ? "text-ok" : "text-er",
+                      "border-b border-s800 hover:bg-s800/50 cursor-pointer",
+                      p.status === "UNMATCHED" && "bg-wa/5",
                     )}
                   >
-                    {p.amount >= 0 ? "+" : ""}
-                    {p.amount.toLocaleString()} {p.currency}
-                  </td>
-                  <td className="py-3 px-4">
-                    {(() => {
-                      let bv2: "warning" | "brand" | "neutral" = "neutral";
-                      if (p.type === "REFUND") bv2 = "warning";
-                      else if (p.type === "ADVANCE") bv2 = "brand";
-                      return <Badge variant={bv2}>{p.type}</Badge>;
-                    })()}
-                  </td>
-                  <td className="py-3 px-4">
-                    <SBadge status={p.status} />
-                  </td>
-                  <td className="py-3 px-4 text-t3 text-xs max-w-32 truncate">
-                    {p.reference ?? "—"}
-                  </td>
-                  <td className="py-3 px-4">
-                    {p.status === "UNMATCHED" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        style={{
-                          fontSize: 10,
-                          gap: 4,
-                          borderColor: "var(--color-wa)",
-                          color: "var(--color-wa)",
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected(p);
-                        }}
-                      >
-                        <Search size={11} /> Reconciliază
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <td className="py-3 px-4 text-t3">{p.date}</td>
+                    <td className="py-3 px-4 text-t1 font-medium">{p.company}</td>
+                    <td className="py-3 px-4 font-mono font-semibold text-ok">
+                      +{p.amount.toLocaleString("ro-RO")} {p.currency}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge variant="neutral">{p.type}</Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <SBadge status={p.status} />
+                    </td>
+                    <td className="py-3 px-4 text-t3 text-xs max-w-32 truncate">
+                      {p.reference ?? "—"}
+                    </td>
+                    <td className="py-3 px-4">
+                      {p.status === "UNMATCHED" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          style={{
+                            fontSize: 10,
+                            gap: 4,
+                            borderColor: "var(--color-wa)",
+                            color: "var(--color-wa)",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelected(p);
+                          }}
+                        >
+                          <Search size={11} /> Detalii
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardBody>
       </Card>
 
-      {selected && (
-        <PaymentDrawer p={selected} onMatch={handleMatch} onClose={() => setSelected(null)} />
-      )}
+      {selected && <PaymentDrawer p={selected} onClose={() => setSelected(null)} />}
     </PageWrapper>
   );
 }

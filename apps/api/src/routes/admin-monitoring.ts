@@ -5,6 +5,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { isKnownQueueName } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
+import { getRegisteredPrometheusMetricsCatalog } from "../plugins/metrics.js";
 
 const MONITORING_API_BASE = envConfig.MONITORING_API_INTERNAL_URL;
 
@@ -70,6 +71,22 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
 
   app.get("/system/metrics", authOpts, async (request, reply) => {
     return proxyRequest(request, reply, "/api/system/metrics");
+  });
+
+  /**
+   * Catalog read-only al metricilor Prometheus înregistrate în plugin-ul API (`metrics.ts`).
+   * Nu expune `/metrics` text în browser; valorile seriilor se observă prin Prometheus/Grafana.
+   */
+  app.get("/prometheus/api-plugin-catalog", authOpts, async () => {
+    return {
+      success: true,
+      data: {
+        metrics: getRegisteredPrometheusMetricsCatalog(),
+        sourceModule: "apps/api/src/plugins/metrics.ts",
+        scrapeNote:
+          "Text Prometheus: GET /metrics (allowlist IP METRICS_ALLOW_CIDR). SPA public nu trebuie să apeleze /metrics direct.",
+      },
+    };
   });
 
   app.get("/live", authOpts, async (request, reply) => {

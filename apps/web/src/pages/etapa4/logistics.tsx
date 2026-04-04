@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
@@ -6,7 +7,18 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { SBadge } from "@/components/ui/badge.js";
 import { Badge, Button } from "@/components/ui/index.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
+import { EmptyState } from "@/components/feedback/EmptyState.js";
 import { X, Package, MapPin, Phone, Printer, XCircle } from "lucide-react";
+import {
+  fetchShipmentDetail,
+  fetchShipmentsList,
+  type ShipmentDetail,
+  type ShipmentListRow,
+} from "@/lib/etapa4-api.js";
+
+function toastAwbCancelUnavailable(): void {
+  toast.message("Anularea AWB nu este expusă prin API în această versiune.");
+}
 
 type AwbStatus = "PROCESSING" | "IN_TRANSIT" | "OUT_FOR_DELIVERY" | "DELIVERED" | "RETURNED";
 
@@ -18,9 +30,9 @@ interface TrackingStep {
 }
 
 interface Awb {
+  shipmentId: string;
   awb: string;
   company: string;
-  cui: string;
   parcels: number;
   county: string;
   eta: string;
@@ -34,123 +46,6 @@ interface Awb {
   tracking: TrackingStep[];
 }
 
-const MOCK_AWBS: Awb[] = [
-  {
-    awb: "SDY-123456789",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    parcels: 2,
-    county: "București",
-    eta: "2026-04-04",
-    cod: "RON 450",
-    codNum: 450,
-    status: "IN_TRANSIT",
-    weight: "42 kg",
-    contactName: "Ion Andrei",
-    contactPhone: "0721 123 456",
-    address: "Str. Agricultura 12, Sector 3, București",
-    tracking: [
-      {
-        time: "2026-04-02 08:00",
-        location: "Depozit Cerniq — Ilfov",
-        event: "Colet preluat și AWB generat",
-        done: true,
-      },
-      {
-        time: "2026-04-02 14:30",
-        location: "Hub Sameday — Pipera",
-        event: "Sortat și expediat spre destinație",
-        done: true,
-      },
-      {
-        time: "2026-04-03 09:00",
-        location: "Hub Sameday — București Sud",
-        event: "În tranzit spre livrare",
-        done: true,
-      },
-      {
-        time: "2026-04-04",
-        location: "Sector 3, București",
-        event: "Livrare programată",
-        done: false,
-      },
-    ],
-  },
-  {
-    awb: "SDY-987654321",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    parcels: 1,
-    county: "Iași",
-    eta: "2026-04-05",
-    cod: "-",
-    codNum: 0,
-    status: "PROCESSING",
-    weight: "18 kg",
-    contactName: "Maria Ionescu",
-    contactPhone: "0732 987 654",
-    address: "Calea Chișinăului 45, Iași",
-    tracking: [
-      {
-        time: "2026-04-03 07:00",
-        location: "Depozit Cerniq — Ilfov",
-        event: "Colet în pregătire",
-        done: true,
-      },
-      {
-        time: "2026-04-03 15:00",
-        location: "Hub Sameday — Pipera",
-        event: "Sortat pentru expediție",
-        done: false,
-      },
-      {
-        time: "2026-04-04",
-        location: "Hub Sameday — Moldova",
-        event: "Tranzit spre Iași",
-        done: false,
-      },
-      { time: "2026-04-05", location: "Iași", event: "Livrare programată", done: false },
-    ],
-  },
-  {
-    awb: "SDY-555666777",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    parcels: 3,
-    county: "Constanța",
-    eta: "2026-04-04",
-    cod: "RON 890",
-    codNum: 890,
-    status: "OUT_FOR_DELIVERY",
-    weight: "85 kg",
-    contactName: "Vasile Dumitru",
-    contactPhone: "0744 555 777",
-    address: "Str. Portului 3, Constanța",
-    tracking: [
-      {
-        time: "2026-04-01 06:00",
-        location: "Depozit Cerniq — Ilfov",
-        event: "Colet preluat",
-        done: true,
-      },
-      {
-        time: "2026-04-01 18:00",
-        location: "Hub Sameday — Constanța",
-        event: "Ajuns la hub destinație",
-        done: true,
-      },
-      {
-        time: "2026-04-04 07:30",
-        location: "Constanța",
-        event: "Plecat la livrare — curier Mihai P.",
-        done: true,
-      },
-      { time: "2026-04-04", location: "Str. Portului 3", event: "Livrat", done: false },
-    ],
-  },
-];
-
-/** Ordinea afișării în tabel: de la „în pregătire” spre „livrat / returnat” (flux operațional). */
 const AWB_STATUS_SORT_ORDER: readonly AwbStatus[] = [
   "PROCESSING",
   "IN_TRANSIT",
@@ -164,13 +59,93 @@ function awbStatusSortIndex(status: AwbStatus): number {
   return i === -1 ? AWB_STATUS_SORT_ORDER.length : i;
 }
 
-function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () => void }) {
-  function handlePrint() {
-    toast.success(`AWB ${awb.awb} trimis la imprimantă.`);
+function mapCarrierStatus(status: string): AwbStatus {
+  if (status === "CREATED" || status === "PICKED_UP") return "PROCESSING";
+  if (status === "IN_TRANSIT") return "IN_TRANSIT";
+  if (status === "OUT_FOR_DELIVERY") return "OUT_FOR_DELIVERY";
+  if (status === "DELIVERED") return "DELIVERED";
+  if (status === "DELIVERY_FAILED" || status === "RETURNED") return "RETURNED";
+  return "PROCESSING";
+}
+
+function listRowToAwb(r: ShipmentListRow): Awb {
+  const codNum = Number(r.codAmount);
+  const hasCod = r.codType !== "NONE" && codNum > 0;
+  return {
+    shipmentId: r.id,
+    awb: r.awbNumber?.trim() ? r.awbNumber : r.id,
+    company: r.companyName?.trim() ? r.companyName : "—",
+    parcels: 1,
+    county: "—",
+    eta: r.estimatedDelivery ? r.estimatedDelivery.slice(0, 10) : "—",
+    cod: hasCod ? `${r.currency} ${codNum.toLocaleString("ro-RO")}` : "—",
+    codNum: hasCod ? codNum : 0,
+    status: mapCarrierStatus(r.status),
+    weight: "—",
+    contactName: "—",
+    contactPhone: "—",
+    address: "—",
+    tracking: [],
+  };
+}
+
+function trackingFromDetail(d: ShipmentDetail | undefined): TrackingStep[] {
+  const ev = d?.trackingEvents ?? [];
+  if (ev.length === 0) {
+    return [
+      {
+        time: "—",
+        location: "—",
+        event: "Nu există evenimente de tracking în baza de date.",
+        done: false,
+      },
+    ];
   }
-  function handleCancel() {
-    toast.error(`AWB ${awb.awb} anulat. Stoc reintegrat în depozit.`);
-    onClose();
+  return ev.map((e) => ({
+    time: e.eventTimestamp,
+    location: [e.locationCity, e.locationCounty].filter(Boolean).join(", ") || "—",
+    event: e.statusText ?? e.statusCode ?? "Eveniment",
+    done: true,
+  }));
+}
+
+function mergeAwbWithDetail(base: Awb, d: ShipmentDetail | undefined): Awb {
+  if (!d) return { ...base, tracking: trackingFromDetail(undefined) };
+  const addr = d.deliveryAddress as Record<string, string | null | undefined> | null;
+  const street = addr?.street;
+  const city = addr?.city;
+  const county = addr?.county;
+  const line = [street, city, county].filter(Boolean).join(", ");
+  return {
+    ...base,
+    county: county ?? base.county,
+    contactName: addr?.contactName?.trim() ? String(addr.contactName) : base.contactName,
+    contactPhone: addr?.contactPhone?.trim() ? String(addr.contactPhone) : base.contactPhone,
+    address: line || base.address,
+    weight: d.weight ? `${d.weight} kg` : base.weight,
+    tracking: trackingFromDetail(d),
+  };
+}
+
+function AwbDrawer({
+  awb,
+  detail,
+  detailLoading,
+  onClose,
+}: {
+  readonly awb: Awb;
+  readonly detail: ShipmentDetail | undefined;
+  readonly detailLoading: boolean;
+  readonly onClose: () => void;
+}) {
+  const display = useMemo(() => mergeAwbWithDetail(awb, detail), [awb, detail]);
+
+  function handlePrint() {
+    if (detail?.labelPdfUrl) {
+      globalThis.window?.open(detail.labelPdfUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    toast.message("PDF AWB indisponibil — nu există labelPdfUrl în răspunsul API.");
   }
 
   return (
@@ -206,11 +181,12 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
                 fontFamily: "var(--font-mono)",
               }}
             >
-              {awb.awb}
+              {display.awb}
             </div>
-            <div style={{ fontSize: 11, color: "var(--color-t3)" }}>{awb.company}</div>
+            <div style={{ fontSize: 11, color: "var(--color-t3)" }}>{display.company}</div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "none",
@@ -224,14 +200,18 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
           </button>
         </div>
 
+        {detailLoading && (
+          <div style={{ fontSize: 11, color: "var(--color-t3)" }}>Se încarcă detaliile…</div>
+        )}
+
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <SBadge status={awb.status} />
+          <SBadge status={display.status} />
           <span style={{ fontSize: 10, color: "var(--color-t3)" }}>
-            ETA: <strong style={{ color: "var(--color-t2)" }}>{awb.eta}</strong>
+            ETA: <strong style={{ color: "var(--color-t2)" }}>{display.eta}</strong>
           </span>
-          {awb.codNum > 0 && (
+          {display.codNum > 0 && (
             <Badge variant="warning" className="text-[0.6rem]">
-              COD {awb.cod}
+              COD {display.cod}
             </Badge>
           )}
         </div>
@@ -242,19 +222,19 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
             <div
               style={{ color: "var(--color-t1)", display: "flex", alignItems: "center", gap: 4 }}
             >
-              <Package size={11} color="var(--color-t3)" /> {awb.parcels} buc × {awb.weight}
+              <Package size={11} color="var(--color-t3)" /> {display.parcels} buc · {display.weight}
             </div>
           </div>
           <div>
             <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>CONTACT</div>
-            <div style={{ color: "var(--color-t2)" }}>{awb.contactName}</div>
+            <div style={{ color: "var(--color-t2)" }}>{display.contactName}</div>
           </div>
           <div>
             <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>TELEFON</div>
             <div
               style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--color-b5)" }}
             >
-              <Phone size={10} /> {awb.contactPhone}
+              <Phone size={10} /> {display.contactPhone}
             </div>
           </div>
           <div>
@@ -262,7 +242,7 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
             <div
               style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--color-t2)" }}
             >
-              <MapPin size={10} color="var(--color-t3)" /> {awb.county}
+              <MapPin size={10} color="var(--color-t3)" /> {display.county}
             </div>
           </div>
         </div>
@@ -276,10 +256,11 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
             color: "var(--color-t3)",
           }}
         >
-          📍 {awb.address}
+          {display.address === "—"
+            ? "Adresă livrare: vezi detaliu după încărcare."
+            : `📍 ${display.address}`}
         </div>
 
-        {/* Tracking timeline */}
         <div>
           <div
             style={{ fontSize: 11, fontWeight: 600, color: "var(--color-t3)", marginBottom: 10 }}
@@ -287,13 +268,13 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
             TRACKING TIMELINE
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {awb.tracking.map((step, i) => (
+            {display.tracking.map((step, i) => (
               <div
-                key={step.time}
+                key={`${step.time}-${i}`}
                 style={{
                   display: "flex",
                   gap: 12,
-                  paddingBottom: i < awb.tracking.length - 1 ? 12 : 0,
+                  paddingBottom: i < display.tracking.length - 1 ? 12 : 0,
                 }}
               >
                 <div
@@ -329,7 +310,7 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
                       />
                     )}
                   </div>
-                  {i < awb.tracking.length - 1 && (
+                  {i < display.tracking.length - 1 && (
                     <div
                       style={{
                         width: 2,
@@ -361,16 +342,16 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
 
         <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
           <Button size="sm" variant="outline" style={{ flex: 1, gap: 5 }} onClick={handlePrint}>
-            <Printer size={12} /> Print AWB
+            <Printer size={12} /> PDF / etichetă
           </Button>
-          {awb.status !== "DELIVERED" && (
+          {display.status !== "DELIVERED" && (
             <Button
               size="sm"
               variant="outline"
               style={{ flex: 1, gap: 5, color: "var(--color-er)", borderColor: "var(--color-er)" }}
-              onClick={handleCancel}
+              onClick={toastAwbCancelUnavailable}
             >
-              <XCircle size={12} /> Anulează
+              <XCircle size={12} /> Anulare
             </Button>
           )}
         </div>
@@ -381,36 +362,55 @@ function AwbDrawer({ awb, onClose }: { readonly awb: Awb; readonly onClose: () =
 
 export function Logistics() {
   const [selected, setSelected] = useState<Awb | null>(null);
+  const selectedShipmentId = selected?.shipmentId ?? "";
 
-  const awbsForTable = useMemo(
-    () =>
-      [...MOCK_AWBS].sort((a, b) => awbStatusSortIndex(a.status) - awbStatusSortIndex(b.status)),
-    [],
-  );
+  const listQuery = useQuery({
+    queryKey: ["etapa4", "shipments", "list"],
+    queryFn: () => fetchShipmentsList({ limit: 100, page: 1 }),
+  });
 
-  const inTransit = MOCK_AWBS.filter(
+  const detailQuery = useQuery({
+    queryKey: ["etapa4", "shipments", "detail", selectedShipmentId],
+    queryFn: () => fetchShipmentDetail(selectedShipmentId),
+    enabled: selectedShipmentId.length > 0,
+  });
+
+  const awbsForTable = useMemo(() => {
+    const rows = listQuery.data?.data ?? [];
+    return [...rows.map(listRowToAwb)].sort(
+      (a, b) => awbStatusSortIndex(a.status) - awbStatusSortIndex(b.status),
+    );
+  }, [listQuery.data?.data]);
+
+  const inTransit = awbsForTable.filter(
     (a) => a.status === "IN_TRANSIT" || a.status === "OUT_FOR_DELIVERY",
   ).length;
-  const codTotal = MOCK_AWBS.reduce((s, a) => s + a.codNum, 0);
+  const codTotal = awbsForTable.reduce((s, a) => s + a.codNum, 0);
 
   return (
     <PageWrapper title="Logistics AWB (Sameday)" actions={<EtapaBadge label="Etapa 4" />}>
+      {listQuery.isError && (
+        <div className="mb-4 rounded border border-er/40 bg-er/10 px-4 py-3 text-sm text-er">
+          Eroare la încărcarea expedierilor.
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4 mb-6">
         <KpiCard
-          label="AWBuri Active"
-          value={String(MOCK_AWBS.length)}
+          label="Expedieri"
+          value={String(awbsForTable.length)}
           icon="Package"
           color="var(--color-b5)"
         />
         <KpiCard
-          label="În Tranzit"
+          label="În tranzit"
           value={String(inTransit)}
           icon="Truck"
           color="var(--color-in)"
         />
         <KpiCard
-          label="COD Pending"
-          value={`RON ${codTotal.toLocaleString()}`}
+          label="COD (sumă)"
+          value={`RON ${codTotal.toLocaleString("ro-RO")}`}
           icon="Wallet"
           color="var(--color-wa)"
         />
@@ -418,57 +418,73 @@ export function Logistics() {
 
       <Card>
         <CardHeader>
-          <CardTitle>AWBuri Active — Click pentru tracking</CardTitle>
+          <CardTitle>Expedieri — click pentru tracking</CardTitle>
         </CardHeader>
         <CardBody className="p-0 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-s700">
-                <th className="text-left py-3 px-4 text-t3 font-medium">AWB Nr</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Client</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Colete</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Județ</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">ETA</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">COD</th>
-                <th className="text-left py-3 px-4 text-t3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {awbsForTable.map((a) => (
-                <tr
-                  key={a.awb}
-                  onClick={() => setSelected(a)}
-                  className="border-b border-s800 hover:bg-s800/50 cursor-pointer"
-                >
-                  <td className="py-3 px-4">
-                    <span className="text-b5 hover:underline font-mono text-xs font-semibold">
-                      {a.awb}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-t1 font-medium">{a.company}</td>
-                  <td className="py-3 px-4 text-t2">{a.parcels}</td>
-                  <td className="py-3 px-4 text-t2">
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <MapPin size={10} color="var(--color-t4)" /> {a.county}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-t3">{a.eta}</td>
-                  <td className="py-3 px-4">
-                    <Badge variant={a.codNum > 0 ? "warning" : "neutral"}>
-                      {a.codNum > 0 ? a.cod : "—"}
-                    </Badge>
-                  </td>
-                  <td className="py-3 px-4">
-                    <SBadge status={a.status} />
-                  </td>
+          {listQuery.isSuccess && awbsForTable.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="Fără expedieri"
+                description="Nu există înregistrări gold_shipments."
+              />
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-s700">
+                  <th className="text-left py-3 px-4 text-t3 font-medium">AWB / ID</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Client</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Colete</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Județ</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">ETA</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">COD</th>
+                  <th className="text-left py-3 px-4 text-t3 font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {awbsForTable.map((a) => (
+                  <tr
+                    key={a.shipmentId}
+                    onClick={() => setSelected(a)}
+                    className="border-b border-s800 hover:bg-s800/50 cursor-pointer"
+                  >
+                    <td className="py-3 px-4">
+                      <span className="text-b5 hover:underline font-mono text-xs font-semibold">
+                        {a.awb}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-t1 font-medium">{a.company}</td>
+                    <td className="py-3 px-4 text-t2">{a.parcels}</td>
+                    <td className="py-3 px-4 text-t2">
+                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <MapPin size={10} color="var(--color-t4)" /> {a.county}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-t3">{a.eta}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant={a.codNum > 0 ? "warning" : "neutral"}>
+                        {a.codNum > 0 ? a.cod : "—"}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <SBadge status={a.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardBody>
       </Card>
 
-      {selected && <AwbDrawer awb={selected} onClose={() => setSelected(null)} />}
+      {selected !== null && (
+        <AwbDrawer
+          awb={selected}
+          detail={detailQuery.data?.data}
+          detailLoading={detailQuery.isFetching}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </PageWrapper>
   );
 }

@@ -249,7 +249,12 @@ export async function nurturingRoutes(app: FastifyInstance) {
       .where(and(...conditions))
       .orderBy(asc(goldContentDrips.daysAfterTrigger));
 
-    return reply.send({ success: true, data: drips });
+    const total = drips.length;
+    return reply.send({
+      success: true,
+      data: drips,
+      meta: { page: 1, limit: Math.max(total, 1), total, pages: 1 },
+    });
   });
 
   // ── POST /nurturing/drips ──────────────────────────────────────────────────

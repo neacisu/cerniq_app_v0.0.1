@@ -54,3 +54,24 @@ export function postQueueControl(
     `/api/admin/queues/${encodeURIComponent(queueName)}/${action}`,
   );
 }
+
+export type ApiPluginMetricCatalogEntry = {
+  name: string;
+  help: string;
+  type: string;
+};
+
+export type ApiPluginPrometheusCatalogResponse = {
+  success?: boolean;
+  data?: {
+    metrics?: ApiPluginMetricCatalogEntry[];
+    sourceModule?: string;
+    scrapeNote?: string;
+  };
+  error?: string;
+};
+
+/** Catalog read-only: nume + help + tip din `apps/api/src/plugins/metrics.ts` (fără valori de serie). */
+export function fetchApiPluginPrometheusCatalog() {
+  return api.get<ApiPluginPrometheusCatalogResponse>("/api/admin/prometheus/api-plugin-catalog");
+}

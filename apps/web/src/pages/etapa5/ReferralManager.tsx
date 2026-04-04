@@ -7,8 +7,10 @@
  * Workers: E25-E31 (referral pipeline, GDPR consent, reward)
  * Conformitate: Art.6(1)(a) GDPR — consimțământ explicit
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { fetchReferralsList, type ReferralListRow } from "@/lib/etapa5-api.js";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Button } from "@/components/ui/button.js";
@@ -78,82 +80,47 @@ const CONSENT_STEPS: ReadonlyArray<{
   { id: "rewarded", label: "Recompensat", icon: Gift, worker: "E30-E31" },
 ];
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+function consentStatusFromReferralRow(r: ReferralListRow): ConsentStatus {
+  if (r.consentGiven && r.consentGivenAt) return "CONFIRMED";
+  if (r.status === "PENDING_CONSENT") return "REQUESTED";
+  if (r.status === "DECLINED") return "DECLINED";
+  return "PENDING";
+}
 
-const MOCK_REFERRALS: ReferralEntry[] = [
-  {
-    id: "ref-001",
-    referrerCompany: "SC AgroSud SRL",
-    referrerCui: "12345678",
-    prospectCompany: "Agro Plus Galați SRL",
-    prospectContact: "Mihai Vasilescu",
-    consentStatus: "CONFIRMED",
-    referralStatus: "OUTREACH",
-    consentRequestedAt: "2026-03-28T10:00:00Z",
-    consentConfirmedAt: "2026-03-29T14:30:00Z",
-    rewardPaid: false,
-    gdprBasis: "Art.6(1)(a) — consimțământ explicit",
-    detectedAt: "2026-03-27",
-  },
-  {
-    id: "ref-002",
-    referrerCompany: "Cooperativa Agriland",
-    referrerCui: "87654321",
-    prospectCompany: "Ferma Nouă SRL",
-    prospectContact: "Ion Petrescu",
-    consentStatus: "CONFIRMED",
-    referralStatus: "CONVERTED",
-    consentRequestedAt: "2026-03-15T09:00:00Z",
-    consentConfirmedAt: "2026-03-16T11:00:00Z",
-    conversionValue: 8400,
-    rewardAmount: 420,
-    rewardPaid: false,
-    gdprBasis: "Art.6(1)(a) — consimțământ explicit",
-    detectedAt: "2026-03-14",
-  },
-  {
-    id: "ref-003",
-    referrerCompany: "SC AgroSud SRL",
-    referrerCui: "12345678",
-    prospectCompany: "Grup Agrar Iași SRL",
-    prospectContact: "Ana Constantin",
-    consentStatus: "REQUESTED",
-    referralStatus: "CONSENT_PENDING",
-    consentRequestedAt: "2026-04-02T15:00:00Z",
-    rewardPaid: false,
-    gdprBasis: "Așteptare consimțământ",
-    detectedAt: "2026-04-01",
-  },
-  {
-    id: "ref-004",
-    referrerCompany: "SC Ferma Dunărea SA",
-    referrerCui: "99887766",
-    prospectCompany: "Agro Vest Timis SRL",
-    prospectContact: "Petre Moldovan",
-    consentStatus: "DECLINED",
-    referralStatus: "REJECTED",
-    consentRequestedAt: "2026-03-20T10:00:00Z",
-    rewardPaid: false,
-    gdprBasis: "Consimțământ refuzat — stop outreach",
-    detectedAt: "2026-03-19",
-  },
-  {
-    id: "ref-005",
-    referrerCompany: "Cooperativa Agriland",
-    referrerCui: "87654321",
-    prospectCompany: "Agro Excel SRL",
-    prospectContact: "Florin Niculescu",
-    consentStatus: "CONFIRMED",
-    referralStatus: "REWARDED",
-    consentRequestedAt: "2026-02-10T09:00:00Z",
-    consentConfirmedAt: "2026-02-11T10:00:00Z",
-    conversionValue: 12600,
-    rewardAmount: 630,
-    rewardPaid: true,
-    gdprBasis: "Art.6(1)(a) — consimțământ explicit",
-    detectedAt: "2026-02-09",
-  },
-];
+function referralWorkflowFromRow(r: ReferralListRow): ReferralStatus {
+  if (r.status === "PENDING_CONSENT") return r.consentGiven ? "CONSENTED" : "CONSENT_PENDING";
+  if (r.status === "ACTIVE") return "OUTREACH";
+  if (r.status === "CONVERTED") return "CONVERTED";
+  if (r.status === "EXPIRED") return "CANCELLED";
+  if (r.status === "DECLINED") return "REJECTED";
+  return "DETECTED";
+}
+
+function mapApiReferralToEntry(r: ReferralListRow): ReferralEntry {
+  const consentStatus = consentStatusFromReferralRow(r);
+  const referralStatus = referralWorkflowFromRow(r);
+
+  const rewardPaid = r.rewardIssuedAt !== null;
+  const rewardAmount = r.rewardValue ? Number(r.rewardValue) : undefined;
+
+  return {
+    id: r.id,
+    referrerCompany: r.referrerName?.trim() ? r.referrerName : "—",
+    referrerCui: r.referrerCui?.trim() ? r.referrerCui : "—",
+    prospectCompany: r.referredName?.trim() ? r.referredName : "Prospect neatasat",
+    prospectContact: "—",
+    consentStatus,
+    referralStatus,
+    consentRequestedAt: r.createdAt,
+    consentConfirmedAt: r.consentGivenAt ?? undefined,
+    rewardPaid,
+    rewardAmount,
+    gdprBasis: r.consentGiven
+      ? "Art.6(1)(a) — consimțământ explicit"
+      : "Consimțământ în așteptare / status API",
+    detectedAt: r.createdAt.slice(0, 10),
+  };
+}
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -302,7 +269,7 @@ function ConsentStepper({ referral }: { readonly referral: ReferralEntry }) {
 
 // ─── Referral Funnel ──────────────────────────────────────────────────────────
 
-function ReferralFunnel({ items }: { readonly items: typeof MOCK_REFERRALS }) {
+function ReferralFunnel({ items }: { readonly items: ReferralEntry[] }) {
   const stages = [
     {
       label: "Detectați",
@@ -406,10 +373,33 @@ function ReferralFunnel({ items }: { readonly items: typeof MOCK_REFERRALS }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function ReferralManager() {
-  const [selectedId, setSelectedId] = useState<string | null>("ref-001");
-  const [referrals, setReferrals] = useState(MOCK_REFERRALS);
+  const listQuery = useQuery({
+    queryKey: ["etapa5", "referrals", "manager"],
+    queryFn: () => fetchReferralsList({ limit: 100, page: 1 }),
+  });
 
-  const selected = selectedId ? (referrals.find((r) => r.id === selectedId) ?? null) : null;
+  const referrals = useMemo(
+    () => (listQuery.data?.data ?? []).map(mapApiReferralToEntry),
+    [listQuery.data?.data],
+  );
+
+  const [pickedReferralId, setPickedReferralId] = useState<string | null>(null);
+
+  const effectiveReferralId = useMemo(() => {
+    if (referrals.length === 0) return null;
+    if (pickedReferralId !== null && referrals.some((r) => r.id === pickedReferralId)) {
+      return pickedReferralId;
+    }
+    return referrals[0].id;
+  }, [referrals, pickedReferralId]);
+
+  const selected = useMemo(
+    () =>
+      effectiveReferralId === null
+        ? null
+        : (referrals.find((r) => r.id === effectiveReferralId) ?? null),
+    [referrals, effectiveReferralId],
+  );
 
   const pendingConsent = referrals.filter((r) => r.consentStatus === "REQUESTED").length;
   const converted = referrals.filter((r) =>
@@ -429,24 +419,20 @@ export function ReferralManager() {
 
   function handleAnuleaza() {
     if (!selected) return;
-    setReferrals((prev) =>
-      prev.map((r) =>
-        r.id === selected.id
-          ? {
-              ...r,
-              consentStatus: "REFUSED" as const,
-              referralStatus: "CANCELLED" as const,
-            }
-          : r,
-      ),
+    toast.message(
+      "Anularea nu apelează PATCH /referrals din UI — folosiți API-ul sau worker-ul E5 pentru actualizare.",
     );
-    toast.error(`Referral ${selected.referrerCompany} — cerere GDPR anulată.`);
   }
 
   const rewardSuffix = rewardsPending === 1 ? "ă neprocesată" : "e neprocesate";
 
   return (
     <PageWrapper title="Referral Manager (GDPR)" actions={<EtapaBadge label="Etapa 5" />}>
+      {listQuery.isError && (
+        <div className="mb-4 rounded border border-er/40 bg-er/10 px-4 py-3 text-sm text-er">
+          Eroare la încărcarea referral-urilor.
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         <KpiCard
           label="Total Referrals"
@@ -592,7 +578,7 @@ export function ReferralManager() {
             REFERRALS ({referrals.length})
           </div>
           {referrals.map((r) => {
-            const isSelected = selectedId === r.id;
+            const isSelected = effectiveReferralId === r.id;
             const statusColor = STATUS_COLORS[r.referralStatus];
             const statusBadgeStyle: React.CSSProperties = {
               fontSize: 9,
@@ -608,7 +594,7 @@ export function ReferralManager() {
               <Card
                 key={r.id}
                 className={cn("cursor-pointer transition-all", isSelected && "border-b5")}
-                onClick={() => setSelectedId(r.id)}
+                onClick={() => setPickedReferralId(r.id)}
                 style={{
                   borderColor: isSelected ? "var(--color-b5)" : undefined,
                 }}

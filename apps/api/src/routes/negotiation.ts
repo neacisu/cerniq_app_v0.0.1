@@ -1,7 +1,7 @@
 /**
  * Etapa 3 — Negotiation API Routes (E3 AI Sales)
  * FSM: DISCOVERY → PROPOSAL → NEGOTIATION → CLOSING → PROFORMA_SENT → INVOICED → PAID | DEAD
- * Prefix registered at: /api/v1/negotiation
+ * Prefix înregistrat: /api/v1/negotiation și alias /api/v1/negotiations
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -161,23 +161,39 @@ export async function negotiationRoutes(app: FastifyInstance) {
   app.get("/stats", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);
 
-    const byState = await db
-      .select({
-        state: goldNegotiations.currentState,
-        count: sql<number>`count(*)::int`,
-        totalValue: sql<string>`coalesce(sum(${goldNegotiations.totalValue}), 0)::text`,
-      })
-      .from(goldNegotiations)
-      .where(eq(goldNegotiations.tenantId, tenantId))
-      .groupBy(goldNegotiations.currentState);
+    const [byState, avgConfRows, guardrailByType, guardrailTotalRow] = await Promise.all([
+      db
+        .select({
+          state: goldNegotiations.currentState,
+          count: sql<number>`count(*)::int`,
+          totalValue: sql<string>`coalesce(sum(${goldNegotiations.totalValue}), 0)::text`,
+        })
+        .from(goldNegotiations)
+        .where(eq(goldNegotiations.tenantId, tenantId))
+        .groupBy(goldNegotiations.currentState),
+      db
+        .select({
+          avgConfidence: sql<string>`coalesce(avg(${goldNegotiations.aiConfidenceScore}), 0)::text`,
+          avgClose: sql<string>`coalesce(avg(${goldNegotiations.closeProbability}), 0)::text`,
+        })
+        .from(goldNegotiations)
+        .where(eq(goldNegotiations.tenantId, tenantId)),
+      db
+        .select({
+          violationType: guardrailViolations.violationType,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(guardrailViolations)
+        .where(eq(guardrailViolations.tenantId, tenantId))
+        .groupBy(guardrailViolations.violationType),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(guardrailViolations)
+        .where(eq(guardrailViolations.tenantId, tenantId)),
+    ]);
 
-    const [avgConf] = await db
-      .select({
-        avgConfidence: sql<string>`coalesce(avg(${goldNegotiations.aiConfidenceScore}), 0)::text`,
-        avgClose: sql<string>`coalesce(avg(${goldNegotiations.closeProbability}), 0)::text`,
-      })
-      .from(goldNegotiations)
-      .where(eq(goldNegotiations.tenantId, tenantId));
+    const avgConf = avgConfRows[0];
+    const guardrailViolationsTotal = guardrailTotalRow[0]?.count ?? 0;
 
     return reply.send({
       success: true,
@@ -185,6 +201,11 @@ export async function negotiationRoutes(app: FastifyInstance) {
         byState,
         avgAiConfidence: avgConf?.avgConfidence ?? "0",
         avgCloseProbability: avgConf?.avgClose ?? "0",
+        guardrailViolationsTotal,
+        guardrailViolationsByType: guardrailByType.map((r) => ({
+          violationType: r.violationType,
+          count: r.count,
+        })),
       },
     });
   });

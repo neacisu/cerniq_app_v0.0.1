@@ -10,7 +10,7 @@ declare module "fastify" {
 }
 
 function sendValidationError(reply: FastifyReply, error: z.ZodError) {
-  return reply.code(400).send({
+  return reply.code(422).send({
     success: false,
     error: "VALIDATION_ERROR",
     details: error.issues,

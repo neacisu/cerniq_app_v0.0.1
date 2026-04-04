@@ -15,6 +15,7 @@ vi.mock("@/lib/api.js", () => ({
 
 import {
   fetchAdminLive,
+  fetchApiPluginPrometheusCatalog,
   fetchQueueDetail,
   postQueueControl,
 } from "@/pages/system/workers-fetch.js";
@@ -46,5 +47,10 @@ describe("workers-fetch", () => {
   it("postQueueControl encodează nume cu caractere speciale", async () => {
     await postQueueControl("a/b", "drain");
     expect(postMock).toHaveBeenCalledWith("/api/admin/queues/a%2Fb/drain");
+  });
+
+  it("fetchApiPluginPrometheusCatalog apelează GET /api/admin/prometheus/api-plugin-catalog", async () => {
+    await fetchApiPluginPrometheusCatalog();
+    expect(getMock).toHaveBeenCalledWith("/api/admin/prometheus/api-plugin-catalog");
   });
 });

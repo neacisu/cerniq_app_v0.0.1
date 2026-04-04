@@ -16,6 +16,7 @@ export {
   register_with_invite_code,
 } from "./client.js";
 export { sql, eq, and, or, desc, asc, inArray, lt, lte, gte, isNull, isNotNull } from "drizzle-orm";
+export { alias } from "drizzle-orm/pg-core";
 export type { SQL } from "drizzle-orm";
 export {
   runMigrations,

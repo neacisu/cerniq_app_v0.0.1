@@ -108,38 +108,6 @@ export async function contractRoutes(app: FastifyInstance) {
     });
   });
 
-  // ── GET /contracts/:id ─────────────────────────────────────────────────────
-
-  app.get("/:id", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const { id } = idParamSchema.parse(req.params);
-
-    const [row] = await db
-      .select({
-        contract: goldContracts,
-        companyName: goldCompanies.denumire,
-        cui: goldCompanies.cui,
-        orderNumber: goldOrders.orderNumber,
-      })
-      .from(goldContracts)
-      .leftJoin(goldCompanies, eq(goldContracts.clientId, goldCompanies.id))
-      .leftJoin(goldOrders, eq(goldContracts.orderId, goldOrders.id))
-      .where(and(eq(goldContracts.id, id), eq(goldContracts.tenantId, tenantId)))
-      .limit(1);
-
-    if (!row) return reply.status(404).send({ success: false, error: "Contract not found" });
-
-    return reply.send({
-      success: true,
-      data: {
-        ...row.contract,
-        companyName: row.companyName,
-        cui: row.cui,
-        orderNumber: row.orderNumber,
-      },
-    });
-  });
-
   // ── POST /contracts/orders/:orderId/generate ──────────────────────────────
 
   app.post(
@@ -237,7 +205,12 @@ export async function contractRoutes(app: FastifyInstance) {
       .where(eq(goldContractTemplates.tenantId, tenantId))
       .orderBy(desc(goldContractTemplates.version));
 
-    return reply.send({ success: true, data: templates });
+    const total = templates.length;
+    return reply.send({
+      success: true,
+      data: templates,
+      meta: { page: 1, limit: Math.max(total, 1), total, pages: 1 },
+    });
   });
 
   // ── GET /contracts/clauses (admin) ────────────────────────────────────────
@@ -325,6 +298,38 @@ export async function contractRoutes(app: FastifyInstance) {
     return reply.send({
       success: true,
       data: { byStatus, expiringIn7Days: expiring?.count ?? 0 },
+    });
+  });
+
+  // ── GET /contracts/:id (după rutele statice /templates, /stats, …) ─────────
+
+  app.get("/:id", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const { id } = idParamSchema.parse(req.params);
+
+    const [row] = await db
+      .select({
+        contract: goldContracts,
+        companyName: goldCompanies.denumire,
+        cui: goldCompanies.cui,
+        orderNumber: goldOrders.orderNumber,
+      })
+      .from(goldContracts)
+      .leftJoin(goldCompanies, eq(goldContracts.clientId, goldCompanies.id))
+      .leftJoin(goldOrders, eq(goldContracts.orderId, goldOrders.id))
+      .where(and(eq(goldContracts.id, id), eq(goldContracts.tenantId, tenantId)))
+      .limit(1);
+
+    if (!row) return reply.status(404).send({ success: false, error: "Contract not found" });
+
+    return reply.send({
+      success: true,
+      data: {
+        ...row.contract,
+        companyName: row.companyName,
+        cui: row.cui,
+        orderNumber: row.orderNumber,
+      },
     });
   });
 }

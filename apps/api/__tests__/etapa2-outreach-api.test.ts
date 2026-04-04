@@ -178,7 +178,7 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
           steps: [{ channel: "INVALID_CHANNEL", delayHours: 0, delayMinutes: 0 }],
         }),
       });
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(422);
     });
   });
 
