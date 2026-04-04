@@ -787,9 +787,9 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.LEAD_STATE_VALIDATE, concurrency: 50 },
   { name: QUEUES.LEAD_ASSIGN_USER, concurrency: 20 },
 
-  // J — AI (ai:sentiment:analyze only — ai:response:generate kept in E2 outreach worker only,
-  //         E3 uses ai:e3:response:generate via QUEUES.E3_AI_RESPONSE_GENERATE)
+  // J — AI (E2 outreach: sentiment + short reply; E3 folosește ai:e3:response:generate separat)
   { name: QUEUES.AI_SENTIMENT_ANALYZE, concurrency: 20 },
+  { name: QUEUES.AI_RESPONSE_GENERATE, concurrency: 20 },
 
   // K — Monitoring & Alerts
   { name: QUEUES.MONITOR_PHONE_HEALTH, concurrency: 5 },
@@ -1344,7 +1344,8 @@ export function assertQueueRegistryComplete() {
   // + 4 E5 Alerts Weather+APIA+Campaign J52-J55 = 340
   // + 3 E5 Compliance GDPR+Competition+Retention K56-K58 = 343
   // + 2 E5 HITL Winback+Complaint review = 345
-  const expected = 345;
+  // + 1 E2 outreach J — ai:response:generate (alături de ai:sentiment:analyze) = 346
+  const expected = 346;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

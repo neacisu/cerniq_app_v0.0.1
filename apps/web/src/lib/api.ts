@@ -121,6 +121,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Mesaj afișabil din `unknown` (mutations, catch, query errors). */
+export function messageFromUnknown(e: unknown): string {
+  if (e instanceof ApiError) return e.message;
+  if (e instanceof Error) return e.message;
+  return String(e);
+}
+
 function buildUrl(path: string, base: string): string {
   if (path.startsWith("http")) return path;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;

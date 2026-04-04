@@ -4,6 +4,9 @@
  * E3: Guardrail, Tool, Fiscal, Safety, Knowledge (5)
  * E4: Reconciliation, Credit, Logistics, Contract (4)
  * E5: Lifecycle, Churn, Social, Graph, Environment, Compliance, Feedback, Memory, Spatial (9)
+ *
+ * KPI-urile afișate (`data.metrics`, `showMetrics`) provin din topologia Brain / `useCognitiveBrain`,
+ * nu din valori business hardcodate în fișierele individuale ale neuronilor.
  */
 
 // ── E3 AI Sales neurons ───────────────────────────────────────────────────────

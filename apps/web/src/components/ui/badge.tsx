@@ -62,6 +62,11 @@ const statusToVariant: Record<string, BadgeVariant> = {
   RISK_LOW: "ok",
   RISK_MED: "warning",
   AT_RISK: "warning",
+  ONBOARDING: "warning",
+  NURTURING_ACTIVE: "ok",
+  LOYAL_CLIENT: "ok",
+  ADVOCATE: "brand",
+  REACTIVATED: "info",
   NOT_SENT: "neutral",
   SENDING: "info",
   VALIDATED: "ok",
@@ -70,21 +75,21 @@ const statusToVariant: Record<string, BadgeVariant> = {
   CREDIT_NOTE: "warning",
 };
 
-export function Badge({
-  variant,
-  children,
-  className,
-}: {
+type BadgeProps = Readonly<{
   variant?: BadgeVariant;
   children: ReactNode;
   className?: string;
-}) {
+}>;
+
+export function Badge({ variant, children, className }: BadgeProps) {
   return (
     <span className={cn("badge", variantClass[variant ?? "neutral"], className)}>{children}</span>
   );
 }
 
-export function SBadge({ status, className }: { status: string; className?: string }) {
+type SBadgeProps = Readonly<{ status: string; className?: string }>;
+
+export function SBadge({ status, className }: SBadgeProps) {
   const variant = statusToVariant[status] ?? "neutral";
   return (
     <Badge variant={variant} className={className}>
@@ -93,13 +98,12 @@ export function SBadge({ status, className }: { status: string; className?: stri
   );
 }
 
-export function TBadge({
-  tier,
-  className,
-}: {
+type TBadgeProps = Readonly<{
   tier: "bronze" | "silver" | "gold";
   className?: string;
-}) {
+}>;
+
+export function TBadge({ tier, className }: TBadgeProps) {
   return (
     <Badge variant={tier} className={className}>
       {tier.toUpperCase()}

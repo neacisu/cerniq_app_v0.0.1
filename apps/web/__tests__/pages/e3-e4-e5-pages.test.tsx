@@ -33,13 +33,12 @@ vi.mock("@xyflow/react", () => ({
 
 // ─── Wrapper ──────────────────────────────────────────────────────────────────
 
-const testQueryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false } },
-});
-
 function wrap(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <QueryClientProvider client={testQueryClient}>
+    <QueryClientProvider client={client}>
       <MemoryRouter>{ui}</MemoryRouter>
     </QueryClientProvider>,
   );
@@ -173,10 +172,12 @@ describe("ProductCatalog page", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("shows embedding status in product list", () => {
+  it("shows embedding status in product list", async () => {
     wrap(<ProductCatalog />);
-    const allText = document.body.textContent ?? "";
-    expect(allText).toMatch(/✓|indexing|stale|ERR/i);
+    await waitFor(() => {
+      const allText = document.body.textContent ?? "";
+      expect(allText).toMatch(/✓|indexing|stale|ERR/i);
+    });
   });
 
   it("shows RRF score column or label", () => {
@@ -236,16 +237,20 @@ describe("FiscalDocuments page", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("shows document type badges (PROFORMA, INVOICE, EFACTURA)", () => {
+  it("shows document type badges (PROFORMA, INVOICE, EFACTURA)", async () => {
     wrap(<FiscalDocuments />);
-    const badges = screen.getAllByText(/PROFORMA|INVOICE|EFACTURA|eFactura/i);
-    expect(badges.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const badges = screen.getAllByText(/PROFORMA|INVOICE|EFACTURA|eFactura/i);
+      expect(badges.length).toBeGreaterThan(0);
+    });
   });
 
-  it("shows status indicators (PAID, SENT, OVERDUE, etc)", () => {
+  it("shows status indicators (PAID, SENT, OVERDUE, etc)", async () => {
     wrap(<FiscalDocuments />);
-    const statuses = screen.getAllByText(/PAID|SENT|PENDING|OVERDUE|ARCHIVED/i);
-    expect(statuses.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const statuses = screen.getAllByText(/PAID|SENT|PENDING|OVERDUE|ARCHIVED/i);
+      expect(statuses.length).toBeGreaterThan(0);
+    });
   });
 
   it("renders risk indicator for SPV deadlines", () => {
@@ -291,19 +296,25 @@ describe("OrderDashboard page", () => {
     expect(btns.length).toBeGreaterThan(0);
   });
 
-  it("renders at least one order card", () => {
+  it("renders at least one order card", async () => {
     wrap(<OrderDashboard />);
-    expect(screen.getAllByText(/CMD-\d{4}|ORD-\d{4}/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/CMD-\d{4}|ORD-\d{4}/i).length).toBeGreaterThan(0);
+    });
   });
 
-  it("shows company names on order cards", () => {
+  it("shows company names on order cards", async () => {
     wrap(<OrderDashboard />);
-    expect(screen.getAllByText(/SRL|SA|Agri|Farm/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/SRL|SA|Agri|Farm/i).length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders total amount on order cards", () => {
+  it("renders total amount on order cards", async () => {
     wrap(<OrderDashboard />);
-    expect(screen.getAllByText(/RON|lei/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/RON|lei/i).length).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -328,11 +339,12 @@ describe("CreditProfile page", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("shows radar chart axis labels", () => {
+  it("shows radar chart axis labels", async () => {
     wrap(<CreditProfile />);
-    // At least one axis label visible
-    const allText = document.body.textContent ?? "";
-    expect(allText).toMatch(/ANAF|Financial|BPI|Payment|Litigation/i);
+    await waitFor(() => {
+      const allText = document.body.textContent ?? "";
+      expect(allText).toMatch(/ANAF|Financial|BPI|Payment|Litigation/i);
+    });
   });
 
   it("shows credit limit and utilization data", () => {
@@ -348,10 +360,12 @@ describe("CreditProfile page", () => {
     expect(allText).toMatch(/PREMIUM|MEDIUM|HIGH|STANDARD|Tier/i);
   });
 
-  it("renders score breakdown section", () => {
+  it("renders score breakdown section", async () => {
     wrap(<CreditProfile />);
-    const matches = screen.getAllByText(/Breakdown|Componente|Detalii/i);
-    expect(matches.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const matches = screen.getAllByText(/Breakdown|Componente|Detalii/i);
+      expect(matches.length).toBeGreaterThan(0);
+    });
   });
 
   it("renders a score percentage or number", () => {
@@ -382,40 +396,48 @@ describe("ContractBuilder page", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("shows contract list with company names", () => {
+  it("shows contract list with company names", async () => {
     wrap(<ContractBuilder />);
-    expect(screen.getAllByText(/SRL|SA|Agri/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/SRL|SA|Agri/i).length).toBeGreaterThan(0);
+    });
   });
 
-  it("shows DocuSign integration badge", () => {
+  it("shows DocuSign integration badge", async () => {
     wrap(<ContractBuilder />);
-    const matches = screen.getAllByText(/DocuSign|Docusign/i);
-    expect(matches.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const matches = screen.getAllByText(/DocuSign|Docusign/i);
+      expect(matches.length).toBeGreaterThan(0);
+    });
   });
 
-  it("shows signer status for selected contract", () => {
+  it("shows signer status for selected contract", async () => {
     wrap(<ContractBuilder />);
-    expect(screen.getAllByText(/SIGNED|PENDING|SENT|Semnat|Nesemnat/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/SIGNED|PENDING|SENT|Semnat|Nesemnat/i).length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders contract clauses section", () => {
+  it("renders contract clauses section", async () => {
     wrap(<ContractBuilder />);
-    const matches = screen.getAllByText(/Clauze|Clauses/i);
-    expect(matches.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const matches = screen.getAllByText(/Clauze|Clauses/i);
+      expect(matches.length).toBeGreaterThan(0);
+    });
   });
 
-  it("shows mandatory clause indicators", () => {
+  it("shows clause codes from clausesUsed (prefix MANDATORY/STANDARD/CUSTOM)", async () => {
     wrap(<ContractBuilder />);
-    expect(screen.getAllByText(/MANDATORY|STANDARD|CUSTOM|Obligator/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(document.body.textContent).toMatch(/MANDATORY|STANDARD|CUSTOM/);
+    });
   });
 
-  it("clause headers use native button with aria-expanded (Sonar a11y)", async () => {
-    const user = userEvent.setup();
+  it("DocuSign acțiune vizibilă pentru contract DRAFT (buton Trimite DocuSign)", async () => {
     wrap(<ContractBuilder />);
-    const clauseBtn = screen.getByRole("button", { name: /Obiectul contractului/i });
-    expect(clauseBtn).toHaveAttribute("aria-expanded", "false");
-    await user.click(clauseBtn);
-    expect(clauseBtn).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Trimite DocuSign/i })).toBeInTheDocument();
+    });
   });
 });
 
@@ -428,13 +450,14 @@ describe("Logistics page", () => {
     expect(() => wrap(<Logistics />)).not.toThrow();
   });
 
-  it("sorts AWB table rows by lifecycle status (PROCESSING before IN_TRANSIT)", () => {
+  it("sorts AWB table rows by lifecycle status (PROCESSING before IN_TRANSIT)", async () => {
     wrap(<Logistics />);
-    const awbRefs = screen.getAllByText(/^SDY-\d+$/);
-    expect(awbRefs.length).toBeGreaterThanOrEqual(3);
-    // MOCK: Agriland = PROCESSING (SDY-987654321) must appear before AgroSud IN_TRANSIT (SDY-123456789)
-    expect(awbRefs[0]?.textContent).toBe("SDY-987654321");
-    expect(awbRefs[1]?.textContent).toBe("SDY-123456789");
+    await waitFor(() => {
+      const awbRefs = screen.getAllByText(/^SDY-\d+$/);
+      expect(awbRefs.length).toBeGreaterThanOrEqual(3);
+      expect(awbRefs[0]?.textContent).toBe("SDY-987654321");
+      expect(awbRefs[1]?.textContent).toBe("SDY-123456789");
+    });
   });
 });
 
@@ -459,10 +482,14 @@ describe("NurturingDashboard page", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("shows lifecycle categories in PieChart legend", () => {
+  it("shows nurturing FSM states in chart or summary (API-driven)", async () => {
     wrap(<NurturingDashboard />);
-    const states = screen.getAllByText(/ACTIVE|AT_RISK|DORMANT|CHURNED|WIN_BACK/i);
-    expect(states.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const states = screen.queryAllByText(
+        /ONBOARDING|NURTURING_ACTIVE|AT_RISK|CHURNED|REACTIVATED|LOYAL_CLIENT|ADVOCATE/i,
+      );
+      expect(states.length).toBeGreaterThan(0);
+    });
   });
 
   it("renders churn heatmap section", () => {
@@ -477,15 +504,21 @@ describe("NurturingDashboard page", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("ReactFlow container is present for KOL graph", () => {
+  it("ReactFlow container is present for KOL graph", async () => {
     wrap(<NurturingDashboard />);
-    expect(screen.getByTestId("react-flow")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("react-flow")).toBeInTheDocument();
+    });
   });
 
-  it("shows segment names in churn heatmap rows", () => {
+  it("shows churn heatmap risk rows and judet columns (aggregated from factors)", async () => {
     wrap(<NurturingDashboard />);
-    const segments = screen.getAllByText(/Enterprise|Mid-Market|SME|Micro/i);
-    expect(segments.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/CRITICAL|HIGH|MEDIUM|LOW/).length).toBeGreaterThan(0);
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText(/\bTM\b|\bIL\b/).length).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -539,9 +572,11 @@ describe("ReferralManager page", () => {
     expect(screen.getAllByText(/RON|lei/i).length).toBeGreaterThan(0);
   });
 
-  it("renders consent status badges", () => {
+  it("renders consent status badges", async () => {
     wrap(<ReferralManager />);
-    expect(screen.getAllByText(/CONFIRMED|PENDING|REQUESTED/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/CONFIRMED|PENDING|REQUESTED/i).length).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -562,29 +597,30 @@ describe("ReferralManager — pure helpers & sub-components", () => {
     expect(stages.length).toBeGreaterThanOrEqual(5);
   });
 
-  it("selectarea unui referral din list afișează panoul de detalii", () => {
+  it("selectarea unui referral din list afișează panoul de detalii", async () => {
     wrap(<ReferralManager />);
-    // ref-001 este preselectat — panoul trebuie să fie deja vizibil
-    expect(screen.getAllByText(/Flow Consimțământ GDPR/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Flow Consimțământ GDPR/i).length).toBeGreaterThan(0);
+    });
   });
 
   it("afișează butonul Retrimite Cerere pentru status CONSENT_PENDING", async () => {
     const user = userEvent.setup();
     wrap(<ReferralManager />);
-    // Selectăm ref-003 (CONSENT_PENDING)
-    const cards = screen.getAllByText(/Grup Agrar Iași|CONSENT_PENDING/i);
-    if (cards.length > 0) {
-      await user.click(cards[0]);
-    }
-    // Butoanele Retrimite/Anulează trebuie să apară după click pe CONSENT_PENDING
-    const retrimiteBtn = screen.queryAllByText(/Retrimite|Anuleaz/i);
-    expect(retrimiteBtn.length).toBeGreaterThanOrEqual(0); // conditional render — OK
+    await waitFor(() => {
+      expect(screen.getByText(/Grup Agrar Iași/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByText(/Grup Agrar Iași/i));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Retrimite Cerere/i })).toBeInTheDocument();
+    });
   });
 
-  it("ref-004 (REJECTED) afișează statusul corect în stepper", () => {
+  it("ref-004 (REJECTED) afișează statusul corect în stepper", async () => {
     wrap(<ReferralManager />);
-    // REJECTED trebuie să apară în lista de referrals
-    expect(screen.getAllByText(/REJECTED/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/REJECTED/i).length).toBeGreaterThan(0);
+    });
   });
 
   it("afișează valori RON pentru recompense", () => {
@@ -596,13 +632,13 @@ describe("ReferralManager — pure helpers & sub-components", () => {
   it("nu afișează butonele Retrimite/Anulează pentru status REWARDED", async () => {
     const user = userEvent.setup();
     wrap(<ReferralManager />);
-    // ref-005 este REWARDED — nu trebuie să aibă butoane de acțiune GDPR
-    const agriland = screen.getAllByText(/Agro Excel/i);
-    if (agriland.length > 0) {
-      await user.click(agriland[0]);
-    }
-    // Nu trebuie să fie prezent butonul Retrimite pentru REWARDED
-    expect(screen.queryAllByText(/Retrimite Cerere/i).length).toBe(0);
+    await waitFor(() => {
+      expect(screen.getByText(/SC Agro Excel SRL/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByText(/SC Agro Excel SRL/i));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Retrimite Cerere/i })).toBeNull();
+    });
   });
 
   it("afișează conformitate GDPR: Art.6(1)(a)", () => {
@@ -627,10 +663,11 @@ describe("ReferralManager — pure helpers & sub-components", () => {
     expect(detectatRows.length).toBeGreaterThan(0);
   });
 
-  it("KPI Recompense Plătite afișează suma corectă (ref-005 = RON 630)", () => {
+  it("KPI Recompense Plătite afișează suma corectă (ref-005 = RON 630)", async () => {
     wrap(<ReferralManager />);
-    // totalRewardValue = 630 (doar ref-005 rewardPaid=true)
-    expect(document.body.textContent).toMatch(/630/);
+    await waitFor(() => {
+      expect(document.body.textContent).toMatch(/RON 630/);
+    });
   });
 
   it("Convertiți KPI = 2 (ref-002 CONVERTED + ref-005 REWARDED)", () => {

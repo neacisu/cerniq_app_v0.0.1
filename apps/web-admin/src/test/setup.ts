@@ -1,4 +1,9 @@
-import "@testing-library/jest-dom/vitest";
+import * as jestDomMatchers from "@testing-library/jest-dom/matchers";
+import { expect } from "vitest";
+
+// Vitest 4.x: `@testing-library/jest-dom/vitest` poate da TypeError pe `callCount` (read-only);
+// aliniere la apps/web — extend explicit al matcher-elor.
+expect.extend(jestDomMatchers);
 
 type StorageLike = Pick<Storage, "clear" | "getItem" | "key" | "removeItem" | "setItem"> & {
   readonly length: number;

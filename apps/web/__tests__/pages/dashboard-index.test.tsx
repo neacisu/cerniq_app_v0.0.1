@@ -177,6 +177,7 @@ vi.mock("@/lib/unified-dashboard-api.js", () => ({
   ),
 }));
 
+import { fetchDashboardStats } from "@/lib/etapa1-api.js";
 import { Dashboard } from "@/pages/dashboard/index.js";
 
 describe("Dashboard index", () => {
@@ -194,6 +195,7 @@ describe("Dashboard index", () => {
       </QueryClientProvider>,
     );
     await waitFor(() => expect(screen.getByText(/Erori pipeline \(24h\)/i)).toBeInTheDocument());
+    expect(fetchDashboardStats).toHaveBeenCalled();
     expect(screen.getByText(/Erori pipeline \(24h\)/i).parentElement?.textContent).toContain("3");
     expect(screen.getByText(/Critice \(deschise\)/i).parentElement?.textContent).toContain("1");
     expect(screen.getByText(/Cozi cu joburi eșuate/i).parentElement?.textContent).toContain("2");

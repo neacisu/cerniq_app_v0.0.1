@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardBody, Input, Button } from "@/componen
 import { StatusDot } from "@/components/data/StatusDot.js";
 import { cn } from "@/lib/utils.js";
 import { toast } from "sonner";
-import { Edit2, Plus, Trash2, Shield, User } from "lucide-react";
+import { Plus, Trash2, Shield, User } from "lucide-react";
 
 interface ApiConfig {
   id: string;
@@ -42,68 +42,52 @@ const ROLE_COLORS: Record<TeamMember["role"], string> = {
   VIEWER: "text-t3",
 };
 
-const planFeatures = [
-  "Unlimited contacts",
-  "AI enrichment (infraq.app QwQ-32B)",
-  "Multi-channel outreach (Email/WA/LI)",
-  "Analytics dashboard",
-  "E3/E4/E5 full pipeline",
-  "DocuSign + Sameday + Revolut",
-  "API access REST + WebSocket",
-  "Prometheus + Grafana monitoring",
-];
+const SETTINGS_GENERAL_LS = "cerniq_settings_general_v1";
 
-function handleSaveGeneral() {
-  toast.info(
-    "Persistența setărilor tenant în API nu este încă cablată — valorile rămân doar locale în această sesiune.",
-  );
+function notifyRemoveMemberNotAvailable(_memberId: string) {
+  toast.info("Gestionarea membrilor din API nu este încă disponibilă.");
+}
+
+const DEFAULT_GENERAL_FORM = {
+  companyName: "",
+  domain: "",
+  timezone: "Europe/Bucharest",
+  locale: "ro-RO",
+  churnRisk: "",
+  npsAlert: "",
+  cltvTarget: "",
+  contactInterval: "",
+};
+
+function readGeneralFormFromLocalStorage(): typeof DEFAULT_GENERAL_FORM {
+  if (globalThis.localStorage === undefined) return DEFAULT_GENERAL_FORM;
+  try {
+    const raw = localStorage.getItem(SETTINGS_GENERAL_LS);
+    if (!raw) return DEFAULT_GENERAL_FORM;
+    const parsed = JSON.parse(raw) as Partial<typeof DEFAULT_GENERAL_FORM>;
+    return { ...DEFAULT_GENERAL_FORM, ...parsed };
+  } catch {
+    return DEFAULT_GENERAL_FORM;
+  }
 }
 
 export function Settings() {
-  const [generalForm, setGeneralForm] = useState({
-    companyName: "",
-    domain: "",
-    timezone: "Europe/Bucharest",
-    locale: "ro-RO",
-    churnRisk: "",
-    npsAlert: "",
-    cltvTarget: "",
-    contactInterval: "",
-  });
+  const [generalForm, setGeneralForm] = useState(readGeneralFormFromLocalStorage);
 
-  const [apis, setApis] = useState<ApiConfig[]>(INITIAL_APIS);
-  const [editingApi, setEditingApi] = useState<string | null>(null);
-  const [editKey, setEditKey] = useState("");
   const team: TeamMember[] = [];
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<TeamMember["role"]>("AGENT");
 
-  function handleEditApiStart(api: ApiConfig) {
-    setEditingApi(api.id);
-    setEditKey("");
-  }
-
-  function handleSaveApi(apiId: string) {
-    if (!editKey.trim()) {
-      toast.error("Cheia API nu poate fi goală.");
-      return;
+  function handleSaveGeneral() {
+    try {
+      localStorage.setItem(SETTINGS_GENERAL_LS, JSON.stringify(generalForm));
+      toast.success(
+        "Salvat doar în browser (localStorage). Nu există endpoint public pentru setări tenant-wide în API.",
+      );
+    } catch {
+      toast.error("Nu s-a putut scrie localStorage.");
     }
-    setApis((prev) =>
-      prev.map((a) =>
-        a.id === apiId
-          ? { ...a, key: `${editKey.slice(0, 4)}••••••••••••`, status: "ok" as const }
-          : a,
-      ),
-    );
-    setEditingApi(null);
-    setEditKey("");
-    toast.success(`API ${apis.find((a) => a.id === apiId)?.name} actualizat!`);
-  }
-
-  function handleCancelEdit() {
-    setEditingApi(null);
-    setEditKey("");
   }
 
   function handleInviteMember() {
@@ -114,10 +98,6 @@ export function Settings() {
     toast.info(
       "Invitațiile de echipă necesită endpoint dedicat în API — momentan nu sunt persistate.",
     );
-  }
-
-  function handleRemoveMember(_memberId: string) {
-    toast.info("Gestionarea membrilor din API nu este încă disponibilă.");
   }
 
   return (
@@ -170,7 +150,7 @@ export function Settings() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Praguri Automate</CardTitle>
+                <CardTitle>Praguri (note operaționale)</CardTitle>
               </CardHeader>
               <CardBody className="space-y-3">
                 {(
@@ -196,53 +176,29 @@ export function Settings() {
               </CardBody>
             </Card>
           </div>
+          <p className="text-xs text-t3 mt-2">
+            Pragurile de mai sus nu sunt încă validate sau trimise către workeri — sunt doar note
+            locale până la cablarea unui API de configurare tenant.
+          </p>
           <div className="mt-4 flex justify-end">
-            <Button onClick={handleSaveGeneral}>Salvează Setările</Button>
+            <Button onClick={handleSaveGeneral}>Salvează local (browser)</Button>
           </div>
         </Tabs.Content>
 
         {/* ── Tab: Integrations ── */}
         <Tabs.Content value="integrations">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {apis.map((a) => (
+            {INITIAL_APIS.map((a) => (
               <Card key={a.id}>
                 <CardBody className="space-y-2">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <StatusDot status={a.status} />
-                      <div>
-                        <div className="font-medium text-t1">{a.name}</div>
-                        <div className="text-xs text-t3">{a.description}</div>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <StatusDot status={a.status} />
+                    <div>
+                      <div className="font-medium text-t1">{a.name}</div>
+                      <div className="text-xs text-t3">{a.description}</div>
                     </div>
-                    {editingApi !== a.id && (
-                      <Button size="sm" variant="outline" onClick={() => handleEditApiStart(a)}>
-                        <Edit2 size={13} className="mr-1" />
-                        Edit
-                      </Button>
-                    )}
                   </div>
-                  {editingApi === a.id ? (
-                    <div className="space-y-2 pt-1">
-                      <Input
-                        type="password"
-                        placeholder="Noua cheie API..."
-                        value={editKey}
-                        onChange={(e) => setEditKey(e.target.value)}
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleSaveApi(a.id)}>
-                          Salvează
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                          Anulează
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="font-mono text-xs text-t3 pl-7">{a.key}</div>
-                  )}
+                  <div className="font-mono text-xs text-t3 pl-7 pt-1">{a.key}</div>
                 </CardBody>
               </Card>
             ))}
@@ -366,7 +322,7 @@ export function Settings() {
                       <td className="px-5 py-3">
                         <button
                           type="button"
-                          onClick={() => handleRemoveMember(m.id)}
+                          onClick={() => notifyRemoveMemberNotAvailable(m.id)}
                           className="text-er/70 hover:text-er transition-colors"
                           aria-label={`Elimină ${m.name}`}
                         >
@@ -385,28 +341,21 @@ export function Settings() {
         <Tabs.Content value="billing">
           <Card className="max-w-md">
             <CardHeader>
-              <CardTitle>Pro Plan</CardTitle>
+              <CardTitle>Facturare & plan</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="text-2xl font-bold text-t1 mb-1">—</div>
               <div className="text-xs text-t3 mb-4">
-                Informații de facturare reale: contact comercial / contract — nu sunt încărcate din
-                API.
+                Nu există integrare cu un API de billing în această aplicație. Lista de funcții de
+                plan nu este afișată aici pentru a evita conținut marketing fără sursă de adevăr.
               </div>
-              <ul className="space-y-2 mb-6">
-                {planFeatures.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-t2">
-                    <span className="text-ok">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
               <Button
                 variant="outline"
                 onClick={() =>
-                  toast.info("Contactați echipa Cerniq pentru upgrade sau modificare plan.")
+                  toast.info("Contactați echipa Cerniq pentru contract, facturare sau upgrade.")
                 }
               >
-                Modifică Plan
+                Contact comercial
               </Button>
             </CardBody>
           </Card>

@@ -425,8 +425,8 @@ describe("Secțiunea 7: Rate Limit Config G37-G38", () => {
 // ---------------------------------------------------------------------------
 
 describe("Secțiunea 8: Queue Registry count", () => {
-  it("queueRegistry are exact 345 de înregistrări (după FAZA 9h + 17 cozi feedback/content/alerts/compliance)", () => {
-    expect(queueRegistry.length).toBe(345);
+  it("queueRegistry are exact 346 înregistrări (345 E5+… + ai:response:generate E2 outreach în worker-shared)", () => {
+    expect(queueRegistry.length).toBe(346);
   });
 
   it("QUEUES.E5_ASSOCIATION_OUAI_SCRAPE există și este 'association:ouai:scrape'", () => {

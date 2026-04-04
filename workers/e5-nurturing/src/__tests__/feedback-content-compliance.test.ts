@@ -392,9 +392,9 @@ describe("Data Retention 3 ani GDPR", () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECȚIUNEA 14: Queue Registry completeness (345 queues)
+// SECȚIUNEA 14: Queue Registry completeness (canon 346 în worker-shared)
 // ────────────────────────────────────────────────────────────────────────────
-describe("Queue Registry FAZA 9h — 345 queues", () => {
+describe("Queue Registry FAZA 9h — chei E5 în registry", () => {
   it("E5_FEEDBACK_NPS_SEND definit", () => {
     expect(QUEUES.E5_FEEDBACK_NPS_SEND).toBe("feedback:nps:send");
   });

@@ -238,6 +238,7 @@ describe("S4 integration - HITL resume worker", () => {
       validateJobData: vi.fn(),
       hitlTasksResolvedTotal: { inc: vi.fn() },
       hitlResolutionTimeSeconds: { observe: vi.fn() },
+      recordDataMutation: vi.fn(async () => undefined),
       createQueue: vi.fn(() => ({
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),

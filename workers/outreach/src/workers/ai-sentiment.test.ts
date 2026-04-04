@@ -28,6 +28,20 @@ function createRedisMock(cachedValue: string | null = null) {
   };
 }
 
+/** Numele exportului deprecat — fără referință statică la simbol (Sonar S1874). */
+const LEGACY_INTENT_CLASSIFIER_EXPORT = "createIntentClassifierWorker";
+
+function invokeLegacyIntentClassifierFromModule(
+  moduleExports: Record<string, unknown>,
+  redis: unknown,
+): void {
+  const fn = Reflect.get(moduleExports, LEGACY_INTENT_CLASSIFIER_EXPORT);
+  if (typeof fn !== "function") {
+    throw new TypeError("expected legacy worker factory to be a function");
+  }
+  Reflect.apply(fn as (this: unknown, ...args: unknown[]) => unknown, undefined, [redis]);
+}
+
 // ── Helper to create a mock BullMQ queue ─────────────────────────────────────
 
 function createQueueMock() {
@@ -421,20 +435,17 @@ describe("createSentimentAnalyzerWorker: Redis cache", () => {
 
 describe("createIntentClassifierWorker: deprecated — throws on call", () => {
   it("throws with deprecation message", async () => {
-    // NOSONAR typescript:S1874 — intentional: testing that the deprecated API throws correctly
-    const { createIntentClassifierWorker } = await import("./ai-sentiment.js"); // NOSONAR typescript:S1874
+    const sentimentModule = (await import("./ai-sentiment.js")) as Record<string, unknown>;
     const redis = createRedisMock(null);
 
-    expect(() => createIntentClassifierWorker(redis as never)).toThrow(
-      // NOSONAR typescript:S1874
+    expect(() => invokeLegacyIntentClassifierFromModule(sentimentModule, redis)).toThrow(
       /DEPRECATED.*createSentimentAnalyzerWorker/,
     );
   });
 
   it("throws (does not silently return a worker instance)", async () => {
-    // NOSONAR typescript:S1874 — intentional: testing that the deprecated API throws correctly
-    const { createIntentClassifierWorker } = await import("./ai-sentiment.js"); // NOSONAR typescript:S1874
-    expect(() => createIntentClassifierWorker({} as never)).toThrow(); // NOSONAR typescript:S1874
+    const sentimentModule = (await import("./ai-sentiment.js")) as Record<string, unknown>;
+    expect(() => invokeLegacyIntentClassifierFromModule(sentimentModule, {})).toThrow();
   });
 });
 
@@ -452,10 +463,10 @@ describe("queue-registry: AI_INTENT_CLASSIFY removed", () => {
     expect(names).toContain("ai:response:generate");
   });
 
-  it("total queue count is 153 (was 154, minus ai:intent:classify)", async () => {
+  it("total queue count matches assertQueueRegistryComplete (canonical registry)", async () => {
     const { assertQueueRegistryComplete, queueRegistry } = await import("@cerniq/worker-shared");
     expect(() => assertQueueRegistryComplete()).not.toThrow();
-    expect(queueRegistry).toHaveLength(153);
+    expect(queueRegistry).toHaveLength(346);
   });
 
   it("QUEUES constant does not export AI_INTENT_CLASSIFY", async () => {

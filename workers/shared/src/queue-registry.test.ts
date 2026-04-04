@@ -28,7 +28,9 @@ describe("queue-registry", () => {
     // + 8 E5 Nurturing FSM (A1-A8) = 293
     // + 6 E5 Churn Detection B9-B14 = 299
     // + 5 E5 PostGIS Proximity C15-C19 = 304
-    expect(queueRegistry).toHaveLength(304);
+    // … E5 graph, referral, feedback, win-back, association, NPS, drip, alerts, compliance, HITL
+    // + ai:response:generate (E2 outreach) — vezi `assertQueueRegistryComplete` (expected = 346).
+    expect(queueRegistry).toHaveLength(346);
   });
 
   it("uses canonical colon-based queue names", () => {
@@ -54,7 +56,7 @@ describe("queue-registry", () => {
   it("throws when the registry inventory is incomplete", () => {
     const removed = queueRegistry.pop();
     try {
-      expect(() => assertQueueRegistryComplete()).toThrow("Expected 304 queues");
+      expect(() => assertQueueRegistryComplete()).toThrow("Expected 346 queues");
     } finally {
       if (removed) queueRegistry.push(removed);
     }

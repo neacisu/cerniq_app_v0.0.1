@@ -57,6 +57,8 @@ const signupSchema = z
 type LoginForm = z.infer<typeof loginSchema>;
 type SignupForm = z.infer<typeof signupSchema>;
 
+const showDevDemoLoginHint = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_LOGIN === "true";
+
 export function Login() {
   const navigate = useNavigate();
   const { login, register } = useAuth();
@@ -196,9 +198,16 @@ export function Login() {
                 )}
               </Button>
             </form>
-            <p className="mt-6 text-center text-[0.65rem] text-t4">
-              Demo precompletat • GDPR compliant
-            </p>
+            {showDevDemoLoginHint ? (
+              <p className="mt-6 text-center text-[0.65rem] text-t4">
+                În mediul demo/dev câmpurile pot fi precompletate — autentificarea reușește doar
+                dacă API-ul returnează token valid (nu este simulare în UI).
+              </p>
+            ) : (
+              <p className="mt-6 text-center text-[0.65rem] text-t4">
+                Autentificare prin HTTPS; nu afișăm succes până la răspuns confirmat de la server.
+              </p>
+            )}
           </TabsContent>
 
           <TabsContent value="signup">

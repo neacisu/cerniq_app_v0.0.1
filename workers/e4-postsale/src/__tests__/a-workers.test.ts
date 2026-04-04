@@ -149,6 +149,9 @@ vi.mock("../e4-metrics.js", () => ({
   e4RevolutPaymentsRecordedTotal: { inc: e4RevolutPaymentsRecordedTotalIncMock },
   e4RevolutHmacValidationsTotal: { inc: e4RevolutHmacValidationsTotalIncMock },
   e4RevolutBalanceGauge: { set: e4RevolutBalanceGaugeSetMock },
+  e4OrdersCreatedTotal: { inc: vi.fn() },
+  e4OrdersValueTotal: { inc: vi.fn() },
+  e4PaymentsReceivedTotal: { inc: vi.fn() },
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────

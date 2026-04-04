@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
@@ -7,63 +8,33 @@ import { ProgressBar } from "@/components/data/ProgressBar.js";
 import { Card, CardBody } from "@/components/ui/card.js";
 import { Badge, Button } from "@/components/ui/index.js";
 import { cn } from "@/lib/utils.js";
-import { X, TrendingDown, Phone, Mail, AlertTriangle } from "lucide-react";
+import { messageFromUnknown } from "@/lib/api.js";
+import { X, TrendingDown, AlertTriangle } from "lucide-react";
+import {
+  fetchChurnFactors,
+  fetchChurnStats,
+  postChurnEvaluate,
+  type ChurnFactorRow,
+} from "@/lib/etapa5-api.js";
 
-interface ChurnProfile {
-  company: string;
-  cui: string;
-  risk: number;
-  severity: "high" | "medium" | "low";
-  signals: string[];
-  action: string;
-  lastOrder: string;
-  totalRevenue: string;
-  nps: number;
-  contact: string;
-  contactEmail: string;
+type Severity = "high" | "medium" | "low";
+
+function riskToSeverity(riskLevel: ChurnFactorRow["riskLevel"]): Severity {
+  if (riskLevel === "CRITICAL" || riskLevel === "HIGH") return "high";
+  if (riskLevel === "MEDIUM") return "medium";
+  return "low";
 }
 
-const profiles: ChurnProfile[] = [
-  {
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    risk: 72,
-    severity: "high",
-    signals: ["Fără comandă 90 zile", "NPS scăzut (42)", "Ticket deschis nerezolvat"],
-    action: "Win-back urgent cu ofertă personalizată -20%",
-    lastOrder: "2025-12-15",
-    totalRevenue: "EUR 84K",
-    nps: 42,
-    contact: "Ion Mihai",
-    contactEmail: "ion@agriland.ro",
-  },
-  {
-    company: "SC AgroTech Nord",
-    cui: "33445566",
-    risk: 45,
-    severity: "medium",
-    signals: ["Ticket suport nerezolvat", "Reducere frecvență comenzi"],
-    action: "Apel follow-up manager cont",
-    lastOrder: "2026-02-10",
-    totalRevenue: "EUR 32K",
-    nps: 58,
-    contact: "Andrei Vasile",
-    contactEmail: "andrei@agrotech.ro",
-  },
-  {
-    company: "OUAI Sud Giurgiu",
-    cui: "22334455",
-    risk: 22,
-    severity: "low",
-    signals: ["Întârziere plată 15 zile"],
-    action: "Reminder plată + ofertă fidelizare",
-    lastOrder: "2026-03-01",
-    totalRevenue: "EUR 18K",
-    nps: 71,
-    contact: "Maria Popa",
-    contactEmail: "maria@ouaisud.ro",
-  },
-];
+function signalsFromFactor(row: ChurnFactorRow): string[] {
+  const n = row.activeSignalCount ?? 0;
+  const parts: string[] = [];
+  if (n > 0) parts.push(`${n} semnale churn active`);
+  const fb = row.factorBreakdown;
+  if (fb && typeof fb === "object" && !Array.isArray(fb)) {
+    parts.push(...Object.keys(fb as Record<string, unknown>).slice(0, 6));
+  }
+  return parts.length > 0 ? parts : ["Fără chei în factorBreakdown"];
+}
 
 const borderMap = { high: "border-er", medium: "border-wa", low: "border-ok" };
 const riskColors = { high: "var(--color-er)", medium: "var(--color-wa)", low: "var(--color-ok)" };
@@ -72,19 +43,22 @@ function ChurnDetailDrawer({
   profile,
   onClose,
 }: {
-  readonly profile: ChurnProfile;
+  readonly profile: ChurnFactorRow;
   readonly onClose: () => void;
 }) {
-  function handleWinBack() {
-    toast.success(`Campanie win-back creată pentru ${profile.company}. Worker F32 declanșat.`);
-    onClose();
-  }
-  function handleCall() {
-    toast.info(`Apel programat cu ${profile.contact} (${profile.company}).`);
-  }
-  function handleEmail() {
-    toast.info(`E-mail win-back trimis la ${profile.contactEmail}.`);
-  }
+  const severity = riskToSeverity(profile.riskLevel);
+  const qc = useQueryClient();
+  const mut = useMutation({
+    mutationFn: () => postChurnEvaluate(profile.leadId, { force: false }),
+    onSuccess: (res) => {
+      toast.success(`Job churn în coadă: ${res.data.jobId}`);
+      qc.invalidateQueries({ queryKey: ["e5", "churn"] }).catch(() => undefined);
+      onClose();
+    },
+    onError: (e: unknown) => {
+      toast.error(messageFromUnknown(e));
+    },
+  });
 
   return (
     <div
@@ -112,13 +86,14 @@ function ChurnDetailDrawer({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-t1)" }}>
-              {profile.company}
+              {profile.companyName?.trim() || "—"}
             </div>
             <div style={{ fontSize: 11, color: "var(--color-t3)", fontFamily: "var(--font-mono)" }}>
-              CUI: {profile.cui}
+              CUI: {profile.cui ?? "—"} · lead {profile.leadId}
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "none",
@@ -133,7 +108,7 @@ function ChurnDetailDrawer({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <TrendingDown size={16} color={riskColors[profile.severity]} />
+          <TrendingDown size={16} color={riskColors[severity]} />
           <div style={{ flex: 1 }}>
             <div
               style={{
@@ -143,51 +118,39 @@ function ChurnDetailDrawer({
                 marginBottom: 4,
               }}
             >
-              <span style={{ color: "var(--color-t3)" }}>Risc Churn</span>
-              <span style={{ color: riskColors[profile.severity], fontWeight: 700 }}>
-                {profile.risk}%
+              <span style={{ color: "var(--color-t3)" }}>Scor churn</span>
+              <span style={{ color: riskColors[severity], fontWeight: 700 }}>
+                {profile.overallChurnScore}%
               </span>
             </div>
-            <ProgressBar value={profile.risk} />
+            <ProgressBar value={profile.overallChurnScore} />
           </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 11 }}>
           <div>
-            <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>
-              ULTIMA COMANDĂ
-            </div>
-            <div style={{ color: "var(--color-t2)" }}>{profile.lastOrder}</div>
+            <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>NIVEL RISC</div>
+            <div style={{ color: "var(--color-t2)" }}>{profile.riskLevel}</div>
           </div>
           <div>
             <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>
-              VENIT TOTAL
+              ULTIMA CALCULARE
             </div>
-            <div style={{ color: "var(--color-b5)", fontWeight: 600 }}>{profile.totalRevenue}</div>
+            <div style={{ color: "var(--color-t2)" }}>
+              {profile.lastCalculatedAt?.slice(0, 10) ?? "—"}
+            </div>
           </div>
           <div>
-            <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>NPS</div>
-            {(() => {
-              let npsColor = "var(--color-er)";
-              if (profile.nps > 60) {
-                npsColor = "var(--color-ok)";
-              } else if (profile.nps > 40) {
-                npsColor = "var(--color-wa)";
-              }
-              return <div style={{ color: npsColor, fontWeight: 700 }}>{profile.nps}</div>;
-            })()}
-          </div>
-          <div>
-            <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>CONTACT</div>
-            <div style={{ color: "var(--color-t2)" }}>{profile.contact}</div>
+            <div style={{ color: "var(--color-t4)", fontSize: 9, marginBottom: 2 }}>JUDEȚ</div>
+            <div style={{ color: "var(--color-t2)" }}>{profile.judet ?? "—"}</div>
           </div>
         </div>
 
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-t3)", marginBottom: 8 }}>
-            SEMNALE RISC
+            SEMNALE / FACTORI (agregat)
           </div>
-          {profile.signals.map((s) => (
+          {signalsFromFactor(profile).map((s) => (
             <div
               key={s}
               style={{
@@ -215,22 +178,19 @@ function ChurnDetailDrawer({
             color: "var(--color-t2)",
           }}
         >
-          <strong style={{ color: "var(--color-wa)" }}>Acțiune recomandată:</strong>{" "}
-          {profile.action}
+          <strong style={{ color: "var(--color-wa)" }}>Acțiune:</strong> POST{" "}
+          <code>/api/v1/churn/:leadId/evaluate</code> — reprocesare semnale (coadă worker).
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Button size="sm" onClick={handleWinBack} style={{ gap: 6 }}>
-            <TrendingDown size={13} /> Lansează Win-Back (F32)
+          <Button
+            size="sm"
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending}
+            style={{ gap: 6 }}
+          >
+            <TrendingDown size={13} /> Evaluează churn (worker)
           </Button>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button size="sm" variant="outline" style={{ flex: 1, gap: 6 }} onClick={handleCall}>
-              <Phone size={13} /> Sună
-            </Button>
-            <Button size="sm" variant="outline" style={{ flex: 1, gap: 6 }} onClick={handleEmail}>
-              <Mail size={13} /> E-mail
-            </Button>
-          </div>
         </div>
       </div>
     </div>
@@ -238,83 +198,123 @@ function ChurnDetailDrawer({
 }
 
 export function Churn() {
-  const [selectedProfile, setSelectedProfile] = useState<ChurnProfile | null>(null);
-  const highCount = profiles.filter((p) => p.severity === "high").length;
+  const [selected, setSelected] = useState<ChurnFactorRow | null>(null);
+  const factorsQuery = useQuery({
+    queryKey: ["e5", "churn", "factors", "page1"],
+    queryFn: () => fetchChurnFactors({ page: 1, limit: 100 }),
+  });
+  const statsQuery = useQuery({
+    queryKey: ["e5", "churn", "stats"],
+    queryFn: fetchChurnStats,
+  });
+
+  const rows = factorsQuery.data?.data ?? [];
+  const totalFactors = factorsQuery.data?.meta?.total ?? 0;
+  const criticalCount =
+    statsQuery.data?.data.byRisk.find((b) => b.riskLevel === "CRITICAL")?.count ?? 0;
+
+  const highSeverityOnPage = rows.filter((r) => riskToSeverity(r.riskLevel) === "high").length;
 
   return (
     <PageWrapper title="Churn Risk" actions={<EtapaBadge label="Etapa 5" />}>
       <div className="grid grid-cols-3 gap-4 mb-6 max-[700px]:grid-cols-1">
         <KpiCard
-          label="La Risc"
-          value={String(profiles.length)}
+          label="Profiluri churn (DB)"
+          value={factorsQuery.isLoading ? "…" : String(totalFactors)}
           icon="AlertTriangle"
           color="var(--color-er)"
         />
         <KpiCard
-          label="Risc Critic"
-          value={String(highCount)}
+          label="Risc CRITICAL (stats)"
+          value={statsQuery.isLoading ? "…" : String(criticalCount)}
           icon="TrendingDown"
           color="var(--color-er)"
         />
-        <KpiCard label="Win-Back Succes" value="23%" icon="TrendingUp" color="var(--color-ok)" />
+        <KpiCard
+          label="În pagina curentă (risc ridicat)"
+          value={factorsQuery.isLoading ? "…" : String(highSeverityOnPage)}
+          icon="TrendingUp"
+          color="var(--color-wa)"
+        />
       </div>
+
+      {factorsQuery.error ? (
+        <div className="mb-4 text-sm text-er" role="alert">
+          {factorsQuery.error instanceof Error
+            ? factorsQuery.error.message
+            : String(factorsQuery.error)}
+        </div>
+      ) : null}
+
+      {rows.length === 0 && !factorsQuery.isLoading ? (
+        <div className="text-sm text-t3 mb-4">
+          Nu există rânduri în `gold_churn_factors` pentru acest tenant.
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {profiles.map((p) => (
-          <Card key={p.company} className={cn("border-l-4", borderMap[p.severity])}>
-            <CardBody className="space-y-3">
-              <div className="font-semibold text-t1">{p.company}</div>
-              <div
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
-              >
-                <ProgressBar value={p.risk} />
-                <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: riskColors[p.severity],
-                  }}
+        {rows.map((p) => {
+          const sev = riskToSeverity(p.riskLevel);
+          return (
+            <Card key={p.id} className={cn("border-l-4", borderMap[sev])}>
+              <CardBody className="space-y-3">
+                <div className="font-semibold text-t1">{p.companyName?.trim() || "—"}</div>
+                <div
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                 >
-                  {p.risk}%
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {p.signals.map((s) => (
-                  <Badge key={s} variant="error" className="text-[0.65rem]">
-                    {s}
-                  </Badge>
-                ))}
-              </div>
-              <p className="text-xs text-t3">{p.action}</p>
-              <div className="flex gap-2 pt-1">
-                <Button
-                  size="sm"
-                  variant="brand"
-                  className="flex-1"
-                  onClick={() => {
-                    toast.success(`Campanie win-back pentru ${p.company}. Worker F32 declanșat.`);
-                  }}
-                >
-                  Win-Back
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setSelectedProfile(p)}
-                >
-                  Profil
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
+                  <ProgressBar value={p.overallChurnScore} />
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: riskColors[sev],
+                    }}
+                  >
+                    {p.overallChurnScore}%
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {signalsFromFactor(p)
+                    .slice(0, 4)
+                    .map((s) => (
+                      <Badge key={s} variant="error" className="text-[0.65rem]">
+                        {s}
+                      </Badge>
+                    ))}
+                </div>
+                <p className="text-xs text-t3">
+                  {p.riskLevel} · actualizat {p.lastCalculatedAt?.slice(0, 10) ?? "—"}
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="brand"
+                    className="flex-1"
+                    onClick={() => {
+                      toast.info(
+                        "Folosiți «Evaluează churn» din profil pentru a trimite jobul în coadă.",
+                      );
+                    }}
+                  >
+                    Win-Back
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setSelected(p)}
+                  >
+                    Profil
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          );
+        })}
       </div>
 
-      {selectedProfile && (
-        <ChurnDetailDrawer profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
-      )}
+      {selected ? <ChurnDetailDrawer profile={selected} onClose={() => setSelected(null)} /> : null}
     </PageWrapper>
   );
 }

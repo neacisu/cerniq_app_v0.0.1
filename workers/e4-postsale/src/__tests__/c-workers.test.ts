@@ -161,6 +161,7 @@ vi.mock("../e4-metrics.js", () => ({
   e4CreditScoreCalculatedTotal: { inc: e4CreditScoreCalculatedTotalIncMock },
   e4CreditLimitChecksTotal: { inc: e4CreditLimitChecksTotalIncMock },
   e4CreditReservationsTotal: { inc: e4CreditReservationsTotalIncMock },
+  e4CreditScoreDistribution: { inc: vi.fn() },
 }));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

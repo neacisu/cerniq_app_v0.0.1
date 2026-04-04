@@ -57,6 +57,12 @@ vi.mock("@/lib/etapa1-api.js", () => ({
   ),
 }));
 
+import {
+  fetchDashboardActivity,
+  fetchDashboardDailyStats,
+  fetchDashboardStats,
+  fetchImports,
+} from "@/lib/etapa1-api.js";
 import { DashboardE1 } from "@/pages/etapa1/dashboard-e1.js";
 
 describe("DashboardE1 (pagină dedicată Etapa 1)", () => {
@@ -85,5 +91,10 @@ describe("DashboardE1 (pagină dedicată Etapa 1)", () => {
     expect(screen.queryByRole("heading", { name: /Etapa 2 — outreach/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Etapa 5/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Loturi import \(total\)/i).closest(".kc")).toHaveTextContent("7");
+
+    expect(fetchDashboardStats).toHaveBeenCalled();
+    expect(fetchDashboardActivity).toHaveBeenCalledWith(20);
+    expect(fetchDashboardDailyStats).toHaveBeenCalledWith({ days: 30 });
+    expect(fetchImports).toHaveBeenCalledWith({ limit: 1, offset: 0 });
   });
 });

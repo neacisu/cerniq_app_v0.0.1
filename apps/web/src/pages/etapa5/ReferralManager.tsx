@@ -90,7 +90,9 @@ function consentStatusFromReferralRow(r: ReferralListRow): ConsentStatus {
 function referralWorkflowFromRow(r: ReferralListRow): ReferralStatus {
   if (r.status === "PENDING_CONSENT") return r.consentGiven ? "CONSENTED" : "CONSENT_PENDING";
   if (r.status === "ACTIVE") return "OUTREACH";
-  if (r.status === "CONVERTED") return "CONVERTED";
+  if (r.status === "CONVERTED") {
+    return r.rewardIssuedAt ? "REWARDED" : "CONVERTED";
+  }
   if (r.status === "EXPIRED") return "CANCELLED";
   if (r.status === "DECLINED") return "REJECTED";
   return "DETECTED";

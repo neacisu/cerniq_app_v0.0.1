@@ -73,6 +73,7 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
     vi.doMock("@cerniq/worker-shared", () => ({
       validateJobData: vi.fn(),
       goldCompaniesTotal: { set: vi.fn(), inc: vi.fn() },
+      recordDataMutation: vi.fn(async () => undefined),
       withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     }));
 
@@ -242,6 +243,7 @@ describe("S3.PR8 integration - HITL decision flow", () => {
       validateJobData: vi.fn(),
       hitlTasksResolvedTotal: { inc: vi.fn() },
       hitlResolutionTimeSeconds: { observe: vi.fn() },
+      recordDataMutation: vi.fn(async () => undefined),
       createQueue: vi.fn(() => ({
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
