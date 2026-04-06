@@ -230,6 +230,20 @@ scrape_configs:
         target_label: instance
         replacement: ollama-embeddings
 
+  # ── E3 AI Sales Worker — FAZA 12 / Plan §XII (metrici cerniq_ai_*, cerniq_negotiation_*, …)
+  # Scrape: workers/e3-ai-sales createHealthServer — PORT implicit 3002 (vezi main.ts)
+  # Nume serviciu țintă Docker: cerniq-worker-e3-ai-sales (aliniat E4/E5)
+  - job_name: cerniq-worker-e3-ai-sales
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cerniq-worker-e3-ai-sales:3002
+        labels:
+          project: cerniq
+          etapa: E3
+          service: worker-e3-ai-sales
+
   # ── E4 Post-Sale Workers — FAZA 8i (Plan §IX L2137) ─────────────────────────
   # Scrape target: worker-e4-postsale:3000/metrics (via createHealthServer, PORT=3000)
   # Service name matches Docker Compose service: cerniq-worker-e4-postsale

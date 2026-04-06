@@ -211,7 +211,8 @@ services:
       - "64000:64000"
     environment:
       NODE_ENV: development
-      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:64010"
+      # DNS în Compose = numele serviciului (cerniq-api), nu container_name (cerniq-dev-api).
+      VITE_API_PROXY_TARGET: "http://cerniq-api:64010"
     networks:
       - cerniq_public
       - cerniq_backend
@@ -236,7 +237,7 @@ services:
       - "64012:64012"
     environment:
       NODE_ENV: development
-      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:64010"
+      VITE_API_PROXY_TARGET: "http://cerniq-api:64010"
     networks:
       - cerniq_public
       - cerniq_backend

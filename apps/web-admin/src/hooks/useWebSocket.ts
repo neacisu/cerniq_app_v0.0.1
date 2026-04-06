@@ -3,6 +3,10 @@ import { fetchLiveMetrics } from "../api.js";
 
 export type WebSocketState = "connecting" | "connected" | "disconnected";
 
+/**
+ * Date live din același agregat ca `GET /api/admin/live` (proxy → Monitoring API).
+ * În browser nu există WebSocket direct la :64080; polling-ul păstrează paritatea cu payload-ul WS intern `/ws/live`.
+ */
 export function useWebSocket<T = unknown>(onMessage?: (data: T) => void) {
   const [state, setState] = useState<WebSocketState>("disconnected");
   const [lastMessage, setLastMessage] = useState<T | null>(null);

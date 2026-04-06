@@ -1,4 +1,5 @@
 import {
+  fetchAdminLogs,
   fetchLiveMetrics,
   getStoredAdminToken,
   getStoredAdminUser,
@@ -96,6 +97,27 @@ describe("web-admin api", () => {
     const headers = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1]
       .headers as Headers;
     expect(headers.get("Authorization")).toBe("Bearer persisted-admin-token");
+  });
+
+  it("fetchAdminLogs folosește proxy-ul autentificat /api/admin/logs", async () => {
+    localStorage.setItem("cerniq_admin_token", "persisted-admin-token");
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: [{ timestamp: "t", level: "info", message: "x" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    ) as typeof fetch;
+
+    const res = await fetchAdminLogs(100);
+    expect(res.success).toBe(true);
+    expect(res.data?.length).toBe(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/admin\/logs\?limit=100$/),
+      expect.objectContaining({ credentials: "include" }),
+    );
   });
 
   it("clears local auth on logout", async () => {

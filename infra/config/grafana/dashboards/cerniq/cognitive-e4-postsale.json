@@ -1,4 +1,13 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
   "annotations": { "list": [] },
   "description": "CerniqAPP E4 Post-Sale — Payments, Credit, Logistics, Contracts, HITL, External APIs (Plan §IX FAZA 8i)",
   "editable": true,

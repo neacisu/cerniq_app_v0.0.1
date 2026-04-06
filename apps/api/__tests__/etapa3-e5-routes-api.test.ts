@@ -695,6 +695,16 @@ describe("E5 — Nurturing Routes /api/v1/nurturing", () => {
     assertSuccessList(JSON.parse(res.body));
   });
 
+  it("POST /nps/:leadId/send → 404 lead Gold inexistent", async () => {
+    const res = await app.inject(
+      authed(`/api/v1/nurturing/nps/${NONEXISTENT_ENTITY_UUID}/send`, "POST", {
+        channel: "EMAIL",
+        force: false,
+      }),
+    );
+    expect(res.statusCode).toBe(404);
+  });
+
   it("GET /stats → 200 cu JWT", async () => {
     const res = await app.inject(authed("/api/v1/nurturing/stats"));
     expect(res.statusCode).toBe(200);
@@ -955,6 +965,27 @@ describe("E5 — Alert Routes /api/v1/e5/alerts", () => {
   it("POST /compliance/check → 401 pentru viewer (RBAC admin)", async () => {
     const res = await app.inject(viewerAuthed("/api/v1/e5/alerts/compliance/check", "POST"));
     expect(res.statusCode).toBe(403);
+  });
+
+  it("POST /compliance/check → 200 admin cu checkType GDPR_CONSENT (enqueue)", async () => {
+    const res = await app.inject(
+      authed("/api/v1/e5/alerts/compliance/check", "POST", {
+        checkType: "GDPR_CONSENT",
+      }),
+    );
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as { success: boolean; data: { jobId: unknown } };
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveProperty("jobId");
+  });
+
+  it("POST /compliance/check → 422 checkType invalid", async () => {
+    const res = await app.inject(
+      authed("/api/v1/e5/alerts/compliance/check", "POST", {
+        checkType: "NOT_A_REAL_CHECK",
+      } as { checkType: string }),
+    );
+    expect([400, 422]).toContain(res.statusCode);
   });
 
   it("GET /compliance/stats → 200 cu JWT", async () => {

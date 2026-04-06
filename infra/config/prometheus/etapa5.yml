@@ -1,5 +1,6 @@
 # Alert rules Prometheus — Etapa 5 Nurturing (FAZA 9j)
 # Plan §X L2377-2387
+# Canonic: același conținut ca fostul infra/config/alerts/etapa5.yml — încărcat de prometheus.yml → /etc/prometheus/rules/etapa5.yml
 #
 # ANTI-HALUCINARE:
 # (B) GDPRConsentViolation și CompetitionLawViolation sunt CRITICAL — NU WARNING

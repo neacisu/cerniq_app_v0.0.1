@@ -73,6 +73,13 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
     return proxyRequest(request, reply, "/api/system/metrics");
   });
 
+  app.get<{ Querystring: { limit?: string } }>("/logs", authOpts, async (request, reply) => {
+    const raw = request.query?.limit;
+    const parsed = raw !== undefined && raw !== "" ? Number(raw) : Number.NaN;
+    const limit = Number.isFinite(parsed) ? Math.min(500, Math.max(1, Math.trunc(parsed))) : 100;
+    return proxyRequest(request, reply, `/api/logs?limit=${limit}`);
+  });
+
   /**
    * Catalog read-only al metricilor Prometheus înregistrate în plugin-ul API (`metrics.ts`).
    * Nu expune `/metrics` text în browser; valorile seriilor se observă prin Prometheus/Grafana.

@@ -2,6 +2,7 @@ import { Bell, Settings, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOutreachNotifications, useMarkNotificationRead } from "@/hooks/use-etapa2.js";
 import { useAuth } from "@/providers/auth-provider.js";
+import { userAvatarInitials } from "@/lib/user-display.js";
 import type { OutreachNotificationRow } from "@/lib/etapa2-api.js";
 
 // ─── NotificationItem ─────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ export function Header() {
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const currentPage = pathSegments[pathSegments.length - 1] ?? "dashboard";
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { data: notifResp } = useOutreachNotifications(true, { enabled: !!token });
   const unread = notifResp?.data?.unreadCount ?? 0;
   const items = notifResp?.data?.items ?? [];
@@ -110,8 +111,13 @@ export function Header() {
           <Settings size={18} />
         </button>
 
-        <div className="av" style={{ width: 32, height: 32, fontSize: 10 }}>
-          <User size={16} />
+        <div
+          className="av"
+          style={{ width: 32, height: 32, fontSize: 10 }}
+          title={user?.name ?? user?.email ?? undefined}
+          aria-label={user?.name ?? user?.email ?? "Profil utilizator"}
+        >
+          {user ? userAvatarInitials(user) : <User size={16} />}
         </div>
       </div>
     </header>

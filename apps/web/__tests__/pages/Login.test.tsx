@@ -58,6 +58,36 @@ describe("Login", () => {
     });
   });
 
+  it("în timpul cererii dezactivează submit și afișează spinner (fără succes înainte de răspuns)", async () => {
+    const user = userEvent.setup();
+    let resolveLogin!: (v: { success: boolean }) => void;
+    const loginPromise = new Promise<{ success: boolean }>((r) => {
+      resolveLogin = r;
+    });
+    mockLogin.mockReturnValue(loginPromise);
+
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <LoginWithRoutes />
+      </MemoryRouter>,
+    );
+
+    await user.clear(screen.getByLabelText("Email"));
+    await user.type(screen.getByLabelText("Email"), "user@tenant.com");
+    await user.clear(screen.getByLabelText("Parolă"));
+    await user.type(screen.getByLabelText("Parolă"), "Secret123!");
+    await user.click(screen.getByRole("button", { name: /Autentificare/i }));
+
+    const loginFormEl = screen.getByLabelText("Email").closest("form");
+    const submit = loginFormEl?.querySelector('button[type="submit"]');
+    expect(submit).toBeTruthy();
+    expect(submit).toBeDisabled();
+    resolveLogin({ success: true });
+    await waitFor(() => {
+      expect(screen.getByTestId("post-login-dashboard")).toBeInTheDocument();
+    });
+  });
+
   it("la login eșuat afișează mesajul din răspuns și nu navighează", async () => {
     const user = userEvent.setup();
     mockLogin.mockResolvedValue({ success: false, error: "Credențiale invalide" });

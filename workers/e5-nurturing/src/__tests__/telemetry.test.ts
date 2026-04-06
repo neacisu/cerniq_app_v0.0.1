@@ -479,7 +479,7 @@ describe("CognitiveCatalog — E5 completitudine (FAZA 9i prerequisit pentru 9j)
 describe("Grafana Dashboard — cognitive-e5-nurturing.json", () => {
   const dashboardPath = path.resolve(
     process.cwd(),
-    "../../infra/config/grafana/dashboards/cognitive-e5-nurturing.json",
+    "../../infra/config/grafana/dashboards/cerniq/cognitive-e5-nurturing.json",
   );
 
   let dashboard: Record<string, unknown>;
@@ -496,8 +496,8 @@ describe("Grafana Dashboard — cognitive-e5-nurturing.json", () => {
     expect(panels).toHaveLength(8);
   });
 
-  it("dashboard are refresh = '60s'", () => {
-    expect(dashboard["refresh"]).toBe("60s");
+  it("dashboard are refresh = '30s' (aliniat Plan §XII / 06-cognitive-brain)", () => {
+    expect(dashboard["refresh"]).toBe("30s");
   });
 
   it("dashboard are 3 variabile template: tenant_id, time_range, state", () => {
@@ -545,7 +545,7 @@ describe("Grafana Dashboard — cognitive-e5-nurturing.json", () => {
 // ---------------------------------------------------------------------------
 
 describe("Alert Rules — etapa5.yml structură și GDPR compliance", () => {
-  const alertsPath = path.resolve(process.cwd(), "../../infra/config/alerts/etapa5.yml");
+  const alertsPath = path.resolve(process.cwd(), "../../infra/config/prometheus/etapa5.yml");
 
   let alertsContent: string;
 
@@ -639,6 +639,14 @@ describe("Prometheus.yml — scrape target E5", () => {
     const startIdx = prometheusContent.indexOf("job_name: cerniq-worker-e5-nurturing");
     const e5Section = prometheusContent.substring(startIdx, startIdx + 600);
     expect(e5Section).toContain("etapa: E5");
+  });
+
+  it("are job_name cerniq-worker-e3-ai-sales pe :3002 (metrici E3)", () => {
+    expect(prometheusContent).toContain("job_name: cerniq-worker-e3-ai-sales");
+    expect(prometheusContent).toContain("cerniq-worker-e3-ai-sales:3002");
+    const startIdx = prometheusContent.indexOf("job_name: cerniq-worker-e3-ai-sales");
+    const e3Section = prometheusContent.substring(startIdx, startIdx + 500);
+    expect(e3Section).toContain("etapa: E3");
   });
 });
 

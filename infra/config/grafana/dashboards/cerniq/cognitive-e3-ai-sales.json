@@ -1,4 +1,13 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
   "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
@@ -13,7 +22,7 @@
       "description": "Total LLM input tokens consumed per minute (prompt length × request rate).",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": { "unit": "short", "custom": { "lineWidth": 2 } },
         "overrides": []
@@ -21,12 +30,12 @@
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
         {
-          "expr": "sum by (model) (rate(cerniq_ai_tokens_input_total[$__rate_interval]) * 60)",
+          "expr": "sum by (model) (rate(cerniq_ai_tokens_input{tenant_id=~\"$tenant_id\"}[$__rate_interval]) * 60)",
           "legendFormat": "input/min — {{model}}",
           "refId": "A"
         },
         {
-          "expr": "sum by (model) (rate(cerniq_ai_tokens_output_total[$__rate_interval]) * 60)",
+          "expr": "sum by (model) (rate(cerniq_ai_tokens_output{tenant_id=~\"$tenant_id\"}[$__rate_interval]) * 60)",
           "legendFormat": "output/min — {{model}}",
           "refId": "B"
         }
@@ -39,7 +48,7 @@
       "description": "LLM response latency percentiles per model and operation.",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": { "unit": "s", "custom": { "lineWidth": 2 } },
         "overrides": []
@@ -70,7 +79,7 @@
       "description": "Rate of M71-M75 guardrail violations per minute, by type and severity.",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 7 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -95,7 +104,7 @@
       "description": "AI guardrail pass rate percentage (0-100). Below 90% = warning.",
       "type": "gauge",
       "gridPos": { "h": 7, "w": 6, "x": 12, "y": 7 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
@@ -116,7 +125,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true },
       "targets": [
         {
-          "expr": "avg by (tenant_id) (cerniq_ai_guardrail_pass_rate)",
+          "expr": "avg by (tenant_id) (cerniq_ai_guardrail_pass_rate{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "{{tenant_id}}",
           "refId": "A"
         }
@@ -129,7 +138,7 @@
       "description": "Distribution of regeneration attempts after guardrail failures (1=first retry, 3=max).",
       "type": "bargauge",
       "gridPos": { "h": 7, "w": 6, "x": 18, "y": 7 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "short" } },
       "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["sum"] } },
       "targets": [
@@ -147,12 +156,12 @@
       "description": "Active E3 negotiations per FSM state (D19-D26 pipeline).",
       "type": "barchart",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "short" } },
       "options": { "xField": "state", "tooltip": { "mode": "single" } },
       "targets": [
         {
-          "expr": "sum by (state) (cerniq_negotiation_active)",
+          "expr": "sum by (state) (cerniq_negotiation_active{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "{{state}}",
           "refId": "A"
         }
@@ -165,7 +174,7 @@
       "description": "Average discount % applied in negotiations. >30% triggers human escalation.",
       "type": "gauge",
       "gridPos": { "h": 7, "w": 6, "x": 12, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
@@ -183,7 +192,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum by (le, tenant_id) (rate(cerniq_negotiation_discount_avg_bucket[$__rate_interval])))",
+          "expr": "histogram_quantile(0.50, sum by (le, tenant_id) (rate(cerniq_negotiation_discount_avg_bucket{tenant_id=~\"$tenant_id\"}[$__rate_interval])))",
           "legendFormat": "median — {{tenant_id}}",
           "refId": "A"
         }
@@ -196,12 +205,12 @@
       "description": "Active stock reservations per tenant (F34 stock:reserve:create).",
       "type": "stat",
       "gridPos": { "h": 7, "w": 6, "x": 18, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" } } },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
         {
-          "expr": "sum by (tenant_id) (cerniq_stock_reservation_active)",
+          "expr": "sum by (tenant_id) (cerniq_stock_reservation_active{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "{{tenant_id}}",
           "refId": "A"
         }
@@ -214,11 +223,11 @@
       "description": "Fiscal documents emitted per minute (G39-G45 Oblio pipeline).",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 21 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "ops", "custom": { "lineWidth": 2 } } },
       "targets": [
         {
-          "expr": "sum by (doc_type) (rate(cerniq_fiscal_invoices_total[$__rate_interval]) * 60)",
+          "expr": "sum by (doc_type) (rate(cerniq_fiscal_invoices_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]) * 60)",
           "legendFormat": "{{doc_type}}/min",
           "refId": "A"
         }
@@ -231,7 +240,7 @@
       "description": "Rata de conversie negocieri în facturi emise. Target: >60%.",
       "type": "gauge",
       "gridPos": { "h": 7, "w": 6, "x": 12, "y": 21 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
@@ -249,7 +258,7 @@
       },
       "targets": [
         {
-          "expr": "avg by (tenant_id) (cerniq_fiscal_conversion_rate)",
+          "expr": "avg by (tenant_id) (cerniq_fiscal_conversion_rate{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "{{tenant_id}}",
           "refId": "A"
         }
@@ -262,7 +271,7 @@
       "description": "Number of eInvoices at risk of missing 5-day ANAF deadline (H48 monitor).",
       "type": "stat",
       "gridPos": { "h": 7, "w": 6, "x": 18, "y": 21 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -279,7 +288,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "targets": [
         {
-          "expr": "sum by (tenant_id) (cerniq_einvoice_deadline_risk_count)",
+          "expr": "sum by (tenant_id) (cerniq_einvoice_deadline_risk_count{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "{{tenant_id}}",
           "refId": "A"
         }
@@ -292,11 +301,11 @@
       "description": "eInvoice ANAF SPV errors per error type (H46-H50 pipeline).",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 28 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2 } } },
       "targets": [
         {
-          "expr": "sum by (error_type) (rate(cerniq_einvoice_errors_total[$__rate_interval]) * 60)",
+          "expr": "sum by (error_type) (rate(cerniq_einvoice_errors_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]) * 60)",
           "legendFormat": "error {{error_type}}/min",
           "refId": "A"
         }
@@ -309,7 +318,7 @@
       "description": "MCP tool call rate per tool name and status (L66-L70 MCP layer).",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 28 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "ops", "custom": { "lineWidth": 2 } } },
       "targets": [
         {
@@ -318,7 +327,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum by (tenant_id) (cerniq_mcp_session_active)",
+          "expr": "sum by (tenant_id) (cerniq_mcp_session_active{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "sessions active — {{tenant_id}}",
           "refId": "B"
         }
@@ -331,7 +340,7 @@
       "description": "LLM request rate per model, task type (reasoning/fast/embeddings), selfhosted vs frontier.",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 35 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "ops", "custom": { "lineWidth": 2 } } },
       "targets": [
         {
@@ -348,7 +357,7 @@
       "description": "LLM fallback rate to frontier models (Grok-4, GPT-4o) by reason.",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 35 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
@@ -372,11 +381,11 @@
       "description": "E3 HITL task resolution rate per approval_type and decision (N76-N78).",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 42 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "unit": "ops", "custom": { "lineWidth": 2 } } },
       "targets": [
         {
-          "expr": "sum by (approval_type, decision) (rate(cerniq_hitl_tasks_resolved_total[$__rate_interval]) * 60)",
+          "expr": "sum by (approval_type, decision) (rate(cerniq_hitl_tasks_resolved_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]) * 60)",
           "legendFormat": "{{approval_type}} — {{decision}}",
           "refId": "A"
         }
@@ -389,7 +398,7 @@
       "description": "Time from HITL task creation to human decision (SLA: 4h = 14400s).",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 42 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
@@ -405,12 +414,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum by (le, approval_type) (rate(cerniq_hitl_resolution_time_seconds_bucket[$__rate_interval])))",
+          "expr": "histogram_quantile(0.50, sum by (le, approval_type) (rate(cerniq_hitl_resolution_time_seconds_bucket{tenant_id=~\"$tenant_id\"}[$__rate_interval])))",
           "legendFormat": "P50 — {{approval_type}}",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum by (le, approval_type) (rate(cerniq_hitl_resolution_time_seconds_bucket[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, approval_type) (rate(cerniq_hitl_resolution_time_seconds_bucket{tenant_id=~\"$tenant_id\"}[$__rate_interval])))",
           "legendFormat": "P95 — {{approval_type}}",
           "refId": "B"
         }
@@ -421,7 +430,29 @@
   "refresh": "30s",
   "schemaVersion": 39,
   "tags": ["cerniq", "e3", "ai-sales", "cognitive", "guardrails", "fiscal", "hitl"],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(cerniq_ai_tokens_input, tenant_id)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Tenant",
+        "multi": true,
+        "name": "tenant_id",
+        "options": [],
+        "query": {
+          "query": "label_values(cerniq_ai_tokens_input, tenant_id)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
   "time": { "from": "now-6h", "to": "now" },
   "timezone": "utc",
   "title": "Cerniq E3 — Cognitive AI Sales",

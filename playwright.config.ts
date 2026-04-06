@@ -10,7 +10,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: [
-    ["html", { outputFolder: "test-results/playwright/html", open: "never" }],
+    ["html", { outputFolder: "playwright-report/html", open: "never" }],
     ["json", { outputFile: "test-results/playwright/results.json" }],
   ],
   metadata: {

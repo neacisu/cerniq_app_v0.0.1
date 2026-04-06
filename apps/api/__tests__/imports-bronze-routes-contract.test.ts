@@ -104,4 +104,40 @@ describe("Imports / bronze routes contract", () => {
     });
     expect(res.statusCode).toBe(403);
   });
+
+  it("GET /api/v1/imports/mapping-targets — 200, date pentru mapare coloane", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/imports/mapping-targets",
+      headers: { authorization: `Bearer ${viewerToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean; data: unknown };
+    expect(body.success).toBe(true);
+    expect(body.data).toBeDefined();
+  });
+
+  it("GET /api/v1/imports/template — 200, corp CSV (nu JSON)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/imports/template?format=csv",
+      headers: { authorization: `Bearer ${viewerToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(String(res.headers["content-type"])).toMatch(/csv/i);
+    expect(res.payload).toMatch(/denumire|cui|email/i);
+  });
+
+  it("GET /api/v1/imports/template/columns — 200, definiții coloane JSON", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/imports/template/columns",
+      headers: { authorization: `Bearer ${viewerToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean; data: { header: string }[] };
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+  });
 });

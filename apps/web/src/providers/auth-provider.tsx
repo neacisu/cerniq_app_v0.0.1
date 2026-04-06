@@ -69,6 +69,7 @@ function normalizeMeUser(raw: Record<string, unknown>, fallback: User | null): U
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [state, setState] = useState<AuthState>(loadPersistedAuth);
 
+  /** Sincronizare user/rol/tenant cu serverul după refresh (sursă de adevăr: `/me`, nu doar JSON local). */
   useEffect(() => {
     const token = state.token;
     if (!token) {

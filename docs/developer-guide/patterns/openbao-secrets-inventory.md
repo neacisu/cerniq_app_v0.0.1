@@ -58,6 +58,33 @@ Credentials for CI/CD and test environments.
 
 ---
 
+### `secret/cerniq/ci/sonar`
+
+SonarCloud (sau SonarQube) — token de analiză pentru CI. **Nu** este consumat de API/web la runtime; doar de job-ul GitHub Actions `sonarcloud` și, opțional, de `pnpm diagnostics:sonar:fetch` dacă exporți token în mediul local.
+
+| Key     | Description                                      |
+| ------- | ------------------------------------------------ |
+| `token` | Token de analiză (SonarCloud „Generate token”)   |
+
+**AppRole:** `cerniq-cicd` (policy `cicd-policy` — deja `read` pe `secret/cerniq/*`).
+
+**Scriere (operator, KV v1):**
+
+```bash
+# Recomandat: token doar pe stdin (fără istoric shell)
+export OPENBAO_ADDR=https://s3cr3ts.neanelu.ro
+export BAO_TOKEN=...   # după bao login
+printf '%s' 'TOKEN_DIN_SONARCLOUD' | ./infra/scripts/put-openbao-ci-sonar-token.sh
+```
+
+**Injectare fără `.env` în repo:**
+
+1. **OpenBao Agent** (profil Docker `ci-sonar`): randează `sonar.env` în `${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/ci/sonar.env` — vezi `infra/config/openbao/agent-ci-sonar.hcl` + `docker compose --profile ci-sonar up -d openbao-agent-ci-sonar` (necesită `secrets/cicd_role_id` și `secrets/cicd_secret_id` pe host, în afara git).
+2. **CI GitHub Actions:** citește mai întâi acel fișier (dacă există pe self-hosted runner), apoi API KV, apoi `secrets.SONAR_TOKEN`.
+3. **Local:** `pnpm diagnostics:sonar:fetch` — citește același path sau `CERNIQ_OPENBAO_SONAR_ENV_FILE`, apoi variabile de mediu clasice.
+
+---
+
 ### `cerniq-db/creds/api-dynamic`
 
 Dynamic database credentials (short-lived, auto-rotated by OpenBao).

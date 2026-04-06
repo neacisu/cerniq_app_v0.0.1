@@ -13,6 +13,7 @@ const files = [
   "workers/e3-ai-sales/src/e3-metrics.ts",
   "workers/e4-postsale/src/e4-metrics.ts",
   "workers/e5-nurturing/src/lib/e5-metrics.ts",
+  "workers/shared/src/metrics.ts",
 ];
 
 /** Doar declarații prom-client; exclude `fp(..., { name: "metrics" })` Fastify plugin. */
@@ -22,7 +23,7 @@ const out = {
   generatedAt: new Date().toISOString(),
   sourceFiles: files,
   note:
-    "e4-metrics.ts re-exportă metrici din workers/shared/src/metrics.ts — pentru inventar complet include acel fișier în revizuiri manuale.",
+    "workers/shared/src/metrics.ts este inclus în inventar; e4-metrics.ts re-exportă din shared fără re-declarare locală.",
   byFile: {},
   allNames: [],
 };

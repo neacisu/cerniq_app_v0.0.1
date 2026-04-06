@@ -1,9 +1,7 @@
-import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
-import cors from "@fastify/cors";
-import websocket from "@fastify/websocket";
 import { loadSecretsFromFile, watchSecretsFile } from "@cerniq/worker-shared";
-import { queueMonitor, type QueueControlAction } from "./queue-monitor.js";
+import { queueMonitor } from "./queue-monitor.js";
 import { systemMetrics } from "./system-metrics.js";
+import { buildMonitoringApp } from "./create-monitoring-app.js";
 
 const MONITORING_SECRETS_PATH = process.env.SECRETS_PATH ?? "/secrets/api.env";
 
@@ -17,25 +15,17 @@ if (!REDIS_URL) {
   process.exit(1);
 }
 
-const app = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL ?? "info",
-    transport: process.env.NODE_ENV === "development" ? { target: "pino-pretty" } : undefined,
-  },
-});
+const monitorRef = { current: queueMonitor(REDIS_URL) };
+const metrics = systemMetrics();
 
 async function start() {
-  await app.register(cors, { origin: true });
-  await app.register(websocket);
-
-  let monitor = queueMonitor(REDIS_URL);
-  const metrics = systemMetrics();
+  const app = await buildMonitoringApp({ monitorRef, metrics });
 
   const reloadMonitorFromSecrets = () => {
     loadSecretsFromFile(true, MONITORING_SECRETS_PATH);
     const nextRedisUrl = process.env.REDIS_URL ?? "";
     if (!nextRedisUrl) return;
-    monitor = queueMonitor(nextRedisUrl);
+    monitorRef.current = queueMonitor(nextRedisUrl);
     app.log.info("Monitoring secrets reloaded and queue monitor refreshed.");
   };
 
@@ -49,83 +39,6 @@ async function start() {
       app.log.error({ err: error }, "Monitoring SIGHUP reload failed.");
     }
   });
-
-  app.get("/api/queues", async () => ({
-    success: true,
-    data: await monitor.getAllQueues(),
-  }));
-  app.get("/api/queues/:name", async (request) => {
-    const { name } = request.params as { name: string };
-    return { success: true, data: await monitor.getQueue(name) };
-  });
-  app.get("/api/system/metrics", async () => ({
-    success: true,
-    data: metrics.collect(),
-  }));
-  app.get("/health", async () => ({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  }));
-
-  async function handleControl(
-    request: FastifyRequest<{ Params: { name: string } }>,
-    reply: FastifyReply,
-    action: QueueControlAction,
-  ) {
-    const adminKey = request.headers["x-admin-key"];
-    if (adminKey !== process.env.ADMIN_KEY) {
-      return reply.status(403).send({ success: false, error: "Forbidden" });
-    }
-    try {
-      const snapshot = await monitor.controlQueue(request.params.name, action);
-      return { success: true, data: snapshot };
-    } catch (error) {
-      return reply.status(404).send({
-        success: false,
-        error: error instanceof Error ? error.message : "Queue control failed",
-      });
-    }
-  }
-
-  app.post("/api/queues/:name/pause", async (request, reply) =>
-    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "pause"),
-  );
-  app.post("/api/queues/:name/resume", async (request, reply) =>
-    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "resume"),
-  );
-  app.post("/api/queues/:name/retry-failed", async (request, reply) =>
-    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "retry-failed"),
-  );
-  app.post("/api/queues/:name/drain", async (request, reply) =>
-    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "drain"),
-  );
-
-  app.register(async function wsRoutes(fastify) {
-    fastify.get("/ws/live", { websocket: true }, (socket) => {
-      const interval = setInterval(async () => {
-        try {
-          const data = {
-            type: "METRIC_UPDATE",
-            payload: {
-              timestamp: Date.now(),
-              queues: await monitor.getAllQueues(),
-              system: metrics.collect(),
-            },
-          };
-          socket.send(JSON.stringify(data));
-        } catch {
-          /* client disconnected */
-        }
-      }, 2000);
-
-      socket.on("close", () => clearInterval(interval));
-    });
-  });
-
-  app.get("/health/live", async () => ({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  }));
 
   app.addHook("onClose", (_instance, done) => {
     unwatchSecrets();

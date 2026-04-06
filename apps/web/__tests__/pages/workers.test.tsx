@@ -129,6 +129,73 @@ describe("Workers page", () => {
     expect(vi.mocked(toast.success)).toHaveBeenCalled();
   });
 
+  it("în timpul încărcării live afișează mesajul GET /api/admin/live", async () => {
+    getMock.mockImplementation((path: string) => {
+      if (path === "/api/admin/live") return new Promise(() => undefined);
+      if (path === "/api/admin/prometheus/api-plugin-catalog")
+        return Promise.resolve(catalogPayload());
+      return Promise.reject(new Error("unexpected"));
+    });
+    wrap(<Workers />);
+    expect(
+      await screen.findByText(/Se încarcă datele din GET \/api\/admin\/live/i),
+    ).toBeInTheDocument();
+  });
+
+  it("live fără cozi afișează mesaj gol (nu rânduri inventate)", async () => {
+    getMock.mockImplementation((path: string) => {
+      if (path === "/api/admin/live") {
+        return Promise.resolve({
+          success: true,
+          data: { timestamp: 1, queues: [], system: null },
+        });
+      }
+      if (path === "/api/admin/prometheus/api-plugin-catalog")
+        return Promise.resolve(catalogPayload());
+      return Promise.reject(new Error("unexpected"));
+    });
+    wrap(<Workers />);
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Nicio coadă returnată\. Verificați Monitoring API/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("la eșec live afișează mesajul din ApiError", async () => {
+    const { ApiError } = await import("@/lib/api.js");
+    getMock.mockImplementation((path: string) => {
+      if (path === "/api/admin/live") {
+        return Promise.reject(new ApiError("live interzis", 403));
+      }
+      if (path === "/api/admin/prometheus/api-plugin-catalog")
+        return Promise.resolve(catalogPayload());
+      return Promise.reject(new Error("unexpected"));
+    });
+    wrap(<Workers />);
+    await waitFor(() => expect(screen.getByText(/live interzis/i)).toBeInTheDocument());
+  });
+
+  it("la eșec catalog Prometheus afișează alertă în secțiunea metricilor", async () => {
+    getMock.mockImplementation((path: string) => {
+      if (path === "/api/admin/live") return Promise.resolve(livePayload());
+      if (path === "/api/admin/prometheus/api-plugin-catalog") {
+        return Promise.reject(new Error("catalog down"));
+      }
+      if (path === `/api/admin/queues/${encodeURIComponent(QUEUE)}`) {
+        return Promise.resolve({
+          success: true,
+          data: { name: QUEUE, waiting: 1, throughput: 2, latency: 4 },
+        });
+      }
+      return Promise.reject(new Error(`unexpected GET ${path}`));
+    });
+    wrap(<Workers />);
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/Eroare la încărcarea catalogului/i),
+    );
+  });
+
   it("retry-failed dezactivat când failed=0", async () => {
     getMock.mockImplementation((path: string) => {
       if (path === "/api/admin/live") {

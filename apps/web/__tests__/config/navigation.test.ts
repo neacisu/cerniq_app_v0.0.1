@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { navigation } from "@/config/navigation";
 import { getNavigationForRole } from "@/config/navigation-helpers";
+import { mergeNavBadges } from "@/config/navigation-badge-merge";
 import { resolveEffectiveSessionId } from "@/components/etapa1/pipeline-session.js";
 
 describe("Navigation Config", () => {
@@ -45,6 +46,26 @@ describe("Navigation Config", () => {
   it("all items have unique paths", () => {
     const paths = navigation.flatMap((s) => s.items.map((i) => i.path));
     expect(new Set(paths).size).toBe(paths.length);
+  });
+});
+
+describe("mergeNavBadges", () => {
+  it("adaugă badge doar pentru path-uri cu count > 0", () => {
+    const base = getNavigationForRole("admin");
+    const merged = mergeNavBadges(base, {
+      "/approvals": { count: 3, type: "warning" },
+      "/outreach/review": { count: 0, type: "warning" },
+    });
+    const approvals = merged.flatMap((s) => s.items).find((i) => i.path === "/approvals");
+    const review = merged.flatMap((s) => s.items).find((i) => i.path === "/outreach/review");
+    expect(approvals?.badge).toEqual({ count: 3, type: "warning" });
+    expect(review?.badge).toBeUndefined();
+  });
+
+  it("nu introduce count fictiv: mapping lipsă → fără badge", () => {
+    const base = getNavigationForRole("admin");
+    const merged = mergeNavBadges(base, {});
+    expect(merged.flatMap((s) => s.items).every((i) => i.badge === undefined)).toBe(true);
   });
 });
 

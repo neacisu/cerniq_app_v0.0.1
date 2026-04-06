@@ -5,6 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { NEURON_COLORS } from "@/components/cognitive/neuron-tokens.js";
+import { COGNITIVE_NODE_CATALOG, getNodesByEtapa } from "@cerniq/shared";
 
 // ─── Mock @xyflow/react Handles ───────────────────────────────────────────────
 
@@ -110,6 +111,43 @@ describe("neuron-tokens NEURON_COLORS — fixed E3 mappings (were wrong)", () =>
     Object.entries(NEURON_COLORS).forEach(([type, color]) => {
       expect(color, `${type} should use CSS var()`).toMatch(/^var\(--color-/);
     });
+  });
+});
+
+/** Cele 18 tipuri vizuale dedicate E3/E4/E5 din `neurons/index.ts` (bara + Memory/Spatial). */
+const E345_VISUAL_NEURON_TYPES = [
+  "GuardrailNeuron",
+  "ToolNeuron",
+  "FiscalNeuron",
+  "SafetyNeuron",
+  "KnowledgeNeuron",
+  "ReconciliationNeuron",
+  "CreditNeuron",
+  "LogisticsNeuron",
+  "ContractNeuron",
+  "LifecycleNeuron",
+  "ChurnNeuron",
+  "SocialNeuron",
+  "GraphNeuron",
+  "EnvironmentNeuron",
+  "ComplianceNeuron",
+  "FeedbackNeuron",
+  "MemoryNeuron",
+  "SpatialNeuron",
+] as const;
+
+describe("COGNITIVE_NODE_CATALOG — acoperire E3/E4/E5 (static shared)", () => {
+  it("există cel puțin 18 intrări per etape 3–5 (neuroni de business)", () => {
+    const n = getNodesByEtapa(3).length + getNodesByEtapa(4).length + getNodesByEtapa(5).length;
+    expect(n).toBeGreaterThanOrEqual(18);
+    expect(COGNITIVE_NODE_CATALOG.length).toBeGreaterThan(n);
+  });
+
+  it("fiecare tip vizual E345 are intrare în NEURON_COLORS (tokeni UI)", () => {
+    expect(E345_VISUAL_NEURON_TYPES).toHaveLength(18);
+    for (const t of E345_VISUAL_NEURON_TYPES) {
+      expect(NEURON_COLORS[t], `culoare pentru ${t}`).toMatch(/^var\(--color-/);
+    }
   });
 });
 
@@ -357,7 +395,7 @@ describe("KnowledgeNeuronComponent", () => {
 // ─── neurons/index.ts barrel exports ─────────────────────────────────────────
 
 describe("neurons/index.ts barrel exports", () => {
-  it("exports all 16 neuron components", async () => {
+  it("exports all 18 neuron components (E3/E4/E5 + Memory/Spatial)", async () => {
     const barrel = await import("@/components/cognitive/neurons/index.js");
     const expectedExports = [
       "GuardrailNeuronComponent",
@@ -376,6 +414,8 @@ describe("neurons/index.ts barrel exports", () => {
       "EnvironmentNeuronComponent",
       "ComplianceNeuronComponent",
       "FeedbackNeuronComponent",
+      "SpatialNeuronComponent",
+      "MemoryNeuronComponent",
     ];
     expectedExports.forEach((name) => {
       expect(barrel[name as keyof typeof barrel], `${name} should be exported`).toBeDefined();

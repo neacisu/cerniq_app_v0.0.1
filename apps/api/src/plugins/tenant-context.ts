@@ -11,6 +11,7 @@ declare module "fastify" {
 const PUBLIC_PREFIXES = [
   "/health",
   "/docs",
+  "/documentation",
   "/metrics",
   "/api/v1/auth/login",
   "/api/v1/auth/register",

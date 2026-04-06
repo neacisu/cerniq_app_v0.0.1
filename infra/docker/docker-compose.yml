@@ -510,6 +510,50 @@ services:
       <<: *default-logging
 
   # ==========================================================================
+  # OpenBao Agent — Sonar token pentru CI / tooling (opțional, profil ci-sonar)
+  # ==========================================================================
+  # Randează SONAR_TOKEN în ${CERNIQ_RENDERED_SECRETS_DIR}/ci/sonar.env
+  # Necesită: secrets/cicd_role_id + secrets/cicd_secret_id (AppRole cerniq-cicd, în afara git).
+  # Self-hosted runner: poate monta același director ca în workflow (fără secret GitHub SONAR_TOKEN).
+  # ==========================================================================
+  openbao-agent-ci-sonar:
+    profiles:
+      - ci-sonar
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-openbao-agent-ci-sonar
+    restart: "no"
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    command: agent -config=/openbao/config/agent-ci-sonar.hcl
+    extra_hosts:
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
+    volumes:
+      - ../config/openbao/agent-ci-sonar.hcl:/openbao/config/agent-ci-sonar.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/ci:/secrets
+      - ../../secrets/cicd_role_id:/openbao/config/role_id:ro
+      - ../../secrets/cicd_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    healthcheck:
+      test: ["CMD", "test", "-f", "/secrets/sonar.env"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-ci-sonar"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
   # PgBouncer Exporter — Prometheus metrics for PgBouncer
   # ==========================================================================
   # Exports SHOW STATS/POOLS/DATABASES from PgBouncer admin console.

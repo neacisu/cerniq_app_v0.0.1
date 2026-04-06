@@ -1,4 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { getNavigationForRole } from "../apps/web/src/config/navigation-helpers.js";
+
+/** Caractere speciale regex — evită `\\$&` în replacement (Sonar S7780). */
+function escapeRegExpPath(path: string): string {
+  return path.replaceAll(/[.*+?^${}()|[\]\\]/g, (ch) => "\\" + ch);
+}
 
 test.describe("Navigation", () => {
   test.beforeEach(async ({ page }) => {
@@ -7,42 +13,20 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
   });
 
-  test("sidebar links navigate to expected routes", async ({ page }) => {
-    const links = [
-      { name: /dashboard/i, path: "/dashboard" },
-      { name: /import/i, path: "/import" },
-      { name: /bronze/i, path: "/bronze" },
-      { name: /silver/i, path: "/silver" },
-      { name: /gold/i, path: "/gold" },
-      { name: /aprobări|approvals/i, path: "/approvals" },
-      { name: /outreach/i, path: "/outreach" },
-      { name: /lead/i, path: "/leads" },
-      { name: /secvențe|sequences/i, path: "/sequences" },
-      { name: /șablon|template/i, path: "/templates" },
-      { name: /telefoane|phone/i, path: "/phones" },
-      { name: /review/i, path: "/review" },
-      { name: /ai dashboard/i, path: "/ai-dashboard" },
-      { name: /negocieri|negotiation/i, path: "/negotiations" },
-      { name: /oferte|offer/i, path: "/offers" },
-      { name: /factur/i, path: "/invoices" },
-      { name: /guardrail/i, path: "/guardrails" },
-      { name: /plăți|payment/i, path: "/payments" },
-      { name: /credit/i, path: "/credit" },
-      { name: /logistic/i, path: "/logistics" },
-      { name: /retur|return/i, path: "/returns" },
-      { name: /nurturing/i, path: "/nurturing" },
-      { name: /referral/i, path: "/referrals" },
-      { name: /churn/i, path: "/churn" },
-      { name: /hartă|map|geo/i, path: "/geo-map" },
-      { name: /worker/i, path: "/workers" },
-      { name: /setări|setting/i, path: "/settings" },
-    ];
-
-    for (const { name, path } of links.slice(0, 8)) {
-      const link = page.getByRole("link", { name });
-      if ((await link.count()) > 0) {
-        await link.click();
-        await expect(page).toHaveURL(new RegExp(path.replace("/", "\\/")));
+  /**
+   * Aliniat la `navigation.ts` + `getNavigationForRole` — evită regex-uri ambigue
+   * (ex. mai multe „Dashboard”) și rute învechite față de `App.tsx`.
+   */
+  test("sidebar: fiecare item admin din config ajunge la path-ul declarat", async ({ page }) => {
+    const nav = getNavigationForRole("admin");
+    for (const section of nav) {
+      for (const item of section.items) {
+        const link = page.getByRole("link", { name: item.label, exact: true });
+        await expect(link.first()).toBeVisible({ timeout: 12_000 });
+        await link.first().click();
+        const pathSuffix = String.raw`(\/|\?.*|$)`;
+        const pathRe = new RegExp(escapeRegExpPath(item.path) + pathSuffix);
+        await expect(page).toHaveURL(pathRe, { timeout: 20_000 });
       }
     }
   });

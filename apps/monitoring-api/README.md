@@ -37,17 +37,18 @@
 
 ### REST Endpoints
 
-| Method | Endpoint                   | Descriere                               |
-| :----- | :------------------------- | :-------------------------------------- |
-| `GET`  | `/health`                  | Health check                            |
-| `GET`  | `/health/live`             | Liveness                                |
-| `GET`  | `/api/queues`              | Toate queue-urile + counts              |
-| `GET`  | `/api/queues/:name`        | Detalii per queue                       |
-| `GET`  | `/api/system/metrics`      | CPU, RAM, load, uptime                  |
-| `POST` | `/api/queues/:name/pause`  | Pause queue (protected)                 |
-| `POST` | `/api/queues/:name/resume` | Resume queue (protected)                |
-| `POST` | `/api/queues/:name/drain`  | Drain queue (protected)                 |
-| `POST` | `/api/queues/:name/retry-failed` | Retry failed jobs (protected)     |
+| Method | Endpoint                         | Descriere                                                         |
+| :----- | :------------------------------- | :---------------------------------------------------------------- |
+| `GET`  | `/health`                        | Health check                                                      |
+| `GET`  | `/health/live`                   | Liveness                                                          |
+| `GET`  | `/api/queues`                    | Toate queue-urile + counts                                        |
+| `GET`  | `/api/queues/:name`              | Detalii per queue                                                 |
+| `GET`  | `/api/system/metrics`            | CPU, RAM, load, uptime                                            |
+| `GET`  | `/api/logs`                      | Stub administrativ (`data: []`) până la Loki; query `limit` 1–500 |
+| `POST` | `/api/queues/:name/pause`        | Pause queue (protected)                                           |
+| `POST` | `/api/queues/:name/resume`       | Resume queue (protected)                                          |
+| `POST` | `/api/queues/:name/drain`        | Drain queue (protected)                                           |
+| `POST` | `/api/queues/:name/retry-failed` | Retry failed jobs (protected)                                     |
 
 ### WebSocket (`/ws/live`)
 
@@ -75,6 +76,23 @@ Push updates interne cu payload JSON:
   }
 }
 ```
+
+---
+
+## 🔗 Mapare proxy Fastify (`apps/api`)
+
+Browserul și `apps/web-admin` nu apelează direct portul Monitoring API; **Fastify** (`apps/api/src/routes/admin-monitoring.ts`, prefix **`/api/admin`**) face relay cu JWT admin + opțional `x-admin-key` către `MONITORING_API_INTERNAL_URL`.
+
+| Monitoring API (intern)                                         | Proxy autentificat (`apps/api`)                                                                    |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET /api/queues`                                               | `GET /api/admin/queues`                                                                            |
+| `GET /api/queues/:name`                                         | `GET /api/admin/queues/:name`                                                                      |
+| `GET /api/system/metrics`                                       | `GET /api/admin/system/metrics`                                                                    |
+| `GET /api/logs?limit=`                                          | `GET /api/admin/logs?limit=`                                                                       |
+| `POST /api/queues/:name/pause` (și resume, retry-failed, drain) | `POST /api/admin/queues/:name/...`                                                                 |
+| —                                                               | `GET /api/admin/live` — agregat queues + system (fără echivalent 1:1)                              |
+| —                                                               | `GET /api/admin/prometheus/api-plugin-catalog` — catalog din plugin API (nu trece prin Monitoring) |
+| `GET /ws/live`                                                  | Nu este proxificat în Fastify; SPA folosește `GET /api/admin/live` (polling)                       |
 
 ---
 

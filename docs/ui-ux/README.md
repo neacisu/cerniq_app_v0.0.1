@@ -28,10 +28,10 @@ Documentația UI/UX pentru platforma Cerniq.app, aliniată cu Design System **Da
 
 ## Referințe
 
-| Document                                                                                                                                   | Descriere                                    |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Document | Descriere |
+| -------- | --------- |
 | [`docs/specifications/Etapa 0/etapa0-Ui_ux etapa0 plan complet.MD`](../specifications/Etapa%200/etapa0-Ui_ux%20etapa0%20plan%20complet.MD) | Specificație normativă completă (2698 linii) |
-| [`docs/specifications/Etapa 0/UI_UX_Example/`](../specifications/Etapa%200/UI_UX_Example/)                                                 | Exemplu vizual și mock-up                    |
+| [`docs/specifications/Etapa 0/UI_UX_Example/`](../specifications/Etapa%200/UI_UX_Example/) | Exemplu vizual și mock-up (**în afara** `apps/web` / prod până la promovare explicită — vezi [`CONTRIBUTING.md`](../../CONTRIBUTING.md)) |
 
 ---
 

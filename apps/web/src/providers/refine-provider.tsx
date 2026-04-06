@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { Refine } from "@refinedev/core";
+import { refineAuthenticatedFromAuth } from "@/lib/refine-auth.js";
 import { useAuth } from "./auth-provider.js";
 import { cerniqDataProvider } from "./data-provider.js";
 
 /**
- * Refine authProvider mirrors AuthProvider: no false "always authenticated" while token exists.
+ * Refine: `dataProvider` spre `/api/v1`; `authProvider` delegat la același `useAuth` ca restul SPA.
+ * Vezi `docs/developer-guide/refine-auth-data-provider.md`.
  */
 export function CerniqRefineProvider({ children }: Readonly<{ children: ReactNode }>) {
   const auth = useAuth();
@@ -19,7 +21,7 @@ export function CerniqRefineProvider({ children }: Readonly<{ children: ReactNod
           return { success: true, redirectTo: "/login" };
         },
         check: async () => ({
-          authenticated: Boolean(auth.user),
+          authenticated: refineAuthenticatedFromAuth(auth),
         }),
         getIdentity: async () =>
           auth.user

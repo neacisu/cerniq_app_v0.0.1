@@ -17,6 +17,8 @@ import {
   useNeuronControl,
   type NodeConfigInput,
 } from "@/hooks/use-cognitive-brain.js";
+import { useAuth } from "@/providers/auth-provider.js";
+import { isAdminLikeRole } from "@/lib/auth-roles.js";
 import { COGNITIVE_NODE_CATALOG } from "@cerniq/shared";
 import type { CognitiveNodeEntry, CognitiveEvent } from "@cerniq/shared";
 import { MetricsSparkline, type SparklinePoint } from "./MetricsSparkline.js";
@@ -97,6 +99,9 @@ export const NeuronInspectorPanel = memo(function NeuronInspectorPanel({
   batchId,
 }: NeuronInspectorPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>("traces");
+
+  const { user } = useAuth();
+  const canControlNeuron = isAdminLikeRole(user?.role);
 
   const catalogEntry = selectedNodeKey
     ? (COGNITIVE_NODE_CATALOG.find((e) => e.nodeKey === selectedNodeKey) ?? null)
@@ -206,7 +211,11 @@ export const NeuronInspectorPanel = memo(function NeuronInspectorPanel({
             )}
             {!isLoading && activeTab === "metrics" && <MetricsTab data={metricsData} />}
             {!isLoading && activeTab === "controls" && (
-              <ControlsTab nodeKey={selectedNodeKey} control={control} />
+              <ControlsTab
+                nodeKey={selectedNodeKey}
+                control={control}
+                canControl={canControlNeuron}
+              />
             )}
           </div>
         </>
@@ -402,9 +411,11 @@ function MetricsTab({ data }: MetricsTabProps) {
 interface ControlsTabProps {
   readonly nodeKey: string;
   readonly control: NeuronControl;
+  /** false pentru viewer/agent — API returnează 403 la pause/config fără rol admin. */
+  readonly canControl: boolean;
 }
 
-function ControlsTab({ nodeKey: _nodeKey, control }: ControlsTabProps) {
+function ControlsTab({ nodeKey: _nodeKey, control, canControl }: ControlsTabProps) {
   const [configValues, setConfigValues] = useState({
     concurrency: "",
     rateLimitMax: "",
@@ -420,6 +431,19 @@ function ControlsTab({ nodeKey: _nodeKey, control }: ControlsTabProps) {
     if (configValues.rateLimitDuration)
       config.rateLimitDuration = Number(configValues.rateLimitDuration);
     control.updateConfig(config);
+  }
+
+  if (!canControl) {
+    return (
+      <div
+        data-testid="neuron-controls-rbac-deny"
+        style={{ fontSize: 11, color: "var(--color-t3)", padding: "10px 4px", lineHeight: 1.45 }}
+      >
+        Controlul runtime (pauză, reluare, configurare) necesită rol admin, owner sau superadmin.
+        Fără acest rol, API-ul răspunde 403 — folosiți un cont cu drepturi de operator
+        infrastructură.
+      </div>
+    );
   }
 
   return (

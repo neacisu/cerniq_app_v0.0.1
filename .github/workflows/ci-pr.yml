@@ -82,7 +82,7 @@ jobs:
         run: pnpm verify:sonar-config
 
       - name: 🔧 Smoke test scripturi audit (Node)
-        run: node --test tests/infra/audit-metadata-scripts.test.mjs
+        run: node --test tests/infra/audit-metadata-scripts.test.mjs tests/infra/sonar-token-from-rendered-env.test.mjs
 
       - name: ❌ Cancel workflow on failure
         if: failure()
@@ -213,6 +213,9 @@ jobs:
 
       - name: 📂 Ensure workspace directories exist
         run: mkdir -p secrets test-results
+
+      - name: 📐 Verify Vitest coverage thresholds (API + web)
+        run: pnpm verify:coverage-policy
 
       - name: 🧪 Run Full Test Suite
         run: pnpm test:coverage
@@ -414,11 +417,12 @@ jobs:
           if [ -f "./infra/docker/docker-compose.yml" ]; then
             echo "✅ Validating docker-compose.yml..."
             STUB_DIR="$(pwd)/.ci-stub-secrets"
-            mkdir -p "${STUB_DIR}"/{api,workers,infra}
+            mkdir -p "${STUB_DIR}"/{api,workers,infra,ci}
             touch "${STUB_DIR}/api/api.env" \
                   "${STUB_DIR}/workers/workers.env" \
                   "${STUB_DIR}/infra/userlist.txt" \
-                  "${STUB_DIR}/infra/pgbouncer.ini"
+                  "${STUB_DIR}/infra/pgbouncer.ini" \
+                  "${STUB_DIR}/ci/sonar.env"
             CERNIQ_RENDERED_SECRETS_DIR="${STUB_DIR}" \
               docker compose -f ./infra/docker/docker-compose.yml config --quiet
             rm -rf "${STUB_DIR}"
@@ -629,7 +633,9 @@ jobs:
     needs: [test]
     # Notă: `env` nu e disponibil în `jobs.*.if` (evaluare înainte de contextul env al jobului).
     # Folosim `vars` — definește în repo: Settings → Actions → Variables → SONAR_SCAN = true
-    if: vars.SONAR_SCAN == 'true'
+    # `fromJSON(toJSON(vars))` — workaround language server (fără schimbare semantică la runtime);
+    # vezi github/vscode-github-actions#222 (avertisment „Context access might be invalid”).
+    if: ${{ fromJSON(toJSON(vars)).SONAR_SCAN == 'true' }}
     permissions:
       contents: read
       pull-requests: read
@@ -647,10 +653,65 @@ jobs:
           name: coverage-lcov
           path: .
 
+      - name: 🧰 Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: 🔐 Resolve SONAR_TOKEN (fișier agent OpenBao → API OpenBao → GitHub)
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+          GH_SONAR_FALLBACK: ${{ fromJSON(toJSON(secrets)).SONAR_TOKEN }}
+          CERNIQ_OPENBAO_SONAR_ENV_FILE: ${{ fromJSON(toJSON(vars)).CERNIQ_OPENBAO_SONAR_ENV_FILE }}
+        run: |
+          set -euo pipefail
+          FINAL=""
+          SONAR_FILE="${CERNIQ_OPENBAO_SONAR_ENV_FILE:-/opt/cerniq/runtime-secrets/ci/sonar.env}"
+          if [ -f "$SONAR_FILE" ] && [ -r "$SONAR_FILE" ]; then
+            set -a
+            # shellcheck disable=SC1090
+            . "$SONAR_FILE"
+            set +a
+            FINAL="${SONAR_TOKEN:-}"
+          fi
+          if [ -n "${OPENBAO_ADDR:-}" ] && [ -n "${OPENBAO_CICD_ROLE_ID:-}" ] && [ -n "${OPENBAO_CICD_SECRET_ID:-}" ]; then
+            if curl -sS --fail --retry 3 --retry-connrefused --retry-delay 2 --max-time 15 \
+              "${OPENBAO_ADDR}/v1/sys/health" >/dev/null 2>&1; then
+              BAO_CLIENT=$(curl -sS --fail --retry 3 --retry-connrefused --retry-delay 2 --max-time 15 \
+                -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+                -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+                | jq -r '.auth.client_token')
+              if [ -n "$BAO_CLIENT" ] && [ "$BAO_CLIENT" != "null" ]; then
+                RAW=$(curl -sS --fail --retry 3 --retry-connrefused --retry-delay 2 --max-time 15 \
+                  -H "X-Vault-Token: ${BAO_CLIENT}" \
+                  "${OPENBAO_ADDR}/v1/secret/cerniq/ci/sonar")
+                T=$(echo "$RAW" | jq -r '.data.token // empty')
+                if [ -n "$T" ] && [ "$T" != "null" ]; then
+                  if [ -z "$FINAL" ]; then
+                    FINAL="$T"
+                  fi
+                fi
+              fi
+            fi
+          fi
+          if [ -z "$FINAL" ]; then
+            FINAL="${GH_SONAR_FALLBACK:-}"
+          fi
+          if [ -z "$FINAL" ]; then
+            echo "SONAR_TOKEN lipsă: agent OpenBao → \`$SONAR_FILE\`, sau KV \`secret/cerniq/ci/sonar\` (cheie token), sau secret GitHub \`SONAR_TOKEN\`." >&2
+            exit 1
+          fi
+          echo "::add-mask::$FINAL"
+          echo "SONAR_TOKEN=$FINAL" >> "$GITHUB_ENV"
+
       - name: ☁️ SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v4.2.1
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
 
   # ===========================================================================
   # Final Status Check (for branch protection)

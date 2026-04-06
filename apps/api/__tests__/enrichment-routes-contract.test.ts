@@ -108,4 +108,14 @@ describe("Enrichment routes contract", () => {
     expect(Array.isArray(body.data)).toBe(true);
     expect(typeof body.meta?.total).toBe("number");
   });
+
+  it("GET /api/v1/silver/enrichment-log — 400 când limit > 200 (Zod)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/silver/enrichment-log?limit=250",
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { success: boolean }).success).toBe(false);
+  });
 });

@@ -79,7 +79,8 @@ const CognitiveBrainPage = lazy(async () => {
   return { default: m.CognitiveBrainPage };
 });
 
-function BrainBatchRedirect() {
+/** Exportat pentru teste de rutare (deep link `/brain/:batchId` → query `batch`). */
+export function BrainBatchRedirect() {
   const { batchId } = useParams<{ batchId: string }>();
   if (!batchId) return <Navigate to="/brain" replace />;
   return <Navigate to={`/brain?batch=${encodeURIComponent(batchId)}`} replace />;

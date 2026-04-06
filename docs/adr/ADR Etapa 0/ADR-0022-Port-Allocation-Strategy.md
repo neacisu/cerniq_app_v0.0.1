@@ -1,7 +1,7 @@
 # ADR-0022: Port Allocation Strategy
 
 **Status:** Accepted  
-**Data:** 2026-01-14 (Updated from 2026-01-15)  
+**Data:** 2026-01-14 (Updated: 2026-01-15; **tabel aplicație corectat 2026-04-05** — aliniat la `etapa0-port-matrix.md` și `infra/docker/docker-compose.yml`)  
 **Deciders:** Alex (1-Person-Team)
 
 ## Context
@@ -14,29 +14,33 @@ Cerniq.app folosește **range 64000-64099** pentru serviciile interne ale aplica
 
 ### Port Allocation
 
-| Port                            | Service                                         | Network                      |
-| ------------------------------- | ----------------------------------------------- | ---------------------------- |
-| **External (nginx)**            |                                                 |                              |
-| 22                              | SSH                                             | Host                         |
-| 80                              | Orchestrator Traefik HTTP → HTTPS redirect      | Host (orchestrator)          |
-| 443                             | Orchestrator Traefik HTTPS (TLS termination)    | Host (orchestrator)          |
-| **Application (64000-64019)**   |                                                 |                              |
-| 64000                           | Fastify API                                     | cerniq_backend               |
-| 64010                           | React Web                                       | cerniq_public                |
-| 64011                           | Vite HMR (dev only)                             | cerniq_public                |
-| **Database (64030-64049)**      |                                                 |                              |
-| 64033                           | PgBouncer                                       | cerniq_backend + cerniq_data |
-| 5432                            | PostgreSQL (CT107, nativ)                       | external                     |
-| 6379                            | Redis shared (orchestrator, via gateway hz.247) | external (internal)          |
-| **Observability (64070-64089)** |                                                 |                              |
-| 64070                           | OTel gRPC                                       | cerniq_backend               |
-| 64071                           | OTel HTTP                                       | cerniq_backend               |
-| 64094                           | cAdvisor                                        | cerniq_backend               |
+Range-ul **64000–64099** rămâne decizia; detaliul pe serviciu este sursa unică în [`etapa0-port-matrix.md`](../../specifications/Etapa%200/etapa0-port-matrix.md). Rezumat (trebuie să coincidă cu Vite `apps/web` / `apps/web-admin` și compose):
+
+| Port                          | Service                                                                          | Network                       |
+| ----------------------------- | -------------------------------------------------------------------------------- | ----------------------------- |
+| **External (orchestrator)**   |                                                                                  |                               |
+| 22                            | SSH                                                                              | Host                          |
+| 80                            | Orchestrator Traefik HTTP → HTTPS redirect                                       | Host (orchestrator)           |
+| 443                           | Orchestrator Traefik HTTPS (TLS termination)                                     | Host (orchestrator)           |
+| **Application (64000-64019)** |                                                                                  |                               |
+| 64000                         | Web (Vite dev / Nginx+React în imagine)                                          | cerniq_public                 |
+| 64010                         | API (Fastify)                                                                    | cerniq_public, cerniq_backend |
+| 64012                         | Web Admin                                                                        | cerniq_public                 |
+| 64011                         | *(rezervat / HMR viitor dacă e nevoie)*                                          | —                             |
+| **Database (64030-64049)**    |                                                                                  |                               |
+| 64033                         | PgBouncer                                                                        | cerniq_backend + cerniq_data  |
+| 5432                          | PostgreSQL (CT107, nativ)                                                        | external                      |
+| 6379                          | Redis shared (orchestrator, via gateway hz.247)                                  | external (internal)           |
+| **Sidecar / observabilitate** |                                                                                  |                               |
+| 64080                         | Monitoring API (Fastify)                                                         | cerniq_backend                |
+| 64094                         | cAdvisor                                                                         | cerniq_backend                |
+| 64095                         | PgBouncer exporter (host 64095 → 9127 în container)                              | cerniq_data                   |
+| **OTLP local 64070–64071**    | **Eliminat** — OTLP la orchestrator (`otel-cerniq.neanelu.ro`); vezi ADR-E0-0034 | —                             |
 
 ### Architecture
 
 ```text
-Internet → Traefik orchestrator (80/443) → LXC Cerniq (64000/64010/64012)
+Internet → Traefik orchestrator (80/443) → LXC Cerniq (:64000 web, :64010 API, :64012 admin)
 ```
 
 ## Consecințe

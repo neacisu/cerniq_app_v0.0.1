@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { extractSonarTokenFromRenderedEnvContent } from "./lib/sonar-token-from-rendered-env.mjs";
 
 const repoRoot = process.cwd();
 const DEFAULT_OUTPUT = "test-results/diagnostics/sonar-issues.json";
@@ -40,6 +41,34 @@ function parsePropertiesFile(filePath) {
   }
 
   return properties;
+}
+
+/**
+ * Încarcă SONAR_TOKEN din fișierul randat de OpenBao Agent (tmpfs / runtime-secrets).
+ * Nu suprascrie dacă SONAR_TOKEN e deja în mediu.
+ */
+function loadSonarTokenFromOpenBaoRenderedEnv() {
+  if (process.env.SONAR_TOKEN || process.env.SONARCLOUD_TOKEN || process.env.SONARQUBE_TOKEN) {
+    return;
+  }
+
+  const candidates = [
+    process.env.CERNIQ_OPENBAO_SONAR_ENV_FILE,
+    "/opt/cerniq/runtime-secrets/ci/sonar.env",
+    path.join(repoRoot, ".cerniq/runtime-secrets/ci/sonar.env"),
+  ].filter(Boolean);
+
+  for (const filePath of candidates) {
+    if (!existsSync(filePath)) {
+      continue;
+    }
+    const content = readFileSync(filePath, "utf-8");
+    const token = extractSonarTokenFromRenderedEnvContent(content);
+    if (token) {
+      process.env.SONAR_TOKEN = token;
+      return;
+    }
+  }
 }
 
 function loadConnectedModeConfig(filePath) {
@@ -258,6 +287,7 @@ function writeOutput(outputPath, payload) {
 }
 
 async function main() {
+  loadSonarTokenFromOpenBaoRenderedEnv();
   const options = parseArgs(process.argv.slice(2));
   const outputPath = path.isAbsolute(options.output)
     ? options.output

@@ -16,6 +16,11 @@ const packages = [
   "@cerniq/observability",
   "@cerniq/worker-enrichment",
   "@cerniq/worker-shared",
+  "@cerniq/worker-ai",
+  "@cerniq/worker-outreach",
+  "@cerniq/worker-e3-ai-sales",
+  "@cerniq/worker-e4-postsale",
+  "@cerniq/worker-e5-nurturing",
 ];
 
 mkdirSync(resultsDir, { recursive: true });

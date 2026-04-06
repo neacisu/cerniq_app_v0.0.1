@@ -10,7 +10,12 @@ import {
   outreachSequences,
   outreachTemplates,
   humanReviewQueue,
+  goldCompanies,
+  goldContacts,
+  silverCompanies,
   eq,
+  inArray,
+  sql,
   TEST_PASSWORD_HASH,
   insert_tenant,
   insert_user,
@@ -527,5 +532,138 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
       expect(response.statusCode).toBe(200);
       expect(response.headers["content-type"]).toMatch(/text\/csv|application\/octet-stream/);
     });
+  });
+});
+
+/** Izolare tenant: același `lead_journey.id` din tenant A → 404 cu JWT tenant B. */
+describe.sequential("Outreach E2 — izolare tenant (lead journey)", () => {
+  let app: FastifyInstance;
+  let tenantA: string;
+  let tenantB: string;
+  let userA: string;
+  let userB: string;
+  let tokenA: string;
+  let tokenB: string;
+  let journeyIdFromA: string;
+
+  beforeAll(async () => {
+    app = await buildApp();
+    await app.ready();
+
+    const ta = await insert_tenant(
+      `outreach-isol-a-${Date.now()}`,
+      buildTenantSlug(`oa-${Date.now()}`),
+    );
+    tenantA = ta.id;
+    const tb = await insert_tenant(
+      `outreach-isol-b-${Date.now()}`,
+      buildTenantSlug(`ob-${Date.now()}`),
+    );
+    tenantB = tb.id;
+
+    const ts = Date.now();
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantA}, true)`);
+      const [ua] = await tx
+        .insert(users)
+        .values({
+          tenantId: tenantA,
+          email: `oa-${ts}@example.com`,
+          passwordHash: TEST_PASSWORD_HASH,
+          name: "Outreach Isol A",
+          role: "admin",
+          status: "active",
+        })
+        .returning({ id: users.id });
+      if (!ua) throw new Error("insert user A failed");
+      userA = ua.id;
+    });
+
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantB}, true)`);
+      const [ub] = await tx
+        .insert(users)
+        .values({
+          tenantId: tenantB,
+          email: `ob-${ts}@example.com`,
+          passwordHash: TEST_PASSWORD_HASH,
+          name: "Outreach Isol B",
+          role: "admin",
+          status: "active",
+        })
+        .returning({ id: users.id });
+      if (!ub) throw new Error("insert user B failed");
+      userB = ub.id;
+    });
+
+    await setSessionRequestContext({ tenantId: tenantA, userId: userA });
+
+    tokenA = app.jwt.sign({
+      id: userA,
+      userId: userA,
+      sub: userA,
+      tenantId: tenantA,
+      role: "admin",
+      tokenType: "access",
+    });
+    tokenB = app.jwt.sign({
+      id: userB,
+      userId: userB,
+      sub: userB,
+      tenantId: tenantB,
+      role: "admin",
+      tokenType: "access",
+    });
+  });
+
+  afterAll(async () => {
+    await setSessionRequestContext({ tenantId: tenantA, userId: userA });
+    await db.delete(leadJourney).where(inArray(leadJourney.tenantId, [tenantA, tenantB]));
+    await db.delete(goldContacts).where(inArray(goldContacts.tenantId, [tenantA, tenantB]));
+    await db.delete(goldCompanies).where(inArray(goldCompanies.tenantId, [tenantA, tenantB]));
+    await db.delete(silverCompanies).where(inArray(silverCompanies.tenantId, [tenantA, tenantB]));
+    await db.delete(users).where(inArray(users.tenantId, [tenantA, tenantB]));
+    await db.delete(tenants).where(inArray(tenants.id, [tenantA, tenantB]));
+    await app.close();
+  });
+
+  it("tenant A importă lead și obține journey id", async () => {
+    const ts = Date.now();
+    const imp = await app.inject({
+      method: "POST",
+      url: "/api/v1/outreach/leads/import",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      payload: JSON.stringify({
+        rows: [
+          {
+            denumire: `Iso A ${ts}`,
+            cui: `ISOA${String(ts).slice(-8)}`,
+            email: `iso-a-${ts}@example.com`,
+          },
+        ],
+      }),
+    });
+    expect(imp.statusCode).toBe(200);
+    const list = await app.inject({
+      method: "GET",
+      url: "/api/v1/outreach/leads?limit=10",
+      headers: { authorization: `Bearer ${tokenA}` },
+    });
+    expect(list.statusCode).toBe(200);
+    const body = JSON.parse(list.body) as { data: { id: string }[] };
+    expect(body.data.length).toBeGreaterThan(0);
+    journeyIdFromA = body.data[0].id;
+  });
+
+  it("tenant B GET /leads/:id (journey din A) → 404", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/outreach/leads/${journeyIdFromA}`,
+      headers: { authorization: `Bearer ${tokenB}` },
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

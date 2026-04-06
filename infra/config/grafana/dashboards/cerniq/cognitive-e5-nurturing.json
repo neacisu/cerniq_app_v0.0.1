@@ -1,4 +1,13 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
   "annotations": { "list": [] },
   "description": "E5 Nurturing Lifecycle — Business & Technical observability (FAZA 9j)",
   "editable": true,
@@ -12,6 +21,7 @@
       "title": "Lifecycle States",
       "description": "Distribuția clienților per stare FSM nurturing (A7 state:metrics:update)",
       "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum by (state) (cerniq_e5_nurturing_clients_by_state{tenant_id=~\"$tenant_id\"})",
@@ -41,6 +51,7 @@
       "title": "Churn Risk",
       "description": "Clienți la risc per nivel (B10 churn:score:calculate) — alert > 5 CRITICAL",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum by (risk_level) (cerniq_e5_nurturing_clients_at_risk{tenant_id=~\"$tenant_id\"})",
@@ -62,11 +73,12 @@
     {
       "id": 3,
       "title": "NPS Distribution",
-      "description": "Distribuție Promoter/Passive/Detractor (H44 feedback:nps:process)",
+      "description": "Distribuție NPS pe categorie (counter cerniq_e5_nps_score_recorded_total — are tenant_id; H44)",
       "type": "piechart",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum by (category) (cerniq_e5_nps_distribution_total{tenant_id=~\"$tenant_id\"})",
+          "expr": "sum by (category) (cerniq_e5_nps_score_recorded_total{tenant_id=~\"$tenant_id\"})",
           "legendFormat": "{{category}}"
         }
       ],
@@ -81,6 +93,7 @@
       "title": "NPS Score Avg",
       "description": "NPS score mediu per tenant (H47 feedback:report:generate) — alert < 6",
       "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "cerniq_e5_nps_score_avg{tenant_id=~\"$tenant_id\"}",
@@ -114,6 +127,7 @@
       "title": "Referral Funnel",
       "description": "Funnel referral: create → consent → conversie → recompensă (E25-E31)",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum by (tenant_id) (rate(cerniq_e5_referrals_created_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
@@ -140,6 +154,7 @@
       "title": "Graph Communities",
       "description": "Comunități Leiden detectate și KOL profiles per tier (D20-D24)",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum by (tenant_id) (cerniq_e5_communities_detected_total{tenant_id=~\"$tenant_id\"})",
@@ -161,6 +176,7 @@
       "title": "LLM Usage",
       "description": "Utilizare LLM E5: latență P95, tokeni, cereri (B12 sentiment, E25 referral detect)",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (model, le) (rate(cerniq_e5_etapa5_llm_latency_seconds_bucket[$__rate_interval])))",
@@ -195,6 +211,7 @@
       "title": "Winback Campaigns & HITL Queue",
       "description": "Campanii winback active, succese, și coadă HITL E5 (F32-F36, B11, H46)",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum by (campaign_type) (cerniq_e5_winback_campaigns_active{tenant_id=~\"$tenant_id\"})",
@@ -221,7 +238,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 }
     }
   ],
-  "refresh": "60s",
+  "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
   "tags": ["e5", "nurturing", "lifecycle", "churn", "referral", "compliance"],
@@ -231,7 +248,7 @@
         "name": "tenant_id",
         "type": "query",
         "label": "Tenant",
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
         "definition": "label_values(cerniq_e5_nurturing_clients_by_state, tenant_id)",
         "query": "label_values(cerniq_e5_nurturing_clients_by_state, tenant_id)",
         "current": { "selected": false, "text": "All", "value": "$__all" },

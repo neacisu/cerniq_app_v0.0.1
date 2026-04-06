@@ -52,4 +52,4 @@ export * from "./schemas/outreach.js";
 export * from "./services/approval-service.js";
 export * from "./services/company-identity.js";
 export * from "./helpers/sql-helpers.js";
-export { TEST_PASSWORD_HASH } from "./test-utils/index.js";
+export { TEST_PASSWORD_HASH, TEST_PASSWORD_CONSTANT } from "./test-utils/index.js";

@@ -2,10 +2,9 @@
 # CERNIQ.APP — CD Pipeline for Deployments (Refactored v2.0)
 # =============================================================================
 # Workflow: deploy.yml
-# Trigger:
-#   - Push to any branch except main → Staging
-#   - Push to main → Production
-#   - Manual dispatch
+# Trigger (real):
+#   - workflow_dispatch only — apelat din CI (job trigger-cd după verificări verzi) sau manual
+#   - Nu există trigger direct pe push/tag pe acest workflow; CI trebuie să treacă înainte de CD.
 #
 # Features:
 #   - Full configuration sync with correct server paths
@@ -60,10 +59,7 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  packages: write
-  actions: write
+# Permisiuni doar la nivel de job (Sonar S8233); fiecare job declară minimul necesar.
 
 env:
   REGISTRY: ghcr.io
@@ -76,6 +72,8 @@ jobs:
   setup:
     name: 🔧 Setup Deployment
     runs-on: self-hosted
+    permissions:
+      contents: write
     outputs:
       environment: ${{ steps.determine.outputs.environment }}
       version: ${{ steps.determine.outputs.version }}
@@ -91,13 +89,17 @@ jobs:
 
       - name: 🔧 Determine deployment parameters
         id: determine
+        env:
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           # CD is always triggered via workflow_dispatch (by CI or manually)
-          echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-          echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          # inputs via env (nu interpolare directă în script) — mitigare script injection (Sonar S7630)
+          echo "environment=${INPUT_ENVIRONMENT}" >> $GITHUB_OUTPUT
+          echo "version=${INPUT_VERSION}" >> $GITHUB_OUTPUT
           echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-          if [[ "${{ inputs.environment }}" == "production" ]]; then
+          if [[ "${INPUT_ENVIRONMENT}" == "production" ]]; then
             echo "should_tag=true" >> $GITHUB_OUTPUT
           else
             echo "should_tag=false" >> $GITHUB_OUTPUT
@@ -105,8 +107,9 @@ jobs:
 
       - name: 🏷️ Create Git Tag (Production Auto-Version)
         if: steps.determine.outputs.should_tag == 'true'
+        env:
+          VERSION: ${{ steps.determine.outputs.version }}
         run: |
-          VERSION="${{ steps.determine.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$VERSION" -m "Release $VERSION (auto-generated)"
@@ -114,10 +117,14 @@ jobs:
           echo "✅ Created tag: $VERSION"
 
       - name: 📋 Display deployment info
+        env:
+          OUT_ENV: ${{ steps.determine.outputs.environment }}
+          OUT_VERSION: ${{ steps.determine.outputs.version }}
+          OUT_SHA: ${{ steps.determine.outputs.sha }}
         run: |
-          echo "🎯 Environment: ${{ steps.determine.outputs.environment }}"
-          echo "🏷️ Version: ${{ steps.determine.outputs.version }}"
-          echo "📝 SHA: ${{ steps.determine.outputs.sha }}"
+          echo "🎯 Environment: ${OUT_ENV}"
+          echo "🏷️ Version: ${OUT_VERSION}"
+          echo "📝 SHA: ${OUT_SHA}"
 
   # ===========================================================================
   # JOB 2: Build and Push Docker Images
@@ -127,6 +134,10 @@ jobs:
     runs-on: self-hosted
     needs: setup
     if: inputs.rollback != true
+    permissions:
+      contents: read
+      packages: write
+      actions: write
 
     strategy:
       fail-fast: true
@@ -188,7 +199,7 @@ jobs:
             BUILD_SHA=${{ needs.setup.outputs.sha }}
 
       - name: 🔒 Setup Trivy
-        uses: aquasecurity/setup-trivy@v0.2.2
+        uses: aquasecurity/setup-trivy@v0.2.6
         with:
           version: v0.69.1
           cache: true
@@ -220,6 +231,9 @@ jobs:
     runs-on: self-hosted
     needs: [setup, build-push]
     if: needs.setup.outputs.environment == 'staging'
+    permissions:
+      contents: read
+      packages: read
     environment:
       name: staging
       url: https://staging.cerniq.app
@@ -657,6 +671,9 @@ jobs:
     runs-on: self-hosted
     needs: [setup, build-push]
     if: needs.setup.outputs.environment == 'production'
+    permissions:
+      contents: write
+      packages: read
     environment:
       name: production
       url: https://cerniq.app
@@ -1116,17 +1133,23 @@ jobs:
     runs-on: self-hosted
     needs: [setup, deploy-staging, deploy-production]
     if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    permissions:
+      contents: read
 
     steps:
       - name: 📋 Generate Summary
+        env:
+          OUT_ENV: ${{ needs.setup.outputs.environment }}
+          OUT_VERSION: ${{ needs.setup.outputs.version }}
+          OUT_SHA: ${{ needs.setup.outputs.sha }}
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | ${{ needs.setup.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Version | ${{ needs.setup.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | ${{ needs.setup.outputs.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${OUT_ENV} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${OUT_VERSION} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${OUT_SHA} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Deployment Steps Completed" >> $GITHUB_STEP_SUMMARY
           echo "- Configuration files synced" >> $GITHUB_STEP_SUMMARY
@@ -1143,6 +1166,8 @@ jobs:
     name: ⏮️ Rollback Deployment
     runs-on: self-hosted
     if: inputs.rollback == true
+    permissions:
+      contents: read
     environment:
       name: ${{ inputs.environment }}
 
@@ -1151,9 +1176,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔧 Setup SSH
+        env:
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
         run: |
           mkdir -p ~/.ssh
-          if [[ "${{ inputs.environment }}" == "production" ]]; then
+          if [[ "${INPUT_ENVIRONMENT}" == "production" ]]; then
             echo "${{ secrets.PRODUCTION_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.PRODUCTION_HOST }}" >> $GITHUB_ENV
             echo "DEPLOY_USER=deploy" >> $GITHUB_ENV
@@ -1212,8 +1239,10 @@ jobs:
           ENDSSH
 
       - name: 📋 Generate Rollback Summary
+        env:
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
         run: |
           echo "## ⏮️ Rollback Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Environment: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "Environment: ${INPUT_ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
           echo "Triggered by: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

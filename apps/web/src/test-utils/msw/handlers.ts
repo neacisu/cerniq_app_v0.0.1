@@ -1,5 +1,11 @@
+/**
+ * Handlers MSW pentru Vitest/RTL. Dashboard stats: vezi `MSW_DASHBOARD_STATS_FIXTURE`
+ * (paritate tip `DashboardStatsPayload` cu API). Unde un test necesită date simplificate,
+ * documentați gap-ul în comentariul testului, nu aici.
+ */
 import { http, HttpResponse } from "msw";
 import { isDemoLoginCredentials } from "@/lib/demo-auth.js";
+import { MSW_DASHBOARD_STATS_FIXTURE } from "@/test-utils/msw/dashboard-stats-fixture.js";
 
 const apiBase = "http://localhost:64010";
 
@@ -590,23 +596,13 @@ export const handlers = [
   http.get(`${apiBase}/api/v1/dashboard/stats`, () =>
     HttpResponse.json({
       success: true,
-      data: {
-        bronze: { total: 47382 },
-        silver: { total: 8941 },
-        gold: { total: 1247 },
-        pipeline: { queueDepth: 184000 },
-      },
+      data: MSW_DASHBOARD_STATS_FIXTURE,
     }),
   ),
   http.get(`/api/v1/dashboard/stats`, () =>
     HttpResponse.json({
       success: true,
-      data: {
-        bronze: { total: 47382 },
-        silver: { total: 8941 },
-        gold: { total: 1247 },
-        pipeline: { queueDepth: 184000 },
-      },
+      data: MSW_DASHBOARD_STATS_FIXTURE,
     }),
   ),
   http.get(`${apiBase}/api/v1/dashboard/activity`, () =>
@@ -710,6 +706,50 @@ export const handlers = [
           cui: "RO87654321",
           createdAt: "2026-03-18T10:00:00.000Z",
           updatedAt: "2026-03-22T10:00:00.000Z",
+        },
+      ],
+      meta: { page: 1, limit: 100, total: 2, pages: 1 },
+    }),
+  ),
+
+  /** Plăți tenant — `Payments` / `fetchTenantPayments` (`GET /api/v1/orders/payments`). */
+  http.get("*/api/v1/orders/payments", () =>
+    HttpResponse.json({
+      success: true,
+      data: [
+        {
+          id: "pay-msw-1",
+          tenantId: "tenant-1",
+          orderId: "ord-agr-1",
+          externalSource: "BANK_IMPORT",
+          amount: "2500.50",
+          currency: "RON",
+          reconciliationStatus: "MATCHED_EXACT",
+          counterpartyName: "SC Plăți MSW SRL",
+          counterpartyIban: "RO49AAAA1B31007593840000",
+          reference: "REF-MSW-001",
+          receivedAt: "2026-03-10T08:00:00.000Z",
+          createdAt: "2026-03-10T08:00:00.000Z",
+          orderNumber: "CMD-2024-0892",
+          companyName: "SC Plăți MSW SRL",
+          cui: "RO10020030",
+        },
+        {
+          id: "pay-msw-2",
+          tenantId: "tenant-1",
+          orderId: null,
+          externalSource: "MANUAL",
+          amount: "890.00",
+          currency: "RON",
+          reconciliationStatus: "UNMATCHED",
+          counterpartyName: "Client Necunoscut RTL",
+          counterpartyIban: null,
+          reference: "OP-RTL-99",
+          receivedAt: "2026-03-11T09:00:00.000Z",
+          createdAt: "2026-03-11T09:00:00.000Z",
+          orderNumber: null,
+          companyName: "Client Necunoscut RTL",
+          cui: "—",
         },
       ],
       meta: { page: 1, limit: 100, total: 2, pages: 1 },
@@ -1209,6 +1249,29 @@ export const handlers = [
         },
       ],
       meta: { page: 1, limit: 500, total: 1, pages: 1 },
+    }),
+  ),
+
+  /** Agregare geografică — `GeoMap` / `fetchGraphGeoSummary`. */
+  http.get("*/api/v1/graph/geo-summary", () =>
+    HttpResponse.json({
+      success: true,
+      data: [
+        {
+          regionLabel: "Timiș",
+          companyCount: 12,
+          revenueSum: "480000.00",
+          avgLatitude: "45.7489",
+          avgLongitude: "21.2087",
+        },
+        {
+          regionLabel: "Ialomița",
+          companyCount: 4,
+          revenueSum: "95000.50",
+          avgLatitude: "44.6369",
+          avgLongitude: "27.3333",
+        },
+      ],
     }),
   ),
 ];

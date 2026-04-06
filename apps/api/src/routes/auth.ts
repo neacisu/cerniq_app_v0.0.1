@@ -243,8 +243,13 @@ function issueCsrfToken(reply: FastifyReply): string {
 }
 
 function shouldEnforceCsrf(request: FastifyRequest): boolean {
-  const routeUrl = request.routeOptions.url;
-  const isProtectedAuthMutation = routeUrl === "/refresh" || routeUrl === "/logout";
+  const routePath = (request.routeOptions.url ?? request.url ?? "").split("?")[0] ?? "";
+  const normalized = routePath.replace(/\/+$/, "") || routePath;
+  const isProtectedAuthMutation =
+    normalized === "/refresh" ||
+    normalized === "/logout" ||
+    normalized.endsWith("/auth/refresh") ||
+    normalized.endsWith("/auth/logout");
   return isProtectedAuthMutation && typeof request.cookies?.refreshToken === "string";
 }
 

@@ -34,19 +34,15 @@ pnpm typecheck
 ### Infrastructure Validation
 
 ```bash
-# Run local infrastructure tests
+# Verificări statice repo (workflow-uri, compose, DNS în specs) — Vitest
 pnpm test:infra
-
-# Test staging server
-pnpm test:infra:remote:staging
-
-# Test production server
-pnpm test:infra:remote:production
 ```
+
+Pentru **k6** load test Etapa 1: `pnpm test:load:etapa1` (necesită [k6](https://k6.io/) instalat). Verificări la distanță pe staging/producție sunt descrise în [docs/infrastructure/ci-cd-pipeline.md](docs/infrastructure/ci-cd-pipeline.md) (nu sunt scripturi `pnpm` fixe în repo).
 
 ## 📁 Project Structure
 
-```
+```text
 /var/www/CerniqAPP/
 ├── apps/                    # Application packages
 │   ├── api/                 # Fastify API server

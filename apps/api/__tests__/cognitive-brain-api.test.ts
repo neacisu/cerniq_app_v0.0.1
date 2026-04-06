@@ -545,6 +545,22 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
       expect(mut.causationId).toBe("cause-001");
       expect(mut.actorId).toBe("actor-001");
     });
+
+    it("returnează 400 când batchId nu este UUID (schema batchIdParamsSchema)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/brain/mutations/not-a-uuid",
+        headers: { authorization: `Bearer ${viewerToken}` },
+      });
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as {
+        success: boolean;
+        error: string;
+        details?: unknown;
+      };
+      expect(body.success).toBe(false);
+      expect(body).toHaveProperty("details");
+    });
   });
 
   // ─── POST /nodes/:nodeKey/pause ──────────────────────────────────────────────
@@ -603,6 +619,22 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
       const body = JSON.parse(res.body);
       expect(body.propagated).toBe(true);
       expect(body.batchId).toBe(SAMPLE_BATCH_ID);
+    });
+
+    it("respinge body.batchId non-UUID (schema route Fastify → 400/422 + details)", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/v1/brain/nodes/${SAMPLE_NODE_KEY}/pause`,
+        headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
+        body: JSON.stringify({ batchId: "invalid-batch-id" }),
+      });
+      expect([400, 422]).toContain(res.statusCode);
+      const body = JSON.parse(res.body) as {
+        success: boolean;
+        details?: { issues?: unknown[]; validation?: unknown };
+      };
+      expect(body.success).toBe(false);
+      expect(body.details?.validation ?? body.details?.issues).toBeDefined();
     });
   });
 
@@ -700,6 +732,32 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
         body: JSON.stringify({}),
       });
       expect(res.statusCode).toBe(400);
+    });
+
+    it("returnează 400 pentru concurrency=0 (încalcă .positive())", async () => {
+      const res = await app.inject({
+        method: "PUT",
+        url: `/api/v1/brain/nodes/${SAMPLE_NODE_KEY}/config`,
+        headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
+        body: JSON.stringify({ concurrency: 0 }),
+      });
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { success: boolean; details?: unknown };
+      expect(body.success).toBe(false);
+      expect(body).toHaveProperty("details");
+    });
+
+    it("returnează 400 pentru concurrency>1000 (încalcă .max(1000))", async () => {
+      const res = await app.inject({
+        method: "PUT",
+        url: `/api/v1/brain/nodes/${SAMPLE_NODE_KEY}/config`,
+        headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
+        body: JSON.stringify({ concurrency: 1001 }),
+      });
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { success: boolean; details?: unknown };
+      expect(body.success).toBe(false);
+      expect(body).toHaveProperty("details");
     });
 
     it("schimbare concurrency → applyStatus='pending_apply' (necesită restart worker)", async () => {

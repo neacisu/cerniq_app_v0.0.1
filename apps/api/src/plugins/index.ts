@@ -45,7 +45,12 @@ export async function registerPlugins(app: FastifyInstance) {
       openapi: "3.0.0",
       info: {
         title: "Cerniq API",
-        description: "Cerniq.app backend API",
+        description:
+          "Cerniq.app backend API. Schema OpenAPI este generată din **Zod** (`fastify-type-provider-zod`); " +
+          "handler-ele rămân sursa de adevăr pentru validare. " +
+          "**UI Swagger:** `/docs` (redirect canonic de la `/documentation`). **Spec JSON:** `/docs/json`. " +
+          "Valorile `example` din unele scheme (ex. coloane șablon import) sunt **metadata pentru UI** — nu sunt răspunsuri API reale; " +
+          "nu trebuie confundate cu payload-uri de runtime. Vezi `docs/developer-guide/openapi-swagger-parity.md`.",
         version: "0.0.1",
       },
       servers: [{ url: "/", description: "Current" }],
@@ -56,6 +61,9 @@ export async function registerPlugins(app: FastifyInstance) {
     routePrefix: "/docs",
     uiConfig: { docExpansion: "list", deepLinking: true },
   });
+
+  /** Alias documentat în planuri ADR / interne (`/documentation` → UI real `/docs/`). */
+  app.get("/documentation", (_request, reply) => reply.redirect("/docs/", 302));
 
   const corsOrigins =
     envConfig.CORS_ORIGIN === "*"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiBase } from "../api.js";
+import { fetchAdminLogs } from "../api.js";
 
 type LogEntry = {
   timestamp: string;
@@ -7,6 +7,19 @@ type LogEntry = {
   message: string;
   source?: string;
 };
+
+const LOGS_LEVEL_FILTER_ID = "admin-logs-level-filter";
+
+function logEntryRowKey(entry: LogEntry): string {
+  return [entry.timestamp, entry.level, entry.message, entry.source ?? ""].join("\u001d");
+}
+
+function levelBadgeBackground(level: string | undefined): string {
+  const normalized = level?.toLowerCase();
+  if (normalized === "error") return "rgba(239,68,68,0.2)";
+  if (normalized === "warn") return "rgba(234,179,8,0.2)";
+  return "rgba(75,85,99,0.3)";
+}
 
 export function Logs() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
@@ -16,22 +29,14 @@ export function Logs() {
 
   useEffect(() => {
     let cancelled = false;
-    const base = apiBase;
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${base}/api/admin/logs?limit=100`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            setEntries([]);
-            return;
-          }
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data = (await res.json()) as { data?: LogEntry[] };
-        if (!cancelled && Array.isArray(data?.data)) setEntries(data.data);
-        else if (!cancelled) setEntries([]);
+        const res = await fetchAdminLogs(100);
+        if (cancelled) return;
+        if (res.success && Array.isArray(res.data)) setEntries(res.data);
+        else setEntries([]);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load logs");
         if (!cancelled) setEntries([]);
@@ -64,8 +69,11 @@ export function Logs() {
         Logs
       </h1>
       <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-        <label style={{ fontSize: "0.875rem", color: "#6b6b75" }}>Level:</label>
+        <label htmlFor={LOGS_LEVEL_FILTER_ID} style={{ fontSize: "0.875rem", color: "#6b6b75" }}>
+          Level:
+        </label>
         <select
+          id={LOGS_LEVEL_FILTER_ID}
           value={levelFilter}
           onChange={(e) => setLevelFilter(e.target.value)}
           style={{
@@ -87,7 +95,7 @@ export function Logs() {
       {loading && entries.length === 0 && <p style={{ color: "#6b6b75" }}>Loading…</p>}
       {error && (
         <p style={{ color: "#ef4444", marginBottom: "1rem" }}>
-          {error}. Endpoint /api/admin/logs may not be implemented yet.
+          {error}. Verifică proxy-ul Fastify `/api/admin/logs` și Monitoring API.
         </p>
       )}
       <div
@@ -119,9 +127,9 @@ export function Logs() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((entry, i) => (
+              {filtered.map((entry) => (
                 <tr
-                  key={i}
+                  key={logEntryRowKey(entry)}
                   style={{
                     borderBottom: "1px solid #1e2025",
                   }}
@@ -134,12 +142,7 @@ export function Logs() {
                         borderRadius: "4px",
                         fontSize: "0.7rem",
                         fontWeight: 600,
-                        background:
-                          entry.level === "error"
-                            ? "rgba(239,68,68,0.2)"
-                            : entry.level === "warn"
-                              ? "rgba(234,179,8,0.2)"
-                              : "rgba(75,85,99,0.3)",
+                        background: levelBadgeBackground(entry.level),
                       }}
                     >
                       {entry.level}

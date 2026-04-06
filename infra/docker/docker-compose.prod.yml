@@ -19,10 +19,7 @@
 name: cerniq
 
 # Application ingress ports are routed by orchestrator Traefik.
-# Keep these mappings ready for local diagnostics only:
-#   - "64000:3000"  # web
-#   - "64010:3000"  # api
-#   - "64012:3000"  # admin
+# În `docker-compose.yml` mapările sunt host:container aceeași (ex. 64000:64000); vezi ADR-0022 + etapa0-port-matrix.
 
 services:
   # ==========================================================================

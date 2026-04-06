@@ -6,6 +6,8 @@
 **Actualizat:** 20 Martie 2026  
 **Etapa 2 Sprint 4:** 🔄 **ÎN CURS — remediere defecte / aliniere plan audit** (20 Martie 2026)
 
+**Ghid PR:** la epics, folosiți checklist-ul din [`docs/developer-guide/pr-adr-traceability.md`](../developer-guide/pr-adr-traceability.md).
+
 ---
 
 ## SUMAR PER ETAPĂ

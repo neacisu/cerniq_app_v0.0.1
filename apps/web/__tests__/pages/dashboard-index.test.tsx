@@ -183,6 +183,7 @@ import { Dashboard } from "@/pages/dashboard/index.js";
 describe("Dashboard index", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fetchDashboardStats).mockImplementation(() => Promise.resolve(statsPayload));
   });
 
   it("afișează KPI errors și pipeline din stats", async () => {
@@ -200,5 +201,24 @@ describe("Dashboard index", () => {
     expect(screen.getByText(/Critice \(deschise\)/i).parentElement?.textContent).toContain("1");
     expect(screen.getByText(/Cozi cu joburi eșuate/i).parentElement?.textContent).toContain("2");
     expect(screen.getByText(/GET \/api\/v1\/dashboard\/stats/i)).toBeInTheDocument();
+  });
+
+  it("la eșec stats afișează banner de eroare Etapa 1 (fără date KPI fabricate)", async () => {
+    vi.mocked(fetchDashboardStats).mockRejectedValue(new Error("stats indisponibile"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Etapa 1 — statistici indisponibile/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    expect(screen.getByText(/stats indisponibile/i)).toBeInTheDocument();
   });
 });

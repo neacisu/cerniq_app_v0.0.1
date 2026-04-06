@@ -10,7 +10,78 @@ updates:
     schedule:
       interval: "weekly"
 
+  # Docker: un entry per director care conține Dockerfile (nu există Dockerfile la rădăcina repo-ului).
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/apps/api"
     schedule:
       interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/apps/web"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/apps/web-admin"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/apps/monitoring-api"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/workers/enrichment"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/workers/ai"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/workers/outreach"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/workers/e4-postsale"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/workers/e5-nurturing"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/services/python-mcp"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/services/python-graph"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/services/python-document"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/services/python-pdf"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "docker"
+    directory: "/infra/docker/postgres"
+    schedule:
+      interval: "monthly"
+
+  # requirements.txt în servicii Python (sidecars); workers Python folosesc alte mecanisme (vezi repo).
+  - package-ecosystem: "pip"
+    directory: "/services/python-mcp"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/services/python-graph"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/services/python-document"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/services/python-pdf"
+    schedule:
+      interval: "weekly"

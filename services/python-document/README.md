@@ -1,6 +1,7 @@
 # Document Service
 
-> **Status: SKELETON** — Nu este implementat încă. Structura pregătită pentru Etapa 3+.
+> **Status: SKELETON** — Nu este implementat încă. Structura pregătită pentru Etapa 3+.  
+> Contract ops + health: [`docs/services/python-sidecars-contract.md`](../../docs/services/python-sidecars-contract.md).
 
 ## Port: 64075
 

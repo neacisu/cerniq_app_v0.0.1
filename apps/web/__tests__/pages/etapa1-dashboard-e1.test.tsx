@@ -68,6 +68,10 @@ import { DashboardE1 } from "@/pages/etapa1/dashboard-e1.js";
 describe("DashboardE1 (pagină dedicată Etapa 1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fetchDashboardStats).mockImplementation(() => Promise.resolve(statsPayload));
+    vi.mocked(fetchImports).mockImplementation(() =>
+      Promise.resolve({ success: true, data: [], meta: { total: 7, limit: 1, offset: 0 } }),
+    );
   });
 
   it("afișează titlul dedicat și secțiunea de analitică zilnică (nu este dashboard general)", async () => {
@@ -96,5 +100,57 @@ describe("DashboardE1 (pagină dedicată Etapa 1)", () => {
     expect(fetchDashboardActivity).toHaveBeenCalledWith(20);
     expect(fetchDashboardDailyStats).toHaveBeenCalledWith({ days: 30 });
     expect(fetchImports).toHaveBeenCalledWith({ limit: 1, offset: 0 });
+  });
+
+  it("la eșec stats afișează banner dedicat Etapa 1", async () => {
+    vi.mocked(fetchDashboardStats).mockRejectedValue(new Error("E1 stats down"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <DashboardE1 />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Statistici Etapa 1 indisponibile/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    expect(screen.getByText(/E1 stats down/i)).toBeInTheDocument();
+  });
+
+  it("la eșec imports KPI Loturi import afișează em dash (fără total fals)", async () => {
+    vi.mocked(fetchImports).mockRejectedValue(new Error("imports fail"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <DashboardE1 />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Loturi import \(total\)/i).closest(".kc")).toHaveTextContent("—");
+      },
+      { timeout: 5000 },
+    );
+  });
+
+  it("în timpul încărcării stats afișează spinner în antet (nu KPI fabricate)", async () => {
+    vi.mocked(fetchDashboardStats).mockImplementation(() => new Promise(() => undefined));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <DashboardE1 />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[class*="animate-spin"]')).toBeTruthy();
+    });
   });
 });

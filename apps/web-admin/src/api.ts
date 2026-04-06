@@ -295,6 +295,22 @@ export async function fetchLiveMetrics(): Promise<{
   return adminFetch("/api/admin/live");
 }
 
+export type AdminLogEntry = {
+  timestamp: string;
+  level: string;
+  message: string;
+  source?: string;
+};
+
+export async function fetchAdminLogs(limit = 100): Promise<{
+  success: boolean;
+  data?: AdminLogEntry[];
+  meta?: Record<string, unknown>;
+}> {
+  const q = new URLSearchParams({ limit: String(Math.min(500, Math.max(1, limit))) });
+  return adminFetch(`/api/admin/logs?${q}`);
+}
+
 async function postQueueAction(
   queue: string,
   action: "pause" | "resume" | "retry-failed" | "drain",

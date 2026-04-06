@@ -13,6 +13,9 @@ describe("ForgotPassword", () => {
     expect(
       screen.getByText(/Resetarea automată nu este disponibilă momentan/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/nu are încă endpoint API pentru cereri de resetare parolă/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Nu se trimite niciun email/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Înapoi la autentificare/i })).toHaveAttribute(
       "href",

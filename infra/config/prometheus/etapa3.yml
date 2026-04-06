@@ -4,41 +4,38 @@ groups:
 
       # ── AI Hallucination & Guardrails ─────────────────────────────────────────
 
+      # Paritate cod: `cerniq_ai_guardrail_pass_rate` este gauge (prom-client), nu counter —
+      # `increase()` pe gauge nu este semnificativ. Prag absolut pe breach-uri/min.
       - alert: HighHallucinationRate
-        expr: |
-          (
-            increase(cerniq_ai_guardrail_breaches_total[5m])
-            /
-            (increase(cerniq_ai_guardrail_breaches_total[5m]) + increase(cerniq_ai_guardrail_pass_rate[5m]) + 1)
-          ) > 0.10
+        expr: sum(rate(cerniq_ai_guardrail_breaches_total[5m])) * 60 > 6
         for: 1m
         labels:
           severity: critical
           etapa: E3
           project: cerniq
         annotations:
-          summary: "E3 AI hallucination rate >10% în ultimele 5 minute"
+          summary: "E3 — >6 breach-uri guardrail/minute (medie 5m)"
           description: |
-            Rata de breach guardrail depășește 10% pe instanța {{ $labels.instance }}.
-            Guardrail type: {{ $labels.guardrail_type }}, Severity: {{ $labels.severity }}.
-            Verificați M71-M75 (deterministic checks) și C15 (ai:response:generate).
+            Flux crescut de încălcări M71-M75 pe {{ $labels.instance }}.
+            Guardrail: {{ $labels.guardrail_type }}, severitate: {{ $labels.severity }}.
+            Verificați C15 (ai:response:generate) și workerii guardrail.
 
+      # Lipsă trafic LLM + lipsă breach-uri = posibil pipeline AI oprit (nu doar „fără erori”).
       - alert: GuardrailNeuronSilent
         expr: |
           increase(cerniq_ai_guardrail_breaches_total[30m]) == 0
           and
-          increase(cerniq_ai_guardrail_pass_rate[30m]) == 0
+          increase(cerniq_ai_llm_latency_seconds_count[30m]) == 0
         for: 5m
         labels:
           severity: critical
           etapa: E3
           project: cerniq
         annotations:
-          summary: "E3 Guardrail neurons M71-M75 silențioși 30 minute — posibil worker down"
+          summary: "E3 — fără apeluri LLM și fără breach guardrail 30m (posibil worker AI oprit)"
           description: |
-            Niciun eveniment guardrail (breach sau pass) în ultimele 30 minute.
-            Verificați că workerii M71-M75 (guardrail:*) sunt activi și procesează joburi.
-            Aceasta poate indica o defecțiune critică de observabilitate AI.
+            Nu există increment pe cerniq_ai_llm_latency_seconds_count și nici breach-uri guardrail.
+            Verificați workerii E3 (C15 / guardrail) și scrape Prometheus.
 
       # ── LLM Performance ───────────────────────────────────────────────────────
 

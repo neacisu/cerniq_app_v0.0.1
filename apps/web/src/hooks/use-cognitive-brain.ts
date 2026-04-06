@@ -84,7 +84,8 @@ export const SSE_BACKOFF_MAX_MS = 60_000;
 
 // ─── Helpers URL ──────────────────────────────────────────────────────────────
 
-function buildBrainStreamUrl(): string {
+/** Exclusiv pentru SSE; vezi `docs/developer-guide/security-sse-brain-token.md` (risc ?token= în URL). */
+export function buildBrainStreamUrl(): string {
   const base = getApiBase().replace(/\/$/, "");
   const base_url = `${base}/api/v1/brain/events/stream`;
   // EventSource nativ nu poate trimite Authorization header.

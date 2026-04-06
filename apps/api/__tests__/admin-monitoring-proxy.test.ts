@@ -32,7 +32,9 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
   let tenantId: string;
   let adminToken: string;
   let adminUserId: string;
+  let ownerToken: string;
   let viewerToken: string;
+  let operatorToken: string;
   const q = QUEUES.INGEST_CSV;
 
   beforeAll(async () => {
@@ -93,6 +95,9 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
             }),
           );
         }
+        if (method === "POST" && path === `/api/queues/${encodeURIComponent(q)}/resume`) {
+          return Promise.resolve(jsonBody({ success: true, data: { name: q, paused: false } }));
+        }
         return Promise.resolve(jsonBody({ success: false, error: "mock miss" }, 404));
       },
     );
@@ -142,6 +147,40 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
       role: "viewer",
       tokenType: "access",
     });
+
+    const owner = await insert_user(
+      tenantId,
+      `own-mon-${Date.now()}@example.com`,
+      TEST_PASSWORD_HASH,
+      "Owner Mon",
+      "owner",
+      "active",
+    );
+    ownerToken = app.jwt.sign({
+      id: owner.id,
+      userId: owner.id,
+      sub: owner.id,
+      tenantId,
+      role: "owner",
+      tokenType: "access",
+    });
+
+    const operator = await insert_user(
+      tenantId,
+      `op-mon-${Date.now()}@example.com`,
+      TEST_PASSWORD_HASH,
+      "Operator Mon",
+      "operator",
+      "active",
+    );
+    operatorToken = app.jwt.sign({
+      id: operator.id,
+      userId: operator.id,
+      sub: operator.id,
+      tenantId,
+      role: "operator",
+      tokenType: "access",
+    });
   });
 
   beforeEach(() => {
@@ -172,11 +211,23 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
         if (method === "GET" && path === "/api/system/metrics") {
           return Promise.resolve(jsonBody({ success: true, data: { cpu: 0.1 } }));
         }
+        if (method === "GET" && path === "/api/logs") {
+          return Promise.resolve(
+            jsonBody({
+              success: true,
+              data: [{ timestamp: "2026-01-01T00:00:00Z", level: "info", message: "ok" }],
+              meta: { source: "stub" },
+            }),
+          );
+        }
         if (method === "GET" && path === `/api/queues/${encodeURIComponent(q)}`) {
           return Promise.resolve(jsonBody({ success: true, data: { name: q, waiting: 2 } }));
         }
         if (method === "POST" && path === `/api/queues/${encodeURIComponent(q)}/pause`) {
           return Promise.resolve(jsonBody({ success: true, data: { name: q, paused: true } }));
+        }
+        if (method === "POST" && path === `/api/queues/${encodeURIComponent(q)}/resume`) {
+          return Promise.resolve(jsonBody({ success: true, data: { name: q, paused: false } }));
         }
         return Promise.resolve(jsonBody({ success: false, error: "mock miss" }, 404));
       },
@@ -216,6 +267,19 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
     expect(body.data.system).toEqual({ cpu: 0.1 });
   });
 
+  it("GET /api/admin/logs — 200, proxy către Monitoring API /api/logs", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/logs?limit=50",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload) as { success: boolean; data: unknown[] };
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+  });
+
   it("GET /api/admin/live — 403 pentru viewer", async () => {
     const res = await app.inject({
       method: "GET",
@@ -223,6 +287,16 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
       headers: { Authorization: `Bearer ${viewerToken}` },
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  it("GET /api/admin/queues — 403 pentru operator (rol autentic dar fără drept admin/owner)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/queues",
+      headers: { Authorization: `Bearer ${operatorToken}` },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((JSON.parse(res.payload) as { success: boolean }).success).toBe(false);
   });
 
   it("GET /api/admin/live — 502 când Monitoring răspunde non-OK", async () => {
@@ -296,5 +370,72 @@ describe("Admin monitoring proxy (/api/admin/*)", () => {
       headers: { Authorization: `Bearer ${viewerToken}` },
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  it("GET /api/admin/queues — 401 fără Authorization", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/admin/queues" });
+    expect(res.statusCode).toBe(401);
+    expect((JSON.parse(res.payload) as { success: boolean }).success).toBe(false);
+  });
+
+  it("GET /api/admin/queues — 200 cu rol owner", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/queues",
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect((JSON.parse(res.payload) as { success: boolean }).success).toBe(true);
+  });
+
+  it("GET /api/admin/system/metrics — 200 proxy către Monitoring", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/system/metrics",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect((JSON.parse(res.payload) as { success: boolean; data?: unknown }).success).toBe(true);
+  });
+
+  it("GET /api/admin/queues — 502 când fetch aruncă (rețea / ECONNREFUSED)", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/queues",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.statusCode).toBe(502);
+    const body = JSON.parse(res.payload) as { success: boolean; error: string };
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/unavailable/i);
+  });
+
+  it("POST /api/admin/control/pause — 400 queue invalid", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/admin/control/pause",
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json",
+      },
+      payload: { queue: "not-a-real-queue-name", action: "pause" },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((JSON.parse(res.payload) as { success: boolean }).success).toBe(false);
+  });
+
+  it("POST /api/admin/control/pause — 200 queue valid + acțiune resume", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/admin/control/pause",
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json",
+      },
+      payload: { queue: q, action: "resume" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect((JSON.parse(res.payload) as { success: boolean }).success).toBe(true);
   });
 });

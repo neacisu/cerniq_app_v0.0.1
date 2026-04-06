@@ -1,5 +1,7 @@
 # React + Vite
 
+> **Scope Cerniq:** acest tree este **documentație / prototip UI** în monorepo. Nu este SPA-ul de producție (`apps/web`) și nu intră în obiectivul „date reale” pentru aplicația principală până la o decizie explicită de promovare. Vezi [`CONTRIBUTING.md`](../../../../../CONTRIBUTING.md) (secțiunea UI_UX_Example).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
