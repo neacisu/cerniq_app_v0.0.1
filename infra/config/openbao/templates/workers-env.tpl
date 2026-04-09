@@ -38,10 +38,16 @@ POSTGRES_PASSWORD={{ .Data.password }}
 # Redis Configuration
 # =============================================================================
 # Route Redis via hz.247 internal L4 gateway (fixes VLAN<->vSwitch TCP handshake issues).
+# BULLMQ_PREFIX: namespace canonic pentru chei BullMQ (obligatoriu în cod; nu se folosește REDIS_PREFIX pentru cozi).
+# REDIS_PREFIX: alte namespac-uri (ex. rate-limit API), nu pentru BullMQ.
+# REDIS_DB / REDIS_DB_E4 / REDIS_DB_E5: setate per serviciu în stack (vezi docs/infrastructure/redis-db-assignment.md).
 REDIS_URL=redis://{{ .Data.redis_username }}:{{ .Data.redis_password }}@10.0.1.10:6379/0
 REDIS_PASSWORD={{ .Data.redis_password }}
 REDIS_PREFIX={{ .Data.redis_prefix }}
 BULLMQ_PREFIX={{ .Data.bullmq_prefix }}
+# Sentinel HA (docker compose --profile redis-ha): setați când workerii folosesc ioredis Sentinel (vezi workers/shared/src/redis.ts). REDIS_URL rămâne pentru credențiale / DB index.
+# REDIS_SENTINEL_HOSTS=cerniq-redis-sentinel:26379
+# REDIS_SENTINEL_NAME=cerniq-master
 {{- end }}
 
 {{- with secret "secret/cerniq/shared/external" }}
@@ -62,6 +68,7 @@ HLR_API_KEY={{- $v := index $d "hlr_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
 BING_API_KEY={{- $v := index $d "bing_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
 ANAF_API_URL={{- $v := index $d "anaf_api_url" -}}{{ if $v }}{{ $v }}{{ end }}
 TERMENE_API_URL={{- $v := index $d "termene_api_url" -}}{{ if $v }}{{ $v }}{{ end }}
+INFRAQ_GUARD_TOKEN={{- $v := index $d "infraq_guard_token" -}}{{ if $v }}{{ $v }}{{ end }}
 {{- end }}
 
 # =============================================================================

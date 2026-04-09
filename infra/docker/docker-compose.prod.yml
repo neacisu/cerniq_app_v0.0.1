@@ -161,6 +161,9 @@ services:
         max-size: "20m"
         max-file: "3"
 
+  # Redis HA (Sentinel): serviciile cerniq-redis-* sunt în docker-compose.yml cu profiles: ["redis-ha"].
+  # Activare producție: docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile redis-ha up -d
+
 # =============================================================================
 # Networks - External (pre-created on server)
 # =============================================================================

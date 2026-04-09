@@ -10,6 +10,13 @@ export type QueueConfig = {
 // Updated to allow underscores (used by Etapa 2 per-phone queue names, e.g. q:wa:phone-01)
 export const QUEUE_NAME_PATTERN = /^[a-z0-9]+(?::[a-z0-9_-]+){1,4}$/;
 
+/**
+ * Numele Redis pentru coada legacy `q:wa:reply` (drain până la epuizare).
+ * `QUEUES.WA_REPLY` este alias deprecat cu aceeași valoare — folosiți această constantă în implementări
+ * noi pentru a evita avertismente Sonar/IDE pe simbolul deprecat, păstrând un singur literal.
+ */
+export const LEGACY_WA_REPLY_QUEUE = "q:wa:reply" as const;
+
 export const QUEUES = {
   INGEST_CSV: "ingest:csv",
   INGEST_EXCEL: "ingest:excel",
@@ -100,9 +107,14 @@ export const QUEUES = {
   OUTREACH_CHANNEL_SELECTOR: "outreach:channel:selector",
 
   // C — WhatsApp non-per-phone (7 queues; per-phone generated separately)
-  WA_REPLY: "q:wa:reply",
+  /** @deprecated Job-uri noi → `WA_DELIVERY_STATUS`. Păstrat pentru drain Redis existent. */
+  WA_REPLY: LEGACY_WA_REPLY_QUEUE,
+  /** Livrare SENT/DELIVERED/READ/FAILED (TimelinesAI) — semantic dedicat. */
+  WA_DELIVERY_STATUS: "wa:delivery:status",
   WA_MESSAGE_RETRY: "wa:message:retry",
   WA_CHAT_HISTORY_FETCH: "wa:chat:history:fetch",
+  /** Read receipt + engagement — semantic dedicat (înlocuiește utilizarea greșită a chat:history pentru același procesator). */
+  WA_READ_RECEIPT: "wa:read:receipt",
   WA_STATUS_SYNC: "wa:status:sync",
   WA_MEDIA_SEND: "wa:media:send",
 
@@ -149,7 +161,10 @@ export const QUEUES = {
   MONITOR_EMAIL_DELIVERABILITY: "monitor:email:deliverability",
   MONITOR_QUOTA_USAGE: "monitor:quota:usage",
   ALERT_PHONE_OFFLINE: "alert:phone:offline",
+  /** Alertă notificare — numai payload BANNED (health); NU acțiune quarantine. */
   ALERT_PHONE_BANNED: "alert:phone:banned",
+  /** Acțiune quarantine DB + realocare lead-uri (BANNED / LOW_REPUTATION / MANUAL). */
+  PHONE_QUARANTINE: "phone:quarantine:trigger",
   ALERT_BOUNCE_HIGH: "alert:bounce:high",
 
   // L — HITL / Human Review (7 queues)
@@ -158,6 +173,8 @@ export const QUEUES = {
   HUMAN_TAKEOVER_INITIATE: "human:takeover:initiate",
   HUMAN_TAKEOVER_COMPLETE: "human:takeover:complete",
   HUMAN_APPROVE_MESSAGE: "human:approve:message",
+  /** Verificare întârziată SLA review — separat semantic de aprobare mesaj. */
+  HITL_SLA_ENFORCE: "hitl:sla:enforce",
   HUMAN_REVIEW_ESCALATION: "human:review:escalation",
   HUMAN_REVIEW_AUDIT_LOG: "human:review:audit-log",
 
@@ -746,10 +763,12 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.OUTREACH_PHONE_ALLOCATOR, concurrency: 20 },
   { name: QUEUES.OUTREACH_CHANNEL_SELECTOR, concurrency: 20 },
 
-  // C — WhatsApp non-per-phone
-  { name: QUEUES.WA_REPLY, concurrency: 10 },
+  // C — WhatsApp non-per-phone (legacy reply queue: nume non-deprecat pentru Sonar)
+  { name: LEGACY_WA_REPLY_QUEUE, concurrency: 10 },
+  { name: QUEUES.WA_DELIVERY_STATUS, concurrency: 100 },
   { name: QUEUES.WA_MESSAGE_RETRY, concurrency: 5 },
   { name: QUEUES.WA_CHAT_HISTORY_FETCH, concurrency: 20 },
+  { name: QUEUES.WA_READ_RECEIPT, concurrency: 100 },
   { name: QUEUES.WA_STATUS_SYNC, concurrency: 5 },
   { name: QUEUES.WA_MEDIA_SEND, concurrency: 5 },
 
@@ -797,6 +816,7 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.MONITOR_QUOTA_USAGE, concurrency: 5 },
   { name: QUEUES.ALERT_PHONE_OFFLINE, concurrency: 10 },
   { name: QUEUES.ALERT_PHONE_BANNED, concurrency: 10 },
+  { name: QUEUES.PHONE_QUARANTINE, concurrency: 10 },
   { name: QUEUES.ALERT_BOUNCE_HIGH, concurrency: 10 },
 
   // L — HITL
@@ -805,6 +825,7 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.HUMAN_TAKEOVER_INITIATE, concurrency: 10 },
   { name: QUEUES.HUMAN_TAKEOVER_COMPLETE, concurrency: 10 },
   { name: QUEUES.HUMAN_APPROVE_MESSAGE, concurrency: 20 },
+  { name: QUEUES.HITL_SLA_ENFORCE, concurrency: 20 },
   { name: QUEUES.HUMAN_REVIEW_ESCALATION, concurrency: 10 },
   { name: QUEUES.HUMAN_REVIEW_AUDIT_LOG, concurrency: 50 },
 
@@ -1345,7 +1366,9 @@ export function assertQueueRegistryComplete() {
   // + 3 E5 Compliance GDPR+Competition+Retention K56-K58 = 343
   // + 2 E5 HITL Winback+Complaint review = 345
   // + 1 E2 outreach J — ai:response:generate (alături de ai:sentiment:analyze) = 346
-  const expected = 346;
+  // + 1 phone:quarantine:trigger (Etapa 2 — separare de alert:phone:banned) = 347
+  // + 3 semantică cozi: wa:delivery:status, wa:read:receipt, hitl:sla:enforce = 350
+  const expected = 350;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

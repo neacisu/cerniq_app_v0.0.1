@@ -17,9 +17,11 @@ import {
   createQueue,
   withCognitiveSpan,
   outreachDispatched,
+  phoneAllocatorContentionTotal,
 } from "@cerniq/worker-shared";
 import { getPhoneStatusKey } from "../utils/quota-lua.js";
 import { isRedisStatusAllowingStickyWa } from "../utils/wa-sticky-redis-status.js";
+import { pickNextWaPhoneForTenantSkipLocked } from "./wa-phone-skip-locked-pick.js";
 
 type DbClient = typeof CerniqDb.db;
 type EqFn = typeof CerniqDb.eq;
@@ -51,6 +53,8 @@ export interface PhoneAllocatorJobData {
   journeyId: string;
   /** Existing assignment (for sticky check) */
   currentAssignedPhoneId?: string;
+  /** Sare peste sticky când telefonul curent e invalidat (ex. quarantine). */
+  forceReassign?: boolean;
 }
 
 export interface PhoneAllocatorResult {
@@ -267,79 +271,51 @@ async function allocateNewWaPhoneWithMinimumQuota(params: {
   leadId: string;
   journeyId: string;
   journeyCurrentState: string;
-  redis: Redis;
   channelSelectorQueue: Queue;
   db: DbClient;
-  waPhoneNumbers: typeof CerniqDb.waPhoneNumbers;
   leadJourney: typeof CerniqDb.leadJourney;
   eq: EqFn;
-  and: AndFn;
 }): Promise<PhoneAllocatorResult> {
   const {
     tenantId,
     leadId,
     journeyId,
     journeyCurrentState,
-    redis,
     channelSelectorQueue,
     db,
-    waPhoneNumbers,
     leadJourney,
     eq,
-    and,
   } = params;
 
+  const { sql } = await import("@cerniq/db");
   const today = new Date().toISOString().split("T")[0];
-  const activePhones = await db
-    .select()
-    .from(waPhoneNumbers)
-    .where(
-      and(
-        eq(waPhoneNumbers.tenantId, tenantId),
-        eq(waPhoneNumbers.isEnabled, true),
-        eq(waPhoneNumbers.status, "ACTIVE"),
-      ),
-    );
 
-  if (activePhones.length === 0) {
-    throw new Error(`No active phones available for tenant ${tenantId}`);
-  }
+  const { selectedId, phoneNumber } = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
 
-  let candidates = activePhones.slice();
-  let selectedPhone: (typeof activePhones)[0] | null = null;
-
-  while (candidates.length > 0) {
-    let best = candidates[0];
-    let minUsage = Infinity;
-    for (const phone of candidates) {
-      const quotaKey = `quota:wa:${phone.id}:${today}`;
-      const usage = Number((await redis.get(quotaKey)) ?? 0);
-      if (usage < minUsage) {
-        minUsage = usage;
-        best = phone;
-      }
+    const row = await pickNextWaPhoneForTenantSkipLocked({ tx, tenantId, today });
+    if (!row) {
+      return { selectedId: null as string | null, phoneNumber: null as string | null };
     }
-    const lockKey = `phone:lock:${best.id}`;
-    const acquired = await redis.set(lockKey, leadId, "EX", 30, "NX");
-    if (acquired === "OK") {
-      selectedPhone = best;
-      break;
-    }
-    candidates = candidates.filter((p) => p.id !== best.id);
+
+    await tx
+      .update(leadJourney)
+      .set({
+        assignedPhoneId: row.id,
+        assignedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(leadJourney.id, journeyId));
+
+    return { selectedId: row.id, phoneNumber: row.phoneNumber };
+  });
+
+  if (!selectedId || !phoneNumber) {
+    phoneAllocatorContentionTotal.inc({ outcome: "exhausted" });
+    throw new Error(`No assignable active phone (SKIP LOCKED) for tenant ${tenantId}`);
   }
 
-  if (!selectedPhone) {
-    throw new Error(`Could not acquire phone allocation lock for tenant ${tenantId}`);
-  }
-
-  await db
-    .update(leadJourney)
-    .set({
-      assignedPhoneId: selectedPhone.id,
-      assignedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(leadJourney.id, journeyId));
+  phoneAllocatorContentionTotal.inc({ outcome: "acquired" });
 
   await channelSelectorQueue.add(
     "select",
@@ -349,14 +325,14 @@ async function allocateNewWaPhoneWithMinimumQuota(params: {
       journeyId,
       currentState: journeyCurrentState,
       hasPhone: true,
-      phoneId: selectedPhone.id,
+      phoneId: selectedId,
     } satisfies ChannelSelectorJobData,
     { removeOnComplete: 100 },
   );
 
   return {
-    phoneId: selectedPhone.id,
-    phoneNumber: selectedPhone.phoneNumber,
+    phoneId: selectedId,
+    phoneNumber,
     isNewAssignment: true,
   };
 }
@@ -374,7 +350,7 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
     QUEUES.OUTREACH_PHONE_ALLOCATOR,
     async (job: Job<PhoneAllocatorJobData>): Promise<PhoneAllocatorResult> => {
       return withCognitiveSpan("e2:outreach:phone-allocator", async () => {
-        const { tenantId, leadId, journeyId, currentAssignedPhoneId } = job.data;
+        const { tenantId, leadId, journeyId, currentAssignedPhoneId, forceReassign } = job.data;
 
         const { db, setSessionTenantId } = await import("@cerniq/db");
         await setSessionTenantId(tenantId);
@@ -390,19 +366,22 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
           tenantId,
         );
 
-        const sticky = await tryReuseStickyWaPhoneAssignment({
-          tenantId,
-          leadId,
-          journeyId,
-          journeyCurrentState,
-          currentAssignedPhoneId,
-          redis,
-          channelSelectorQueue,
-          db,
-          waPhoneNumbers,
-          eq,
-          and,
-        });
+        const sticky =
+          forceReassign === true
+            ? null
+            : await tryReuseStickyWaPhoneAssignment({
+                tenantId,
+                leadId,
+                journeyId,
+                journeyCurrentState,
+                currentAssignedPhoneId,
+                redis,
+                channelSelectorQueue,
+                db,
+                waPhoneNumbers,
+                eq,
+                and,
+              });
         if (sticky) {
           return sticky;
         }
@@ -412,13 +391,10 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
           leadId,
           journeyId,
           journeyCurrentState,
-          redis,
           channelSelectorQueue,
           db,
-          waPhoneNumbers,
           leadJourney,
           eq,
-          and,
         });
       });
     },

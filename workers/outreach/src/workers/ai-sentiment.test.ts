@@ -11,12 +11,9 @@ vi.mock("@cerniq/db", () => ({
   setSessionTenantId: vi.fn(async () => undefined),
 }));
 
-// @anthropic-ai/sdk mock — returns configurable analysis result
-const anthropicMessagesMock = vi.fn();
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    messages: { create: anthropicMessagesMock },
-  })),
+const { fastCompletionCreate, frontierStepsRun } = vi.hoisted(() => ({
+  fastCompletionCreate: vi.fn(),
+  frontierStepsRun: vi.fn(),
 }));
 
 // ── Helper to create a mock Redis client ──────────────────────────────────────
@@ -54,6 +51,17 @@ vi.mock("@cerniq/worker-shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@cerniq/worker-shared")>();
   return {
     ...actual,
+    fastClient: {
+      chat: {
+        completions: {
+          create: fastCompletionCreate,
+        },
+      },
+    },
+    recordLlmFallback: vi.fn(),
+    buildFrontierChatTextFallbackSteps: vi.fn(() => [
+      { name: "mock-frontier-sentiment", run: frontierStepsRun },
+    ]),
     createQueue: vi.fn((name: string) => {
       if (!queueInstances.has(name)) queueInstances.set(name, createQueueMock());
       return queueInstances.get(name) ?? createQueueMock();
@@ -79,14 +87,14 @@ function makeJob(content: string, channel: SentimentJobData["channel"] = "WHATSA
   };
 }
 
-function setupAnthropicResponse(result: {
+function setupFastSentimentResponse(result: {
   score: number;
   intent: string;
   urgency: string;
   requiresHuman: boolean;
 }) {
-  anthropicMessagesMock.mockResolvedValueOnce({
-    content: [{ type: "text", text: JSON.stringify(result) }],
+  fastCompletionCreate.mockResolvedValueOnce({
+    choices: [{ message: { content: JSON.stringify(result) } }],
   });
 }
 
@@ -95,6 +103,8 @@ import type { SentimentJobData } from "./ai-sentiment.js";
 beforeEach(() => {
   vi.clearAllMocks();
   queueInstances.clear();
+  fastCompletionCreate.mockReset();
+  frontierStepsRun.mockReset();
 });
 
 afterEach(() => {
@@ -106,7 +116,7 @@ afterEach(() => {
 describe("createSentimentAnalyzerWorker: NOT_INTERESTED logic (merged from intent classifier)", () => {
   it("sets requiresHumanReview=true and humanReviewReason=AI_UNCERTAIN when intent=NOT_INTERESTED", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: 10,
       intent: "NOT_INTERESTED",
       urgency: "MEDIUM",
@@ -142,7 +152,7 @@ describe("createSentimentAnalyzerWorker: NOT_INTERESTED logic (merged from inten
   it("routes NOT_INTERESTED to HUMAN queue even when score >= 50", async () => {
     const redis = createRedisMock(null);
     // Edge: positive score but NOT_INTERESTED intent → must go to HUMAN, not AI
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: 70,
       intent: "NOT_INTERESTED",
       urgency: "LOW",
@@ -173,7 +183,7 @@ describe("createSentimentAnalyzerWorker: NOT_INTERESTED logic (merged from inten
 
   it("does NOT set review flags when intent=INTERESTED and requiresHuman=false", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: 80,
       intent: "INTERESTED",
       urgency: "LOW",
@@ -204,7 +214,7 @@ describe("createSentimentAnalyzerWorker: NOT_INTERESTED logic (merged from inten
 describe("createSentimentAnalyzerWorker: ADR-0063 routing", () => {
   it("routes score>=50 + !requiresHuman + !NOT_INTERESTED to AI response queue", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: 75,
       intent: "INTERESTED",
       urgency: "HIGH",
@@ -233,7 +243,12 @@ describe("createSentimentAnalyzerWorker: ADR-0063 routing", () => {
 
   it("routes requiresHuman=true to HUMAN review queue with AI_UNCERTAIN reason", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({ score: 20, intent: "QUESTION", urgency: "HIGH", requiresHuman: true });
+    setupFastSentimentResponse({
+      score: 20,
+      intent: "QUESTION",
+      urgency: "HIGH",
+      requiresHuman: true,
+    });
 
     const { createWorker } = await import("@cerniq/worker-shared");
     (createWorker as ReturnType<typeof vi.fn>).mockClear();
@@ -261,7 +276,7 @@ describe("createSentimentAnalyzerWorker: ADR-0063 routing", () => {
 
   it("routes negative score (score<0) to HUMAN review queue with NEGATIVE_SENTIMENT reason", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: -60,
       intent: "COMPLAINT",
       urgency: "HIGH",
@@ -291,7 +306,12 @@ describe("createSentimentAnalyzerWorker: ADR-0063 routing", () => {
 
   it("does not route neutral score (0..49) to either queue (no action)", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({ score: 30, intent: "NEUTRAL", urgency: "LOW", requiresHuman: false });
+    setupFastSentimentResponse({
+      score: 30,
+      intent: "NEUTRAL",
+      urgency: "LOW",
+      requiresHuman: false,
+    });
 
     const { createWorker } = await import("@cerniq/worker-shared");
     (createWorker as ReturnType<typeof vi.fn>).mockClear();
@@ -312,7 +332,7 @@ describe("createSentimentAnalyzerWorker: ADR-0063 routing", () => {
 
   it("sets humanReviewPriority=URGENT for HIGH urgency + requiresHuman", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: -10,
       intent: "COMPLAINT",
       urgency: "HIGH",
@@ -340,7 +360,12 @@ describe("createSentimentAnalyzerWorker: ADR-0063 routing", () => {
 
   it("sets humanReviewPriority=MEDIUM for LOW urgency + requiresHuman", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({ score: -5, intent: "COMPLAINT", urgency: "LOW", requiresHuman: true });
+    setupFastSentimentResponse({
+      score: -5,
+      intent: "COMPLAINT",
+      urgency: "LOW",
+      requiresHuman: true,
+    });
 
     const { createWorker } = await import("@cerniq/worker-shared");
     (createWorker as ReturnType<typeof vi.fn>).mockClear();
@@ -379,13 +404,14 @@ describe("createSentimentAnalyzerWorker: Redis cache", () => {
     ];
     const result = (await processor(makeJob("vreau să cumpăr"))) as Record<string, unknown>;
 
-    expect(anthropicMessagesMock).not.toHaveBeenCalled();
+    expect(fastCompletionCreate).not.toHaveBeenCalled();
+    expect(frontierStepsRun).not.toHaveBeenCalled();
     expect(result).toMatchObject({ score: 90, intent: "INTERESTED", routedTo: "AI" });
   });
 
-  it("caches Anthropic result in Redis with TTL=3600", async () => {
+  it("caches rezultat LLM (fast) în Redis cu TTL=3600", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({
+    setupFastSentimentResponse({
       score: 60,
       intent: "INTERESTED",
       urgency: "MEDIUM",
@@ -404,6 +430,7 @@ describe("createSentimentAnalyzerWorker: Redis cache", () => {
     ];
     await processor(makeJob("ok, mă interesează"));
 
+    expect(fastCompletionCreate).toHaveBeenCalled();
     expect(redis.set).toHaveBeenCalledWith(
       expect.stringContaining("sentiment:"),
       expect.any(String),
@@ -412,9 +439,41 @@ describe("createSentimentAnalyzerWorker: Redis cache", () => {
     );
   });
 
+  it("fallback frontier când infraq fast eșuează", async () => {
+    const redis = createRedisMock(null);
+    fastCompletionCreate.mockRejectedValueOnce(new Error("infraq timeout"));
+    frontierStepsRun.mockResolvedValueOnce(
+      JSON.stringify({
+        score: 55,
+        intent: "INTERESTED",
+        urgency: "LOW",
+        requiresHuman: false,
+      }),
+    );
+
+    const { createWorker } = await import("@cerniq/worker-shared");
+    (createWorker as ReturnType<typeof vi.fn>).mockClear();
+
+    const { createSentimentAnalyzerWorker } = await import("./ai-sentiment.js");
+    createSentimentAnalyzerWorker(redis as never);
+
+    const [, processor] = (createWorker as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      (job: unknown) => Promise<unknown>,
+    ];
+    const result = (await processor(makeJob("mesaj test"))) as Record<string, unknown>;
+    expect(result.score).toBe(55);
+    expect(frontierStepsRun).toHaveBeenCalled();
+  });
+
   it("uses tenant-scoped cache key (sentiment:{tenantId}:{hash}) to prevent cross-tenant leaks", async () => {
     const redis = createRedisMock(null);
-    setupAnthropicResponse({ score: 50, intent: "QUESTION", urgency: "LOW", requiresHuman: false });
+    setupFastSentimentResponse({
+      score: 50,
+      intent: "QUESTION",
+      urgency: "LOW",
+      requiresHuman: false,
+    });
 
     const { createWorker } = await import("@cerniq/worker-shared");
     (createWorker as ReturnType<typeof vi.fn>).mockClear();
@@ -466,7 +525,7 @@ describe("queue-registry: AI_INTENT_CLASSIFY removed", () => {
   it("total queue count matches assertQueueRegistryComplete (canonical registry)", async () => {
     const { assertQueueRegistryComplete, queueRegistry } = await import("@cerniq/worker-shared");
     expect(() => assertQueueRegistryComplete()).not.toThrow();
-    expect(queueRegistry).toHaveLength(346);
+    expect(queueRegistry).toHaveLength(350);
   });
 
   it("QUEUES constant does not export AI_INTENT_CLASSIFY", async () => {

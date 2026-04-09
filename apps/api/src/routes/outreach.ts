@@ -1836,15 +1836,18 @@ export async function outreachRoutes(app: FastifyInstance) {
 
       if (!updated) return reply.status(404).send({ success: false, error: "Review not found" });
 
-      const resolveQueue = createQueue(QUEUES.HUMAN_APPROVE_MESSAGE);
-      await resolveQueue.add("resolve-review", {
-        reviewId: id,
+      const auditQueue = createQueue(QUEUES.HUMAN_REVIEW_AUDIT_LOG);
+      await auditQueue.add("api-review-resolved", {
         tenantId,
-        actorId,
-        action: body.action,
-        editedContent: body.editedContent,
-        notes: body.notes,
-        ...buildProvenanceContext(req),
+        reviewId: id,
+        actorUserId: actorId,
+        eventType: "RESOLVED" as const,
+        payload: {
+          action: body.action,
+          editedContent: body.editedContent ?? null,
+          notes: body.notes ?? null,
+          ...buildProvenanceContext(req),
+        },
       });
 
       return reply.send({ success: true, data: updated });

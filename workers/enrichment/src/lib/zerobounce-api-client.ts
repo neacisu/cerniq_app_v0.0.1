@@ -1,4 +1,4 @@
-import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
+import { callExternalApi } from "@cerniq/worker-shared";
 
 const ZEROBOUNCE_API_URL = process.env.ZEROBOUNCE_API_URL ?? "https://api.zerobounce.net/v2";
 const ZEROBOUNCE_API_KEY = process.env.ZEROBOUNCE_API_KEY ?? "";
@@ -38,19 +38,8 @@ async function zerobounceValidateInternal(
   return (await response.json()) as ZeroBounceValidationResult;
 }
 
-const zerobounceBreaker = createCircuitBreaker(
-  zerobounceValidateInternal,
-  "zerobounce-api-client",
-  {
-    timeout: ZEROBOUNCE_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
-
 export async function zerobounceValidate(
   email: string,
 ): Promise<ZeroBounceValidationResult | null> {
-  return withExternalApiMetrics("zerobounce", () => zerobounceBreaker.fire(email));
+  return callExternalApi("zerobounce", () => zerobounceValidateInternal(email));
 }

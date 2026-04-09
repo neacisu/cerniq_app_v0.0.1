@@ -12,7 +12,16 @@
  */
 
 import type { Job, Worker } from "bullmq";
-import { QUEUES, createWorker, createQueue, withCognitiveSpan } from "@cerniq/worker-shared";
+import { z } from "zod";
+import {
+  QUEUES,
+  createWorker,
+  createQueue,
+  withCognitiveSpan,
+  buildDefaultConsensusModelRunners,
+  consensusStructuredVote,
+  shouldTriggerLlmConsensusVote,
+} from "@cerniq/worker-shared";
 import { e5ChurnEscalationsTotal } from "../lib/e5-metrics.js";
 
 export interface ChurnRiskEscalateJobData {
@@ -65,6 +74,34 @@ export function createChurnRiskEscalateWorker(): Worker {
           .slice(0, 3)
           .map((s) => ({ signalType: s.signalType, strength: s.strength }));
 
+        let churnConsensusDivergenceDetail: string | undefined;
+        if (shouldTriggerLlmConsensusVote({ churnScore }) && churnScore > 70) {
+          const models = buildDefaultConsensusModelRunners();
+          if (models.length >= 2) {
+            const vote = await consensusStructuredVote({
+              schema: z.object({ escalateImmediately: z.boolean() }),
+              messages: [
+                {
+                  role: "system",
+                  content: 'Return ONLY JSON: {"escalateImmediately":true|false} for churn risk.',
+                },
+                {
+                  role: "user",
+                  content: `churnScore=${churnScore} riskLevel=${riskLevel} clientId=${clientId}.`,
+                },
+              ],
+              models,
+              triggerLabel: "churn_gt_70",
+              onDivergence: async (detail) => {
+                churnConsensusDivergenceDetail = detail;
+              },
+            });
+            if (!vote.ok && vote.reason === "divergence" && churnConsensusDivergenceDetail) {
+              job.log(`[B11] churn consensus divergence: ${churnConsensusDivergenceDetail}`);
+            }
+          }
+        }
+
         const hitlPayload = {
           tenantId,
           clientId,
@@ -75,6 +112,7 @@ export function createChurnRiskEscalateWorker(): Worker {
           topSignals,
           recommendedAction: getRecommendedAction(riskLevel),
           escalatedAt: new Date().toISOString(),
+          churnConsensusDivergenceDetail,
         };
 
         const hitlJob = await hitlChurnInterventionQueue.add("intervention", hitlPayload, {

@@ -1,4 +1,5 @@
 import Bottleneck from "bottleneck";
+import { callExternalApi } from "@cerniq/worker-shared";
 
 /**
  * Resend API Client — WARM emails ONLY (ADR-0059)
@@ -58,45 +59,50 @@ export class ResendClient {
     this.sendLimiter = new Bottleneck({ maxConcurrent: 5, minTime: 100 });
   }
 
-  private async request<T>(
-    method: "GET" | "POST",
-    path: string,
-    body?: unknown,
-    attempt = 1,
-  ): Promise<T> {
+  private async fetchOnce(method: "GET" | "POST", path: string, body?: unknown): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
-    const response = await fetch(url, {
-      method,
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(30000),
-    });
+    return callExternalApi("resend", () =>
+      fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(8000),
+      }),
+    );
+  }
 
-    if (response.status === 429) {
-      if (attempt <= 5) {
-        await sleep(60000);
-        return this.request<T>(method, path, body, attempt + 1);
+  private async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    let attempt = 0;
+    for (;;) {
+      attempt += 1;
+      const response = await this.fetchOnce(method, path, body);
+
+      if (response.status === 429) {
+        if (attempt <= 5) {
+          await sleep(60000);
+          continue;
+        }
+        throw new Error(`Resend rate limit exceeded after ${attempt} retries`);
       }
-      throw new Error(`Resend rate limit exceeded after ${attempt} retries`);
-    }
 
-    if (response.status >= 500) {
-      if (attempt <= 3) {
-        await sleep(Math.pow(2, attempt) * 1000);
-        return this.request<T>(method, path, body, attempt + 1);
+      if (response.status >= 500) {
+        if (attempt <= 3) {
+          await sleep(Math.pow(2, attempt) * 1000);
+          continue;
+        }
+        throw new Error(`Resend server error ${response.status}`);
       }
-      throw new Error(`Resend server error ${response.status}`);
-    }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Resend error ${response.status}: ${errorText}`);
-    }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Resend error ${response.status}: ${errorText}`);
+      }
 
-    return response.json() as Promise<T>;
+      return response.json() as Promise<T>;
+    }
   }
 
   /**

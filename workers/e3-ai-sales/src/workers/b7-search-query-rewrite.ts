@@ -2,12 +2,13 @@
  * B7 — search:query:rewrite (concurrency:20, timeout:5s)
  *
  * Rescriere/expandare query folosind Qwen2.5-14B (fastClient) pe infraq.app/llm/v1/fast.
- * Include LLM Guard pentru detecție injection.
+ * Include LLM Guard (local + infraq guard în producție).
  * Enqueue search:vector:execute și search:bm25:execute în PARALEL.
  */
 import type { Processor } from "bullmq";
 import { setSessionTenantId } from "@cerniq/db";
 import { createQueue, DEFAULT_JOB_OPTIONS, QUEUES } from "@cerniq/worker-shared";
+import { e3ScanPromptBeforeLlm } from "../lib/e3-llm-guard.js";
 import { fastChat } from "../lib/llm-client.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -23,20 +24,6 @@ interface RewriteResponse {
   rewritten: string;
   expansions: string[];
   language: "ro" | "en";
-}
-
-// ── LLM Guard ─────────────────────────────────────────────────────────────────
-
-const INJECTION_PATTERNS = [
-  /ignore.*previous.*instruction/i,
-  /system.*prompt/i,
-  /forget.*everything/i,
-  /<script/i,
-  /union.*select/i,
-];
-
-function isInjectionAttempt(query: string): boolean {
-  return INJECTION_PATTERNS.some((p) => p.test(query));
 }
 
 // ── Queues ────────────────────────────────────────────────────────────────────
@@ -55,12 +42,12 @@ export const searchQueryRewriteProcessor: Processor<SearchQueryRewriteJobData> =
     `[b7:query:rewrite] tenantId=${tenantId} sessionId=${sessionId ?? "none"} query="${query.slice(0, 80)}"`,
   );
 
-  // LLM Guard — detecție injection
-  if (isInjectionAttempt(query)) {
+  const guard = await e3ScanPromptBeforeLlm(query);
+  if (guard.blocked) {
     console.warn(
-      `[b7:query:rewrite] injection detected tenantId=${tenantId} sessionId=${sessionId ?? "none"}`,
+      `[b7:query:rewrite] LLM Guard blocked tenantId=${tenantId} sessionId=${sessionId ?? "none"}`,
     );
-    return { ok: true, blocked: true, reason: "guard_blocked" };
+    return { ok: true, blocked: true, reason: guard.reason ?? "guard_blocked" };
   }
 
   const systemPrompt = `Ești un asistent pentru motoare de căutare de produse românești.
@@ -83,6 +70,7 @@ Regulă: "language" este "ro" dacă query-ul este în română, "en" dacă este 
         { role: "user", content: query },
       ],
       5_000,
+      { tenantId },
     );
 
     // Parse JSON — extrage din posibilele markdown code blocks

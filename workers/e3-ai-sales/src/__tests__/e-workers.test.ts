@@ -24,10 +24,19 @@ const {
   addMock,
   closeMock,
   createQueueMock,
+  shouldTriggerLlmConsensusVoteMock,
+  buildDefaultConsensusModelRunnersMock,
+  consensusStructuredVoteMock,
 } = vi.hoisted(() => {
   const addMock = vi.fn().mockResolvedValue({ id: "job-123" });
   const closeMock = vi.fn().mockResolvedValue(undefined);
   const createQueueMock = vi.fn(() => ({ add: addMock, close: closeMock }));
+  const shouldTriggerLlmConsensusVoteMock = vi.fn().mockReturnValue(false);
+  const buildDefaultConsensusModelRunnersMock = vi.fn().mockReturnValue([]);
+  const consensusStructuredVoteMock = vi.fn().mockResolvedValue({
+    ok: true,
+    value: { proceedDirectorReview: true },
+  });
 
   return {
     dbSelectMock: vi.fn(),
@@ -38,6 +47,9 @@ const {
     addMock,
     closeMock,
     createQueueMock,
+    shouldTriggerLlmConsensusVoteMock,
+    buildDefaultConsensusModelRunnersMock,
+    consensusStructuredVoteMock,
   };
 });
 
@@ -117,6 +129,9 @@ vi.mock("@cerniq/worker-shared", () => ({
     E3_PRICING_DISCOUNT_APPLY: "pricing:discount:apply",
     HITL_ESCALATION: "hitl:escalate",
   },
+  shouldTriggerLlmConsensusVote: shouldTriggerLlmConsensusVoteMock,
+  buildDefaultConsensusModelRunners: buildDefaultConsensusModelRunnersMock,
+  consensusStructuredVote: consensusStructuredVoteMock,
 }));
 
 // ── Helper builders ───────────────────────────────────────────────────────────
@@ -165,6 +180,12 @@ beforeEach(() => {
   addMock.mockResolvedValue({ id: "job-123" });
   closeMock.mockResolvedValue(undefined);
   createQueueMock.mockReturnValue({ add: addMock, close: closeMock });
+  shouldTriggerLlmConsensusVoteMock.mockReturnValue(false);
+  buildDefaultConsensusModelRunnersMock.mockReturnValue([]);
+  consensusStructuredVoteMock.mockResolvedValue({
+    ok: true,
+    value: { proceedDirectorReview: true },
+  });
 });
 
 // ── E27: pricing:discount:calculate ──────────────────────────────────────────

@@ -82,7 +82,7 @@ jobs:
         run: pnpm verify:sonar-config
 
       - name: 🔧 Smoke test scripturi audit (Node)
-        run: node --test tests/infra/audit-metadata-scripts.test.mjs tests/infra/sonar-token-from-rendered-env.test.mjs
+        run: node --test tests/infra/audit-metadata-scripts.test.mjs tests/infra/sonar-token-from-rendered-env.test.mjs tests/infra/k6-load-scripts.test.mjs tests/infra/chaos-artifacts.test.mjs tests/infra/run-vitest-ci-packages.test.mjs
 
       - name: ❌ Cancel workflow on failure
         if: failure()
@@ -221,6 +221,10 @@ jobs:
         run: pnpm test:coverage
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}
+
+      - name: 📊 Coverage summary (job summary)
+        if: always()
+        run: node infra/scripts/coverage-job-summary.mjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: 🧾 Run tests with JSON report
         run: pnpm test:ci
@@ -572,6 +576,8 @@ jobs:
       pull-requests: read
     outputs:
       workers: ${{ steps.filter.outputs.workers }}
+      web: ${{ steps.filter.outputs.web }}
+      api_or_load: ${{ steps.filter.outputs.api_or_load }}
 
     steps:
       - name: 📥 Checkout code
@@ -584,6 +590,12 @@ jobs:
           filters: |
             workers:
               - 'workers/**'
+            web:
+              - 'apps/web/**'
+            api_or_load:
+              - 'apps/api/**'
+              - 'tests/load/**'
+              - '.github/workflows/ci-pr.yml'
 
   # ==========================================================================
   # JOB 9: Python Workers Lint (conditional — only when workers/ changed)
@@ -616,6 +628,141 @@ jobs:
       - name: 📝 Run mypy type check
         run: mypy workers/ --ignore-missing-imports
         continue-on-error: true
+
+      - name: ❌ Cancel workflow on failure
+        if: failure()
+        run: gh run cancel ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # ==========================================================================
+  # JOB 9b: Playwright — smoke UI (doar la modificări apps/web)
+  # ==========================================================================
+  playwright-e2e:
+    name: 🎭 Playwright (web smoke)
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: [lint, changes]
+    if: needs.changes.outputs.web == 'true'
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎭 Install Playwright Chromium
+        run: cd apps/web && pnpm exec playwright install chromium --with-deps
+
+      - name: 🎭 Run Playwright smoke
+        env:
+          PW_DISABLE_TS_ESM: "1"
+        run: cd apps/web && pnpm exec playwright test --config playwright.config.cjs
+
+      - name: 📎 Playwright — raport HTML și test-results (la eșec)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-failure
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore
+
+      - name: ❌ Cancel workflow on failure
+        if: failure()
+        run: gh run cancel ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # ==========================================================================
+  # JOB 9c: k6 — inspect scripturi (fără API live)
+  # ==========================================================================
+  k6-validate:
+    name: 📈 k6 script inspect
+    runs-on: self-hosted
+    timeout-minutes: 5
+    needs: changes
+    if: needs.changes.outputs.api_or_load == 'true'
+    permissions:
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 k6 inspect load scripts
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work grafana/k6:0.57.0 inspect tests/load/api-health.k6.js
+          docker run --rm -v "$PWD:/work" -w /work grafana/k6:0.57.0 inspect tests/load/api-enrichment.k6.js
+          docker run --rm -v "$PWD:/work" -w /work grafana/k6:0.57.0 inspect tests/load/api-outreach.k6.js
+
+  # ==========================================================================
+  # JOB 9d: k6 — load efectiv (health, profil ciRamp ~5 min) + JSON pentru analiză
+  # Necesită API accesibil la API_BASE (implicit host.docker.internal:64010).
+  # Prag P95 health: K6_HEALTH_P95_MS (implicit 80ms în CI — ajustați vars.K6_HEALTH_P95_MS).
+  # ==========================================================================
+  k6-load-test:
+    name: 📈 k6 load (health ciRamp)
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: [changes, lint]
+    if: needs.changes.outputs.api_or_load == 'true'
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📂 Rezultate k6
+        run: mkdir -p test-results
+
+      - name: 📈 k6 run — api-health (K6_PROFILE=ciRamp)
+        env:
+          # fromJSON(toJSON(vars)) — același workaround ca la job sonarcloud (vscode-github-actions#222).
+          K6_API_BASE_VAR: ${{ fromJSON(toJSON(vars)).K6_API_BASE }}
+          K6_HEALTH_P95_MS_VAR: ${{ fromJSON(toJSON(vars)).K6_HEALTH_P95_MS }}
+        run: |
+          set -euo pipefail
+          API_URL="${K6_API_BASE_VAR:-http://host.docker.internal:64010}"
+          P95="${K6_HEALTH_P95_MS_VAR:-80}"
+          echo "API_BASE=$API_URL K6_HEALTH_P95_MS=$P95"
+          docker run --rm --add-host=host.docker.internal:host-gateway \
+            -v "$PWD:/work" -w /work \
+            -e K6_PROFILE=ciRamp \
+            -e API_BASE="$API_URL" \
+            -e K6_HEALTH_P95_MS="$P95" \
+            grafana/k6:0.57.0 run \
+            --summary-export=test-results/k6-load-summary.json \
+            --out json=test-results/k6-load-results.json \
+            tests/load/api-health.k6.js
+
+      - name: 📎 Artefacte k6 load
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-load-metrics
+          path: |
+            test-results/k6-load-summary.json
+            test-results/k6-load-results.json
+          if-no-files-found: ignore
 
       - name: ❌ Cancel workflow on failure
         if: failure()
@@ -729,6 +876,9 @@ jobs:
         docker-build,
         shellcheck,
         python-lint,
+        playwright-e2e,
+        k6-validate,
+        k6-load-test,
         sonarcloud,
       ]
     if: always()
@@ -745,6 +895,9 @@ jobs:
           echo "  docker-build: ${{ needs.docker-build.result }}"
           echo "  shellcheck:   ${{ needs.shellcheck.result }}"
           echo "  python-lint:  ${{ needs.python-lint.result }}"
+          echo "  playwright-e2e: ${{ needs.playwright-e2e.result }}"
+          echo "  k6-validate: ${{ needs.k6-validate.result }}"
+          echo "  k6-load-test: ${{ needs.k6-load-test.result }}"
           echo "  sonarcloud:   ${{ needs.sonarcloud.result }}"
 
           FAILED=0
@@ -769,6 +922,24 @@ jobs:
           if [[ "${{ needs.python-lint.result }}" == "failure" ]] || \
              [[ "${{ needs.python-lint.result }}" == "cancelled" ]]; then
             echo "❌ Job 'python-lint' failed (result: ${{ needs.python-lint.result }})"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.playwright-e2e.result }}" == "failure" ]] || \
+             [[ "${{ needs.playwright-e2e.result }}" == "cancelled" ]]; then
+            echo "❌ Job 'playwright-e2e' failed (result: ${{ needs.playwright-e2e.result }})"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.k6-validate.result }}" == "failure" ]] || \
+             [[ "${{ needs.k6-validate.result }}" == "cancelled" ]]; then
+            echo "❌ Job 'k6-validate' failed (result: ${{ needs.k6-validate.result }})"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.k6-load-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.k6-load-test.result }}" == "cancelled" ]]; then
+            echo "❌ Job 'k6-load-test' failed (result: ${{ needs.k6-load-test.result }})"
             FAILED=1
           fi
 

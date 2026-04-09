@@ -36,6 +36,7 @@ import {
   e4CreditScoreCalculatedTotal,
   e4CreditScoreDistribution,
 } from "../e4-metrics.js";
+import { runCreditBorderlineConsensusIfNeeded } from "../lib/credit-consensus-advisory.js";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
 
@@ -147,6 +148,13 @@ export const creditScoreCalculateProcessor: Processor<CreditScoreCalculateJobDat
       console.info(
         `[C17] Score calculated: profileId=${profileId}, score=${result.score}, tier=${result.riskTier}, limit=${result.creditLimit} RON`,
       );
+
+      void runCreditBorderlineConsensusIfNeeded({
+        tenantId,
+        clientId,
+        profileId,
+        creditScore: result.score,
+      }).catch((err) => console.warn("[C17] credit consensus advisory failed", err));
 
       return {
         ok: true,

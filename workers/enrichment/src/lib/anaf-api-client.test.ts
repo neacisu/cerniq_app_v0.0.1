@@ -54,11 +54,7 @@ describe("fetchAnafSingleByCui", () => {
     };
 
     vi.doMock("@cerniq/worker-shared", () => ({
-      createCircuitBreaker: vi.fn((fn: (...args: unknown[]) => unknown) => ({
-        fire: (...args: unknown[]) => fn(...args),
-        on: vi.fn(),
-      })),
-      withExternalApiMetrics: vi.fn(async (_provider: string, fn: () => unknown) => fn()),
+      callExternalApi: vi.fn((_provider: string, fn: () => unknown) => fn()),
     }));
 
     const mockFetch = vi.fn(async () => ({
@@ -85,11 +81,7 @@ describe("fetchAnafSingleByCui", () => {
 
   it("returns null when CUI is not found", async () => {
     vi.doMock("@cerniq/worker-shared", () => ({
-      createCircuitBreaker: vi.fn((fn: (...args: unknown[]) => unknown) => ({
-        fire: (...args: unknown[]) => fn(...args),
-        on: vi.fn(),
-      })),
-      withExternalApiMetrics: vi.fn(async (_provider: string, fn: () => unknown) => fn()),
+      callExternalApi: vi.fn((_provider: string, fn: () => unknown) => fn()),
     }));
 
     const mockFetch = vi.fn(async () => ({
@@ -111,11 +103,7 @@ describe("fetchAnafSingleByCui", () => {
 
   it("returns null for non-numeric CUI input", async () => {
     vi.doMock("@cerniq/worker-shared", () => ({
-      createCircuitBreaker: vi.fn((fn: (...args: unknown[]) => unknown) => ({
-        fire: (...args: unknown[]) => fn(...args),
-        on: vi.fn(),
-      })),
-      withExternalApiMetrics: vi.fn(async (_provider: string, fn: () => unknown) => fn()),
+      callExternalApi: vi.fn((_provider: string, fn: () => unknown) => fn()),
     }));
 
     const mockFetch = vi.fn(async () => ({

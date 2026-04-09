@@ -169,27 +169,15 @@ export const stockReservationActive = new Gauge({
 });
 
 // ---------------------------------------------------------------------------
-// LLM client unificat metrici (plan §XIII L9492-L9499)
+// LLM client unificat — sursa unică: @cerniq/worker-shared (metrics.ts + llm-client)
 // ---------------------------------------------------------------------------
 
-/**
- * Counter — cereri LLM per model, tip task, status și selfhosted flag.
- * Labels: model_id, task_type (reasoning/fast/embeddings), status, is_selfhosted.
- */
-export const llmRequestsTotal = new Counter({
-  name: "cerniq_llm_requests_total",
-  help: "Total LLM requests per model, task type and status",
-  labelNames: ["model_id", "task_type", "status", "is_selfhosted"] as const,
-  registers: [metricsRegistry],
-});
-
-/**
- * Counter — fallback-uri LLM la model frontier (Grok-4, GPT-4o).
- * Labels: frontier_model, reason (error/timeout/ratelimit).
- */
-export const llmFallbackTotal = new Counter({
-  name: "cerniq_llm_fallback_total",
-  help: "Total LLM fallbacks to frontier model per model and reason",
-  labelNames: ["frontier_model", "reason"] as const,
-  registers: [metricsRegistry],
-});
+export {
+  llmCostUsdTotal,
+  llmFallbackTotal,
+  llmLatencySeconds,
+  llmRequestsTotal,
+  llmTokensTotal,
+  recordLlmCostUsd,
+  recordLlmFallback,
+} from "@cerniq/worker-shared";

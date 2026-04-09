@@ -1,0 +1,33 @@
+{
+  "generatedFor": "FAZA 13 llm-fallback-frontier + integrare workeri (2026-04)",
+  "withLlmFallbackChain_and_or_buildFrontier": [
+    "workers/shared/src/llm-fallback.ts",
+    "workers/shared/src/llm-frontier-factory.ts",
+    "workers/e3-ai-sales/src/lib/llm-client.ts",
+    "workers/enrichment/src/lib/infraq-structured-json.ts",
+    "workers/outreach/src/workers/ai-sentiment.ts",
+    "workers/e5-nurturing/src/lib/claude-sentiment.ts"
+  ],
+  "consensusStructuredVote_triggers": [
+    "workers/e3-ai-sales/src/workers/e29-pricing-discount-approve.ts",
+    "workers/e4-postsale/src/lib/credit-consensus-advisory.ts",
+    "workers/e4-postsale/src/workers/c17-credit-score-calculate.ts",
+    "workers/e5-nurturing/src/workers/b11-churn-risk-escalate.ts"
+  ],
+  "phone_allocator_skip_locked": [
+    "workers/outreach/src/workers/orchestration.ts",
+    "workers/outreach/src/workers/wa-phone-skip-locked-pick.ts"
+  ],
+  "phone_banned_quarantine_queues": [
+    "workers/shared/src/queue-registry.ts",
+    "workers/outreach/src/workers/phone-monitoring.ts",
+    "workers/outreach/src/workers/extra-dispatch.ts"
+  ],
+  "metrics_llm_and_allocator": [
+    "workers/shared/src/metrics.ts"
+  ],
+  "ci_notes": {
+    "skip_locked_postgres": "Set RUN_TESTCONTAINERS=1 + Docker pentru workers/outreach/src/workers/wa-phone-skip-locked-pick.integration.test.ts (suite testcontainers)",
+    "legacy_DATABASE_URL": "Păstrat describe.skipIf(!DATABASE_URL) pentru medii cu Postgres existent"
+  }
+}

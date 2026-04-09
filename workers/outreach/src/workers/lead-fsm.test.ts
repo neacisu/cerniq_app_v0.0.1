@@ -1,128 +1,109 @@
-import { vi, describe, it, expect } from "vitest";
-
-// Mock @cerniq/db to prevent DATABASE_URL requirement
-// (transitive via @cerniq/worker-shared → import-execution.js → @cerniq/db)
-vi.mock("@cerniq/db", () => ({ db: {}, sql: vi.fn(), eq: vi.fn(), and: vi.fn() }));
-
-import { validateTransition, VALID_TRANSITIONS } from "./lead-fsm.js";
-
-// ─── VALID_TRANSITIONS map ────────────────────────────────────────────────────
+import { describe, it, expect } from "vitest";
+import { LEAD_JOURNEY_FSM_STATES } from "@cerniq/db/schemas/lead-journey-fsm-states";
+import {
+  validateTransition,
+  VALID_TRANSITIONS,
+  isLeadJourneyFsmStateValue,
+} from "./lead-fsm-transitions.js";
 
 describe("VALID_TRANSITIONS", () => {
-  it("defines transitions for all canonical FSM states", () => {
-    const expectedStates = [
-      "COLD",
-      "CONTACTED_WA",
-      "CONTACTED_EMAIL",
-      "WARM_REPLY",
-      "NEGOTIATION",
-      "CONVERTED",
-      "DEAD",
-      "PAUSED",
-    ];
-    for (const state of expectedStates) {
+  it("definește tranziții pentru toate stările din LEAD_JOURNEY_FSM_STATES", () => {
+    for (const state of LEAD_JOURNEY_FSM_STATES) {
       expect(VALID_TRANSITIONS).toHaveProperty(state);
+      expect(Array.isArray(VALID_TRANSITIONS[state])).toBe(true);
     }
+    expect(Object.keys(VALID_TRANSITIONS)).toHaveLength(LEAD_JOURNEY_FSM_STATES.length);
   });
 
-  it("CONVERTED is a terminal state with no outgoing transitions", () => {
-    expect(VALID_TRANSITIONS["CONVERTED"]).toHaveLength(0);
+  it("CONVERTED permite handoff post-vânzare (ONBOARDING / NURTURING_ACTIVE)", () => {
+    expect(VALID_TRANSITIONS["CONVERTED"]).toEqual(["ONBOARDING", "NURTURING_ACTIVE"]);
   });
 
-  it("DEAD can be resurrected to COLD", () => {
+  it("DO_NOT_CONTACT este terminal (fără ieșire)", () => {
+    expect(VALID_TRANSITIONS["DO_NOT_CONTACT"]).toHaveLength(0);
+  });
+
+  it("DEAD poate reveni la COLD sau DO_NOT_CONTACT", () => {
     expect(VALID_TRANSITIONS["DEAD"]).toContain("COLD");
+    expect(VALID_TRANSITIONS["DEAD"]).toContain("DO_NOT_CONTACT");
   });
 
-  it("COLD has at least two outgoing transitions", () => {
-    expect((VALID_TRANSITIONS["COLD"] as string[]).length).toBeGreaterThanOrEqual(2);
+  it("NURTURING_ACTIVE → CHURNED este interzis (trecere prin AT_RISK)", () => {
+    expect(validateTransition("NURTURING_ACTIVE", "CHURNED")).toBe(false);
   });
 });
 
-// ─── validateTransition ───────────────────────────────────────────────────────
+describe("isLeadJourneyFsmStateValue", () => {
+  it("acceptă fiecare stare din LEAD_JOURNEY_FSM_STATES", () => {
+    for (const s of LEAD_JOURNEY_FSM_STATES) {
+      expect(isLeadJourneyFsmStateValue(s)).toBe(true);
+    }
+  });
+
+  it("respinge stringuri care nu sunt în enum", () => {
+    expect(isLeadJourneyFsmStateValue("UNKNOWN")).toBe(false);
+    expect(isLeadJourneyFsmStateValue("")).toBe(false);
+  });
+});
 
 describe("validateTransition", () => {
-  // ── valid transitions ──
-
-  it("COLD → CONTACTED_WA is valid", () => {
-    expect(validateTransition("COLD", "CONTACTED_WA")).toBe(true);
+  it("COLD → CONTACTED_PHONE valid", () => {
+    expect(validateTransition("COLD", "CONTACTED_PHONE")).toBe(true);
   });
 
-  it("COLD → CONTACTED_EMAIL is valid", () => {
-    expect(validateTransition("COLD", "CONTACTED_EMAIL")).toBe(true);
+  it("WARM_REPLY → ENGAGED valid", () => {
+    expect(validateTransition("WARM_REPLY", "ENGAGED")).toBe(true);
   });
 
-  it("COLD → DEAD is valid", () => {
-    expect(validateTransition("COLD", "DEAD")).toBe(true);
+  it("NEGOTIATION → PROPOSAL valid", () => {
+    expect(validateTransition("NEGOTIATION", "PROPOSAL")).toBe(true);
   });
 
-  it("CONTACTED_WA → WARM_REPLY is valid", () => {
-    expect(validateTransition("CONTACTED_WA", "WARM_REPLY")).toBe(true);
+  it("PROPOSAL → CLOSING valid", () => {
+    expect(validateTransition("PROPOSAL", "CLOSING")).toBe(true);
   });
 
-  it("WARM_REPLY → NEGOTIATION is valid", () => {
-    expect(validateTransition("WARM_REPLY", "NEGOTIATION")).toBe(true);
+  it("CONVERTED → ONBOARDING valid", () => {
+    expect(validateTransition("CONVERTED", "ONBOARDING")).toBe(true);
   });
 
-  it("NEGOTIATION → CONVERTED is valid", () => {
-    expect(validateTransition("NEGOTIATION", "CONVERTED")).toBe(true);
+  it("ONBOARDING → NURTURING_ACTIVE valid", () => {
+    expect(validateTransition("ONBOARDING", "NURTURING_ACTIVE")).toBe(true);
   });
 
-  it("DEAD → COLD is valid (resurrection path)", () => {
-    expect(validateTransition("DEAD", "COLD")).toBe(true);
+  it("NURTURING_ACTIVE → AT_RISK valid", () => {
+    expect(validateTransition("NURTURING_ACTIVE", "AT_RISK")).toBe(true);
   });
 
-  it("PAUSED → COLD is valid", () => {
-    expect(validateTransition("PAUSED", "COLD")).toBe(true);
+  it("AT_RISK → CHURNED valid", () => {
+    expect(validateTransition("AT_RISK", "CHURNED")).toBe(true);
   });
 
-  it("PAUSED → WARM_REPLY is valid", () => {
-    expect(validateTransition("PAUSED", "WARM_REPLY")).toBe(true);
+  it("CHURNED → COLD valid (win-back)", () => {
+    expect(validateTransition("CHURNED", "COLD")).toBe(true);
   });
 
-  // ── invalid transitions ──
-
-  it("CONVERTED → anything is invalid (terminal state)", () => {
+  it("CONVERTED → COLD invalid", () => {
     expect(validateTransition("CONVERTED", "COLD")).toBe(false);
-    expect(validateTransition("CONVERTED", "NEGOTIATION")).toBe(false);
-    expect(validateTransition("CONVERTED", "DEAD")).toBe(false);
   });
 
-  it("COLD → CONVERTED is invalid (skip steps)", () => {
+  it("COLD → CONVERTED invalid (salt)", () => {
     expect(validateTransition("COLD", "CONVERTED")).toBe(false);
   });
 
-  it("COLD → NEGOTIATION is invalid (skip steps)", () => {
-    expect(validateTransition("COLD", "NEGOTIATION")).toBe(false);
-  });
-
-  it("COLD → WARM_REPLY is invalid (skip steps)", () => {
-    expect(validateTransition("COLD", "WARM_REPLY")).toBe(false);
-  });
-
-  it("NEGOTIATION → COLD is invalid", () => {
-    expect(validateTransition("NEGOTIATION", "COLD")).toBe(false);
-  });
-
-  // ── unknown states ──
-
-  it("unknown fromState returns false", () => {
+  it("unknown fromState → false", () => {
     expect(validateTransition("UNKNOWN_STATE", "COLD")).toBe(false);
   });
 
-  it("known fromState but unknown toState returns false", () => {
+  it("toState inexistent → false", () => {
     expect(validateTransition("COLD", "FLYING")).toBe(false);
   });
 
-  it("empty strings return false", () => {
-    expect(validateTransition("", "COLD")).toBe(false);
-    expect(validateTransition("COLD", "")).toBe(false);
-  });
-
-  // ── self-transitions ──
-
-  it("self-transitions are invalid (state cannot transition to itself)", () => {
-    for (const state of Object.keys(VALID_TRANSITIONS)) {
-      expect(validateTransition(state, state)).toBe(false);
+  it("nu există self-transition pentru stări cu ieșiri", () => {
+    for (const state of LEAD_JOURNEY_FSM_STATES) {
+      if ((VALID_TRANSITIONS[state] as string[]).length > 0) {
+        expect(validateTransition(state, state)).toBe(false);
+      }
     }
   });
 });

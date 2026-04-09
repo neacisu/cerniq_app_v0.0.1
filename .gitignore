@@ -103,6 +103,9 @@ coverage/
 .nyc_output/
 test-results/
 
+# Playwright E2E — storageState generat (setup); nu comit
+apps/web/playwright/.auth/
+
 # Temporary workspace artifacts (never commit)
 .tmp/
 

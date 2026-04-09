@@ -14,9 +14,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { execSync } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
+import { execSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 // =============================================================================
 // Test Configuration
@@ -195,22 +195,38 @@ describe("F0.7.3: Disaster Recovery Documentation", () => {
   describe("T001: DR runbook documentation", () => {
     it("should have recovery runbook", () => {
       const runbookExists =
+        fileExists("docs/runbooks/disaster-recovery-complete.md") ||
         fileExists("docs/runbooks/disaster-recovery.md") ||
         fileExists("docs/runbooks/openbao-recovery.md");
       expect(runbookExists).toBe(true);
     });
 
+    it("disaster-recovery-complete.md should reference real scripts and topology", () => {
+      const content = readFile("docs/runbooks/disaster-recovery-complete.md");
+      expect(content.length).toBeGreaterThan(500);
+      expect(content).toContain("infra/scripts/disaster_recovery_full.sh");
+      expect(content).toContain("10.0.1.107");
+      expect(content).toContain("64080");
+      expect(content).toMatch(/RTO|RPO/i);
+    });
+
+    it("credential-exposure-incident.md should reference rotation and OpenBao", () => {
+      const content = readFile("docs/runbooks/credential-exposure-incident.md");
+      expect(content).toContain("openbao-rotate-static-secrets.sh");
+      expect(content).toContain("disaster-recovery-complete.md");
+    });
+
     it("recovery runbook should have required sections", () => {
-      let content = readFile("docs/runbooks/disaster-recovery.md");
+      let content = readFile("docs/runbooks/disaster-recovery-complete.md");
+      if (!content) {
+        content = readFile("docs/runbooks/disaster-recovery.md");
+      }
       if (!content) {
         content = readFile("docs/runbooks/openbao-recovery.md");
       }
 
-      // Should have severity levels or decision tree
-      expect(content.match(/severity|level|scenario/i)).toBeTruthy();
-
-      // Should have recovery steps
-      expect(content.match(/step|procedure|recovery/i)).toBeTruthy();
+      expect(/scenario|scenarii|RTO|RPO/i.exec(content)).not.toBeNull();
+      expect(/procedure|procedur|recovery|restaurare/i.exec(content)).not.toBeNull();
     });
   });
 
@@ -226,7 +242,7 @@ describe("F0.7.3: Disaster Recovery Documentation", () => {
       let hasVerification = false;
       for (const docPath of paths) {
         const content = readFile(docPath);
-        if (content.match(/verif|test.*backup|restore.*test/i)) {
+        if (/verif|test.*backup|restore.*test/i.exec(content)) {
           hasVerification = true;
           break;
         }
@@ -247,10 +263,10 @@ describe("F0.7.4: Backup Monitoring & Alerting", () => {
       const content = readFile("infra/scripts/borg_backup_daily.sh");
 
       // Should have logging
-      expect(content.match(/log|echo|print/i)).toBeTruthy();
+      expect(/log|echo|print/i.exec(content)).not.toBeNull();
 
       // Should handle errors
-      expect(content.match(/error|fail|exit/i)).toBeTruthy();
+      expect(/error|fail|exit/i.exec(content)).not.toBeNull();
     });
   });
 
@@ -259,12 +275,10 @@ describe("F0.7.4: Backup Monitoring & Alerting", () => {
       const content = readFile("infra/scripts/borg_backup_daily.sh");
 
       // Should notify on failure (email, webhook, or logging)
-      const hasNotification = content.match(
-        /mail|curl.*slack|curl.*webhook|notify|alert|telegram/i,
-      );
-      const hasLogging = content.match(/log.*error|echo.*error|>&2/i);
+      const hasNotification = /mail|curl.*slack|curl.*webhook|notify|alert|telegram/i.exec(content);
+      const hasLogging = /log.*error|echo.*error|>&2/i.exec(content);
 
-      expect(hasNotification || hasLogging).toBeTruthy();
+      expect(hasNotification !== null || hasLogging !== null).toBe(true);
     });
   });
 });
@@ -298,14 +312,16 @@ describe("F0.7: Server Integration Tests", () => {
     // CT107, running psql as the postgres system user.
     itServer("should have WAL archiving enabled in running PostgreSQL", () => {
       const result = exec(
-        `ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.1.107 'su - postgres -c "psql -tAc \\"SHOW archive_mode\\""' 2>/dev/null`,
+        "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.1.107 " +
+          "su - postgres -c \"psql -tAc 'SHOW archive_mode'\" 2>/dev/null",
       );
       expect(result).toBe("on");
     });
 
     itServer("should have correct wal_level", () => {
       const result = exec(
-        `ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.1.107 'su - postgres -c "psql -tAc \\"SHOW wal_level\\""' 2>/dev/null`,
+        "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.1.107 " +
+          "su - postgres -c \"psql -tAc 'SHOW wal_level'\" 2>/dev/null",
       );
       expect(result).toBe("replica");
     });
@@ -336,6 +352,9 @@ describe("E0-S4-PR01 Summary", () => {
     const requiredFiles = [
       "infra/scripts/borg_backup_daily.sh",
       "infra/config/postgres/postgresql.conf",
+      "infra/scripts/dr-test-monthly.sh",
+      "docs/runbooks/disaster-recovery-complete.md",
+      "docs/runbooks/credential-exposure-incident.md",
     ];
 
     const missingFiles = requiredFiles.filter((f) => !fileExists(f));
@@ -345,5 +364,20 @@ describe("E0-S4-PR01 Summary", () => {
     }
 
     expect(missingFiles.length).toBe(0);
+  });
+
+  it("dr-test-monthly.sh should orchestrate backup_health_check and expose Prometheus metrics", () => {
+    const content = readFile("infra/scripts/dr-test-monthly.sh");
+    expect(content).toContain("backup_health_check.sh");
+    expect(content).toContain("disaster_recovery_full.sh");
+    expect(content).toContain("backup_dr_test_success");
+    expect(content).toContain("TEXTFILE_DIR");
+  });
+
+  it("Prometheus should define DRTestStale on backup_dr_test_last_success_timestamp", () => {
+    const alerts = readFile("infra/config/prometheus/infra-cerniq-alerts.yml");
+    expect(alerts).toContain("DRTestStale");
+    expect(alerts).toContain("backup_dr_test_last_success_timestamp");
+    expect(alerts).toContain("dr-test-monthly.sh");
   });
 });

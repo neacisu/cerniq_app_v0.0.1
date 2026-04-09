@@ -27,7 +27,9 @@ import {
 import {
   createAllWaWorkers,
   createWaDeliveryStatusWorker,
+  createWaLegacyReplyDeliveryStatusWorker,
   createWaReadReceiptWorker,
+  createWaLegacyChatHistoryReadReceiptWorker,
 } from "./workers/whatsapp.js";
 import {
   createWebhookNormalizerWorker,
@@ -76,6 +78,7 @@ import {
   createResponseGeneratorWorker,
 } from "./workers/ai-sentiment.js";
 import { createStateTransitionWorker, createStateValidateWorker } from "./workers/lead-fsm.js";
+import { createLeadAssignUserWorker } from "./workers/lead-assign-user.js";
 import {
   createSpintaxProcessWorker,
   createPersonalizeWorker,
@@ -86,6 +89,7 @@ import {
   createEmailColdCampaignCreateWorker,
   createEmailColdCampaignPauseWorker,
   createAlertPhoneOfflineWorker,
+  createAlertPhoneBannedWorker,
   createOutreachOrchestratorRouterWorker,
 } from "./workers/extra-dispatch.js";
 
@@ -128,7 +132,11 @@ async function bootstrap(): Promise<void> {
     push(w);
   }
   push(createWaDeliveryStatusWorker());
+  /** Drain `q:wa:reply` (deprecated) — același procesator ca `wa:delivery:status`. */
+  push(createWaLegacyReplyDeliveryStatusWorker());
   push(createWaReadReceiptWorker());
+  /** Job-uri încă pe `wa:chat:history:fetch` — același procesator ca read receipt. */
+  push(createWaLegacyChatHistoryReadReceiptWorker());
 
   push(createWebhookNormalizerWorker());
   push(createTimelinesAIEventProcessorWorker());
@@ -148,6 +156,7 @@ async function bootstrap(): Promise<void> {
 
   push(createPhoneHealthMonitorWorker());
   push(createPhoneStatusSyncWorker());
+  push(createAlertPhoneBannedWorker());
   push(createPhoneQuarantineWorker());
   push(createMergedMonitorQuotaWorker(redis));
   push(createAlertWorker(redis));
@@ -172,6 +181,7 @@ async function bootstrap(): Promise<void> {
 
   push(createStateTransitionWorker());
   push(createStateValidateWorker());
+  push(createLeadAssignUserWorker());
 
   push(createSpintaxProcessWorker());
   push(createPersonalizeWorker());

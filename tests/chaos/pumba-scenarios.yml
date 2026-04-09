@@ -1,0 +1,69 @@
+# Scenarii Chaos Engineering — Pumba (container names din infra/docker/docker-compose.yml)
+# Rulare: tests/chaos/run-chaos-test.sh <scenario_id>
+# NU rula pe producție fără Game Day aprobat (vezi docs/chaos-engineering-playbook.md).
+
+version: "1"
+metadata:
+  compose_file: infra/docker/docker-compose.yml
+  pumba_install: "https://github.com/gaia-adm/pumba — binar `pumba` sau imagine Docker `gaiaadm/pumba`"
+  tc_image_netem: "gaiadocker/iproute2"
+
+scenarios:
+  - id: redis-kill
+    description: "SIGKILL pe master Redis — așteptare failover Sentinel + reconectare workeri BullMQ"
+    container_name: cerniq-redis-master
+    pumba:
+      command: kill
+      args:
+        - "-s"
+        - "SIGKILL"
+        - "cerniq-redis-master"
+    expected:
+      - "Sentinel promovește replica; workerii se reconectează (factory BullMQ + circuit breaker metrics)."
+      - "Timp țintă empiric <10s după ce Redis e din nou reachable (măsurat în staging)."
+    blast_radius: "Cache/queue Redis indisponibil pe durata failover; risc de job retry."
+
+  - id: pgbouncer-pause
+    description: "Îngheț container PgBouncer — API DB unavailable / health fail"
+    container_name: cerniq-pgbouncer
+    pumba:
+      command: pause
+      args:
+        - "-d"
+        - "30s"
+        - "cerniq-pgbouncer"
+    expected:
+      - "Rute API care depind de DB pot returna 503 sau erori de conexiune; healthcheck DB fail."
+      - "După unpause, conexiunile se stabilizează (fără presupuneri — verificare manuală staging)."
+    blast_radius: "Toți clienții care trec prin PgBouncer; nu afectează direct Redis-only paths."
+
+  - id: worker-enrichment-net-delay
+    description: "Latency 500ms injectată pe rețea pentru worker enrichment"
+    container_name: cerniq-worker-enrichment
+    pumba:
+      command: netem
+      args:
+        - "-d"
+        - "60s"
+        - "--tc-image=gaiadocker/iproute2"
+        - "delay"
+        - "-t"
+        - "500"
+        - "cerniq-worker-enrichment"
+    expected:
+      - "Durate job/request cresc; metrici circuit breaker (cerniq_circuit_breaker_*) pot crește."
+    blast_radius: "Doar traficul containerului țintă; alte servicii neatinse."
+
+  - id: worker-enrichment-stress
+    description: "Stres CPU/mem pe worker enrichment (simulare presiune / apropiere OOM)"
+    container_name: cerniq-worker-enrichment
+    pumba:
+      command: stress
+      args:
+        - "-d"
+        - "30s"
+        - "cerniq-worker-enrichment"
+    expected:
+      - "Container poate deveni lent sau restartat de orchestrator; joburi preluate de alte instanțe dacă scalare orizontală."
+    note: "Vezi `pumba stress --help` (opțional `--stressors`, `--stress-image`)."
+    blast_radius: "Worker enrichment degradat; cozi asociate pot acumula lag."

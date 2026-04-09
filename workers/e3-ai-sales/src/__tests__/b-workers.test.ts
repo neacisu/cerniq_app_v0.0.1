@@ -274,7 +274,7 @@ describe("B8 — searchVectorExecuteProcessor", () => {
     const { embedText } = await import("../lib/llm-client.js");
     vi.mocked(embedText).mockResolvedValueOnce({
       embedding: new Array(3072).fill(0.1),
-      model: "qwen3-embedding-8b",
+      model: "qwen3-embedding-8b-q5km",
       dimensions: 3072,
       isFallback: false,
     });
@@ -338,7 +338,7 @@ describe("B8 — searchVectorExecuteProcessor", () => {
     const { embedText } = await import("../lib/llm-client.js");
     vi.mocked(embedText).mockResolvedValueOnce({
       embedding: new Array(3072).fill(0),
-      model: "qwen3-embedding-8b",
+      model: "qwen3-embedding-8b-q5km",
       dimensions: 3072,
       isFallback: false,
     });
@@ -364,7 +364,7 @@ describe("B8 — searchVectorExecuteProcessor", () => {
     const { embedText } = await import("../lib/llm-client.js");
     vi.mocked(embedText).mockResolvedValueOnce({
       embedding: new Array(3072).fill(0.05),
-      model: "qwen3-embedding-8b",
+      model: "qwen3-embedding-8b-q5km",
       dimensions: 3072,
       isFallback: false,
     });

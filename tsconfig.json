@@ -45,5 +45,10 @@
     "src/App.tsx",
     "src/pages/**/*.tsx"
   ],
-  "exclude": ["node_modules", "dist", "**/node_modules/**"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/node_modules/**",
+    "apps/web/e2e"
+  ]
 }

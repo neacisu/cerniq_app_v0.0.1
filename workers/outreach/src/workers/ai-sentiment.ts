@@ -12,25 +12,19 @@
 import type { Job, Worker } from "bullmq";
 import { createHash } from "node:crypto";
 import type { Redis } from "ioredis";
+import { z } from "zod";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import {
   QUEUES,
   createWorker,
   createQueue,
   withCognitiveSpan,
   getWaPhoneFollowupQueueName,
+  fastClient,
+  INFRAQ_FAST_MODEL,
+  withLlmFallbackChain,
+  buildFrontierChatTextFallbackSteps,
 } from "@cerniq/worker-shared";
-
-/** Primul bloc `text` din `message.content` (Messages API); altfel `fallback`. */
-function anthropicFirstTextBlock(content: unknown, fallback: string): string {
-  if (!Array.isArray(content) || content.length === 0) {
-    return fallback;
-  }
-  const block = content[0] as { type?: string; text?: string };
-  if (block?.type === "text" && typeof block.text === "string") {
-    return block.text;
-  }
-  return fallback;
-}
 
 // AI rate limit: 60/min from workers-overview RATE_LIMITS
 const AI_CACHE_TTL_SECONDS = 3600; // 1h cache
@@ -194,35 +188,65 @@ async function callAIForSentimentCached(opts: {
   return result;
 }
 
+const sentimentAnalysisSchema = z.object({
+  score: z.number().min(-100).max(100),
+  intent: z.enum(["INTERESTED", "NOT_INTERESTED", "QUESTION", "COMPLAINT", "NEUTRAL"]),
+  urgency: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  requiresHuman: z.boolean(),
+});
+
+function parseSentimentJsonText(text: string): z.infer<typeof sentimentAnalysisSchema> {
+  const cleaned = text.replaceAll(/```(?:json)?/gi, "").trim();
+  const raw = JSON.parse(cleaned) as unknown;
+  const parsed = sentimentAnalysisSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(`Sentiment JSON invalid: ${parsed.error.message}`);
+  }
+  return parsed.data;
+}
+
+/**
+ * Plan §XIII: clasificare/sentiment pe fastClient (Qwen2.5-14B); fallback frontier complet.
+ */
 async function callAIForSentiment(content: string): Promise<{
   score: number;
   intent: SentimentIntent;
   urgency: SentimentUrgency;
   requiresHuman: boolean;
 }> {
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const userMsg = `Analizează sentimentul mesajului de business (RO/EN). Returnează DOAR JSON:
+{"score": <int -100..100>, "intent": "INTERESTED"|"NOT_INTERESTED"|"QUESTION"|"COMPLAINT"|"NEUTRAL", "urgency": "LOW"|"MEDIUM"|"HIGH", "requiresHuman": <bool>}
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 200,
-    messages: [
-      {
-        role: "user",
-        content: `Analizează sentimentul următorului mesaj de business în română și returnează JSON cu:
-- score: număr între -100 (foarte negativ) și 100 (foarte pozitiv)
-- intent: 'INTERESTED' | 'NOT_INTERESTED' | 'QUESTION' | 'COMPLAINT' | 'NEUTRAL'
-- urgency: 'LOW' | 'MEDIUM' | 'HIGH'
-- requiresHuman: boolean (true dacă necesită intervenție umană)
+Mesaj: ${JSON.stringify(content.slice(0, 500))}`;
 
-Mesaj: "${content.slice(0, 500)}"
-
-Răspunde doar cu JSON valid.`,
-      },
-    ],
+  const messages: ChatCompletionMessageParam[] = [{ role: "user", content: userMsg }];
+  const frontier = buildFrontierChatTextFallbackSteps(messages, {
+    maxTokens: 256,
+    temperature: 0.1,
+    timeoutMs: 25_000,
   });
 
-  return JSON.parse(anthropicFirstTextBlock(response.content, "{}"));
+  return withLlmFallbackChain({
+    primary: async () => {
+      const completion = await fastClient.chat.completions.create(
+        {
+          model: INFRAQ_FAST_MODEL,
+          max_tokens: 256,
+          temperature: 0.1,
+          response_format: { type: "json_object" },
+          messages,
+        },
+        { signal: AbortSignal.timeout(10_000) },
+      );
+      const text = completion.choices[0]?.message?.content ?? "{}";
+      return parseSentimentJsonText(text);
+    },
+    fallbacks: frontier.map((f) => ({
+      name: f.name,
+      run: async () => parseSentimentJsonText(await f.run()),
+    })),
+    dataSensitivity: "non_sensitive",
+  });
 }
 
 // =============================================================================
@@ -248,25 +272,40 @@ export function createResponseGeneratorWorker(redis: Redis): Worker {
           return { response: cached, sent: false };
         }
 
-        const { default: Anthropic } = await import("@anthropic-ai/sdk");
-        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-        const response = await anthropic.messages.create({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 300,
-          system: `Ești un reprezentant de vânzări profesionist pentru Cerniq, o platformă B2B pentru agricultură din România.
+        const system = `Ești un reprezentant de vânzări profesionist pentru Cerniq, o platformă B2B pentru agricultură din România.
 Răspunzi în română, prietenos dar profesional. Compania: ${companyName ?? "prospectul"}.
-IMPORTANT: Răspunde în maxim 2-3 propoziții scurte.`,
-          messages: [
-            {
-              role: "user",
-              content: `Prospectul a răspuns: "${content.slice(0, 300)}"
-Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă conversația.`,
-            },
-          ],
-        });
+IMPORTANT: Răspunde în maxim 2-3 propoziții scurte.`;
 
-        const generatedResponse = anthropicFirstTextBlock(response.content, "");
+        const user = `Prospectul a răspuns: "${content.slice(0, 300)}"
+Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă conversația.`;
+
+        const respMessages: ChatCompletionMessageParam[] = [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ];
+        const frontierResp = buildFrontierChatTextFallbackSteps(respMessages, {
+          maxTokens: 300,
+          temperature: 0.35,
+          timeoutMs: 45_000,
+        });
+        const generatedResponse = (
+          await withLlmFallbackChain({
+            primary: async () => {
+              const completion = await fastClient.chat.completions.create(
+                {
+                  model: INFRAQ_FAST_MODEL,
+                  max_tokens: 300,
+                  temperature: 0.35,
+                  messages: respMessages,
+                },
+                { signal: AbortSignal.timeout(15_000) },
+              );
+              return completion.choices[0]?.message?.content?.trim() ?? "";
+            },
+            fallbacks: frontierResp.map((f) => ({ name: f.name, run: f.run })),
+            dataSensitivity: "non_sensitive",
+          })
+        ).trim();
 
         // Cache generated response
         await redis.set(cacheKey, generatedResponse, "EX", AI_CACHE_TTL_SECONDS);

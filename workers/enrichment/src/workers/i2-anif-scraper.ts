@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverEnrichmentLog } from "@cerniq/db";
-import { createCircuitBreaker, withCognitiveSpan } from "@cerniq/worker-shared";
+import { callExternalApi, withCognitiveSpan } from "@cerniq/worker-shared";
 import { patchCompanyMetadata } from "./pipeline-utils.js";
 
 export type AnifScraperJobData = {
@@ -82,24 +82,20 @@ function parseAnifHtml(html: string) {
   };
 }
 
-const anifBreaker = createCircuitBreaker(
-  async (url: string) => {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "text/html,application/json" },
-      signal: AbortSignal.timeout(Number(process.env.ANIF_TIMEOUT_MS ?? "20000")),
-    });
-    if (response.status === 404) return { status: 404 as const, body: null };
-    if (!response.ok) throw new Error(`ANIF scrape failed: ${response.status}`);
-    const contentType = response.headers.get("content-type") ?? "";
-    const body = contentType.includes("application/json")
-      ? ((await response.json()) as Record<string, unknown>)
-      : parseAnifHtml(await response.text());
-    return { status: 200 as const, body };
-  },
-  "anif-scraper",
-  { timeout: 20000, errorThresholdPercentage: 50, resetTimeout: 120000, volumeThreshold: 3 },
-);
+async function fetchAnifUrl(url: string) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "text/html,application/json" },
+    signal: AbortSignal.timeout(Number(process.env.ANIF_TIMEOUT_MS ?? "20000")),
+  });
+  if (response.status === 404) return { status: 404 as const, body: null };
+  if (!response.ok) throw new Error(`ANIF scrape failed: ${response.status}`);
+  const contentType = response.headers.get("content-type") ?? "";
+  const body = contentType.includes("application/json")
+    ? ((await response.json()) as Record<string, unknown>)
+    : parseAnifHtml(await response.text());
+  return { status: 200 as const, body };
+}
 
 export const anifScraperProcessor: Processor<AnifScraperJobData> = async (job) => {
   return withCognitiveSpan(
@@ -117,7 +113,7 @@ export const anifScraperProcessor: Processor<AnifScraperJobData> = async (job) =
         .replace("{cui}", encodeURIComponent(job.data.cui))
         .replace("{judet}", encodeURIComponent(job.data.judet ?? ""));
 
-      const scraped = await anifBreaker.fire(url);
+      const scraped = await callExternalApi("scraping", () => fetchAnifUrl(url));
       if (scraped.status === 404 || !scraped.body) {
         return { ok: true, status: "not_found", source: "anif_scraper" };
       }

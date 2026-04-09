@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverEnrichmentLog } from "@cerniq/db";
-import { createCircuitBreaker, withCognitiveSpan } from "@cerniq/worker-shared";
+import { callExternalApi, withCognitiveSpan } from "@cerniq/worker-shared";
 import { patchCompanyMetadata } from "./pipeline-utils.js";
 
 export type DajScraperJobData = {
@@ -66,24 +66,20 @@ function parseDajHtml(html: string) {
   };
 }
 
-const dajBreaker = createCircuitBreaker(
-  async (url: string) => {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "text/html,application/json" },
-      signal: AbortSignal.timeout(Number(process.env.DAJ_TIMEOUT_MS ?? "20000")),
-    });
-    if (response.status === 404) return { status: 404 as const, body: null };
-    if (!response.ok) throw new Error(`DAJ scrape failed: ${response.status}`);
-    const contentType = response.headers.get("content-type") ?? "";
-    const body = contentType.includes("application/json")
-      ? ((await response.json()) as Record<string, unknown>)
-      : parseDajHtml(await response.text());
-    return { status: 200 as const, body };
-  },
-  "daj-scraper",
-  { timeout: 20000, errorThresholdPercentage: 50, resetTimeout: 120000, volumeThreshold: 3 },
-);
+async function fetchDajUrl(url: string) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "text/html,application/json" },
+    signal: AbortSignal.timeout(Number(process.env.DAJ_TIMEOUT_MS ?? "20000")),
+  });
+  if (response.status === 404) return { status: 404 as const, body: null };
+  if (!response.ok) throw new Error(`DAJ scrape failed: ${response.status}`);
+  const contentType = response.headers.get("content-type") ?? "";
+  const body = contentType.includes("application/json")
+    ? ((await response.json()) as Record<string, unknown>)
+    : parseDajHtml(await response.text());
+  return { status: 200 as const, body };
+}
 
 export const dajScraperProcessor: Processor<DajScraperJobData> = async (job) => {
   return withCognitiveSpan(
@@ -101,7 +97,7 @@ export const dajScraperProcessor: Processor<DajScraperJobData> = async (job) => 
         .replace("{cui}", encodeURIComponent(job.data.cui))
         .replace("{judet}", encodeURIComponent(job.data.judet ?? ""));
 
-      const scraped = await dajBreaker.fire(url);
+      const scraped = await callExternalApi("scraping", () => fetchDajUrl(url));
       if (scraped.status === 404 || !scraped.body) {
         return { ok: true, status: "not_found", source: "daj_scraper" };
       }

@@ -1,4 +1,4 @@
-import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
+import { callExternalApi } from "@cerniq/worker-shared";
 
 const ONRC_API_URL =
   process.env.ONRC_API_URL ?? process.env.ONRC_PORTAL_URL ?? "https://portal.onrc.ro/api";
@@ -23,25 +23,18 @@ async function onrcGet(path: string): Promise<Record<string, unknown> | null> {
   return (await response.json()) as Record<string, unknown>;
 }
 
-const onrcBreaker = createCircuitBreaker(onrcGet, "onrc-api-client", {
-  timeout: ONRC_TIMEOUT_MS,
-  errorThresholdPercentage: 50,
-  resetTimeout: 30000,
-  volumeThreshold: 5,
-});
-
 export async function getOnrcData(cui: string): Promise<Record<string, unknown> | null> {
-  return withExternalApiMetrics("onrc", () => onrcBreaker.fire(`/companies/${cui}`));
+  return callExternalApi("onrc", () => onrcGet(`/companies/${cui}`));
 }
 
 export async function getOnrcAdministratori(cui: string): Promise<Record<string, unknown> | null> {
-  return withExternalApiMetrics("onrc", () => onrcBreaker.fire(`/companies/${cui}/administratori`));
+  return callExternalApi("onrc", () => onrcGet(`/companies/${cui}/administratori`));
 }
 
 export async function getOnrcSedii(cui: string): Promise<Record<string, unknown> | null> {
-  return withExternalApiMetrics("onrc", () => onrcBreaker.fire(`/companies/${cui}/sedii`));
+  return callExternalApi("onrc", () => onrcGet(`/companies/${cui}/sedii`));
 }
 
 export async function getOnrcHistory(cui: string): Promise<Record<string, unknown> | null> {
-  return withExternalApiMetrics("onrc", () => onrcBreaker.fire(`/companies/${cui}/history`));
+  return callExternalApi("onrc", () => onrcGet(`/companies/${cui}/history`));
 }

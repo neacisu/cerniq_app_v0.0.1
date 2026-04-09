@@ -12,25 +12,15 @@
  * Metrici: e5LlmRequestsTotal din ./e5-metrics.ts
  */
 
-import OpenAI from "openai";
-import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
+import {
+  createCircuitBreaker,
+  fastClient,
+  INFRAQ_FAST_MODEL,
+  withExternalApiMetrics,
+} from "@cerniq/worker-shared";
 import { e5LlmRequestsTotal } from "./e5-metrics.js";
 
-// ── Environment ───────────────────────────────────────────────────────────────
-
-const INFRAQ_BASE = process.env.INFRAQ_BASE ?? "https://infraq.app/llm/v1";
-const INFRAQ_API_KEY = process.env.INFRAQ_API_KEY ?? "";
-
-const FAST_MODEL = "Qwen/Qwen2.5-14B";
-
-// ── OpenAI-compat client → infraq.app/fast ────────────────────────────────────
-
-const fastClient = new OpenAI({
-  baseURL: `${INFRAQ_BASE}/fast`,
-  apiKey: INFRAQ_API_KEY || "no-key",
-  timeout: 30_000,
-  maxRetries: 0,
-});
+const FAST_MODEL = INFRAQ_FAST_MODEL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -114,8 +104,6 @@ function safeDefault(): ReferralDetectionResult {
 // ── Core LLM call ─────────────────────────────────────────────────────────────
 
 async function callFastLlm(text: string): Promise<ReferralDetectionResult> {
-  if (!INFRAQ_API_KEY) throw new Error("Missing INFRAQ_API_KEY — cannot call infraq.app/fast");
-
   const response = await fastClient.chat.completions.create(
     {
       model: FAST_MODEL,
@@ -151,10 +139,6 @@ const fastBreaker = createCircuitBreaker(callFastLlm, "infraq-referral-detect-e5
  * La eșec sau confidence < 0.6 → hasMention=false (safe default, NU excepție).
  */
 export async function detectReferralMention(text: string): Promise<ReferralDetectionResult> {
-  if (!INFRAQ_API_KEY) {
-    return safeDefault();
-  }
-
   try {
     const result = await withExternalApiMetrics("infraq-referral-detect-e5", () =>
       fastBreaker.fire(text),

@@ -6,6 +6,9 @@
  * - Retry Orchestrator (Network=3 exp, 429=5 fixed 60s, 4xx=0 DLQ, 5xx=3 exp)
  * - Business Hours Scheduler (09-18 Europe/Bucharest, weekends+holidays skip)
  * - Priority Queue Manager (1=alerts, 2=outreach, 3=cleanup)
+ *
+ * Notă audit (dead-code review): nu este duplicat al `factory.ts` — aici sunt politici
+ * ADR-0056/0057 (retry, DLQ, business hours RO), nu bootstrap generic BullMQ.
  */
 import type { Job, Worker } from "bullmq";
 import { DateTime } from "luxon";

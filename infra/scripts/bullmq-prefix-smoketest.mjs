@@ -8,7 +8,7 @@
  *
  * Requirements:
  * - REDIS_URL set (e.g. from OpenBao rendered /secrets/*.env)
- * - BULLMQ_PREFIX set to "cerniq" (no trailing ":")
+ * - BULLMQ_PREFIX required (e.g. "cerniq"; trailing colons are normalized away in app code)
  *
  * Notes:
  * - This script uses KEYS patterns for validation, which is NOT for production.
@@ -25,13 +25,11 @@ function requiredEnv(name) {
 
 function normalizeBullmqPrefix(raw) {
   // BullMQ adds its own ":" separators, so we keep prefix without trailing ":".
-  return raw.replace(/:+$/g, "");
+  return raw.replaceAll(/:+$/g, "");
 }
 
 const redisUrl = requiredEnv("REDIS_URL");
-const bullmqPrefix = normalizeBullmqPrefix(
-  process.env.BULLMQ_PREFIX || process.env.REDIS_PREFIX || "cerniq:",
-);
+const bullmqPrefix = normalizeBullmqPrefix(requiredEnv("BULLMQ_PREFIX"));
 const queueName = process.env.BULLMQ_QUEUE_NAME || "smoke:bullmq-prefix";
 
 const redis = new IORedis(redisUrl, {

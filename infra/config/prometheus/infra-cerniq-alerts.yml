@@ -102,6 +102,124 @@ groups:
           summary: "Redis memory usage high (>90%)"
           description: "Redis memory usage is above 90% on {{ $labels.instance }}"
 
+      # Profil redis-ha: master fără replică conectată (redis_exporter pe master).
+      - alert: RedisReplicaMissing
+        expr: redis_connected_slaves{job="cerniq-redis"} < 1 and up{job="cerniq-redis"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Redis master fără replică (sau lag de conectare)"
+          description: "redis_connected_slaves < 1 pe job cerniq-redis. Verifică cerniq-redis-replica și rețeaua cerniq_data."
+
+      # Metrici Sentinel (redis_exporter cu REDIS_EXPORTER_IS_SENTINEL). Nume metrică poate varia după versiune exporter.
+      - alert: RedisSentinelFailover
+        expr: increase(redis_sentinel_master_restarts_total{job="cerniq-redis-sentinel"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Posibil failover Redis Sentinel"
+          description: "Creștere redis_sentinel_master_restarts_total pe exporterul Sentinel. Verifică SENTINEL masters / logs."
+
+      # Lag replicare (bytes): oliver006/redis_exporter v1.58+ (exporter pe master).
+      # Aliniat pe `instance` (același țintă scrape). Fără sclavi, `min` e gol → fără alertă.
+      - alert: RedisReplicaLag
+        expr: |
+          (
+            avg by (instance) (redis_master_repl_offset{job="cerniq-redis"})
+            -
+            min by (instance) (redis_connected_slave_offset_bytes{job="cerniq-redis"})
+          ) > 1048576
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Lag replicare Redis > 1 MiB (master offset − min slave offset)"
+          description: "Diferența dintre offset master și minimul offseturilor sclavilor depășește 1 MiB timp de 5m. Verifică rețea, disk replica, load."
+
+      # Cel puțin un membru al clusterului trebuie să fie primary (vezi scrape dual CT107+CT108 în prometheus.yml).
+      - alert: PatroniLeaderMissing
+        expr: sum(patroni_primary{job="cerniq-patroni"}) < 1
+        for: 1m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Cluster Patroni fără primary (sau metrici lipsă)"
+          description: "sum(patroni_primary) < 1 timp de 1m. Verificați etcd/DCS, `patronictl list`, conectivitate REST :8008 pe CT107/CT108."
+
+      # Lag replicare (proxy în bytes): Patroni expune diff între received și replayed WAL pe replică.
+      # Nu există `patroni_replica_lag_seconds` nativ; prag ~80MB timp de 5m — ajustați după încărcare.
+      - alert: PatroniReplicaLag
+        expr: |
+          (
+            patroni_xlog_received_location{job="cerniq-patroni"}
+            -
+            patroni_xlog_replayed_location{job="cerniq-patroni"}
+          ) > 8e7
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Lag replicare Patroni (WAL received − replayed) ridicat"
+          description: "Diferență WAL > 80MB pe instanță. Verificați rețea, I/O standby, load primary."
+
+      # Schimbare timeline = failover/switchover sau re-bootstrap (nu există counter `patroni_failover_total` în Patroni).
+      - alert: PatroniFailover
+        expr: max(changes(patroni_postgres_timeline{job="cerniq-patroni"}[10m])) > 0
+        for: 0m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Schimbare timeline PostgreSQL (Patroni) — failover/switchover sau reprovizionare"
+          description: "Timeline Postgres s-a schimbat pe un nod. Verificați istoricul Patroni și aplicațiile."
+
+      - alert: PatroniTargetDown
+        expr: up{job="cerniq-patroni"} == 0
+        for: 7d
+        labels:
+          severity: info
+          project: cerniq
+        annotations:
+          summary: "Patroni /metrics indisponibil (prolongat)"
+          description: "Scrape Patroni down 7d pe un target. Dacă Patroni nu e deployat pe acel host, eliminați target-ul din prometheus.yml."
+
+      - alert: CircuitBreakerOpen
+        expr: cerniq_circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Circuit breaker deschis"
+          description: "Provider {{ $labels.provider }} — apeluri externe respinse până la half-open/close."
+
+      - alert: CircuitBreakerTripsHigh
+        expr: increase(cerniq_circuit_breaker_trips_total[5m]) > 5
+        for: 0m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Multe deschideri de circuit breaker"
+          description: "Peste 5 trip-uri în 5m pentru unul sau mai mulți provideri."
+
+      - alert: DRTestStale
+        expr: time() - backup_dr_test_last_success_timestamp > 2592000
+        for: 1h
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Test DR lunar neexecutat (>30 zile)"
+          description: "Rulați infra/scripts/dr-test-monthly.sh și/sau actualizați backup_dr_test_last_success_timestamp (textfile collector)."
+
       - alert: CerniqSecretsStale
         expr: cerniq_secrets_file_age_seconds{service="api"} > 7200
         for: 10m

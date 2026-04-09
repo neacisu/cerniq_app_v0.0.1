@@ -81,7 +81,7 @@ describe("e3-metrics — Prometheus contract", () => {
     llmRequestsTotal.inc({
       model_id: "x",
       task_type: "reasoning",
-      status: "ok",
+      status: "success",
       is_selfhosted: "false",
     });
     llmFallbackTotal.inc({ frontier_model: "gpt-4o", reason: "timeout" });

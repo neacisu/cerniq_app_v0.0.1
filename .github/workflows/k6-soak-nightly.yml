@@ -1,0 +1,71 @@
+# Soak test k6 (30m) — noaptea + manual.
+# Secret repository: K6_SOAK_API_BASE (URL API staging). Fără secret, job-ul se oprește după gate (fără eșec).
+
+name: k6 soak (nightly)
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: k6-soak-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  k6-soak:
+    name: 📈 k6 soak (health)
+    runs-on: self-hosted
+    timeout-minutes: 45
+
+    steps:
+      - name: Gate — secret K6_SOAK_API_BASE
+        id: gate
+        env:
+          # fromJSON(toJSON(secrets)) — același workaround ca în ci-pr (context secrets în IDE).
+          K6_SOAK_URL: ${{ fromJSON(toJSON(secrets)).K6_SOAK_API_BASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${K6_SOAK_URL:-}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Soak oprit: lipsește secretul repository K6_SOAK_API_BASE."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 📥 Checkout code
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: 📂 Rezultate
+        if: steps.gate.outputs.skip != 'true'
+        run: mkdir -p test-results
+
+      - name: 📈 k6 soak — api-health (K6_PROFILE=soak)
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          SOAK_URL: ${{ fromJSON(toJSON(secrets)).K6_SOAK_API_BASE }}
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e K6_PROFILE=soak \
+            -e API_BASE="$SOAK_URL" \
+            -e K6_HEALTH_P95_MS="${K6_HEALTH_P95_MS:-150}" \
+            grafana/k6:0.57.0 run \
+            --summary-export=test-results/k6-soak-summary.json \
+            --out json=test-results/k6-soak-results.json \
+            tests/load/api-health.k6.js
+
+      - name: 📎 Artefacte
+        if: always() && steps.gate.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-soak-metrics
+          path: |
+            test-results/k6-soak-summary.json
+            test-results/k6-soak-results.json
+          if-no-files-found: ignore

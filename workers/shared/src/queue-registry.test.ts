@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  LEGACY_WA_REPLY_QUEUE,
   QUEUE_NAME_PATTERN,
   QUEUES,
   assertQueueRegistryComplete,
@@ -29,8 +30,8 @@ describe("queue-registry", () => {
     // + 6 E5 Churn Detection B9-B14 = 299
     // + 5 E5 PostGIS Proximity C15-C19 = 304
     // … E5 graph, referral, feedback, win-back, association, NPS, drip, alerts, compliance, HITL
-    // + ai:response:generate (E2 outreach) — vezi `assertQueueRegistryComplete` (expected = 346).
-    expect(queueRegistry).toHaveLength(346);
+    // + ai:response:generate (E2 outreach) + phone:quarantine:trigger + 3 cozi semantice (WA delivery/read, HITL SLA) — expected = 350.
+    expect(queueRegistry).toHaveLength(350);
   });
 
   it("uses canonical colon-based queue names", () => {
@@ -45,6 +46,27 @@ describe("queue-registry", () => {
     expect(isKnownQueueName("pipeline:unknown")).toBe(false);
   });
 
+  it("PHONE_QUARANTINE este separată de ALERT_PHONE_BANNED (Etapa 2 outreach)", () => {
+    expect(QUEUES.PHONE_QUARANTINE).toBe("phone:quarantine:trigger");
+    expect(isKnownQueueName(QUEUES.PHONE_QUARANTINE)).toBe(true);
+    expect(getQueueConfig(QUEUES.PHONE_QUARANTINE)?.concurrency).toBe(10);
+  });
+
+  it("LEGACY_WA_REPLY_QUEUE este înregistrat pentru drain (fără duplicare de literal)", () => {
+    expect(LEGACY_WA_REPLY_QUEUE).toBe("q:wa:reply");
+    expect(isKnownQueueName(LEGACY_WA_REPLY_QUEUE)).toBe(true);
+    expect(getQueueConfig(LEGACY_WA_REPLY_QUEUE)?.concurrency).toBe(10);
+  });
+
+  it("cozi semantice WA delivery / read receipt / HITL SLA", () => {
+    expect(QUEUES.WA_DELIVERY_STATUS).toBe("wa:delivery:status");
+    expect(QUEUES.WA_READ_RECEIPT).toBe("wa:read:receipt");
+    expect(QUEUES.HITL_SLA_ENFORCE).toBe("hitl:sla:enforce");
+    expect(isKnownQueueName(QUEUES.WA_DELIVERY_STATUS)).toBe(true);
+    expect(isKnownQueueName(QUEUES.WA_READ_RECEIPT)).toBe(true);
+    expect(isKnownQueueName(QUEUES.HITL_SLA_ENFORCE)).toBe(true);
+  });
+
   it("returns queue configuration for known queues", () => {
     expect(getQueueConfig(QUEUES.PIPELINE_ORCHESTRATE)).toMatchObject({
       name: QUEUES.PIPELINE_ORCHESTRATE,
@@ -56,7 +78,7 @@ describe("queue-registry", () => {
   it("throws when the registry inventory is incomplete", () => {
     const removed = queueRegistry.pop();
     try {
-      expect(() => assertQueueRegistryComplete()).toThrow("Expected 346 queues");
+      expect(() => assertQueueRegistryComplete()).toThrow("Expected 350 queues");
     } finally {
       if (removed) queueRegistry.push(removed);
     }

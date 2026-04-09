@@ -31,10 +31,15 @@ POSTGRES_PASSWORD={{ .Data.password }}
 # Redis Configuration
 # =============================================================================
 # Route Redis via hz.247 internal L4 gateway (fixes VLAN<->vSwitch TCP handshake issues).
+# BULLMQ_PREFIX: obligatoriu pentru factory-ul de cozi BullMQ (apps/api); nu se folosește REDIS_PREFIX pentru BullMQ.
+# REDIS_PREFIX: rate-limit și alte namespac-uri non-BullMQ.
 REDIS_URL=redis://{{ .Data.redis_username }}:{{ .Data.redis_password }}@10.0.1.10:6379/0
 REDIS_PASSWORD={{ .Data.redis_password }}
 REDIS_PREFIX={{ .Data.redis_prefix }}
 BULLMQ_PREFIX={{ .Data.bullmq_prefix }}
+# Sentinel HA: vezi workers-env.tpl și profilul redis-ha din infra/docker/docker-compose.yml
+# REDIS_SENTINEL_HOSTS=cerniq-redis-sentinel:26379
+# REDIS_SENTINEL_NAME=cerniq-master
 
 # =============================================================================
 # JWT Configuration

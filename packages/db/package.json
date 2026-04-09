@@ -14,6 +14,16 @@
     "./test-utils": {
       "types": "./dist/test-utils/index.d.ts",
       "import": "./dist/test-utils/index.js"
+    },
+    "./schemas/lead-journey-fsm-states": {
+      "types": "./src/schemas/lead-journey-fsm-states.ts",
+      "import": "./dist/schemas/lead-journey-fsm-states.js",
+      "default": "./dist/schemas/lead-journey-fsm-states.js"
+    },
+    "./schemas/lead-journey-fsm-states.js": {
+      "types": "./src/schemas/lead-journey-fsm-states.ts",
+      "import": "./dist/schemas/lead-journey-fsm-states.js",
+      "default": "./dist/schemas/lead-journey-fsm-states.js"
     }
   },
   "scripts": {

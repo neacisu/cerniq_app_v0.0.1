@@ -346,6 +346,226 @@ services:
       <<: *default-logging
 
   # ==========================================================================
+  # Redis HA (Sentinel) — profil opțional: docker compose --profile redis-ha up
+  # Porturi host: 64060 master, 64061 sentinel (gama 64060–64069, ADR-0022).
+  # Aplicațiile folosesc REDIS_SENTINEL_HOSTS + REDIS_SENTINEL_NAME (vezi workers/shared/redis.ts).
+  # ==========================================================================
+  cerniq-redis-master:
+    profiles: ["redis-ha"]
+    image: redis:8-alpine
+    container_name: cerniq-redis-master
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "64060:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD required when profile redis-ha is enabled}
+    command:
+      - sh
+      - -c
+      - exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$$REDIS_PASSWORD"
+    volumes:
+      - ../config/redis/redis-ha.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.12
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "redis-master"
+      com.cerniq.port: "6379"
+    logging:
+      <<: *default-logging
+
+  cerniq-redis-replica:
+    profiles: ["redis-ha"]
+    image: redis:8-alpine
+    container_name: cerniq-redis-replica
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD required when profile redis-ha is enabled}
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --requirepass "$$REDIS_PASSWORD"
+        --replicaof cerniq-redis-master 6379
+        --masterauth "$$REDIS_PASSWORD"
+    volumes:
+      - ../config/redis/redis-ha.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.13
+    depends_on:
+      cerniq-redis-master:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "redis-replica"
+      com.cerniq.port: "6379"
+    logging:
+      <<: *default-logging
+
+  cerniq-redis-sentinel:
+    profiles: ["redis-ha"]
+    image: redis:8-alpine
+    container_name: cerniq-redis-sentinel
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "64061:26379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD required when profile redis-ha is enabled}
+      REDIS_SENTINEL_NAME: ${REDIS_SENTINEL_NAME:-cerniq-master}
+      REDIS_MASTER_HOST: cerniq-redis-master
+    volumes:
+      - ../scripts/redis-sentinel-entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.14
+    depends_on:
+      cerniq-redis-master:
+        condition: service_healthy
+      cerniq-redis-replica:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "redis-sentinel"
+      com.cerniq.port: "26379"
+    logging:
+      <<: *default-logging
+
+  cerniq-redis-exporter:
+    profiles: ["redis-ha"]
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: cerniq-redis-exporter
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      REDIS_ADDR: "redis://:${REDIS_PASSWORD}@cerniq-redis-master:6379"
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.16
+    depends_on:
+      cerniq-redis-master:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.05"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "redis-exporter"
+      com.cerniq.port: "9121"
+    logging:
+      <<: *default-logging
+
+  cerniq-redis-sentinel-exporter:
+    profiles: ["redis-ha"]
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: cerniq-redis-sentinel-exporter
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      REDIS_ADDR: "redis://:${REDIS_PASSWORD}@cerniq-redis-sentinel:26379"
+      REDIS_EXPORTER_IS_SENTINEL: "true"
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.17
+    depends_on:
+      cerniq-redis-sentinel:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.05"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "redis-sentinel-exporter"
+      com.cerniq.port: "9121"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
   # OpenBao Agent - API Service Sidecar
   # ==========================================================================
   # Injects secrets into API service via template rendering

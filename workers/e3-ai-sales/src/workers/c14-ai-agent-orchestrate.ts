@@ -2,13 +2,14 @@
  * C14 — ai:agent:orchestrate (concurrency:10, timeout:120s) CRITICAL
  *
  * Orchestrare principală a agentului AI:
- *  - LLM Guard pre/post (STUB — e3-guardrails pending)
+ *  - LLM Guard pre/post (local + infraq guard în producție)
  *  - Apel QwQ-32B-AWQ via reasoningChat (fallback: Grok-4 → GPT-4o)
  *  - Extrage tool_call patterns din răspuns
  *  - Enqueue downstream: C15 ai:e3:response:generate
  */
 import type { Processor } from "bullmq";
 import { createQueue, DEFAULT_JOB_OPTIONS, QUEUES } from "@cerniq/worker-shared";
+import { e3ScanOutputAfterLlm, e3ScanPromptBeforeLlm } from "../lib/e3-llm-guard.js";
 import { reasoningChat } from "../lib/llm-client.js";
 
 const LOG = "[c14:ai:agent:orchestrate]";
@@ -32,32 +33,6 @@ export interface AiAgentOrchestrateJobData {
 export interface ExtractedToolCall {
   name: string;
   input: unknown;
-}
-
-// ── LLM Guard (STUB — e3-guardrails pending) ─────────────────────────────────
-
-const INJECTION_PATTERNS = [
-  /ignore.*previous.*instruction/i,
-  /system.*prompt.*override/i,
-  /forget.*everything/i,
-  /<script[\s>]/i,
-  /union\s+select/i,
-  /drop\s+table/i,
-];
-
-function guardPreScan(text: string, sessionId: string): void {
-  const suspicious = INJECTION_PATTERNS.some((p) => p.test(text));
-  if (suspicious) {
-    console.warn(`${LOG} [GUARD-PRE] possible injection attempt sessionId=${sessionId}`);
-  } else {
-    console.info(`${LOG} [GUARD-PRE] STUB pass sessionId=${sessionId}`);
-  }
-}
-
-function guardPostScan(text: string, sessionId: string): void {
-  console.info(
-    `${LOG} [GUARD-POST] STUB pass sessionId=${sessionId} responseLength=${text.length}`,
-  );
 }
 
 // ── Tool call extraction ──────────────────────────────────────────────────────
@@ -109,10 +84,7 @@ export const aiAgentOrchestrateProcessor: Processor<AiAgentOrchestrateJobData> =
     `${LOG} tenantId=${tenantId} sessionId=${sessionId} attempt=${attemptNumber} tools=${allowedTools.length}`,
   );
 
-  // 1. LLM Guard pre-scan
-  guardPreScan(userMessage, sessionId);
-
-  // 2. Build user prompt complet
+  // 1. Build user prompt complet
   const historyText = conversationHistory
     .map((m) => `[${m.role.toUpperCase()}]: ${m.content}`)
     .join("\n\n");
@@ -125,15 +97,43 @@ export const aiAgentOrchestrateProcessor: Processor<AiAgentOrchestrateJobData> =
     fullUserPrompt = `${correctionNote}\n\n${fullUserPrompt}`;
   }
 
+  // 2. LLM Guard — scanare prompt complet înainte de model
+  const preGuard = await e3ScanPromptBeforeLlm(fullUserPrompt);
+  if (preGuard.blocked) {
+    console.warn(`${LOG} [GUARD-PRE] blocked sessionId=${sessionId}`);
+    return {
+      ok: true,
+      sessionId,
+      guardBlocked: true,
+      reason: preGuard.reason ?? "guard_blocked",
+      modelUsed: "",
+      responseText: "",
+      toolCallsCount: 0,
+    };
+  }
+
   // 3. Call reasoningChat cu QwQ-32B-AWQ (fallback: Grok-4 → GPT-4o)
   const { text: responseText, modelUsed } = await reasoningChat(systemPrompt, fullUserPrompt, {
     temperature: 0.3,
     maxTokens: 4096,
     timeoutMs: 90_000,
+    tenantId,
   });
 
-  // 4. LLM Guard post-scan
-  guardPostScan(responseText, sessionId);
+  // 4. LLM Guard — scanare output
+  const postGuard = await e3ScanOutputAfterLlm(fullUserPrompt, responseText);
+  if (postGuard.blocked) {
+    console.warn(`${LOG} [GUARD-POST] blocked sessionId=${sessionId}`);
+    return {
+      ok: true,
+      sessionId,
+      guardBlocked: true,
+      reason: postGuard.reason ?? "guard_blocked_output",
+      modelUsed,
+      responseText: "",
+      toolCallsCount: 0,
+    };
+  }
 
   // 5. Extrage tool calls din răspuns
   const toolCalls = extractToolCalls(responseText);

@@ -1,9 +1,40 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import prettier from "prettier";
 
 const rootDir = process.cwd();
 const resultsDir = path.join(rootDir, "test-results", "vitest");
+
+/**
+ * Rapoarte `--reporter=json` (Vitest) pe o singură linie → formatare Prettier.
+ * NU folosim `filepath` în `prettier.format`: `.prettierignore` conține `test-results`,
+ * iar cu filepath Prettier returnează conținutul nemodificat (fișier „ignorat”).
+ */
+async function formatVitestJsonReports() {
+  const baseOptions = (await prettier.resolveConfig(rootDir)) ?? {};
+  let names;
+  try {
+    names = readdirSync(resultsDir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const filePath = path.join(resultsDir, name);
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      const formatted = await prettier.format(raw, {
+        ...baseOptions,
+        parser: "json",
+      });
+      writeFileSync(filePath, formatted);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[run-vitest-ci] prettier skip ${name}: ${msg}`);
+    }
+  }
+}
 
 const packages = [
   "@cerniq/api",
@@ -133,6 +164,8 @@ writeFileSync(
     2,
   ),
 );
+
+await formatVitestJsonReports();
 
 if (failed) {
   process.exit(1);

@@ -20,15 +20,17 @@
     "@cerniq/worker-shared": "workspace:*",
     "bullmq": "^5.71.0",
     "ioredis": "^5.10.0",
+    "openai": "^4.103.0",
     "luxon": "^3.7.2",
     "uuid": "^11.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^11.12.0",
     "@types/luxon": "^3.7.1",
     "@types/node": "^22.15.3",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.2"
+    "vitest": "^4.1.0"
   }
 }

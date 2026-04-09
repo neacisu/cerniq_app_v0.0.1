@@ -12,6 +12,15 @@ const SENSITIVE_KEYS = new Set([
   "BULLMQ_PREFIX",
   "JWT_SECRET",
   "JWT_REFRESH_SECRET",
+  /** Bearer pentru LLM Guard pe infraq.app (OpenBao → workers.env). Plan §XIII. */
+  "INFRAQ_GUARD_TOKEN",
+  /** Frontier LLM / consensus (Plan §XIII FAZA 13). */
+  "XAI_API_KEY",
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
+  "GOOGLE_AI_API_KEY",
+  "DEEPSEEK_API_KEY",
 ]);
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 

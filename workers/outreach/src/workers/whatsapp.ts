@@ -19,6 +19,9 @@ import {
   waSent,
   outreachMessagesSentTotal,
 } from "@cerniq/worker-shared";
+
+/** Numele cozii Redis pentru drain istoric (aceeași valoare ca `LEGACY_WA_REPLY_QUEUE` din `@cerniq/worker-shared`). */
+const WA_REPLY_LEGACY_QUEUE_NAME = "q:wa:reply" as const;
 import { quotaGuardianCheck } from "./quota-guardian.js";
 
 // =============================================================================
@@ -74,8 +77,8 @@ export interface WaDeliveryStatusJobData {
   tenantId: string;
   externalMessageId: string;
   chatId: string;
-  /** EXACT values from TimelinesAI webhook — SENT, DELIVERED, READ, FAILED */
-  status: "SENT" | "DELIVERED" | "READ" | "FAILED";
+  /** Valori din webhook TimelinesAI / mapare internă — inclus BLOCKED (utilizator/platformă). */
+  status: "SENT" | "DELIVERED" | "READ" | "FAILED" | "BLOCKED";
   timestamp: string;
   failureReason?: string;
 }
@@ -273,54 +276,65 @@ export function createAllWaWorkers(redis: Redis, luaSha: string): Worker[] {
 // Processes SENT/DELIVERED/READ/FAILED from TimelinesAI webhooks
 // =============================================================================
 
+export async function processWaDeliveryStatusJob(job: Job<WaDeliveryStatusJobData>): Promise<void> {
+  const { tenantId, externalMessageId, status, timestamp, failureReason } = job.data;
+
+  const validStatuses = ["SENT", "DELIVERED", "READ", "FAILED", "BLOCKED"] as const;
+  if (!validStatuses.includes(status)) {
+    throw new Error(`Invalid message status: ${status}`);
+  }
+
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
+  const { communicationLog } = await import("@cerniq/db");
+  const { eq, and } = await import("@cerniq/db");
+
+  await db
+    .update(communicationLog)
+    .set({
+      status,
+      statusUpdatedAt: new Date(),
+      ...(status === "SENT" ? { sentAt: new Date(timestamp) } : {}),
+      ...(status === "DELIVERED" ? { deliveredAt: new Date(timestamp) } : {}),
+      ...(status === "READ" ? { readAt: new Date(timestamp) } : {}),
+      ...(status === "FAILED"
+        ? { errorMessage: failureReason ?? "Delivery reported as FAILED" }
+        : {}),
+      ...(status === "BLOCKED"
+        ? {
+            errorMessage: failureReason ?? "Delivery reported as BLOCKED (user or platform)",
+          }
+        : {}),
+    })
+    .where(
+      and(
+        eq(communicationLog.externalMessageId, externalMessageId),
+        eq(communicationLog.tenantId, tenantId),
+      ),
+    );
+
+  if (status === "FAILED") {
+    const retryQueue = createQueue(QUEUES.WA_MESSAGE_RETRY);
+    await retryQueue.add(
+      "evaluate",
+      { tenantId, externalMessageId, failureReason },
+      { removeOnComplete: 100 },
+    );
+  }
+}
+
 export function createWaDeliveryStatusWorker(): Worker {
-  const { worker } = createWorker(
-    QUEUES.WA_REPLY, // delivery status from TimelinesAI webhook ingest
-    async (job: Job<WaDeliveryStatusJobData>): Promise<void> => {
-      const { tenantId, externalMessageId, status, timestamp, failureReason } = job.data;
+  const { worker } = createWorker(QUEUES.WA_DELIVERY_STATUS, processWaDeliveryStatusJob, {
+    concurrency: 100,
+  });
+  return worker;
+}
 
-      // Status values MUST be exactly: SENT, DELIVERED, READ, FAILED
-      const validStatuses = ["SENT", "DELIVERED", "READ", "FAILED"] as const;
-      if (!validStatuses.includes(status)) {
-        throw new Error(`Invalid message status: ${status}`);
-      }
-
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(tenantId);
-      const { communicationLog } = await import("@cerniq/db");
-      const { eq, and } = await import("@cerniq/db");
-
-      await db
-        .update(communicationLog)
-        .set({
-          status,
-          statusUpdatedAt: new Date(),
-          ...(status === "SENT" ? { sentAt: new Date(timestamp) } : {}),
-          ...(status === "DELIVERED" ? { deliveredAt: new Date(timestamp) } : {}),
-          ...(status === "READ" ? { readAt: new Date(timestamp) } : {}),
-          ...(status === "FAILED"
-            ? { errorMessage: failureReason ?? "Delivery reported as FAILED" }
-            : {}),
-        })
-        .where(
-          and(
-            eq(communicationLog.externalMessageId, externalMessageId),
-            eq(communicationLog.tenantId, tenantId),
-          ),
-        );
-
-      // FAILED: queue for retry evaluation
-      if (status === "FAILED") {
-        const retryQueue = createQueue(QUEUES.WA_MESSAGE_RETRY);
-        await retryQueue.add(
-          "evaluate",
-          { tenantId, externalMessageId, failureReason },
-          { removeOnComplete: 100 },
-        );
-      }
-    },
-    { concurrency: 100 },
-  );
+/** Consumator pentru coada istorică `q:wa:reply` până la drain complet în Redis. */
+export function createWaLegacyReplyDeliveryStatusWorker(): Worker {
+  const { worker } = createWorker(WA_REPLY_LEGACY_QUEUE_NAME, processWaDeliveryStatusJob, {
+    concurrency: 100,
+  });
   return worker;
 }
 
@@ -329,76 +343,80 @@ export function createWaDeliveryStatusWorker(): Worker {
 // Tracks read events, updates engagement score (NO re-send trigger)
 // =============================================================================
 
+async function processWaReadReceiptJob(job: Job<WaReadReceiptJobData>): Promise<void> {
+  const { tenantId, externalMessageId, readAt, journeyId } = job.data;
+
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
+  const { communicationLog, leadJourney } = await import("@cerniq/db");
+  const { eq, and, sql } = await import("@cerniq/db");
+
+  await db
+    .update(communicationLog)
+    .set({
+      status: "READ",
+      readAt: new Date(readAt),
+      statusUpdatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(communicationLog.externalMessageId, externalMessageId),
+        eq(communicationLog.tenantId, tenantId),
+      ),
+    );
+
+  const [j] = await db
+    .select({
+      replyCount: leadJourney.replyCount,
+      sentimentScore: leadJourney.sentimentScore,
+    })
+    .from(leadJourney)
+    .where(eq(leadJourney.id, journeyId))
+    .limit(1);
+
+  const outbound = await db
+    .select({ c: sql<number>`COUNT(*)::int` })
+    .from(communicationLog)
+    .where(
+      and(
+        eq(communicationLog.leadJourneyId, journeyId),
+        eq(communicationLog.direction, "OUTBOUND"),
+      ),
+    );
+  const inbound = await db
+    .select({ c: sql<number>`COUNT(*)::int` })
+    .from(communicationLog)
+    .where(
+      and(eq(communicationLog.leadJourneyId, journeyId), eq(communicationLog.direction, "INBOUND")),
+    );
+
+  const sent = outbound[0]?.c ?? 0;
+  const received = inbound[0]?.c ?? 0;
+  const sentiment = j?.sentimentScore ?? 0;
+  const vResponseRate = sent > 0 ? (received / sent) * 40 : 0;
+  const vSentiment = ((sentiment + 100) / 200) * 30;
+  const engagementScore = Math.min(100, Math.max(0, Math.round(vResponseRate + vSentiment)));
+
+  await db
+    .update(leadJourney)
+    .set({
+      engagementScore,
+      updatedAt: new Date(),
+    })
+    .where(eq(leadJourney.id, journeyId));
+}
+
 export function createWaReadReceiptWorker(): Worker {
-  const { worker } = createWorker(
-    QUEUES.WA_CHAT_HISTORY_FETCH, // read receipts processed after chat history fetch
-    async (job: Job<WaReadReceiptJobData>): Promise<void> => {
-      const { tenantId, externalMessageId, readAt, journeyId } = job.data;
+  const { worker } = createWorker(QUEUES.WA_READ_RECEIPT, processWaReadReceiptJob, {
+    concurrency: 100,
+  });
+  return worker;
+}
 
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(tenantId);
-      const { communicationLog, leadJourney } = await import("@cerniq/db");
-      const { eq, and, sql } = await import("@cerniq/db");
-
-      // Update message to READ with read_at timestamp
-      await db
-        .update(communicationLog)
-        .set({
-          status: "READ",
-          readAt: new Date(readAt),
-          statusUpdatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(communicationLog.externalMessageId, externalMessageId),
-            eq(communicationLog.tenantId, tenantId),
-          ),
-        );
-
-      const [j] = await db
-        .select({
-          replyCount: leadJourney.replyCount,
-          sentimentScore: leadJourney.sentimentScore,
-        })
-        .from(leadJourney)
-        .where(eq(leadJourney.id, journeyId))
-        .limit(1);
-
-      const outbound = await db
-        .select({ c: sql<number>`COUNT(*)::int` })
-        .from(communicationLog)
-        .where(
-          and(
-            eq(communicationLog.leadJourneyId, journeyId),
-            eq(communicationLog.direction, "OUTBOUND"),
-          ),
-        );
-      const inbound = await db
-        .select({ c: sql<number>`COUNT(*)::int` })
-        .from(communicationLog)
-        .where(
-          and(
-            eq(communicationLog.leadJourneyId, journeyId),
-            eq(communicationLog.direction, "INBOUND"),
-          ),
-        );
-
-      const sent = outbound[0]?.c ?? 0;
-      const received = inbound[0]?.c ?? 0;
-      const sentiment = j?.sentimentScore ?? 0;
-      const vResponseRate = sent > 0 ? (received / sent) * 40 : 0;
-      const vSentiment = ((sentiment + 100) / 200) * 30;
-      const engagementScore = Math.min(100, Math.max(0, Math.round(vResponseRate + vSentiment)));
-
-      await db
-        .update(leadJourney)
-        .set({
-          engagementScore,
-          updatedAt: new Date(),
-        })
-        .where(eq(leadJourney.id, journeyId));
-    },
-    { concurrency: 100 },
-  );
+/** Compatibilitate: job-uri încă pe `wa:chat:history:fetch` (același procesator ca read receipt). */
+export function createWaLegacyChatHistoryReadReceiptWorker(): Worker {
+  const { worker } = createWorker(QUEUES.WA_CHAT_HISTORY_FETCH, processWaReadReceiptJob, {
+    concurrency: 100,
+  });
   return worker;
 }

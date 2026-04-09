@@ -1,0 +1,2 @@
+# Artefacte JS în src (ex. tsc greșit) — shadowing la import-uri ESM *.js din TS
+src/**/*.js

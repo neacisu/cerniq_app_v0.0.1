@@ -6,18 +6,10 @@
  * Source-of-truth: etapa2-migrations.md sec 2.1 > etapa2-schema-outreach.md
  */
 import { pgEnum } from "drizzle-orm/pg-core";
+import { LEAD_JOURNEY_FSM_STATES } from "./lead-journey-fsm-states.js";
 
-// Lead State Machine states (ADR-0062)
-export const currentStateEnum = pgEnum("current_state_enum", [
-  "COLD",
-  "CONTACTED_WA",
-  "CONTACTED_EMAIL",
-  "WARM_REPLY",
-  "NEGOTIATION",
-  "CONVERTED",
-  "DEAD",
-  "PAUSED",
-]);
+// Lead State Machine — sursa valorilor: lead-journey-fsm-states.ts (contract E2–E5 / API Etapa 1)
+export const currentStateEnum = pgEnum("current_state_enum", [...LEAD_JOURNEY_FSM_STATES]);
 
 // Communication channels (ADR-0059)
 export const channelEnum = pgEnum("channel_enum", [
@@ -25,6 +17,7 @@ export const channelEnum = pgEnum("channel_enum", [
   "EMAIL_COLD",
   "EMAIL_WARM",
   "PHONE",
+  "SMS",
   "MANUAL",
 ]);
 
@@ -40,6 +33,7 @@ export const messageStatusEnum = pgEnum("message_status_enum", [
   "REPLIED",
   "BOUNCED",
   "FAILED",
+  "BLOCKED",
   "OPENED",
   "CLICKED",
 ]);

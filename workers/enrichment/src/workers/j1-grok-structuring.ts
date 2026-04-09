@@ -2,7 +2,7 @@ import type { Processor } from "bullmq";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 import { sanitizeCui, validateCuiModulo11 } from "../lib/cui-validation.js";
-import { xaiStructuredJson } from "../lib/xai-client.js";
+import { infraqStructuredJson } from "../lib/infraq-structured-json.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
 export type GrokStructuringJobData = {
@@ -14,7 +14,7 @@ export type GrokStructuringJobData = {
 
 export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async (job) => {
   return withCognitiveSpan(
-    "e1:ai:structure-xai",
+    "e1:ai:structure-infraq",
     async (_span) => {
       const startedAt = Date.now();
       await setSessionTenantId(job.data.tenantId);
@@ -27,7 +27,7 @@ export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async
         2,
       )}\nSchema JSON dorita: {"denumire":"","cui":"","adresa":"","localitate":"","judet":"","email":"","telefon":"","website":"","cod_caen_principal":"","is_agricol":false,"confidence":0.0}`;
 
-      const structured = await xaiStructuredJson(systemPrompt, userPrompt);
+      const structured = await infraqStructuredJson(systemPrompt, userPrompt);
       const confidence = Number(structured.confidence ?? 0.5);
       const cleanedCui = sanitizeCui(String(structured.cui ?? ""));
       const cuiValidation = cleanedCui ? validateCuiModulo11(cleanedCui) : null;

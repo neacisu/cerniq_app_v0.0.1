@@ -107,6 +107,7 @@ vi.mock("@cerniq/db", () => ({
 }));
 
 vi.mock("@cerniq/worker-shared", () => ({
+  callExternalApi: vi.fn((_provider: string, fn: () => unknown) => fn()),
   createQueue: createQueueMock,
   DEFAULT_JOB_OPTIONS: { attempts: 3, backoff: { type: "exponential", delay: 1000 } },
   QUEUES: {

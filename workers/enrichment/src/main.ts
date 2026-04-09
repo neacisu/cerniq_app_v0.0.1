@@ -10,6 +10,7 @@ import {
   failImportRuntimeJob,
   QUEUES,
   loadSecretsFromFile,
+  buildWorkerQueueNamesForProcessors,
   queueRegistry,
   startQueueDepthMonitor,
   watchSecretsFile,
@@ -161,12 +162,10 @@ const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
 };
 
 assertQueueRegistryComplete();
-// BUG-FIX: filter to only E1 queues that have registered processors.
-// workers/enrichment must NOT create BullMQ workers for E2/E3 queues — doing so
-// creates a Redis BLPOP race where the enrichment worker steals E2/E3 jobs and
-// silently acknowledges them with { ok: true } without processing.
-const queueNames = Array.from(new Set(queueRegistry.map((q) => q.name))).filter((n) =>
-  Object.hasOwn(processors, n),
+// Doar cozi cu procesor în acest serviciu + verificare că fiecare procesor există în registry.
+const queueNames = buildWorkerQueueNamesForProcessors(
+  queueRegistry,
+  processors as Record<string, unknown>,
 );
 const defaultTenantId = process.env.DEFAULT_TENANT_ID?.trim() ?? null;
 if (!defaultTenantId) {

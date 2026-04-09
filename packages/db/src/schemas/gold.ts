@@ -160,7 +160,7 @@ export const goldCompanies = goldSchema.table(
     anulInfiintarii: integer("anul_infiintarii"),
     ratingExtern: integer("rating_extern"),
     limitaCreditEur: numeric("limita_credit_eur", { precision: 15, scale: 2 }),
-    lididitateaCurenta: numeric("lichiditate_curenta", { precision: 8, scale: 4 }),
+    lichiditateCurenta: numeric("lichiditate_curenta", { precision: 8, scale: 4 }),
     gradIndatorare: numeric("grad_indatorare", { precision: 8, scale: 4 }),
     marjaProfit: numeric("marja_profit", { precision: 8, scale: 4 }),
 

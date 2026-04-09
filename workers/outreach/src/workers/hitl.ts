@@ -124,7 +124,7 @@ export interface EscalationJobData {
 // =============================================================================
 
 export function createReviewQueueManagerWorker(): Worker {
-  const slaEnforcerQueue = createQueue(QUEUES.HUMAN_APPROVE_MESSAGE);
+  const slaEnforcerQueue = createQueue(QUEUES.HITL_SLA_ENFORCE);
 
   const { worker } = createWorker(
     QUEUES.HUMAN_REVIEW_QUEUE,
@@ -191,9 +191,9 @@ export function createSlaEnforcerWorker(): Worker {
   const escalationQueue = createQueue(QUEUES.HUMAN_REVIEW_ESCALATION);
 
   const { worker } = createWorker(
-    QUEUES.HUMAN_APPROVE_MESSAGE,
+    QUEUES.HITL_SLA_ENFORCE,
     async (job: Job<SlaEnforcerJobData>): Promise<void> => {
-      return withCognitiveSpan("e2:human:approve-message", async () => {
+      return withCognitiveSpan("e2:human:hitl-sla-enforce", async () => {
         const { tenantId, reviewId, priority } = job.data;
 
         const { db, setSessionTenantId } = await import("@cerniq/db");

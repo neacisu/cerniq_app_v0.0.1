@@ -6,7 +6,15 @@
     "rootDir": "src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ES2022"
+    "target": "ES2022",
+    "paths": {
+      "@cerniq/db": ["../../packages/db/dist/index.d.ts"],
+      "@cerniq/db/*": ["../../packages/db/dist/*"],
+      "@cerniq/shared-types": ["../../packages/shared-types/dist/index.d.ts"],
+      "@cerniq/shared-types/*": ["../../packages/shared-types/dist/*"],
+      "@cerniq/worker-shared": ["../../workers/shared/dist/index.d.ts"],
+      "@cerniq/worker-shared/*": ["../../workers/shared/dist/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

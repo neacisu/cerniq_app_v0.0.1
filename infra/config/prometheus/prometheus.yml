@@ -169,6 +169,61 @@ scrape_configs:
           - __address__
         target_label: instance
         replacement: ct107-postgres:9187
+
+  # Redis HA (profil docker compose `redis-ha`): master + Sentinel — aceleași rețele ca serviciile scrape-uite.
+  - job_name: cerniq-redis
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cerniq-redis-exporter:9121
+        labels:
+          project: cerniq
+          redis_role: master
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        replacement: cerniq-redis-exporter:9121
+
+  - job_name: cerniq-redis-sentinel
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cerniq-redis-sentinel-exporter:9121
+        labels:
+          project: cerniq
+          redis_role: sentinel
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        replacement: cerniq-redis-sentinel-exporter:9121
+
+  # Patroni REST /metrics — câte un țintă per nod Patroni (CT107 primary + CT108 standby).
+  # Altfel `sum(patroni_primary)` dintr-un singur scrape poate fi 0 pe replică chiar dacă clusterul are leader.
+  - job_name: cerniq-patroni
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 10.0.1.107:8008
+          - 10.0.1.108:8008
+        labels:
+          project: cerniq
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.107:8008
+        replacement: patroni-ct107:8008
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.108:8008
+        replacement: patroni-ct108:8008
+
   - job_name: vllm-reasoning
     scrape_interval: 15s
     metrics_path: /metrics
@@ -230,7 +285,7 @@ scrape_configs:
         target_label: instance
         replacement: ollama-embeddings
 
-  # ── E3 AI Sales Worker — FAZA 12 / Plan §XII (metrici cerniq_ai_*, cerniq_negotiation_*, …)
+  # ── E3 AI Sales Worker — FAZA 12 / Plan §XII (familii metrici E3 AI + negociere; vezi e3-metrics.ts)
   # Scrape: workers/e3-ai-sales createHealthServer — PORT implicit 3002 (vezi main.ts)
   # Nume serviciu țintă Docker: cerniq-worker-e3-ai-sales (aliniat E4/E5)
   - job_name: cerniq-worker-e3-ai-sales

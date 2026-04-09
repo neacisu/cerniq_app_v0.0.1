@@ -1,47 +1,34 @@
 /**
- * Client LLM local pentru workers/e3-ai-sales.
+ * Client LLM pentru workers/e3-ai-sales — delegare către @cerniq/worker-shared (Plan §XIII).
  *
- * ANTI-HALLUCINARE (Plan §XIII L2598-2602):
- *  - embeddingsClient: EXCLUSIV infraq.app/llm/v1/embeddings — qwen3-embedding-8b → halfvec(3072)
- *  - fastClient: EXCLUSIV infraq.app/llm/v1/fast — Qwen/Qwen2.5-14B-Instruct-AWQ
- *  - Fallback OpenAI text-embedding-3-small (1536) NUMAI la eroare embeddingsClient (A2 plan L1764)
- *  - NU Ollama, NU LiteLLM proxy
- *
- * Notă: Acest modul este temporar local până când llm-infraq-client (FAZA 13a) este implementat
- * în workers/shared/src/llm-client.ts. La momentul migrației, importurile din acest fișier
- * vor fi înlocuite cu imports din @cerniq/worker-shared.
+ * - Gateway infraq: apiKey „unused”; fără INFRAQ_API_KEY obligatoriu.
+ * - Embeddings: qwen3-embedding-8b-q5km → halfvec(3072); fallback OpenAI 1536 la eroare.
+ * - Fast / reasoning: `withLlmFallbackChain` + factory frontier (xAI → OpenAI → Anthropic → Gemini → DeepSeek).
+ * - Cheltuială frontier: Redis zi + oră + `recordLlmCostUsd`.
  */
 
 import OpenAI from "openai";
-import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
+import {
+  createCircuitBreaker,
+  INFRAQ_EMBEDDINGS_MODEL,
+  INFRAQ_FAST_MODEL,
+  INFRAQ_REASONING_MODEL,
+  embeddingsClient as sharedEmbeddingsClient,
+  fastClient as sharedFastClient,
+  reasoningClient as sharedReasoningClient,
+  withExternalApiMetrics,
+  withLlmFallbackChain,
+  buildFrontierChatTextFallbackSteps,
+} from "@cerniq/worker-shared";
+import { noteFrontierReasoningSpend, resolveE3LlmSpendGuard } from "./llm-spend-redis.js";
 
-// ── Environment ───────────────────────────────────────────────────────────────
+export { embeddingsClient, fastClient, reasoningClient } from "@cerniq/worker-shared";
 
-const INFRAQ_BASE = process.env.INFRAQ_BASE ?? "https://infraq.app/llm/v1";
-const INFRAQ_API_KEY = process.env.INFRAQ_API_KEY ?? "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 
-const EMBEDDINGS_MODEL = "qwen3-embedding-8b";
 const EMBEDDINGS_DIMENSIONS = 3072;
-const FAST_MODEL = "Qwen/Qwen2.5-14B-Instruct-AWQ";
 const OPENAI_FALLBACK_MODEL = "text-embedding-3-small";
 const OPENAI_FALLBACK_DIMENSIONS = 1536;
-
-// ── Clients ───────────────────────────────────────────────────────────────────
-
-export const embeddingsClient = new OpenAI({
-  baseURL: `${INFRAQ_BASE}/embeddings`,
-  apiKey: INFRAQ_API_KEY || "no-key",
-  timeout: 30_000,
-  maxRetries: 0,
-});
-
-export const fastClient = new OpenAI({
-  baseURL: `${INFRAQ_BASE}/fast`,
-  apiKey: INFRAQ_API_KEY || "no-key",
-  timeout: 60_000,
-  maxRetries: 0,
-});
 
 const openAiFallbackClient = new OpenAI({
   apiKey: OPENAI_API_KEY || "no-key",
@@ -59,9 +46,8 @@ export interface EmbedResult {
 }
 
 async function callInfraqEmbeddings(input: string): Promise<EmbedResult> {
-  if (!INFRAQ_API_KEY) throw new Error("Missing INFRAQ_API_KEY");
-  const response = await embeddingsClient.embeddings.create({
-    model: EMBEDDINGS_MODEL,
+  const response = await sharedEmbeddingsClient.embeddings.create({
+    model: INFRAQ_EMBEDDINGS_MODEL,
     input,
   });
   const embedding = response.data[0]?.embedding;
@@ -72,7 +58,7 @@ async function callInfraqEmbeddings(input: string): Promise<EmbedResult> {
   }
   return {
     embedding,
-    model: EMBEDDINGS_MODEL,
+    model: INFRAQ_EMBEDDINGS_MODEL,
     dimensions: EMBEDDINGS_DIMENSIONS,
     isFallback: false,
   };
@@ -86,15 +72,11 @@ const embeddingsBreaker = createCircuitBreaker(callInfraqEmbeddings, "infraq-emb
 });
 
 /**
- * Returnează embedding halfvec(3072) folosind qwen3-embedding-8b pe infraq.app.
- * Fallback la OpenAI text-embedding-3-small (1536) EXCLUSIV la eroare (Plan L1764).
+ * Embedding halfvec(3072) via infraq; fallback OpenAI text-embedding-3-small (1536) la eroare.
  */
 export async function embedText(input: string): Promise<EmbedResult> {
-  try {
-    return await withExternalApiMetrics("infraq-embeddings", () => embeddingsBreaker.fire(input));
-  } catch (primaryErr) {
-    console.warn("[e3-llm-client] infraq embeddings failed, falling back to OpenAI", primaryErr);
-    if (!OPENAI_API_KEY) throw primaryErr;
+  const openAiFallback = async (): Promise<EmbedResult> => {
+    if (!OPENAI_API_KEY) throw new Error("OpenAI fallback unavailable: no OPENAI_API_KEY");
     const response = await withExternalApiMetrics("openai-embeddings-fallback", () =>
       openAiFallbackClient.embeddings.create({
         model: OPENAI_FALLBACK_MODEL,
@@ -103,37 +85,50 @@ export async function embedText(input: string): Promise<EmbedResult> {
       }),
     );
     const embedding = response.data[0]?.embedding;
-    if (!embedding)
-      throw new Error("OpenAI fallback embeddings returned empty", { cause: primaryErr });
+    if (!embedding) throw new Error("OpenAI fallback embeddings returned empty");
     return {
       embedding,
       model: OPENAI_FALLBACK_MODEL,
       dimensions: OPENAI_FALLBACK_DIMENSIONS,
       isFallback: true,
     };
+  };
+
+  try {
+    return await withExternalApiMetrics("infraq-embeddings", () => embeddingsBreaker.fire(input));
+  } catch (primaryErr) {
+    console.warn("[e3-llm-client] infraq embeddings failed, falling back to OpenAI", primaryErr);
+    if (!OPENAI_API_KEY) throw primaryErr;
+    return withLlmFallbackChain({
+      primary: openAiFallback,
+      fallbacks: [],
+      dataSensitivity: "non_sensitive",
+    });
   }
 }
 
-// ── Fast LLM (Qwen2.5-14B) ────────────────────────────────────────────────────
+// ── Fast LLM ───────────────────────────────────────────────────────────────────
 
 export interface FastChatMessage {
   readonly role: "system" | "user" | "assistant";
   readonly content: string;
 }
 
+export type FastChatOptions = {
+  readonly tenantId?: string;
+};
+
 async function callFastClient(messages: FastChatMessage[], timeoutMs = 5_000): Promise<string> {
-  if (!INFRAQ_API_KEY) throw new Error("Missing INFRAQ_API_KEY");
-  const response = await fastClient.chat.completions.create(
+  const response = await sharedFastClient.chat.completions.create(
     {
-      model: FAST_MODEL,
+      model: INFRAQ_FAST_MODEL,
       messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
       temperature: 0.1,
       max_tokens: 1024,
     },
     { signal: AbortSignal.timeout(timeoutMs) },
   );
-  const content = response.choices[0]?.message?.content ?? "";
-  return content;
+  return response.choices[0]?.message?.content ?? "";
 }
 
 const fastBreaker = createCircuitBreaker(
@@ -148,36 +143,37 @@ const fastBreaker = createCircuitBreaker(
 );
 
 /**
- * Apelează Qwen2.5-14B pe infraq.app/llm/v1/fast.
- * Folosit pentru: query:rewrite (B7), handover:detect, sentiment:analyze.
+ * Qwen2.5-14B pe infraq fast + lanț frontier la eșec.
  */
-export async function fastChat(messages: FastChatMessage[], timeoutMs = 5_000): Promise<string> {
-  return withExternalApiMetrics("infraq-fast", () => fastBreaker.fire(messages, timeoutMs));
+export async function fastChat(
+  messages: FastChatMessage[],
+  timeoutMs = 5_000,
+  opts?: FastChatOptions,
+): Promise<string> {
+  const spendGuard = resolveE3LlmSpendGuard(opts?.tenantId) ?? undefined;
+  const openAiMsgs = messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+  const frontier = buildFrontierChatTextFallbackSteps(openAiMsgs, {
+    maxTokens: 1024,
+    temperature: 0.1,
+    timeoutMs: Math.min(timeoutMs + 50_000, 120_000),
+  });
+
+  return withLlmFallbackChain({
+    primary: async () =>
+      withExternalApiMetrics("infraq-fast", () => fastBreaker.fire(messages, timeoutMs)),
+    fallbacks: frontier.map((f) => ({ name: f.name, run: f.run })),
+    dataSensitivity: "non_sensitive",
+    spendGuard,
+  });
 }
 
-// ── Reasoning LLM (QwQ-32B-AWQ) ───────────────────────────────────────────────
-
-const REASONING_MODEL = "Qwen/QwQ-32B-AWQ";
-const XAI_API_KEY = process.env.XAI_API_KEY ?? "";
-
-export const reasoningClient = new OpenAI({
-  baseURL: `${INFRAQ_BASE}/reasoning`,
-  apiKey: INFRAQ_API_KEY || "no-key",
-  timeout: 120_000,
-  maxRetries: 0,
-});
-
-const grokClient = new OpenAI({
-  baseURL: "https://api.x.ai/v1",
-  apiKey: XAI_API_KEY || "no-key",
-  timeout: 90_000,
-  maxRetries: 0,
-});
+// ── Reasoning LLM ──────────────────────────────────────────────────────────────
 
 export interface ReasoningChatOptions {
   maxTokens?: number;
   temperature?: number;
   timeoutMs?: number;
+  tenantId?: string;
 }
 
 async function callReasoningModel(
@@ -185,10 +181,9 @@ async function callReasoningModel(
   userPrompt: string,
   options: ReasoningChatOptions = {},
 ): Promise<string> {
-  if (!INFRAQ_API_KEY) throw new Error("Missing INFRAQ_API_KEY");
-  const response = await reasoningClient.chat.completions.create(
+  const response = await sharedReasoningClient.chat.completions.create(
     {
-      model: REASONING_MODEL,
+      model: INFRAQ_REASONING_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -198,8 +193,7 @@ async function callReasoningModel(
     },
     { signal: AbortSignal.timeout(options.timeoutMs ?? 90_000) },
   );
-  const content = response.choices[0]?.message?.content ?? "";
-  return content;
+  return response.choices[0]?.message?.content ?? "";
 }
 
 const reasoningBreaker = createCircuitBreaker(
@@ -215,65 +209,42 @@ const reasoningBreaker = createCircuitBreaker(
 );
 
 /**
- * QwQ-32B-AWQ pe infraq.app/llm/v1/reasoning.
- * Fallback: Grok-4 → GPT-4o la eroare.
- * Folosit pentru: C14 ai:agent:orchestrate, C15 ai:response:generate complex.
+ * QwQ-32B-AWQ primary; fallback frontier complet (Plan §XIII).
  */
 export async function reasoningChat(
   systemPrompt: string,
   userPrompt: string,
   options: ReasoningChatOptions = {},
 ): Promise<{ text: string; modelUsed: string }> {
-  // Primary: QwQ-32B-AWQ pe infraq.app
-  try {
-    const text = await withExternalApiMetrics("infraq-reasoning", () =>
-      reasoningBreaker.fire(systemPrompt, userPrompt, options),
-    );
-    return { text, modelUsed: REASONING_MODEL };
-  } catch (primaryErr) {
-    console.warn("[e3-llm-client] QwQ-32B failed, falling back to Grok-4", primaryErr);
-  }
+  const promptLen = systemPrompt.length + userPrompt.length;
+  const spendGuard = resolveE3LlmSpendGuard(options.tenantId) ?? undefined;
 
-  // Fallback 1: Grok-4 pe api.x.ai
-  if (XAI_API_KEY) {
-    try {
-      const response = await withExternalApiMetrics("grok4-fallback", () =>
-        grokClient.chat.completions.create(
-          {
-            model: "grok-4",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: options.temperature ?? 0.3,
-            max_tokens: options.maxTokens ?? 4096,
-          },
-          { signal: AbortSignal.timeout(options.timeoutMs ?? 90_000) },
-        ),
+  const msgs: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ];
+  const frontier = buildFrontierChatTextFallbackSteps(msgs, {
+    maxTokens: options.maxTokens ?? 4096,
+    temperature: options.temperature ?? 0.3,
+    timeoutMs: options.timeoutMs ?? 90_000,
+  }).map((f) => ({
+    name: f.name,
+    run: async () => {
+      const text = await f.run();
+      await noteFrontierReasoningSpend(options.tenantId, f.name, promptLen, text.length);
+      return { text, modelUsed: f.name };
+    },
+  }));
+
+  return withLlmFallbackChain({
+    primary: async () => {
+      const text = await withExternalApiMetrics("infraq-reasoning", () =>
+        reasoningBreaker.fire(systemPrompt, userPrompt, options),
       );
-      const text = response.choices[0]?.message?.content ?? "";
-      return { text, modelUsed: "grok-4" };
-    } catch (grokErr) {
-      console.warn("[e3-llm-client] Grok-4 failed, falling back to GPT-4o", grokErr);
-    }
-  }
-
-  // Fallback 2: GPT-4o pe api.openai.com
-  if (!OPENAI_API_KEY) throw new Error("All reasoning LLM fallbacks exhausted: no OPENAI_API_KEY");
-  const response = await withExternalApiMetrics("gpt4o-fallback", () =>
-    openAiFallbackClient.chat.completions.create(
-      {
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: options.temperature ?? 0.3,
-        max_tokens: options.maxTokens ?? 4096,
-      },
-      { signal: AbortSignal.timeout(options.timeoutMs ?? 90_000) },
-    ),
-  );
-  const text = response.choices[0]?.message?.content ?? "";
-  return { text, modelUsed: "gpt-4o" };
+      return { text, modelUsed: INFRAQ_REASONING_MODEL };
+    },
+    fallbacks: frontier,
+    dataSensitivity: "non_sensitive",
+    spendGuard,
+  });
 }

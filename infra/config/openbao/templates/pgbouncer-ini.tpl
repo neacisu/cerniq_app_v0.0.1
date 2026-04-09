@@ -11,7 +11,18 @@ Destination: /secrets/pgbouncer.ini
 
 [databases]
 # Allow both prod/staging databases; clients pick database in connection string.
+# Patroni HA: setați în OpenBao KV `secret/cerniq/infra/pgbouncer` câmpul `pgbouncer_postgres_host`
+# (DNS/VIP leader sau IP curent primary după `patronictl list`). Altfel default 10.0.1.107.
+# Vezi docs/runbooks/patroni-failover.md
+{{- with secret "secret/cerniq/infra/pgbouncer" }}
+{{- if .Data.pgbouncer_postgres_host }}
+* = host={{ .Data.pgbouncer_postgres_host }} port=5432
+{{- else }}
 * = host=10.0.1.107 port=5432
+{{- end }}
+{{- else }}
+* = host=10.0.1.107 port=5432
+{{- end }}
 
 [pgbouncer]
 listen_addr = 0.0.0.0

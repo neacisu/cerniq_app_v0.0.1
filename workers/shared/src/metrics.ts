@@ -596,3 +596,138 @@ export const e4AlertsDispatchedTotal = new Counter({
   labelNames: ["tenant_id", "alert_type"],
   registers: [metricsRegistry],
 });
+
+// =============================================================================
+// FAZA 13 — LLM infraq.app (Plan §XIII L9645-9657)
+// =============================================================================
+
+/** Apeluri LLM către gateway-ul self-hosted sau înregistrări echivalente. */
+export const llmRequestsTotal = new Counter({
+  name: "cerniq_llm_requests_total",
+  help: "Total LLM API requests (infraq self-hosted primary)",
+  labelNames: ["model_id", "task_type", "status", "is_selfhosted"],
+  registers: [metricsRegistry],
+});
+
+export const llmLatencySeconds = new Histogram({
+  name: "cerniq_llm_latency_seconds",
+  help: "LLM request latency in seconds",
+  labelNames: ["model_id", "task_type"],
+  buckets: [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60, 120],
+  registers: [metricsRegistry],
+});
+
+export const llmTokensTotal = new Counter({
+  name: "cerniq_llm_tokens_total",
+  help: "Total LLM tokens reported by OpenAI-compatible usage blocks",
+  labelNames: ["model_id", "type"],
+  registers: [metricsRegistry],
+});
+
+/** Înregistrat de workeri la fallback frontier (xAI, OpenAI, etc.), nu de fetch-ul infraq. */
+export const llmFallbackTotal = new Counter({
+  name: "cerniq_llm_fallback_total",
+  help: "Total fallback activations from infraq primary to frontier models",
+  labelNames: ["frontier_model", "reason"],
+  registers: [metricsRegistry],
+});
+
+/** Cost estimat plătit către furnizori frontier; self-hosted = 0 (opțional, apel explicit). */
+export const llmCostUsdTotal = new Counter({
+  name: "cerniq_llm_cost_usd_total",
+  help: "Accumulated LLM cost in USD by provider and tenant",
+  labelNames: ["provider", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export function recordLlmFallback(
+  frontierModel: string,
+  reason: "error" | "timeout" | "ratelimit",
+) {
+  llmFallbackTotal.inc({ frontier_model: frontierModel, reason });
+}
+
+export function recordLlmCostUsd(provider: string, tenantId: string, costUsd: number) {
+  if (costUsd < 0) return;
+  if (costUsd === 0 && provider === "infraq") return;
+  llmCostUsdTotal.inc({ provider, tenant_id: tenantId }, costUsd);
+}
+
+// =============================================================================
+// FAZA 13 — LLM Guard (infraq.app) + regenerări output (Plan §XIII L9652-9656)
+// =============================================================================
+
+/** Violări raportate când `is_valid=false` (sau erori de scanare), per scanner. */
+export const llmGuardViolationsTotal = new Counter({
+  name: "cerniq_llmguard_violations_total",
+  help: "Total LLM Guard scanner signals (input/output scan failures)",
+  labelNames: ["scanner_name", "is_input"],
+  registers: [metricsRegistry],
+});
+
+export const llmGuardLatencySeconds = new Histogram({
+  name: "cerniq_llmguard_latency_seconds",
+  help: "LLM Guard HTTP scan latency in seconds",
+  labelNames: ["phase"],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Distribuție număr de încercări de regenerare după eșec scan output (1 = fără regenerare).
+ * Label guardrail_type: ex. llm_guard_output (Plan §XIII).
+ */
+export const llmRegenerationAttempts = new Histogram({
+  name: "cerniq_llm_regeneration_attempts",
+  help: "Histogram of LLM output regeneration rounds after guard failure",
+  labelNames: ["guardrail_type"],
+  buckets: [0, 1, 2, 3, 4, 5],
+  registers: [metricsRegistry],
+});
+
+/** Blocări la plafon zilnic LLM (100% cap) — înainte de apeluri frontier. */
+export const llmCostCeilingBlocksTotal = new Counter({
+  name: "cerniq_llm_cost_ceiling_blocks_total",
+  help: "Blocks when daily LLM spend reached hard cap (no frontier calls)",
+  labelNames: ["tier"],
+  registers: [metricsRegistry],
+});
+
+/** Blocări la „spike” orar cheltuială frontier — forțează self-hosted / HITL (Plan §XIII). */
+export const llmCostSpikeBlocksTotal = new Counter({
+  name: "cerniq_llm_cost_spike_blocks_total",
+  help: "Blocks when hourly frontier LLM spend exceeded spike cap (circuit breaker)",
+  labelNames: ["tier"],
+  registers: [metricsRegistry],
+});
+
+/** Divergență consensus 3-modele → HITL recomandat (Plan §XIII). */
+export const llmConsensusDivergenceTotal = new Counter({
+  name: "cerniq_llm_consensus_divergence_total",
+  help: "Consensus vote failed majority agreement across frontier/infraq models",
+  labelNames: ["trigger"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Allocator telefoane WA — path SKIP LOCKED (fără Redis phone:lock).
+ * outcome=acquired|exhausted
+ */
+/** Alias plan: `phone_allocator_contention_total` — același counter ca în registrele Prometheus. */
+export const phoneAllocatorContentionTotal = new Counter({
+  name: "cerniq_phone_allocator_contention_total",
+  help: "Phone allocator outcomes (FOR UPDATE SKIP LOCKED); label outcome=acquired|exhausted",
+  labelNames: ["outcome"],
+  registers: [metricsRegistry],
+});
+
+/** Rată mesaje WA blocate (status BLOCKED) în fereastra de reputație — 0..1. */
+export const phoneBlockRateGauge = new Gauge({
+  name: "cerniq_phone_block_rate",
+  help: "WhatsApp outbound block rate in phone reputation window (0-1)",
+  labelNames: ["tenant_id", "phone_id"],
+  registers: [metricsRegistry],
+});
+
+/** @deprecated Folosiți `phoneAllocatorContentionTotal` (nume metrică aliniat planului). */
+export const outreachPhoneAllocatorContentionTotal = phoneAllocatorContentionTotal;

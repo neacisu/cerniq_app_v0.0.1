@@ -5,6 +5,8 @@ import { sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { extractAddConstraintName } from "./migrate-sql-helpers.js";
+import { getPostgresErrorFields } from "./pg-error-fields.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -79,7 +81,7 @@ export async function runMigrations(options: MigrationRunOptions = {}) {
   await exec(`SET ROLE "${BASE_ROLE}"`);
   console.log(`Session role set to ${BASE_ROLE} (all DDL will be owned by ${BASE_ROLE})`);
 
-  const schemas = ["bronze", "silver", "gold", "approval", "audit"];
+  const schemas = ["bronze", "silver", "gold", "approval", "audit", "integration"];
   for (const schema of schemas) {
     await exec(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
   }
@@ -108,24 +110,74 @@ const IGNORABLE_ERROR_CODES = new Set([
   "42710", // duplicate_object (e.g. type, constraint)
 ]);
 
-function getPgError(err: unknown): { code: string; message: string } {
-  const obj = err && typeof err === "object" ? err : null;
-  const cause =
-    obj && "cause" in obj && obj.cause && typeof obj.cause === "object"
-      ? (obj.cause as { code?: string; message?: string })
-      : null;
-  const code =
-    (cause?.code as string) || (obj && "code" in obj ? (obj as { code: string }).code : "") || "";
-  const message =
-    (cause?.message as string) ||
-    (obj && "message" in obj ? (obj as { message: string }).message : "") ||
-    "";
-  return { code, message };
+function isRlsMigrationFile(filename: string): boolean {
+  return filename.startsWith("0005_rls") || filename.startsWith("0007_rls");
 }
 
-function getAddConstraintName(statement: string): string | null {
-  const match = statement.match(/ADD\s+CONSTRAINT\s+"([^"]+)"/i);
-  return match?.[1] ?? null;
+/** Ordine stabilă: fișiere RLS după restul (aceeași convenție ca înainte). */
+function compareDrizzleFilenames(a: string, b: string): number {
+  const rlsA = isRlsMigrationFile(a);
+  const rlsB = isRlsMigrationFile(b);
+  if (rlsA && !rlsB) return 1;
+  if (!rlsA && rlsB) return -1;
+  return a.localeCompare(b);
+}
+
+function splitDrizzleStatements(content: string): string[] {
+  return content
+    .split(/--> statement-breakpoint\n?/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function isPermissionDeniedForMigration(code: string, message: string): boolean {
+  return (
+    code === "42501" &&
+    (/must be owner of/i.test(message) || /permission denied for schema/i.test(message))
+  );
+}
+
+async function executeDrizzleStatement(
+  mdb: PostgresJsDatabase,
+  statement: string,
+  dryRun: boolean,
+): Promise<void> {
+  try {
+    if (dryRun) {
+      console.log(`[DRY-RUN] ${statement.slice(0, 120)}...`);
+    } else {
+      await mdb.execute(sql.raw(statement));
+    }
+  } catch (err: unknown) {
+    const { code, message } = getPostgresErrorFields(err);
+
+    if (IGNORABLE_ERROR_CODES.has(code)) {
+      console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
+      return;
+    }
+    if (isPermissionDeniedForMigration(code, message)) {
+      console.log(`Skipped (idempotent, already applied): ${statement.slice(0, 80)}...`);
+      return;
+    }
+    throw err;
+  }
+}
+
+async function runDrizzleStatementsForFile(
+  mdb: PostgresJsDatabase,
+  file: string,
+  statements: string[],
+  dryRun: boolean,
+): Promise<void> {
+  for (const statement of statements) {
+    const addConstraintName = extractAddConstraintName(statement);
+    if (addConstraintName && (await constraintExists(mdb, addConstraintName))) {
+      console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
+      continue;
+    }
+    await executeDrizzleStatement(mdb, statement, dryRun);
+  }
+  console.log(`Ran migration: ${file}`);
 }
 
 async function constraintExists(mdb: PostgresJsDatabase, constraintName: string): Promise<boolean> {
@@ -146,51 +198,13 @@ export async function runDrizzleMigrations(options: MigrationRunOptions = {}) {
   const drizzleDir = join(__dirname, "..", "drizzle");
   const files = readdirSync(drizzleDir)
     .filter((f) => f.endsWith(".sql"))
-    .sort((a, b) => {
-      const isRls = (f: string) => f.startsWith("0005_rls") || f.startsWith("0007_rls");
-      if (isRls(a) && !isRls(b)) return 1;
-      if (!isRls(a) && isRls(b)) return -1;
-      return a.localeCompare(b);
-    });
+    .toSorted(compareDrizzleFilenames);
 
   for (const file of files) {
     const path = join(drizzleDir, file);
     const content = readFileSync(path, "utf-8");
-    const statements = content
-      .split(/--> statement-breakpoint\n?/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    for (const statement of statements) {
-      const addConstraintName = getAddConstraintName(statement);
-      if (addConstraintName && (await constraintExists(mdb, addConstraintName))) {
-        console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
-        continue;
-      }
-
-      try {
-        if (dryRun) {
-          console.log(`[DRY-RUN] ${statement.slice(0, 120)}...`);
-        } else {
-          await mdb.execute(sql.raw(statement));
-        }
-      } catch (err: unknown) {
-        const { code, message } = getPgError(err);
-
-        const isPermissionDenied =
-          code === "42501" &&
-          (/must be owner of/i.test(message) || /permission denied for schema/i.test(message));
-
-        if (IGNORABLE_ERROR_CODES.has(code)) {
-          console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
-        } else if (isPermissionDenied) {
-          console.log(`Skipped (idempotent, already applied): ${statement.slice(0, 80)}...`);
-        } else {
-          throw err;
-        }
-      }
-    }
-    console.log(`Ran migration: ${file}`);
+    const statements = splitDrizzleStatements(content);
+    await runDrizzleStatementsForFile(mdb, file, statements, dryRun);
   }
 
   if (!dryRun) await mdb.execute(sql.raw(`SET client_min_messages = notice`));

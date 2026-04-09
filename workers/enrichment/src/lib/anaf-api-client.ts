@@ -1,6 +1,7 @@
-import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
+import { callExternalApi } from "@cerniq/worker-shared";
 
-const ANAF_TIMEOUT_MS = Number(process.env.ANAF_API_TIMEOUT_MS ?? "25000");
+/** Aliniat la circuit breaker `anaf` (15s); suprascrie cu `ANAF_API_TIMEOUT_MS`. */
+const ANAF_TIMEOUT_MS = Number(process.env.ANAF_API_TIMEOUT_MS ?? "15000");
 
 // ── ANAF v9 Batch API (single source of truth) ─────────────────────
 
@@ -134,17 +135,10 @@ async function callAnafV9Batch(cuis: number[]): Promise<AnafV9BatchResult> {
   };
 }
 
-const anafV9Breaker = createCircuitBreaker(callAnafV9Batch, "anaf-v9-batch", {
-  timeout: ANAF_TIMEOUT_MS,
-  errorThresholdPercentage: 50,
-  resetTimeout: 30000,
-  volumeThreshold: 5,
-});
-
 export async function fetchAnafBatchByCuis(cuis: string[]): Promise<AnafV9BatchResult> {
   const numericCuis = cuis.map((c) => Number.parseInt(c, 10)).filter((n) => !Number.isNaN(n));
   if (numericCuis.length === 0) return { found: new Map(), notFound: [] };
-  return withExternalApiMetrics("anaf_v9", () => anafV9Breaker.fire(numericCuis));
+  return callExternalApi("anaf", () => callAnafV9Batch(numericCuis));
 }
 
 export async function fetchAnafSingleByCui(cleanCui: string): Promise<AnafV9CompanyRecord | null> {

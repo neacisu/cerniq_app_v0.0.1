@@ -1,4 +1,4 @@
-import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
+import { callExternalApi } from "@cerniq/worker-shared";
 
 const HUNTER_API_URL = process.env.HUNTER_API_URL ?? "https://api.hunter.io/v2";
 const HUNTER_API_KEY = process.env.HUNTER_API_KEY ?? "";
@@ -48,13 +48,6 @@ async function hunterGet(
   return (await response.json()) as Record<string, unknown>;
 }
 
-const hunterBreaker = createCircuitBreaker(hunterGet, "hunter-api-client", {
-  timeout: HUNTER_TIMEOUT_MS,
-  errorThresholdPercentage: 50,
-  resetTimeout: 30000,
-  volumeThreshold: 5,
-});
-
 export type HunterEmailVerifyResult = {
   email: string;
   status: string;
@@ -74,9 +67,7 @@ export type HunterEmailVerifyResult = {
 };
 
 export async function hunterEmailVerify(email: string): Promise<HunterEmailVerifyResult | null> {
-  const result = await withExternalApiMetrics("hunter", () =>
-    hunterBreaker.fire("/email-verifier", { email }),
-  );
+  const result = await callExternalApi("hunter", () => hunterGet("/email-verifier", { email }));
   if (!result || typeof result !== "object") return null;
 
   const data = (result.data ?? null) as Record<string, unknown> | null;
@@ -104,9 +95,7 @@ export async function hunterEmailVerify(email: string): Promise<HunterEmailVerif
 }
 
 export async function hunterDomainSearch(domain: string): Promise<HunterDomainSearchResult | null> {
-  const result = await withExternalApiMetrics("hunter", () =>
-    hunterBreaker.fire("/domain-search", { domain }),
-  );
+  const result = await callExternalApi("hunter", () => hunterGet("/domain-search", { domain }));
   if (!result || typeof result !== "object") return null;
 
   const data = (result.data ?? null) as Record<string, unknown> | null;

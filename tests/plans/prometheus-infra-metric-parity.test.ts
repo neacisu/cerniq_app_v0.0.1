@@ -16,6 +16,7 @@ const SOURCE_FILES = [
   "workers/e3-ai-sales/src/e3-metrics.ts",
   "workers/e4-postsale/src/e4-metrics.ts",
   "workers/e5-nurturing/src/lib/e5-metrics.ts",
+  "workers/shared/src/circuit-breaker.ts",
   "workers/shared/src/metrics.ts",
 ] as const;
 

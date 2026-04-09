@@ -8,6 +8,11 @@
 import type { Job, Worker } from "bullmq";
 import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
 import { getInstantlyClient, getTimelinesAIClient } from "@cerniq/integrations";
+import {
+  isPhoneBannedAlertPayload,
+  isPhoneQuarantineLegacyOnBannedQueue,
+  type PhoneQuarantineTriggerJobData,
+} from "./phone-monitoring.js";
 
 export function createWaMediaSendWorker(): Worker {
   const { worker } = createWorker(
@@ -73,6 +78,48 @@ export function createAlertPhoneOfflineWorker(): Worker {
       return { logged: true };
     },
     { concurrency: 2 },
+  );
+  return worker;
+}
+
+/**
+ * Consumator pentru `alert:phone:banned` — doar notificare/audit structurat.
+ * Acțiunea de quarantine rulează pe coada separată `phone:quarantine:trigger`.
+ */
+export function createAlertPhoneBannedWorker(): Worker {
+  const { worker } = createWorker(
+    QUEUES.ALERT_PHONE_BANNED,
+    async (job: Job<unknown>) => {
+      const data = job.data;
+      if (isPhoneQuarantineLegacyOnBannedQueue(data)) {
+        console.warn(
+          "[alert:phone:banned] legacy quarantine shape → forwarding to PHONE_QUARANTINE",
+          JSON.stringify(data),
+        );
+        const q = createQueue(QUEUES.PHONE_QUARANTINE);
+        try {
+          const d = data as PhoneQuarantineTriggerJobData & { score?: number; threshold?: number };
+          const payload: PhoneQuarantineTriggerJobData = {
+            tenantId: d.tenantId,
+            phoneId: d.phoneId,
+            reason: "LOW_REPUTATION",
+            currentReputationScore: d.currentReputationScore ?? d.score,
+            reputationThreshold: d.reputationThreshold ?? d.threshold,
+          };
+          await q.add("quarantine", payload, { priority: 1 });
+        } finally {
+          await q.close();
+        }
+        return { forwarded: true, target: QUEUES.PHONE_QUARANTINE };
+      }
+      if (!isPhoneBannedAlertPayload(data)) {
+        console.error("[alert:phone:banned] invalid payload", JSON.stringify(data));
+        throw new Error("Invalid alert:phone:banned payload (expected PhoneBannedAlertJobData)");
+      }
+      console.warn("[alert:phone:banned]", JSON.stringify(data));
+      return { logged: true };
+    },
+    { concurrency: 5 },
   );
   return worker;
 }

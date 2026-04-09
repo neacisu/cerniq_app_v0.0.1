@@ -19,7 +19,6 @@ import {
   goldOrders,
   goldOrderItems,
   eq,
-  inArray,
   sql,
   TEST_PASSWORD_HASH,
   insert_tenant,
@@ -174,15 +173,27 @@ describe.sequential("Gold API — izolare GET cross-tenant (A vs B)", () => {
   });
 
   afterAll(async () => {
+    // Tranzacție + set_config local: același connection ca DELETE-urile (evită RLS „0 rows” când
+    // alt fișier de test paralel schimbă app.tenant_id pe alt socket din pool).
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantA}, true)`);
+      await tx.execute(sql`SELECT set_config('app.current_user_id', ${userA}, true)`);
+      await tx.delete(goldOrderItems).where(eq(goldOrderItems.orderId, orderId));
+      await tx.delete(goldOrders).where(eq(goldOrders.id, orderId));
+      await tx.delete(goldNegotiations).where(eq(goldNegotiations.id, negotiationId));
+      await tx.delete(goldProducts).where(eq(goldProducts.id, productId));
+      await tx.delete(goldCompanies).where(eq(goldCompanies.id, leadId));
+      await tx.delete(silverCompanies).where(eq(silverCompanies.id, silverId));
+    });
+
+    await setSessionRequestContext({ tenantId: tenantB, userId: userB });
+    await db.delete(users).where(eq(users.id, userB));
+    await db.delete(tenants).where(eq(tenants.id, tenantB));
+
     await setSessionRequestContext({ tenantId: tenantA, userId: userA });
-    await db.delete(goldOrderItems).where(eq(goldOrderItems.orderId, orderId));
-    await db.delete(goldOrders).where(eq(goldOrders.id, orderId));
-    await db.delete(goldNegotiations).where(eq(goldNegotiations.id, negotiationId));
-    await db.delete(goldProducts).where(eq(goldProducts.id, productId));
-    await db.delete(goldCompanies).where(eq(goldCompanies.id, leadId));
-    await db.delete(silverCompanies).where(eq(silverCompanies.id, silverId));
-    await db.delete(users).where(inArray(users.tenantId, [tenantA, tenantB]));
-    await db.delete(tenants).where(inArray(tenants.id, [tenantA, tenantB]));
+    await db.delete(users).where(eq(users.id, userA));
+    await db.delete(tenants).where(eq(tenants.id, tenantA));
+
     await app.close();
   });
 

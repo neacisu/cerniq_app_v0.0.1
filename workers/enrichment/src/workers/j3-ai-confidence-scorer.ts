@@ -3,6 +3,8 @@ import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
+/** Worker determinist — fără apel LLM; Plan §XIII fastClient nu se aplică aici. */
+
 export type AiConfidenceJobData = {
   tenantId: string;
   companyId: string;

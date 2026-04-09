@@ -1,9 +1,9 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 import {
+  callExternalApi,
   createQueue,
   validateJobData,
-  withExternalApiMetrics,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
 import { z } from "zod";
@@ -61,7 +61,7 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
       url.searchParams.set("limit", "1");
       url.searchParams.set("countrycodes", "ro");
 
-      const response = await withExternalApiMetrics("nominatim", () =>
+      const response = await callExternalApi("nominatim", () =>
         fetch(url.toString(), {
           method: "GET",
           headers: {

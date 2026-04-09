@@ -1,7 +1,7 @@
 import type { Processor } from "bullmq";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { xaiStructuredJson } from "../lib/xai-client.js";
+import { infraqStructuredJson } from "../lib/infraq-structured-json.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
 export type AiDataMergerJobData = {
@@ -13,7 +13,7 @@ export type AiDataMergerJobData = {
 
 export const aiDataMergerProcessor: Processor<AiDataMergerJobData> = async (job) => {
   return withCognitiveSpan(
-    "e1:ai:merge-xai",
+    "e1:ai:merge-infraq",
     async (_span) => {
       const startedAt = Date.now();
       await setSessionTenantId(job.data.tenantId);
@@ -25,7 +25,7 @@ export const aiDataMergerProcessor: Processor<AiDataMergerJobData> = async (job)
         null,
         2,
       )}\nReturneaza {"merged_data": {...},"conflicts_resolved":[{"field":"","chosen_value":"","reason":"","alternatives":[]}],"confidence":0.0}`;
-      const result = await xaiStructuredJson(systemPrompt, userPrompt);
+      const result = await infraqStructuredJson(systemPrompt, userPrompt);
 
       const mergedData =
         result.merged_data && typeof result.merged_data === "object"

@@ -7,7 +7,7 @@
  * Output Zod-validated: sentiment POSITIVE/NEUTRAL/NEGATIVE, score -1..1,
  * emotions (max 5), topics (max 5).
  *
- * Include LLM Guard pre-scan pentru detecție injection.
+ * Include LLM Guard pre-scan (local + infraq în producție).
  * Stochează rezultatul pe aiConversationMessages pentru K64 trend analysis.
  *
  * ANTI-HALUCINARE: fastClient Qwen2.5-14B (NU reasoning) — §XIII L2599.
@@ -17,6 +17,7 @@
 import type { Processor } from "bullmq";
 import { z } from "zod";
 import { db, setSessionTenantId, aiConversationMessages, eq } from "@cerniq/db";
+import { e3ScanPromptBeforeLlm } from "../lib/e3-llm-guard.js";
 import { fastChat } from "../lib/llm-client.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -50,22 +51,6 @@ const SentimentSchema = z.object({
   topics: z.array(z.string()).max(5).default([]),
 });
 
-// ── LLM Guard ─────────────────────────────────────────────────────────────────
-
-const INJECTION_PATTERNS = [
-  /ignore.*previous.*instruction/i,
-  /system.*prompt/i,
-  /forget.*everything/i,
-  /<script/i,
-  /union.*select/i,
-  /jailbreak/i,
-  /act\s+as\s+if/i,
-];
-
-function isInjectionAttempt(content: string): boolean {
-  return INJECTION_PATTERNS.some((p) => p.test(content));
-}
-
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `Ești un analizor de sentiment pentru mesaje B2B de vânzări în română/engleză.
@@ -96,9 +81,9 @@ export const sentimentAnalyzeProcessor: Processor<
 
   console.info(`${LOG} tenantId=${tenantId} messageId=${messageId} len=${content.length}`);
 
-  // LLM Guard pre-scan
-  if (isInjectionAttempt(content)) {
-    console.warn(`${LOG} injection detected messageId=${messageId}`);
+  const guard = await e3ScanPromptBeforeLlm(content);
+  if (guard.blocked) {
+    console.warn(`${LOG} LLM Guard blocked messageId=${messageId}`);
     return {
       ok: true,
       messageId,
@@ -107,7 +92,7 @@ export const sentimentAnalyzeProcessor: Processor<
       emotions: [],
       topics: [],
       blocked: true,
-      reason: "guard_blocked",
+      reason: guard.reason ?? "guard_blocked",
     };
   }
 
@@ -117,6 +102,7 @@ export const sentimentAnalyzeProcessor: Processor<
       { role: "user", content: content.slice(0, 800) },
     ],
     10_000,
+    { tenantId },
   );
 
   // Strip optional markdown code blocks

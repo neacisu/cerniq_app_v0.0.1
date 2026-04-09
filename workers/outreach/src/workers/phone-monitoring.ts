@@ -9,7 +9,13 @@
  * - Phone Reputation       — score 0-100, factors: delivery+reply-bounce-block
  */
 import type { Job, Worker } from "bullmq";
-import { QUEUES, createWorker, createQueue, outreachPhoneStatus } from "@cerniq/worker-shared";
+import {
+  QUEUES,
+  createWorker,
+  createQueue,
+  outreachPhoneStatus,
+  phoneBlockRateGauge,
+} from "@cerniq/worker-shared";
 import type { AccountStatusResponse } from "@cerniq/integrations";
 import { getTimelinesAIClient } from "@cerniq/integrations";
 import { phoneStatusEnum } from "@cerniq/db";
@@ -76,11 +82,59 @@ export interface PhoneStatusSyncJobData {
   tenantId: string;
 }
 
-export interface PhoneQuarantineJobData {
+/** Payload strict pentru coada `alert:phone:banned` (notificare / audit). */
+export interface PhoneBannedAlertJobData {
+  tenantId: string;
+  phoneId: string;
+  phoneNumber: string;
+  reason: "BANNED";
+  bannedAt: string;
+}
+
+/** Payload pentru coada `phone:quarantine:trigger` (efect DB + realocare). */
+export interface PhoneQuarantineTriggerJobData {
   tenantId: string;
   phoneId: string;
   reason: "BANNED" | "LOW_REPUTATION" | "MANUAL";
   currentReputationScore?: number;
+  /** Pragul care a declanșat quarantine (ex. reputație). */
+  reputationThreshold?: number;
+}
+
+/** @deprecated Folosiți PhoneQuarantineTriggerJobData */
+export type PhoneQuarantineJobData = PhoneQuarantineTriggerJobData;
+
+/** Payload canonic pentru `alert:phone:banned` (health monitor). */
+export function isPhoneBannedAlertPayload(data: unknown): data is PhoneBannedAlertJobData {
+  if (!data || typeof data !== "object") return false;
+  const o = data as Record<string, unknown>;
+  return (
+    typeof o.tenantId === "string" &&
+    typeof o.phoneId === "string" &&
+    typeof o.phoneNumber === "string" &&
+    o.reason === "BANNED" &&
+    typeof o.bannedAt === "string"
+  );
+}
+
+/**
+ * Job vechi pe `alert:phone:banned` cu formă quarantine (reputație) — redirecționare către PHONE_QUARANTINE.
+ */
+export function isPhoneQuarantineLegacyOnBannedQueue(
+  data: unknown,
+): data is PhoneQuarantineTriggerJobData & { score?: number; threshold?: number } {
+  if (!data || typeof data !== "object") return false;
+  const o = data as Record<string, unknown>;
+  if (typeof o.tenantId !== "string" || typeof o.phoneId !== "string") return false;
+  if (o.reason === "BANNED") return false;
+  if (typeof o.score === "number" || typeof o.threshold === "number") return true;
+  if (
+    typeof o.reason === "string" &&
+    /reputation|quarantine|score|low\s+reputation/i.test(o.reason)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export interface PhoneReputationJobData {
@@ -112,6 +166,7 @@ export interface PhoneReputationResult {
 export function createPhoneHealthMonitorWorker(): Worker {
   const alertQueue = createQueue(QUEUES.ALERT_PHONE_OFFLINE);
   const bannedAlertQueue = createQueue(QUEUES.ALERT_PHONE_BANNED);
+  const quarantineTriggerQueue = createQueue(QUEUES.PHONE_QUARANTINE);
 
   const { worker } = createWorker(
     QUEUES.MONITOR_PHONE_HEALTH,
@@ -158,15 +213,21 @@ export function createPhoneHealthMonitorWorker(): Worker {
 
             if (newStatus === "BANNED") {
               const bannedAt = new Date().toISOString();
-              await bannedAlertQueue.add(
-                "banned",
+              const bannedPayload: PhoneBannedAlertJobData = {
+                tenantId,
+                phoneId: phone.id,
+                phoneNumber: phone.phoneNumber,
+                reason: "BANNED",
+                bannedAt,
+              };
+              await bannedAlertQueue.add("banned", bannedPayload, { priority: 1 });
+              await quarantineTriggerQueue.add(
+                "quarantine",
                 {
                   tenantId,
                   phoneId: phone.id,
-                  phoneNumber: phone.phoneNumber,
                   reason: "BANNED",
-                  bannedAt,
-                },
+                } satisfies PhoneQuarantineTriggerJobData,
                 { priority: 1 },
               );
               alerts.push(`BANNED:${phone.id}`);
@@ -277,9 +338,18 @@ export function createPhoneQuarantineWorker(): Worker {
   const allocatorQueue = createQueue(QUEUES.OUTREACH_PHONE_ALLOCATOR);
 
   const { worker } = createWorker(
-    QUEUES.ALERT_PHONE_BANNED, // reuses alert queue as trigger mechanism
-    async (job: Job<PhoneQuarantineJobData>): Promise<void> => {
-      const { tenantId, phoneId, reason } = job.data;
+    QUEUES.PHONE_QUARANTINE,
+    async (job: Job<PhoneQuarantineTriggerJobData>): Promise<void> => {
+      const { tenantId, phoneId, reason, currentReputationScore, reputationThreshold } = job.data;
+
+      const quarantineAudit: Record<string, unknown> = { tenantId, phoneId, reason };
+      if (currentReputationScore !== undefined) {
+        quarantineAudit.currentReputationScore = currentReputationScore;
+      }
+      if (reputationThreshold !== undefined) {
+        quarantineAudit.reputationThreshold = reputationThreshold;
+      }
+      console.info("[phone-quarantine] start", JSON.stringify(quarantineAudit));
 
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
@@ -299,7 +369,7 @@ export function createPhoneQuarantineWorker(): Worker {
 
       // 2. Find leads assigned to this quarantined phone
       const affectedLeads = await db
-        .select({ id: leadJourney.id })
+        .select({ id: leadJourney.id, leadId: leadJourney.leadId })
         .from(leadJourney)
         .where(
           and(
@@ -315,8 +385,9 @@ export function createPhoneQuarantineWorker(): Worker {
           "reassign",
           {
             tenantId,
+            leadId: lead.leadId,
             journeyId: lead.id,
-            reason: `PHONE_QUARANTINED_${reason}`,
+            currentAssignedPhoneId: undefined,
             forceReassign: true,
           },
           { priority: 1, removeOnComplete: 100 },
@@ -340,7 +411,7 @@ export async function executePhoneReputationJob(
   _redis: unknown,
   job: Job<PhoneReputationJobData>,
 ): Promise<PhoneReputationResult> {
-  const quarantineQueue = createQueue(QUEUES.ALERT_PHONE_BANNED);
+  const quarantineQueue = createQueue(QUEUES.PHONE_QUARANTINE);
 
   const { tenantId, phoneId, windowHours = 24 } = job.data;
 
@@ -359,12 +430,14 @@ export async function executePhoneReputationJob(
       delivered: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} IN ('DELIVERED','READ'))::int`,
       replied: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'INBOUND')::int`,
       bounced: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} = 'FAILED')::int`,
+      blocked: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} = 'BLOCKED')::int`,
     })
     .from(communicationLog)
     .where(
       and(
         eq(communicationLog.tenantId, tenantId),
         eq(communicationLog.phoneId, phoneId),
+        eq(communicationLog.channel, "WHATSAPP"),
         eq(communicationLog.direction, "OUTBOUND"),
         gte(communicationLog.sentAt, windowStart),
       ),
@@ -374,6 +447,7 @@ export async function executePhoneReputationJob(
   const total = m?.total ?? 0;
 
   if (total === 0) {
+    phoneBlockRateGauge.set({ tenant_id: tenantId, phone_id: phoneId }, 0);
     return {
       phoneId,
       score: 100,
@@ -385,10 +459,13 @@ export async function executePhoneReputationJob(
   const deliveryRate = m.delivered / total;
   const replyRate = m.replied / total;
   const bounceRate = m.bounced / total;
-  const blockRate = 0;
+  const blockedCount = m.blocked ?? 0;
+  const blockRate = blockedCount / total;
 
   const rawScore = deliveryRate * 50 + replyRate * 30 - bounceRate * 60 - blockRate * 80;
   const score = Math.min(100, Math.max(0, Math.round(rawScore)));
+
+  phoneBlockRateGauge.set({ tenant_id: tenantId, phone_id: phoneId }, blockRate);
 
   await db
     .update(waPhoneNumbers)
@@ -408,7 +485,8 @@ export async function executePhoneReputationJob(
         phoneId,
         reason: "LOW_REPUTATION",
         currentReputationScore: score,
-      },
+        reputationThreshold: REPUTATION_QUARANTINE_THRESHOLD,
+      } satisfies PhoneQuarantineTriggerJobData,
       { priority: 1 },
     );
     quarantineTriggered = true;

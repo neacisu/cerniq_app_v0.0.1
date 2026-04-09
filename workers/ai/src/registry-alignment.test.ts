@@ -5,8 +5,13 @@
  */
 import { describe, it, expect } from "vitest";
 import { isKnownQueueName, queueRegistry } from "@cerniq/worker-shared";
+import { bootstrap } from "./main.js";
 
 describe("worker-ai — aliniere queue-registry (admin guard)", () => {
+  it("exportă bootstrap (coverage main.ts fără a rula index.ts)", () => {
+    expect(typeof bootstrap).toBe("function");
+  });
+
   it("fiecare coadă cu prefix ai: este cunoscută în registry (isKnownQueueName)", () => {
     const aiQueues = queueRegistry.map((q) => q.name).filter((n) => n.startsWith("ai:"));
     expect(aiQueues.length).toBeGreaterThan(0);

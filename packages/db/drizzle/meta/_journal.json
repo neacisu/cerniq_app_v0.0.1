@@ -400,6 +400,55 @@
       "when": 1775604800000,
       "tag": "0055_silver_denumire_normalizata_repair",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1775691200000,
+      "tag": "0056_pgvector_hnsw_plan_params",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1775777600000,
+      "tag": "0057_outreach_lead_fsm_states_extend",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1775864000000,
+      "tag": "0058_message_status_enum_blocked",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1775950400000,
+      "tag": "0059_outreach_communication_wa_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1776036800000,
+      "tag": "0060_llm_audit_job_payloads_nomenclator_siruta",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1776123200000,
+      "tag": "0061_sms_channel_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1776209600000,
+      "tag": "0062_integration_abstraction_layer",
+      "breakpoints": true
     }
   ]
 }

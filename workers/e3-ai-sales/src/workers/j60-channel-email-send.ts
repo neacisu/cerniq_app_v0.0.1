@@ -18,6 +18,7 @@
 import type { Processor } from "bullmq";
 import Handlebars from "handlebars";
 import { Resend } from "resend";
+import { callExternalApi } from "@cerniq/worker-shared";
 import { setSessionTenantId } from "@cerniq/db";
 import type { HandoverContext } from "./j57-handover-context-load.js";
 
@@ -171,19 +172,21 @@ export const channelEmailSendProcessor: Processor<
   const htmlBody = compiledTemplate(templateVars);
   const subject = buildSubject(lang, context);
 
-  // 4. Trimite via Resend API
-  const result = await resend.emails.send({
-    from: fromEmail,
-    to: [recipientEmail],
-    subject,
-    html: htmlBody,
-    tags: [
-      { name: "type", value: "handover_notification" },
-      { name: "tenant_id", value: tenantId },
-      { name: "negotiation_id", value: negotiationId },
-      { name: "stage", value: context.negotiationState },
-    ],
-  });
+  // 4. Trimite via Resend API (rate limit + circuit breaker + metrici, ca în `packages/integrations`)
+  const result = await callExternalApi("resend", () =>
+    resend.emails.send({
+      from: fromEmail,
+      to: [recipientEmail],
+      subject,
+      html: htmlBody,
+      tags: [
+        { name: "type", value: "handover_notification" },
+        { name: "tenant_id", value: tenantId },
+        { name: "negotiation_id", value: negotiationId },
+        { name: "stage", value: context.negotiationState },
+      ],
+    }),
+  );
 
   if (result.error) {
     throw new Error(`${LOG} Resend error: ${result.error.message ?? JSON.stringify(result.error)}`);

@@ -1,7 +1,7 @@
 import type { Processor } from "bullmq";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { xaiStructuredJson } from "../lib/xai-client.js";
+import { infraqStructuredJson } from "../lib/infraq-structured-json.js";
 
 export type AiFallbackJobData = {
   tenantId: string;
@@ -12,7 +12,7 @@ export type AiFallbackJobData = {
 
 export const aiFallbackProcessor: Processor<AiFallbackJobData> = async (job) => {
   return withCognitiveSpan(
-    "e1:ai:fallback",
+    "e1:ai:fallback-infraq",
     async (_span) => {
       const startedAt = Date.now();
       await setSessionTenantId(job.data.tenantId);
@@ -31,7 +31,7 @@ campuri_lipsa=${job.data.missingFields.join(",")}
 
 Returneaza {"found_data":{"camp":{"value":"...","source":"...","confidence":0.0}},"not_found":[]}`;
 
-      const result = await xaiStructuredJson(systemPrompt, userPrompt);
+      const result = await infraqStructuredJson(systemPrompt, userPrompt);
       const foundData =
         result.found_data && typeof result.found_data === "object"
           ? (result.found_data as Record<string, Record<string, unknown>>)

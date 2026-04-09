@@ -6,27 +6,27 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NeuronInspectorPanel } from "@/components/cognitive/NeuronInspectorPanel.js";
 
+vi.mock("@/providers/auth-provider.js", () => ({
+  useAuth: () => ({ user: { role: "admin", id: "test-user" } }),
+}));
+
 vi.mock("@xyflow/react", () => ({}));
 vi.mock("@/lib/api-url.js", () => ({ getApiBase: () => "http://127.0.0.1:64010" }));
 vi.mock("@/lib/api.js", () => ({
   api: {
     get: vi.fn().mockResolvedValue({ data: [] }),
-    post: vi
-      .fn()
-      .mockResolvedValue({
-        success: true,
-        nodeKey: "e1:csv:parse",
-        status: "PAUSED",
-        propagated: false,
-        batchId: null,
-      }),
-    put: vi
-      .fn()
-      .mockResolvedValue({
-        success: true,
-        data: {},
-        meta: { applyStatus: "immediate", requiresWorkerRestart: false },
-      }),
+    post: vi.fn().mockResolvedValue({
+      success: true,
+      nodeKey: "e1:csv:parse",
+      status: "PAUSED",
+      propagated: false,
+      batchId: null,
+    }),
+    put: vi.fn().mockResolvedValue({
+      success: true,
+      data: {},
+      meta: { applyStatus: "immediate", requiresWorkerRestart: false },
+    }),
   },
   ApiError: class ApiError extends Error {
     status: number;

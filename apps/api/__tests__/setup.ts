@@ -5,8 +5,17 @@ import { resolve } from "node:path";
 process.env.NODE_ENV = "test";
 process.env.PORT = "0";
 process.env.JWT_SECRET ??= "test-jwt-secret-minimum-32-characters-long";
-process.env.REDIS_URL ??= "redis://localhost:6379";
-process.env.LOG_LEVEL = "error";
+/**
+ * Forțăm Redis de test fără parolă: dacă shell-ul exportă `REDIS_URL` din `/secrets/api.env`
+ * sau `.env`, ioredis emite WARN și poate indica spre un host greșit pentru teste locale.
+ * Escape hatch: `API_TEST_REDIS_URL` pentru integrare Redis dedicată.
+ */
+process.env.REDIS_URL = process.env.API_TEST_REDIS_URL ?? "redis://127.0.0.1:6379";
+delete process.env.REDIS_PASSWORD;
+/** Necesar la buildApp → rute care creează cozi BullMQ (prefix chei Redis). */
+process.env.BULLMQ_PREFIX ??= "cerniq";
+/** Sub `error`: scenarii negative așteptate (401, Zod) tot loghează la `error` → stdout îmbâcsit. */
+process.env.LOG_LEVEL = "fatal";
 
 function parseEnvFile(filePath: string): Record<string, string> {
   if (!existsSync(filePath)) return {};

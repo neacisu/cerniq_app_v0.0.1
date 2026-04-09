@@ -1,0 +1,2 @@
+# Artefacte JS în src — shadowing la import-uri ESM *.js din TypeScript
+src/**/*.js

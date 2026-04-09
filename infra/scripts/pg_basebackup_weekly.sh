@@ -13,8 +13,10 @@ OUTPUT_DIR="$BACKUP_DIR/base_${TIMESTAMP}"
 
 # New infra note:
 # - PostgreSQL runs on CT107 (postgres-main), not as a local docker container.
-# - Physical basebackups (PITR) must be executed on CT107 (or a host that has
-#   direct access to the PostgreSQL data directory and replication privileges).
+# - Cu Patroni HA, primary-ul poate muta între CT107/CT108 — setați PG_HOST la IP-ul
+#   leader curent (vezi `patronictl list`) sau rulați scriptul pe hostul unde rulează primary-ul.
+# - Physical basebackups (PITR) must be executed on a host that has
+#   direct access to the PostgreSQL data directory and replication privileges.
 PG_HOST="${PG_HOST:-127.0.0.1}"
 PG_PORT="${PG_PORT:-5432}"
 PG_USER="${PG_USER:-postgres}"

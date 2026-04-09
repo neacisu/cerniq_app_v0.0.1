@@ -57,7 +57,7 @@ export interface TimelinesAIWebhookJobData {
     timestamp: string;
     sender_phone?: string;
     event_type?: string;
-    status?: "SENT" | "DELIVERED" | "READ" | "FAILED";
+    status?: "SENT" | "DELIVERED" | "READ" | "FAILED" | "BLOCKED";
   };
 }
 
@@ -165,7 +165,7 @@ function getChannel(source: string): SystemEvent["channel"] {
 export function createTimelinesAIEventProcessorWorker(): Worker {
   const stateQueue = createQueue(QUEUES.LEAD_STATE_TRANSITION);
   const sentimentQueue = createQueue(QUEUES.AI_SENTIMENT_ANALYZE);
-  const deliveryQueue = createQueue(QUEUES.WA_REPLY);
+  const deliveryQueue = createQueue(QUEUES.WA_DELIVERY_STATUS);
 
   const { worker } = createWorker(
     QUEUES.WEBHOOK_TIMELINESAI_INGEST,

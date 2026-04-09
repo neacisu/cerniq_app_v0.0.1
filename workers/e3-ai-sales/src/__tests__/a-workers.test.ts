@@ -228,7 +228,7 @@ describe("A2 — productEmbedProcessor", () => {
   it("embed success — isFallback=false, INSERT embedding (nu există anterior)", async () => {
     embedTextMock.mockResolvedValue({
       embedding: new Array(3072).fill(0.1),
-      model: "qwen3-embedding-8b",
+      model: "qwen3-embedding-8b-q5km",
       dimensions: 3072,
       isFallback: false,
     });
@@ -251,7 +251,7 @@ describe("A2 — productEmbedProcessor", () => {
 
     expect(result.ok).toBe(true);
     expect(result.isFallback).toBe(false);
-    expect(result.model).toBe("qwen3-embedding-8b");
+    expect(result.model).toBe("qwen3-embedding-8b-q5km");
     expect(result.dimensions).toBe(3072);
     expect(dbInsertMock).toHaveBeenCalled();
   });
@@ -289,7 +289,7 @@ describe("A2 — productEmbedProcessor", () => {
   it("upsert — actualizează embedding existent (UPDATE, nu INSERT)", async () => {
     embedTextMock.mockResolvedValue({
       embedding: new Array(3072).fill(0.5),
-      model: "qwen3-embedding-8b",
+      model: "qwen3-embedding-8b-q5km",
       dimensions: 3072,
       isFallback: false,
     });
@@ -328,7 +328,7 @@ describe("A2 — productEmbedProcessor", () => {
   it("embed chunk cu chunkId — UPDATE pe gold_product_chunks", async () => {
     embedTextMock.mockResolvedValue({
       embedding: new Array(3072).fill(0.3),
-      model: "qwen3-embedding-8b",
+      model: "qwen3-embedding-8b-q5km",
       dimensions: 3072,
       isFallback: false,
     });

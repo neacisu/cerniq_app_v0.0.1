@@ -11,7 +11,7 @@
  *
  * ANTI-HALUCINARE:
  *   - fastClient NU reasoning — clasificare simplă, max_tokens=256
- *   - LLM Guard pre-scan (injection patterns)
+ *   - LLM Guard pre-scan (local + infraq în producție)
  *   - Rezultat Zod-validated OBLIGATORIU
  *   - Dacă handoverNeeded → enqueue J57 handover:context:load
  */
@@ -19,24 +19,10 @@ import type { Processor } from "bullmq";
 import { z } from "zod";
 import { setSessionTenantId } from "@cerniq/db";
 import { createQueue, DEFAULT_JOB_OPTIONS, QUEUES } from "@cerniq/worker-shared";
+import { e3ScanPromptBeforeLlm } from "../lib/e3-llm-guard.js";
 import { fastChat } from "../lib/llm-client.js";
 
 const LOG = "[j56-handover-detect]";
-
-// ── LLM Guard ─────────────────────────────────────────────────────────────────
-
-const INJECTION_PATTERNS = [
-  /ignore.*previous.*instruction/i,
-  /system.*prompt/i,
-  /forget.*everything/i,
-  /<script/i,
-  /union.*select/i,
-  /drop.*table/i,
-];
-
-function isInjectionAttempt(text: string): boolean {
-  return INJECTION_PATTERNS.some((p) => p.test(text));
-}
 
 // ── Zod schema for LLM output ─────────────────────────────────────────────────
 
@@ -196,9 +182,9 @@ export const handoverDetectProcessor: Processor<
     `${LOG} tenantId=${tenantId} negotiationId=${negotiationId} msgLen=${lastMessage.length}`,
   );
 
-  // 1. LLM Guard — detecție injection
-  if (isInjectionAttempt(lastMessage)) {
-    console.warn(`${LOG} injection detected tenantId=${tenantId} negotiationId=${negotiationId}`);
+  const guard = await e3ScanPromptBeforeLlm(lastMessage);
+  if (guard.blocked) {
+    console.warn(`${LOG} LLM Guard blocked tenantId=${tenantId} negotiationId=${negotiationId}`);
     return {
       ok: true,
       handoverNeeded: false,
@@ -278,6 +264,7 @@ Criterii handover:
         { role: "user", content: lastMessage.slice(0, 1000) },
       ],
       5_000,
+      { tenantId },
     );
     const parsed = JSON.parse(raw.trim()) as unknown;
     detection = HandoverDetectionSchema.parse(parsed);

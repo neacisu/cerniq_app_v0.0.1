@@ -1044,14 +1044,13 @@ describe("leiden-client.ts — API surface și error handling", () => {
     expect(typeof runLeidenService).toBe("function");
   });
 
-  it("runLeidenCommunityDetect eșuează cu Error dacă python3 nu găsește scriptul", async () => {
+  it("runLeidenCommunityDetect returnează Promise (rezolvat sau respins după subprocess)", async () => {
     const { runLeidenCommunityDetect } = await import("../lib/leiden-client.js");
     const emptyGraph = { nodes: [], edges: [] };
-    // Scriptul va returna eroare rapidă pentru graph gol SAU python3 nu e disponibil
-    // Testăm că funcția returnează un Promise (nu aruncă sincron)
     const result = runLeidenCommunityDetect(emptyGraph, { timeoutMs: 5_000 });
     expect(result).toBeInstanceOf(Promise);
-    // Nu așteptăm rezultatul — nu vrem dependență pe Python în CI
+    /** Evită unhandledRejection în CI când Python iese cu cod ≠ 0 (graph gol / mediu). */
+    await result.catch(() => undefined);
   });
 });
 

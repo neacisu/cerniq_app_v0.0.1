@@ -8,6 +8,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { getNodeByKey } from "@cerniq/shared";
 
+vi.mock("@/providers/auth-provider.js", () => ({
+  useAuth: () => ({ user: { role: "admin", id: "test-user" } }),
+}));
+
 vi.mock("@/hooks/use-cognitive-brain.js", () => ({
   useNeuronInspector: vi.fn(),
   useNeuronControl: vi.fn(),

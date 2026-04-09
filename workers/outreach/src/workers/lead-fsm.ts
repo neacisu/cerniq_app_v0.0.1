@@ -15,47 +15,19 @@ import {
   withCognitiveSpan,
   fsmTransitions,
 } from "@cerniq/worker-shared";
+import {
+  validateTransition,
+  isLeadJourneyFsmStateValue,
+  listValidNextStates,
+} from "./lead-fsm-transitions.js";
 
-// =============================================================================
-// VALID_TRANSITIONS — EXACT from ADR-0062
-// DO NOT modify this map without an ADR amendment
-// =============================================================================
-
-export const VALID_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
-  COLD: ["CONTACTED_WA", "CONTACTED_EMAIL", "DEAD"],
-  CONTACTED_WA: ["WARM_REPLY", "CONTACTED_EMAIL", "DEAD"],
-  CONTACTED_EMAIL: ["WARM_REPLY", "CONTACTED_WA", "DEAD"],
-  WARM_REPLY: ["NEGOTIATION", "DEAD", "PAUSED"],
-  NEGOTIATION: ["CONVERTED", "DEAD", "PAUSED", "WARM_REPLY"],
-  CONVERTED: [], // FINAL state — no transitions out
-  DEAD: ["COLD"], // Can be resurrected
-  PAUSED: ["COLD", "WARM_REPLY", "NEGOTIATION"],
-} as const;
-
-/**
- * Valori `current_state_enum` / `previous_state` în PG.
- * Sursă: `packages/db/src/schemas/outreach-enums.ts` + ADR-0062.
- * După `validateTransition(from, to)`, `to` aparține acestei reuniuni.
- */
-type LeadJourneyFsmState =
-  | "COLD"
-  | "CONTACTED_WA"
-  | "CONTACTED_EMAIL"
-  | "WARM_REPLY"
-  | "NEGOTIATION"
-  | "CONVERTED"
-  | "DEAD"
-  | "PAUSED";
-
-/**
- * Pure function to validate a state transition.
- * Exported for reuse in UI (StateChangeDialog) and worker.
- */
-export function validateTransition(fromState: string, toState: string): boolean {
-  const validNext = VALID_TRANSITIONS[fromState];
-  if (!validNext) return false;
-  return validNext.includes(toState);
-}
+export {
+  validateTransition,
+  VALID_TRANSITIONS,
+  listValidNextStates,
+  isLeadJourneyFsmStateValue,
+} from "./lead-fsm-transitions.js";
+export type { LeadJourneyFsmStateValue } from "./lead-fsm-transitions.js";
 
 // =============================================================================
 // Types
@@ -129,13 +101,18 @@ export function createStateTransitionWorker(): Worker {
             `FSM invalid transition from ${currentState} to ${newState} for lead ${leadId}`,
           );
         }
+        if (!isLeadJourneyFsmStateValue(currentState) || !isLeadJourneyFsmStateValue(newState)) {
+          throw new Error(
+            `[FSM] Invariant: stări canonice așteptate după validare (${currentState} → ${newState})`,
+          );
+        }
 
         // Execute transition
         await db
           .update(leadJourney)
           .set({
-            currentState: newState as LeadJourneyFsmState,
-            previousState: currentState as LeadJourneyFsmState,
+            currentState: newState,
+            previousState: currentState,
             stateChangedAt: new Date(),
             stateChangeReason: reason ?? `Triggered by ${trigger}`,
             updatedAt: new Date(),
@@ -206,7 +183,7 @@ export function createStateValidateWorker(): Worker {
       return withCognitiveSpan("e2:lead:state-validate", async () => {
         const { fromState, toState } = job.data;
         const valid = validateTransition(fromState, toState);
-        const validTransitions = (VALID_TRANSITIONS[fromState] as string[]) ?? [];
+        const validTransitions = [...listValidNextStates(fromState)];
 
         return {
           valid,
