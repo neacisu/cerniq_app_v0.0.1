@@ -3,7 +3,7 @@
 # Docker: RUN pip3 install -r workers/e5-nurturing/python/requirements.txt
 
 # Graph library — igraph C-backed, performant pentru grafuri mari
-python-igraph>=0.10.0
+python-igraph>=1.0.0
 
 # Community detection algorithms — cdlib include algoritmi wrapper (Leiden via leidenalg)
 cdlib>=0.4.0
@@ -13,10 +13,10 @@ cdlib>=0.4.0
 leidenalg>=0.11.0
 
 # Network analysis — folosit pentru validare și utilitare suplimentare
-networkx>=3.0
+networkx>=3.6.1
 
 # Numeric — utilizat pentru normalizare și operații vectoriale
-numpy>=1.24.0
+numpy>=2.4.4
 
 # PDF scraping pentru OUAI (FAZA 9f) — inclus în același requirements.txt
-pdfplumber>=0.10.0
+pdfplumber>=0.11.9

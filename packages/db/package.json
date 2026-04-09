@@ -41,14 +41,14 @@
   "dependencies": {
     "@cerniq/shared-types": "workspace:*",
     "bcrypt": "^6.0.0",
-    "drizzle-orm": "^0.45.1",
-    "postgres": "^3.4.8"
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.3.0",
-    "@testcontainers/postgresql": "^11.12.0",
+    "@faker-js/faker": "^10.4.0",
+    "@testcontainers/postgresql": "^11.14.0",
     "@types/bcrypt": "^6.0.0",
-    "drizzle-kit": "^0.31.9",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0"
   }
 }
