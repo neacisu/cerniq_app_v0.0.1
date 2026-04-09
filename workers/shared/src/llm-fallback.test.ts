@@ -159,6 +159,24 @@ describe("consensusStructuredVote", () => {
     if (!r.ok) expect(r.reason).toBe("insufficient_models");
   });
 
+  it("parse_all_failed include modelTraces pentru audit (toate răspunsurile brute)", async () => {
+    const models = [
+      { id: "a", generateText: vi.fn().mockResolvedValue("not json") },
+      { id: "b", generateText: vi.fn().mockResolvedValue("also bad") },
+    ];
+    const r = await consensusStructuredVote({
+      schema,
+      messages,
+      models,
+      triggerLabel: "audit_traces",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.reason).toBe("parse_all_failed");
+      expect(r.modelTraces?.map((t) => t.modelId).sort()).toEqual(["a", "b"]);
+    }
+  });
+
   it("agregă același conținut semantic când cheile JSON sunt în ordine diferită (canonicalizare)", async () => {
     const nestedSchema = z.object({ x: z.number(), y: z.number() });
     const msgs = [

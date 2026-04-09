@@ -449,6 +449,34 @@
       "when": 1776209600000,
       "tag": "0062_integration_abstraction_layer",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1776296000000,
+      "tag": "0063_gdpr_audit_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1776382400000,
+      "tag": "0064_outreach_rls_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1776468800000,
+      "tag": "0065_sms_provider_smsadvert_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1776555200000,
+      "tag": "0066_app_notifications",
+      "breakpoints": true
     }
   ]
 }

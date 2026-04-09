@@ -6,6 +6,7 @@ import {
   importRuntimeJobs,
   importRuntimeSessions,
   importRuntimeWorkerCounters,
+  resetSessionContext,
   setSessionTenantId,
   silverContacts,
   sql,
@@ -15,6 +16,7 @@ import {
   tenants,
 } from "@cerniq/db";
 import { createQueue } from "./factory.js";
+import { dispatchNotification } from "./notification-dispatcher.js";
 
 export type ImportRuntimeSessionKind =
   | "ingest"
@@ -952,12 +954,59 @@ async function reconcileImportRuntimeSessionStatus(args: { tenantId: string; ses
     return;
   }
   if (terminalJobs > 0 || totalJobs > 0) {
+    const [sessMeta] = await db
+      .select({
+        metadata: importRuntimeSessions.metadata,
+        batchId: importRuntimeSessions.batchId,
+      })
+      .from(importRuntimeSessions)
+      .where(
+        and(
+          eq(importRuntimeSessions.tenantId, args.tenantId),
+          eq(importRuntimeSessions.id, args.sessionId),
+        ),
+      )
+      .limit(1);
+
+    const alreadyNotified =
+      (sessMeta?.metadata as Record<string, unknown> | undefined)?.appNotificationImportDoneSent ===
+      true;
+
     await patchImportRuntimeSession({
       sessionId: args.sessionId,
       tenantId: args.tenantId,
       status: "completed",
       completed: true,
     });
+
+    if (!alreadyNotified && sessMeta) {
+      try {
+        await dispatchNotification({
+          tenantId: args.tenantId,
+          type: "IMPORT_DONE",
+          title: "Import finalizat",
+          body: `Sesiune de import completă (batch ${sessMeta.batchId}).`,
+          data: { sessionId: args.sessionId, batchId: sessMeta.batchId },
+          channels: ["IN_APP", "EMAIL", "WEBHOOK"],
+        });
+        await setSessionTenantId(args.tenantId);
+        await db
+          .update(importRuntimeSessions)
+          .set({
+            metadata: sql`jsonb_set(COALESCE(${importRuntimeSessions.metadata}, '{}'::jsonb), '{appNotificationImportDoneSent}', 'true'::jsonb)`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(importRuntimeSessions.id, args.sessionId),
+              eq(importRuntimeSessions.tenantId, args.tenantId),
+            ),
+          );
+        await resetSessionContext();
+      } catch (err) {
+        console.error("[import-execution] IMPORT_DONE notification failed", err);
+      }
+    }
   }
 }
 

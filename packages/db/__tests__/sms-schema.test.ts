@@ -58,8 +58,8 @@ describe("SMS schema (outreach.sms_*)", () => {
     expect(smsTemplates.updatedAt).toBeDefined();
   });
 
-  it("constantele CHECK coincid cu migrarea SQL (0061)", () => {
-    expect(SMS_PROVIDER_VALUES).toEqual(["TWILIO", "VONAGE", "AWS_SNS"]);
+  it("constantele CHECK coincid cu migrarea SQL (0061 + 0065 SMSADVERT)", () => {
+    expect(SMS_PROVIDER_VALUES).toEqual(["TWILIO", "VONAGE", "AWS_SNS", "SMSADVERT"]);
     expect(SMS_MESSAGE_STATUS_VALUES).toEqual([
       "QUEUED",
       "SENT",

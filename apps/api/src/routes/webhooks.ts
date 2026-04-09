@@ -82,7 +82,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
       return reply.status(500).send({ success: false, error: "raw body missing" });
     }
     const sig =
-      getHeader(request, "x-timelines-signature") ?? getHeader(request, "X-Timelines-Signature");
+      getHeader(request, "x-signature") ??
+      getHeader(request, "x-timelines-signature") ??
+      getHeader(request, "X-Timelines-Signature");
     if (!verifyTimelinesAIWebhookSignature(raw, sig, secret)) {
       request.log.warn("TimelinesAI webhook: invalid signature");
       return reply.status(401).send({ success: false, error: "Invalid signature" });

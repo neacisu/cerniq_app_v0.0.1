@@ -73,6 +73,7 @@ import { Workers } from "./pages/system/workers.js";
 import { Settings } from "./pages/system/settings.js";
 import { NotFound } from "./pages/NotFound.js";
 import { ErrorBoundary } from "./components/feedback/ErrorBoundary.js";
+import { CookieConsentBanner } from "./components/gdpr/CookieConsentBanner.js";
 
 const CognitiveBrainPage = lazy(async () => {
   const m = await import("./pages/CognitiveBrain.js");
@@ -115,6 +116,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <CookieConsentBanner />
         <Auth.AuthProvider>
           <BrowserRouter>
             <CerniqRefineProvider>

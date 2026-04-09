@@ -30,8 +30,8 @@ describe("queue-registry", () => {
     // + 6 E5 Churn Detection B9-B14 = 299
     // + 5 E5 PostGIS Proximity C15-C19 = 304
     // … E5 graph, referral, feedback, win-back, association, NPS, drip, alerts, compliance, HITL
-    // + ai:response:generate (E2 outreach) + phone:quarantine:trigger + 3 cozi semantice (WA delivery/read, HITL SLA) — expected = 350.
-    expect(queueRegistry).toHaveLength(350);
+    // + ai:response:generate + phone:quarantine + 3 semantice + 5 SMS + 3 consensus — expected = 358.
+    expect(queueRegistry).toHaveLength(358);
   });
 
   it("uses canonical colon-based queue names", () => {
@@ -78,7 +78,7 @@ describe("queue-registry", () => {
   it("throws when the registry inventory is incomplete", () => {
     const removed = queueRegistry.pop();
     try {
-      expect(() => assertQueueRegistryComplete()).toThrow("Expected 350 queues");
+      expect(() => assertQueueRegistryComplete()).toThrow("Expected 358 queues");
     } finally {
       if (removed) queueRegistry.push(removed);
     }

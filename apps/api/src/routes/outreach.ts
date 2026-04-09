@@ -44,6 +44,7 @@ import {
   QUEUES,
 } from "@cerniq/worker-shared";
 import { requireTenantId, getActorId } from "./utils.js";
+import { requireRole } from "../middleware/authz.js";
 import { buildProvenanceContext } from "../lib/provenance.js";
 import type { Campaign } from "@cerniq/integrations/instantly";
 
@@ -722,7 +723,12 @@ function aggregateChannelStatsForOverview(
 // ─── Route Registration ───────────────────────────────────────────────────────
 
 export async function outreachRoutes(app: FastifyInstance) {
-  const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
+  const readAuth = {
+    onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("viewer")],
+  };
+  const writeAuth = {
+    onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("operator")],
+  };
 
   const outreachSendLimiter = app.rateLimit({ max: 10, timeWindow: "1 minute" });
   const outreachEnrollLimiter = app.rateLimit({ max: 50, timeWindow: "1 minute" });
@@ -744,7 +750,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Settings & notifications ─────────────────────────────────────────────
 
-  app.get("/settings", { ...authOpts }, async (_req, reply) => {
+  app.get("/settings", { ...readAuth }, async (_req, reply) => {
     const tenantId = requireTenantId(_req);
     const [row] = await db
       .select()
@@ -758,7 +764,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: row });
   });
 
-  app.patch("/settings", { ...authOpts }, async (req, reply) => {
+  app.patch("/settings", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const body = outreachSettingsPatchSchema.parse(req.body);
     const [existing] = await db
@@ -788,7 +794,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: updated });
   });
 
-  app.get("/notifications", { ...authOpts }, async (req, reply) => {
+  app.get("/notifications", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const q = z.object({ unread: z.coerce.boolean().optional() }).parse(req.query);
     const conditions = [eq(outreachNotifications.tenantId, tenantId)];
@@ -837,7 +843,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     }
   });
 
-  app.patch("/notifications/:id/read", { ...authOpts }, async (req, reply) => {
+  app.patch("/notifications/:id/read", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
     const [updated] = await db
@@ -849,7 +855,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: updated });
   });
 
-  app.post("/notifications/mark-all-read", { ...authOpts }, async (_req, reply) => {
+  app.post("/notifications/mark-all-read", { ...writeAuth }, async (_req, reply) => {
     const tenantId = requireTenantId(_req);
     await db
       .update(outreachNotifications)
@@ -862,7 +868,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Leads ────────────────────────────────────────────────────────────────
 
-  app.post("/leads", { ...authOpts, preHandler: [outreachWriteLimiter] }, async (req, reply) => {
+  app.post("/leads", { ...writeAuth, preHandler: [outreachWriteLimiter] }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const body = createOutreachLeadsSchema.parse(req.body);
 
@@ -935,7 +941,7 @@ export async function outreachRoutes(app: FastifyInstance) {
    * Import leads din date minimale (fără pipeline Bronze): inserează silver + gold stub + contact + lead_journey.
    * CUI lipsă → sintetic `IMP-…` unic per tenant (unique idx_gold_companies_cui_tenant).
    */
-  app.post("/leads/import", { ...authOpts }, async (req, reply) => {
+  app.post("/leads/import", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const body = importOutreachLeadsSchema.parse(req.body);
 
@@ -1043,7 +1049,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/leads", { ...authOpts }, async (req, reply) => {
+  app.get("/leads", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = leadsQuerySchema.parse(req.query);
     const offset = (query.page - 1) * query.limit;
@@ -1093,7 +1099,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/leads/export", { ...authOpts }, async (req, reply) => {
+  app.get("/leads/export", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = leadsExportQuerySchema.parse(req.query);
 
@@ -1153,7 +1159,7 @@ export async function outreachRoutes(app: FastifyInstance) {
   });
 
   /** Agregat activitate (mesaje, înrolări, review) pentru timeline lead. */
-  app.get("/leads/:id/activity", { ...authOpts }, async (req, reply) => {
+  app.get("/leads/:id/activity", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -1227,7 +1233,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: items.slice(0, 50) });
   });
 
-  app.get("/leads/:id", { ...authOpts }, async (req, reply) => {
+  app.get("/leads/:id", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -1265,7 +1271,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.patch("/leads/:id", { ...authOpts }, async (req, reply) => {
+  app.patch("/leads/:id", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
     const body = patchLeadSchema.parse(req.body);
@@ -1322,7 +1328,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/leads/:id/send-message",
-    { ...authOpts, preHandler: [outreachSendLimiter] },
+    { ...writeAuth, preHandler: [outreachSendLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const { id } = idParamSchema.parse(req.params);
@@ -1388,7 +1394,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/leads/:id/takeover",
-    { ...authOpts, preHandler: [outreachTakeoverLimiter] },
+    { ...writeAuth, preHandler: [outreachTakeoverLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const actorId = getActorId(req);
@@ -1427,7 +1433,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Sequences ────────────────────────────────────────────────────────────
 
-  app.get("/sequences", { ...authOpts }, async (req, reply) => {
+  app.get("/sequences", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({
@@ -1462,7 +1468,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/sequences/:id", { ...authOpts }, async (req, reply) => {
+  app.get("/sequences/:id", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -1485,7 +1491,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/sequences",
-    { ...authOpts, preHandler: [outreachWriteLimiter] },
+    { ...writeAuth, preHandler: [outreachWriteLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const body = createSequenceSchema.parse(req.body);
@@ -1519,7 +1525,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     },
   );
 
-  app.patch("/sequences/:id", { ...authOpts }, async (req, reply) => {
+  app.patch("/sequences/:id", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
     const body = patchSequenceSchema.parse(req.body);
@@ -1596,7 +1602,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/sequences/:id/enroll",
-    { ...authOpts, preHandler: [outreachEnrollLimiter] },
+    { ...writeAuth, preHandler: [outreachEnrollLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const { id: sequenceId } = idParamSchema.parse(req.params);
@@ -1681,7 +1687,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Reviews / HITL ───────────────────────────────────────────────────────
 
-  app.get("/reviews", { ...authOpts }, async (req, reply) => {
+  app.get("/reviews", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = reviewQuerySchema.parse(req.query);
     const offset = (query.page - 1) * query.limit;
@@ -1715,7 +1721,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/reviews/stats", { ...authOpts }, async (req, reply) => {
+  app.get("/reviews/stats", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
 
     const byPriority = await db
@@ -1782,7 +1788,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/reviews/:id", { ...authOpts }, async (req, reply) => {
+  app.get("/reviews/:id", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -1796,7 +1802,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: review });
   });
 
-  app.post("/reviews/:id/assign", { ...authOpts }, async (req, reply) => {
+  app.post("/reviews/:id/assign", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
     const body = z.object({ userId: z.uuid() }).parse(req.body);
@@ -1813,7 +1819,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/reviews/:id/resolve",
-    { ...authOpts, preHandler: [outreachResolveLimiter] },
+    { ...writeAuth, preHandler: [outreachResolveLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const actorId = getActorId(req);
@@ -1856,7 +1862,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Templates ────────────────────────────────────────────────────────────
 
-  app.get("/templates", { ...authOpts }, async (req, reply) => {
+  app.get("/templates", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({
@@ -1892,7 +1898,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: rows });
   });
 
-  app.get("/templates/:id", { ...authOpts }, async (req, reply) => {
+  app.get("/templates/:id", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -1908,7 +1914,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/templates",
-    { ...authOpts, preHandler: [outreachWriteLimiter] },
+    { ...writeAuth, preHandler: [outreachWriteLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const body = createTemplateSchema.parse(req.body);
@@ -1935,7 +1941,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     },
   );
 
-  app.patch("/templates/:id", { ...authOpts }, async (req, reply) => {
+  app.patch("/templates/:id", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
     const body = z
@@ -1964,7 +1970,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   app.post(
     "/templates/:id/preview",
-    { ...authOpts, preHandler: [outreachPreviewLimiter] },
+    { ...writeAuth, preHandler: [outreachPreviewLimiter] },
     async (req, reply) => {
       const tenantId = requireTenantId(req);
       const { id } = idParamSchema.parse(req.params);
@@ -2003,7 +2009,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Phones ───────────────────────────────────────────────────────────────
 
-  app.get("/phones", { ...authOpts }, async (req, reply) => {
+  app.get("/phones", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
 
     const phones = await db
@@ -2051,7 +2057,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/phones/:id", { ...authOpts }, async (req, reply) => {
+  app.get("/phones/:id", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -2135,7 +2141,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.patch("/phones/:id", { ...authOpts }, async (req, reply) => {
+  app.patch("/phones/:id", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
     const body = z
@@ -2176,7 +2182,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.post("/phones/:id/health-check", { ...authOpts }, async (req, reply) => {
+  app.post("/phones/:id/health-check", { ...writeAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
@@ -2192,7 +2198,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Analytics ────────────────────────────────────────────────────────────
 
-  app.get("/dashboard", { ...authOpts }, async (req, reply) => {
+  app.get("/dashboard", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({ period: z.enum(["7d", "30d", "90d", "custom"]).default("7d") })
@@ -2202,7 +2208,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send(payload);
   });
 
-  app.get("/analytics/overview", { ...authOpts }, async (req, reply) => {
+  app.get("/analytics/overview", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({ period: z.enum(["7d", "30d", "90d", "custom"]).default("7d") })
@@ -2235,7 +2241,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/analytics/daily", { ...authOpts }, async (req, reply) => {
+  app.get("/analytics/daily", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({ from: z.string().optional(), to: z.string().optional() })
@@ -2256,7 +2262,7 @@ export async function outreachRoutes(app: FastifyInstance) {
   });
 
   /** Metrici per telefon WA (spec etapa2-api-endpoints.md §6.3). */
-  app.get("/analytics/phones", { ...authOpts }, async (req, reply) => {
+  app.get("/analytics/phones", { ...readAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({
@@ -2353,7 +2359,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Campaigns ────────────────────────────────────────────────────────────
 
-  app.get("/campaigns", { ...authOpts }, async (req, reply) => {
+  app.get("/campaigns", { ...readAuth }, async (req, reply) => {
     try {
       const { getInstantlyClient } = await import("@cerniq/integrations/instantly");
       const res = await getInstantlyClient().getCampaigns();

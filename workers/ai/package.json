@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cerniq/db": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "bullmq": "^5.73.2",
     "ioredis": "^5.10.1"

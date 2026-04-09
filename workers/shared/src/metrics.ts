@@ -709,6 +709,30 @@ export const llmConsensusDivergenceTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+/** Voturi consensus reușite (majoritate) — tip decizie + model câștigător (Plan §XVI.A). */
+export const consensusVotesTotal = new Counter({
+  name: "cerniq_consensus_votes_total",
+  help: "Multi-model consensus votes completed with majority agreement",
+  labelNames: ["decision_type", "winning_model"],
+  registers: [metricsRegistry],
+});
+
+/** Depășire buget zilnic LLM (hard cap) — înainte de apel frontier (Plan §XVI.B). */
+export const llmBudgetExceededTotal = new Counter({
+  name: "cerniq_llm_budget_exceeded_total",
+  help: "Tenant hit daily LLM spend hard cap (frontier blocked)",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/** Auto-downgrade la self-hosted (≥80% din cap zilnic) — fallback frontier sărit (Plan §XVI.B). */
+export const llmAutoDowngradeTotal = new Counter({
+  name: "cerniq_llm_auto_downgrade_total",
+  help: "Frontier LLM fallback skipped due to 80% daily cap downgrade policy",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
 /**
  * Allocator telefoane WA — path SKIP LOCKED (fără Redis phone:lock).
  * outcome=acquired|exhausted

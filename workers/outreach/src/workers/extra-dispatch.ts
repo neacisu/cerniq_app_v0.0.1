@@ -6,7 +6,7 @@
  * - outreach:orchestrator:router — redirecționare job către coada finală
  */
 import type { Job, Worker } from "bullmq";
-import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
+import { QUEUES, createWorker, createQueue, dispatchNotification } from "@cerniq/worker-shared";
 import { getInstantlyClient, getTimelinesAIClient } from "@cerniq/integrations";
 import {
   isPhoneBannedAlertPayload,
@@ -75,6 +75,27 @@ export function createAlertPhoneOfflineWorker(): Worker {
     QUEUES.ALERT_PHONE_OFFLINE,
     async (job: Job<AlertPhoneOfflineJobData>) => {
       console.warn("[alert:phone:offline]", JSON.stringify(job.data));
+      if (job.data.tenantId) {
+        try {
+          await dispatchNotification({
+            tenantId: job.data.tenantId,
+            type: "ALERT",
+            title: "Telefon offline",
+            body:
+              job.data.message ??
+              `Linie indisponibilă (telefon ${job.data.phoneNumber ?? job.data.phoneId}).`,
+            data: {
+              phoneId: job.data.phoneId,
+              phoneNumber: job.data.phoneNumber,
+              offlineSince: job.data.offlineSince,
+              status: job.data.status,
+            },
+            channels: ["IN_APP", "EMAIL", "WEBHOOK"],
+          });
+        } catch (err) {
+          console.error("[alert:phone:offline] notification dispatch failed", err);
+        }
+      }
       return { logged: true };
     },
     { concurrency: 2 },

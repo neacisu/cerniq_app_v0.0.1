@@ -184,14 +184,15 @@ export function createWaWorker(
       };
       const processedContent = processSpintax(bodyTemplate, spintaxVariables);
 
-      // 4. Send via TimelinesAI client
-      const { getTimelinesAIClient } = await import("@cerniq/integrations");
-      const timelinesClient = getTimelinesAIClient();
+      // 4. Send via ADR-0031 WA provider (TimelinesAI)
+      const { createWaProvider } = await import("@cerniq/integrations");
+      const waProvider = createWaProvider("timelinesai");
 
-      const sendResult = await timelinesClient.sendMessage({
-        phone: phoneNumber,
-        recipient: recipientPhone,
-        message: processedContent,
+      const sendResult = await waProvider.sendWhatsApp({
+        accountPhone: phoneNumber,
+        recipientE164: recipientPhone,
+        body: processedContent,
+        correlationId,
       });
 
       // 5. Log to outreach.communication_log (schema: status + status_updated_at, not legacy messageStatus/updatedAt)

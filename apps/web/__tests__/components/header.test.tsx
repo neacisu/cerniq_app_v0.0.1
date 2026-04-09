@@ -35,10 +35,28 @@ vi.mock("@/hooks/use-etapa2.js", () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+  useMarkAllNotificationsRead: () => ({
+    mutateAsync: mockMutateAsync,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@/hooks/use-app-notifications.js", () => ({
+  useAppNotifications: vi.fn(),
+  useMarkAppNotificationRead: () => ({
+    mutateAsync: mockMutateAsync,
+    isPending: false,
+  }),
+  useMarkAllAppNotificationsRead: () => ({
+    mutateAsync: mockMutateAsync,
+    isPending: false,
+  }),
 }));
 
 import { useOutreachNotifications } from "@/hooks/use-etapa2.js";
+import { useAppNotifications } from "@/hooks/use-app-notifications.js";
 const mockUseNotifications = vi.mocked(useOutreachNotifications);
+const mockUseAppNotifications = vi.mocked(useAppNotifications);
 
 // ─── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -73,6 +91,9 @@ function setNotifMock(unreadCount: number, items: ReturnType<typeof makeNotifica
   mockUseNotifications.mockReturnValue({
     data: { success: true, data: { unreadCount, items } },
   } as unknown as MockQueryResult);
+  mockUseAppNotifications.mockReturnValue({
+    data: { success: true, data: { unreadCount: 0, items: [] } },
+  } as unknown as ReturnType<typeof useAppNotifications>);
 }
 
 function renderHeader(pathname = "/dashboard") {
@@ -83,6 +104,25 @@ function renderHeader(pathname = "/dashboard") {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[pathname]}>
         <Header />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+function renderHeaderWithBackground(
+  pathname = "/dashboard",
+  opts: { count?: number; onOpen?: () => void } = {},
+) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[pathname]}>
+        <Header
+          activeBackgroundProcessCount={opts.count ?? 0}
+          onOpenBackgroundProcesses={opts.onOpen}
+        />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -137,7 +177,7 @@ describe("Header — notificări (unread=0)", () => {
 
   it("renderizează butonul Bell", () => {
     renderHeader();
-    expect(screen.getByRole("button", { name: /notificari/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notificări" })).toBeInTheDocument();
   });
 
   it("NU afișează badge când unread=0", () => {
@@ -152,7 +192,7 @@ describe("Header — notificări (unread=0)", () => {
 
   it("butonul Bell navighează la /outreach/leads", () => {
     renderHeader();
-    fireEvent.click(screen.getByRole("button", { name: /notificari/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Notificări" }));
     expect(mockNavigate).toHaveBeenCalledWith("/outreach/leads");
   });
 });
@@ -181,7 +221,7 @@ describe("Header — notificări (unread>0)", () => {
 
   it("afișează dropdown-ul cu textul unread count", () => {
     renderHeader();
-    expect(screen.getByText("Notificări necitite (2)")).toBeInTheDocument();
+    expect(screen.getByText(/Necitite: 2 \(app 0 · outreach 2\)/)).toBeInTheDocument();
   });
 
   it("afișează titlul notificărilor în dropdown", () => {
@@ -348,6 +388,34 @@ describe("Header — user avatar", () => {
   });
 });
 
+// ─── Procese în fundal (panel) ───────────────────────────────────────────────
+
+describe("Header — procese în fundal", () => {
+  beforeEach(() => {
+    setNotifMock(0, []);
+  });
+
+  it("nu afișează butonul când lipsește onOpenBackgroundProcesses", () => {
+    renderHeader();
+    expect(screen.queryByRole("button", { name: "Procese în fundal" })).not.toBeInTheDocument();
+  });
+
+  it("afișează butonul, badge numeric și apelează onOpen la click", () => {
+    const onOpen = vi.fn();
+    renderHeaderWithBackground("/dashboard", { count: 4, onOpen });
+    const btn = screen.getByRole("button", { name: "Procese în fundal" });
+    expect(btn).toBeInTheDocument();
+    expect(screen.getByText("4")).toBeInTheDocument();
+    fireEvent.click(btn);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("cap badge la 99+ pentru număr mare", () => {
+    renderHeaderWithBackground("/dashboard", { count: 150, onOpen: vi.fn() });
+    expect(screen.getByText("99+")).toBeInTheDocument();
+  });
+});
+
 // ─── Guard null/undefined ─────────────────────────────────────────────────────
 
 describe("Header — guard null/undefined data", () => {
@@ -376,7 +444,7 @@ describe("Header — conformitate JSX/a11y", () => {
 
   it("butonul Bell are aria-label (accesibilitate)", () => {
     renderHeader();
-    const bell = screen.getByRole("button", { name: /notificari/i });
+    const bell = screen.getByRole("button", { name: "Notificări" });
     expect(bell).toHaveAttribute("aria-label");
     expect(bell).toHaveAttribute("type", "button");
   });

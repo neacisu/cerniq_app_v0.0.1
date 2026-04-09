@@ -68,4 +68,12 @@ describe("Securitate — 401 neautentificat, CORS, headers", () => {
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
     expect(res.headers["x-frame-options"]).toBeDefined();
   });
+
+  it("GET /health/live include Content-Security-Policy (Helmet CSP în mediul test)", async () => {
+    const res = await app.inject({ method: "GET", url: "/health/live" });
+    expect(res.statusCode).toBe(200);
+    const csp = res.headers["content-security-policy"];
+    expect(csp).toBeDefined();
+    expect(String(csp)).toContain("'self'");
+  });
 });

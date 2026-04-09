@@ -148,12 +148,12 @@ export function createEmailColdSenderWorker(): Worker {
         );
       }
 
-      const { getInstantlyClient } = await import("@cerniq/integrations");
+      const { createInstantlyColdEmailProvider } = await import("@cerniq/integrations");
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
 
-      const instantlyClient = getInstantlyClient();
+      const instantlyClient = createInstantlyColdEmailProvider();
 
       // addLead — Instantly manages the actual sending
       await instantlyClient.addLead({
@@ -445,14 +445,14 @@ export function createEmailWarmSenderWorker(): Worker {
         );
       }
 
-      const { getResendClient } = await import("@cerniq/integrations");
+      const { createResendTransactionalEmailProvider } = await import("@cerniq/integrations");
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
 
-      // Identitatea From este definită în ResendClient (job-ul poate include fromEmail/fromName în viitor).
-      const resendClient = getResendClient();
-      const result = await resendClient.sendEmail({
+      // Identitatea From este definită în ResendClient (provider); job-ul poate include fromEmail/fromName în viitor.
+      const resend = createResendTransactionalEmailProvider();
+      const result = await resend.sendTransactional({
         to: recipientEmail,
         subject,
         html: htmlBody,
@@ -472,7 +472,7 @@ export function createEmailWarmSenderWorker(): Worker {
         direction: "OUTBOUND",
         status: "SENT",
         statusUpdatedAt: new Date(),
-        externalMessageId: result.id,
+        externalMessageId: result.messageId,
         content: subject,
         subject,
         sentAt: new Date(),

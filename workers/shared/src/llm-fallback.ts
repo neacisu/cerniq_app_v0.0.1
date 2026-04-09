@@ -14,11 +14,14 @@ import {
   getLlmSpendHourUsd,
   LLM_DAILY_CAP_USD,
   LLM_HOURLY_SPIKE_CAP_USD,
+  resolveLlmSpendDowngradeState,
   type RedisStringGet,
   type TenantLlmSpendTier,
 } from "./llm-cost-governance.js";
 import { reasoningClient, INFRAQ_REASONING_MODEL } from "./llm-client.js";
 import {
+  llmAutoDowngradeTotal,
+  llmBudgetExceededTotal,
   llmConsensusDivergenceTotal,
   llmCostCeilingBlocksTotal,
   llmCostSpikeBlocksTotal,
@@ -67,7 +70,18 @@ export async function assertLlmDailySpendBelowHardCap(params: {
   const cap = LLM_DAILY_CAP_USD[params.tier];
   if (spent >= cap) {
     llmCostCeilingBlocksTotal.inc({ tier: params.tier });
+    llmBudgetExceededTotal.inc({ tenant_id: params.tenantId });
     throw new LlmDailySpendCapExceededError(spent, cap);
+  }
+}
+
+/** Cheltuială zilnică ≥80% din cap — fallback frontier interzis (doar infraq / HITL). */
+export class LlmAutoDowngradeFrontierBlockedError extends Error {
+  constructor(
+    message = "LLM: daily spend ≥80% of tier cap — frontier fallback disabled; use self-hosted infraq or HITL.",
+  ) {
+    super(message);
+    this.name = "LlmAutoDowngradeFrontierBlockedError";
   }
 }
 
@@ -135,6 +149,15 @@ export async function withLlmFallbackChain<T>(params: {
 
     if (spendGuard) {
       await assertLlmDailySpendBelowHardCap(spendGuard);
+      const downgradeState = await resolveLlmSpendDowngradeState({
+        redis: spendGuard.redis,
+        tenantId: spendGuard.tenantId,
+        tier: spendGuard.tier,
+      });
+      if (downgradeState.downgradeToFast) {
+        llmAutoDowngradeTotal.inc({ tenant_id: spendGuard.tenantId });
+        throw new LlmAutoDowngradeFrontierBlockedError();
+      }
       await assertLlmFrontierHourlySpendNoSpike(spendGuard);
     }
 
@@ -208,26 +231,53 @@ function stableStringify(value: unknown): string {
   return `{${keys.map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k])).join(",")}}`;
 }
 
-async function collectConsensusParsedOutputs<T>(params: {
+/** Apeluri paralele per model; păstrează text brut + latență pentru audit (`all_responses`). */
+async function collectConsensusModelResults<T>(params: {
   readonly models: readonly ConsensusModelRunner[];
   readonly messages: ConsensusChatMessage[];
   readonly schema: z.ZodType<T>;
-}): Promise<Array<{ modelId: string; value: T }>> {
+}): Promise<{
+  readonly traces: Array<{ modelId: string; raw: string; latency_ms: number }>;
+  readonly parsed: Array<{ modelId: string; value: T }>;
+}> {
   const { models, messages, schema } = params;
-  const parsed: Array<{ modelId: string; value: T }> = [];
-  for (const m of models) {
-    try {
-      const text = await m.generateText(messages);
-      const json = extractJsonObject(text);
-      const r = schema.safeParse(json);
-      if (r.success) {
-        parsed.push({ modelId: m.id, value: r.data });
+  const rows = await Promise.all(
+    models.map(async (m) => {
+      const t0 = Date.now();
+      try {
+        const text = await m.generateText(messages);
+        const latency_ms = Date.now() - t0;
+        let value: T | null = null;
+        try {
+          const json = extractJsonObject(text);
+          const r = schema.safeParse(json);
+          value = r.success ? r.data : null;
+        } catch {
+          value = null;
+        }
+        return { modelId: m.id, raw: text, latency_ms, value };
+      } catch (e) {
+        return {
+          modelId: m.id,
+          raw: e instanceof Error ? e.message : String(e),
+          latency_ms: Date.now() - t0,
+          value: null as T | null,
+        };
       }
-    } catch {
-      /* continuă cu celelalte modele */
+    }),
+  );
+  const traces = rows.map((r) => ({
+    modelId: r.modelId,
+    raw: r.raw,
+    latency_ms: r.latency_ms,
+  }));
+  const parsed: Array<{ modelId: string; value: T }> = [];
+  for (const r of rows) {
+    if (r.value !== null) {
+      parsed.push({ modelId: r.modelId, value: r.value });
     }
   }
-  return parsed;
+  return { traces, parsed };
 }
 
 function buildConsensusVoteBuckets<T>(
@@ -258,12 +308,25 @@ function pickLargestConsensusBucket<T>(
   return best;
 }
 
+export type ConsensusModelTrace = {
+  readonly modelId: string;
+  readonly raw: string;
+  readonly latency_ms: number;
+};
+
 export type ConsensusVoteResult<T> =
-  | { ok: true; value: T; agreement: "unanimous" | "majority"; agreeingModelIds: string[] }
+  | {
+      ok: true;
+      value: T;
+      agreement: "unanimous" | "majority";
+      agreeingModelIds: string[];
+      modelTraces: ConsensusModelTrace[];
+    }
   | {
       ok: false;
       reason: "insufficient_models" | "parse_all_failed" | "divergence";
       detail?: string;
+      modelTraces?: ConsensusModelTrace[];
     };
 
 /**
@@ -276,8 +339,10 @@ export async function consensusStructuredVote<T>(params: {
   /** Ex: discount_gt_30 | credit_borderline | churn_gt_70 */
   readonly triggerLabel: string;
   readonly onDivergence?: (detail: string) => Promise<void>;
+  /** Prag majoritate (implicit 2/3 din numărul de modele). */
+  readonly majorityRatio?: number;
 }): Promise<ConsensusVoteResult<T>> {
-  const { schema, messages, models, triggerLabel, onDivergence } = params;
+  const { schema, messages, models, triggerLabel, onDivergence, majorityRatio } = params;
 
   if (models.length < 2) {
     return {
@@ -287,21 +352,22 @@ export async function consensusStructuredVote<T>(params: {
     };
   }
 
-  const parsed = await collectConsensusParsedOutputs({ models, messages, schema });
+  const { traces, parsed } = await collectConsensusModelResults({ models, messages, schema });
 
   if (parsed.length === 0) {
-    return { ok: false, reason: "parse_all_failed" };
+    return { ok: false, reason: "parse_all_failed", modelTraces: traces };
   }
 
   const buckets = buildConsensusVoteBuckets(parsed);
-  const threshold = Math.ceil((models.length * 2) / 3);
+  const ratio = majorityRatio ?? 2 / 3;
+  const threshold = Math.max(1, Math.ceil(models.length * ratio));
   const best = pickLargestConsensusBucket(buckets);
 
   if (!best || best.modelIds.length < threshold) {
     const detail = `No majority: need ${threshold}/${models.length}, best=${best?.modelIds.length ?? 0}`;
     llmConsensusDivergenceTotal.inc({ trigger: triggerLabel });
     await onDivergence?.(detail);
-    return { ok: false, reason: "divergence", detail };
+    return { ok: false, reason: "divergence", detail, modelTraces: traces };
   }
 
   const agreement = best.modelIds.length === models.length ? "unanimous" : "majority";
@@ -310,6 +376,7 @@ export async function consensusStructuredVote<T>(params: {
     value: best.value,
     agreement,
     agreeingModelIds: best.modelIds,
+    modelTraces: traces,
   };
 }
 

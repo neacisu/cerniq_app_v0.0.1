@@ -107,6 +107,17 @@ vi.mock("ioredis", () => ({
 }));
 
 vi.mock("@cerniq/integrations", () => ({
+  createWaProvider: vi.fn(() => ({
+    sendWhatsApp: vi
+      .fn()
+      .mockResolvedValue({ message_id: "wa-msg-001", chat_id: "chat-001", status: "SENT" }),
+  })),
+  createResendTransactionalEmailProvider: vi.fn(() => ({
+    sendTransactional: vi.fn().mockResolvedValue({ messageId: "resend-001" }),
+  })),
+  createInstantlyColdEmailProvider: vi.fn(() => ({
+    addLead: vi.fn().mockResolvedValue({ id: "instantly-001" }),
+  })),
   getTimelinesAIClient: vi.fn(() => ({
     sendMessage: vi
       .fn()

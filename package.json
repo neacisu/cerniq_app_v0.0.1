@@ -34,6 +34,7 @@
     "test:ci": "node ./infra/scripts/run-vitest-ci.mjs",
     "test:e2e": "playwright test",
     "test:infra": "pnpm exec vitest run tests/e2e/infrastructure --reporter=dot",
+    "test:pgtap": "bash infra/scripts/run-pgtap.sh",
     "test:load:etapa1": "k6 run ./tests/performance/etapa1-throughput.k6.js",
     "validate": "turbo run lint typecheck test",
     "prepare": "husky",
@@ -47,6 +48,8 @@
     ]
   },
   "devDependencies": {
+    "@cerniq/db": "workspace:*",
+    "@cerniq/worker-shared": "workspace:*",
     "@rolldown/plugin-babel": "^0.2.2",
     "@tailwindcss/vite": "4.2.2",
     "@vitejs/plugin-react": "^6.0.1",

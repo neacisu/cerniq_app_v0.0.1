@@ -82,7 +82,7 @@ jobs:
         run: pnpm verify:sonar-config
 
       - name: 🔧 Smoke test scripturi audit (Node)
-        run: node --test tests/infra/audit-metadata-scripts.test.mjs tests/infra/sonar-token-from-rendered-env.test.mjs tests/infra/k6-load-scripts.test.mjs tests/infra/chaos-artifacts.test.mjs tests/infra/run-vitest-ci-packages.test.mjs
+        run: node --test tests/infra/audit-metadata-scripts.test.mjs tests/infra/sonar-token-from-rendered-env.test.mjs tests/infra/k6-load-scripts.test.mjs tests/infra/chaos-artifacts.test.mjs tests/infra/run-vitest-ci-packages.test.mjs tests/infra/pgtap-artifacts.test.mjs
 
       - name: ❌ Cancel workflow on failure
         if: failure()
@@ -213,6 +213,17 @@ jobs:
 
       - name: 📂 Ensure workspace directories exist
         run: mkdir -p secrets test-results
+
+      - name: 🗄️ Drizzle migrate + pgTAP (dacă extensia pgtap e în clusterul Postgres)
+        run: |
+          set -euo pipefail
+          pnpm db:migrate
+          if [[ "$(psql "$DATABASE_URL" -tAc "SELECT 1 FROM pg_available_extensions WHERE name = 'pgtap' LIMIT 1" 2>/dev/null || true)" != "1" ]]; then
+            echo "::notice title=pgTAP::Extensia pgtap nu e disponibilă în imaginea Postgres CI (normal pentru postgis/postgis fără pgtap). Sar suite-ul SQL."
+            exit 0
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pgtap;"
+          bash infra/scripts/run-pgtap.sh
 
       - name: 📐 Verify Vitest coverage thresholds (API + web)
         run: pnpm verify:coverage-policy

@@ -28,7 +28,7 @@ import { leadJourney, outreachSchema } from "./outreach.js";
 import { messageDirectionEnum } from "./outreach-enums.js";
 
 /** Valori permise — trebuie să coincidă cu `chk_sms_messages_provider` în migrare. */
-export const SMS_PROVIDER_VALUES = ["TWILIO", "VONAGE", "AWS_SNS"] as const;
+export const SMS_PROVIDER_VALUES = ["TWILIO", "VONAGE", "AWS_SNS", "SMSADVERT"] as const;
 export type SmsProvider = (typeof SMS_PROVIDER_VALUES)[number];
 
 /** Status livrare SMS — include valori care nu există în `message_status_enum`. */
@@ -77,7 +77,10 @@ export const smsMessages = outreachSchema.table(
     index("idx_sms_messages_tenant_created").on(t.tenantId, t.createdAt.desc()),
     index("idx_sms_messages_journey").on(t.journeyId, t.createdAt.desc()),
     index("idx_sms_messages_provider_msg").on(t.provider, t.providerMessageId),
-    check("chk_sms_messages_provider", sql`${t.provider} IN ('TWILIO','VONAGE','AWS_SNS')`),
+    check(
+      "chk_sms_messages_provider",
+      sql`${t.provider} IN ('TWILIO','VONAGE','AWS_SNS','SMSADVERT')`,
+    ),
     check(
       "chk_sms_messages_status",
       sql`${t.status} IN ('QUEUED','SENT','DELIVERED','FAILED','REJECTED','OPTED_OUT')`,

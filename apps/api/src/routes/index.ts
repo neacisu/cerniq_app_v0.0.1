@@ -25,18 +25,29 @@ import { referralRoutes } from "./referral.js";
 import { churnRoutes } from "./churn.js";
 import { graphRoutes } from "./graph.js";
 import { e5AlertRoutes } from "./e5-alert.js";
+import { gdprRoutes } from "./gdpr.js";
+import { adminLlmCostsRoutes } from "./admin-llm-costs.js";
+import { importLogsStreamRoutes } from "./import-logs-stream.js";
+import { aiGuardrailsRoutes } from "./ai-guardrails.js";
+import { postsaleRoutes } from "./postsale.js";
+import { notificationsRoutes } from "./notifications.js";
+import { systemProcessesRoutes } from "./system-processes.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes, { prefix: "/health" });
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
+  await app.register(notificationsRoutes, { prefix: "/api/v1/notifications" });
+  await app.register(systemProcessesRoutes, { prefix: "/api/v1/system" });
   await app.register(adminMonitoringRoutes, { prefix: "/api/admin" });
   await app.register(enrichmentRoutes, { prefix: "/api/v1/enrichment" });
   await app.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });
   await app.register(importsBronzeRoutes, { prefix: "/api/v1" });
+  await app.register(importLogsStreamRoutes, { prefix: "/api/v1" });
   await app.register(silverGoldRoutes, { prefix: "/api/v1" });
   await app.register(outreachRoutes, { prefix: "/api/v1/outreach" });
   await app.register(webhooksRoutes, { prefix: "/api/v1/webhooks" });
   await app.register(complianceRoutes, { prefix: "/api/v1/ai" });
+  await app.register(aiGuardrailsRoutes, { prefix: "/api/v1/ai" });
   await app.register(cognitiveBrainRoutes, { prefix: "/api/v1/brain" });
   // E3 AI Sales
   await app.register(negotiationRoutes, { prefix: "/api/v1/negotiation" });
@@ -49,12 +60,15 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(creditRoutes, { prefix: "/api/v1/credit" });
   await app.register(contractRoutes, { prefix: "/api/v1/contracts" });
   await app.register(shipmentRoutes, { prefix: "/api/v1/shipments" });
+  await app.register(postsaleRoutes, { prefix: "/api/v1/postsale" });
   // E5 Nurturing
   await app.register(nurturingRoutes, { prefix: "/api/v1/nurturing" });
   await app.register(referralRoutes, { prefix: "/api/v1/referrals" });
   await app.register(churnRoutes, { prefix: "/api/v1/churn" });
   await app.register(graphRoutes, { prefix: "/api/v1/graph" });
   await app.register(e5AlertRoutes, { prefix: "/api/v1/e5/alerts" });
+  await app.register(gdprRoutes, { prefix: "/api/v1/gdpr" });
+  await app.register(adminLlmCostsRoutes, { prefix: "/api/v1/admin" });
 
   app.get("/", async () => ({
     success: true,

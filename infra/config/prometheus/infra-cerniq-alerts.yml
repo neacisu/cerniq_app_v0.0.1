@@ -427,6 +427,16 @@ groups:
           summary: "LLM endpoint unreachable"
           description: "LLM endpoint {{ $labels.instance }} ({{ $labels.job }}) is not responding to scrapes"
 
+      - alert: LLMBudgetExceeded
+        expr: increase(cerniq_llm_budget_exceeded_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "LLM daily budget hard cap hit (tenant frontier blocked)"
+          description: "At least one tenant reached the daily LLM spend cap — check cerniq_llm_budget_exceeded_total labels."
+
   - name: cerniq-cognitive
     rules:
       - alert: NeuronStaleFiring

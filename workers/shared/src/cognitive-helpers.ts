@@ -384,3 +384,11 @@ export async function propagatePause(
     }
   }
 }
+
+// ── LLM cost tracker (Plan §XVI.B) — re-export pentru workeri / API; apelurile LLM sunt în `llm-fallback` / E3. ──
+export {
+  BudgetExceededError,
+  TIER_CAPS_USD,
+  checkLlmBudget,
+  recordLlmCost,
+} from "./llm-cost-tracker.js";

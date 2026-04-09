@@ -310,8 +310,9 @@ async function issueAuthTokens(
 
 export async function authRoutes(app: FastifyInstance) {
   const loginRateLimit = app.rateLimit({
-    max: 10,
-    timeWindow: "15 minutes",
+    max: 5,
+    timeWindow: "1 minute",
+    keyGenerator: (request) => `auth-login:${request.ip}`,
   });
 
   app.addHook("preHandler", async (request, reply) => {

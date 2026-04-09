@@ -33,6 +33,8 @@ const EnvSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   RATE_LIMIT_WINDOW: z.string().default("1 minute"),
   CSP_POLICY: z.string().optional(),
+  /** Comma-separated extra hosts for Helmet `connect-src` (ex. `https://otel.example.com,wss://ws.example.com`). */
+  CSP_CONNECT_SRC_EXTRA: z.string().optional(),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default("https://otel-cerniq.neanelu.ro"),
   ADMIN_KEY: z.string().optional(),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(10000),

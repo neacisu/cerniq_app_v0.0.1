@@ -185,6 +185,18 @@ export const QUEUES = {
   /** Dead letter queue — mesaje eșuate outreach (retention scurtă, alertare). */
   OUTREACH_DLQ: "dlq:outreach",
 
+  // M — SMS Channel (5 queues) — FAZA 15 / plan cognitive §XV inventar #25
+  SMS_SEND: "sms:send",
+  SMS_DELIVERY_STATUS: "sms:delivery:status",
+  SMS_RECEIVE_REPLY: "sms:receive:reply",
+  SMS_TEMPLATE_RENDER: "sms:template:render",
+  SMS_QUOTA_CHECK: "sms:quota:check",
+
+  // O — Consensus voting (multi-model high-stakes, Plan §XVI.A)
+  CONSENSUS_VOTE_REQUEST: "consensus:vote:request",
+  CONSENSUS_VOTE_COLLECT: "consensus:vote:collect",
+  CONSENSUS_VOTE_DECIDE: "consensus:vote:decide",
+
   // =========================================================================
   // ETAPA 3 — E3 AI Sales: Product Knowledge (A1-A6) + Hybrid Search (B7-B12)
   // Source: Plan FAZA 7b L1762-1771, FAZA 7c L1773-1789
@@ -834,6 +846,18 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.PIPELINE_OUTREACH_METRICS, concurrency: 1 },
   { name: QUEUES.OUTREACH_DLQ, concurrency: 1 },
 
+  // M — SMS Channel
+  { name: QUEUES.SMS_SEND, concurrency: 25, provider: "twilio" },
+  { name: QUEUES.SMS_DELIVERY_STATUS, concurrency: 50 },
+  { name: QUEUES.SMS_RECEIVE_REPLY, concurrency: 30 },
+  { name: QUEUES.SMS_TEMPLATE_RENDER, concurrency: 30 },
+  { name: QUEUES.SMS_QUOTA_CHECK, concurrency: 50 },
+
+  // O — Consensus voting
+  { name: QUEUES.CONSENSUS_VOTE_REQUEST, concurrency: 2, provider: "infraq-reasoning" },
+  { name: QUEUES.CONSENSUS_VOTE_COLLECT, concurrency: 1 },
+  { name: QUEUES.CONSENSUS_VOTE_DECIDE, concurrency: 1 },
+
   // C — Per-phone WhatsApp queues (40 queues, concurrency=1 strict per ADR-0060)
   ...buildWaPhoneQueues(),
 
@@ -1368,7 +1392,9 @@ export function assertQueueRegistryComplete() {
   // + 1 E2 outreach J — ai:response:generate (alături de ai:sentiment:analyze) = 346
   // + 1 phone:quarantine:trigger (Etapa 2 — separare de alert:phone:banned) = 347
   // + 3 semantică cozi: wa:delivery:status, wa:read:receipt, hitl:sla:enforce = 350
-  const expected = 350;
+  // + 5 cozi SMS: sms:send, sms:delivery:status, sms:receive:reply, sms:template:render, sms:quota:check = 355
+  // + 3 cozi consensus: consensus:vote:request, consensus:vote:collect, consensus:vote:decide = 358
+  const expected = 358;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

@@ -1,7 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App.js";
+import { initDeferredAnalytics } from "./lib/analytics-guard.js";
 import "./index.css";
+
+initDeferredAnalytics();
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element not found");

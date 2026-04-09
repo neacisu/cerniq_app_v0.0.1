@@ -43,8 +43,8 @@
     "e2e/**/*.ts",
     "vitest.config.ts",
     "playwright.config.ts",
-    "src/App.tsx",
-    "src/pages/**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

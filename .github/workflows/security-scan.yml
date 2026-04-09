@@ -1,0 +1,129 @@
+# OWASP ZAP baseline pe API local (același port implicit ca env PORT=64010).
+# Rulează manual (workflow_dispatch) sau săptămânal; necesită stack DB/Redis + secrete CI (OpenBao) ca în ci-pr.yml → job test.
+name: Security Scan (ZAP Baseline)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 4 * * 1"
+
+concurrency:
+  group: security-scan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "25.8.1"
+  PNPM_VERSION: "10.32.1"
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP Baseline (API)
+    runs-on: self-hosted
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: c3rn1q
+          POSTGRES_DB: cerniq
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 64032:5432
+        options: >-
+          --security-opt apparmor=unconfined
+          --health-cmd "pg_isready -U c3rn1q"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:8.6.0
+        ports:
+          - 64039:6379
+        options: >-
+          --security-opt apparmor=unconfined
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch CI secrets from OpenBao
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${OPENBAO_ADDR:-}" ]] || [[ -z "${OPENBAO_CICD_ROLE_ID:-}" ]] || [[ -z "${OPENBAO_CICD_SECRET_ID:-}" ]]; then
+            echo "OpenBao secrets missing — set OPENBAO_ADDR, OPENBAO_CICD_ROLE_ID, OPENBAO_CICD_SECRET_ID for this workflow." >&2
+            exit 1
+          fi
+          TOKEN=$(curl -sS --fail -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+          SECRETS=$(curl -sS --fail -H "X-Vault-Token: $TOKEN" "${OPENBAO_ADDR}/v1/secret/cerniq/ci/test")
+          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.jwt_secret')
+          echo "::add-mask::$CI_JWT_SECRET"
+          echo "DATABASE_URL=postgresql://c3rn1q@localhost:64032/cerniq" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:64039/0" >> "$GITHUB_ENV"
+          echo "JWT_SECRET=${CI_JWT_SECRET}" >> "$GITHUB_ENV"
+          echo "JWT_REFRESH_SECRET=${CI_JWT_SECRET}" >> "$GITHUB_ENV"
+
+      - name: Drizzle migrate
+        run: pnpm db:migrate
+
+      - name: Build API
+        run: pnpm --filter @cerniq/api run build
+
+      - name: Start API for ZAP
+        env:
+          NODE_ENV: test
+          PORT: "64010"
+          LOG_LEVEL: fatal
+        run: |
+          set -euo pipefail
+          node apps/api/dist/index.js &
+          echo $! > /tmp/cerniq-api-zap.pid
+          for i in $(seq 1 45); do
+            if curl -sf "http://127.0.0.1:64010/health/live" >/dev/null; then
+              echo "API up on 64010"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed to become ready" >&2
+          exit 1
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: "http://localhost:64010"
+          rules_file_name: zap-rules.tsv
+          allow_issue_writing: false
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [[ -f /tmp/cerniq-api-zap.pid ]]; then
+            kill "$(cat /tmp/cerniq-api-zap.pid)" 2>/dev/null || true
+          fi

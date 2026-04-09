@@ -92,6 +92,11 @@ import {
   createAlertPhoneBannedWorker,
   createOutreachOrchestratorRouterWorker,
 } from "./workers/extra-dispatch.js";
+import { createSmsSendWorker } from "./workers/sms-send.js";
+import { createSmsDeliveryStatusWorker } from "./workers/sms-delivery-status.js";
+import { createSmsReceiveReplyWorker } from "./workers/sms-receive-reply.js";
+import { createSmsTemplateRenderWorker } from "./workers/sms-template-render.js";
+import { createSmsQuotaCheckWorker } from "./workers/sms-quota-check.js";
 
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
@@ -175,6 +180,12 @@ async function bootstrap(): Promise<void> {
   push(createEmailWarmSenderWorker());
   push(createEmailWarmReplyWorker());
   push(createEmailWarmTrackingWorker());
+
+  push(createSmsSendWorker(redis));
+  push(createSmsDeliveryStatusWorker());
+  push(createSmsReceiveReplyWorker());
+  push(createSmsTemplateRenderWorker());
+  push(createSmsQuotaCheckWorker(redis));
 
   push(createSentimentAnalyzerWorker(redis));
   push(createResponseGeneratorWorker(redis));

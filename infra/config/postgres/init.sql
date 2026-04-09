@@ -20,6 +20,15 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;            -- Fuzzy text search
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";        -- UUID generation (backup)
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements; -- Performance monitoring
 
+-- pgTAP: teste SQL (constraint-uri, RLS, enum-uri) — opțional dacă pachetul e în imagine
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pgtap;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'pgtap extension optional (install postgresql-pgtap / pgtap package if needed): %', SQLERRM;
+END $$;
+
 -- ====================
 -- VERIFICARE EXTENSII
 -- ====================

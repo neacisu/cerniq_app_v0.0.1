@@ -5,17 +5,20 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  alias,
   db,
   sql,
   eq,
   and,
   desc,
   asc,
+  gte,
   goldNurturingState,
   goldNurturingActions,
   goldContentDrips,
   goldNpsSurveys,
   goldCompanies,
+  goldReferrals,
 } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
 import { QUEUES } from "@cerniq/worker-shared";
@@ -76,11 +79,149 @@ const npsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+const REFERRAL_TYPES_NS = ["EXPLICIT", "SOFT_MENTION", "NEIGHBOR_STRATEGY", "GROUP_DEAL"] as const;
+const REFERRAL_STATUSES_NS = [
+  "PENDING_CONSENT",
+  "ACTIVE",
+  "CONVERTED",
+  "EXPIRED",
+  "DECLINED",
+] as const;
+
+const churnRisksQuerySchema = z.object({
+  threshold: z.coerce.number().int().min(0).max(100).default(70),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+const nurturingReferralsQuerySchema = z.object({
+  referrerId: z.uuid().optional(),
+  referredId: z.uuid().optional(),
+  status: z.enum(REFERRAL_STATUSES_NS).optional(),
+  referralType: z.enum(REFERRAL_TYPES_NS).optional(),
+  consentGiven: z.coerce.boolean().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 // ─── Route Registration ───────────────────────────────────────────────────────
 
 export async function nurturingRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
   const writeLimiter = app.rateLimit({ max: 30, timeWindow: "1 minute" });
+
+  // ── GET /nurturing/churn-risks (Plan E5 — alias: lead-uri cu scor churn ≥ prag) ─
+
+  app.get("/churn-risks", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const query = churnRisksQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
+
+    const conditions = [
+      eq(goldNurturingState.tenantId, tenantId),
+      gte(goldNurturingState.churnRiskScore, query.threshold),
+    ];
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select({
+          state: goldNurturingState,
+          companyName: goldCompanies.denumire,
+          cui: goldCompanies.cui,
+          judet: goldCompanies.judet,
+        })
+        .from(goldNurturingState)
+        .leftJoin(goldCompanies, eq(goldNurturingState.leadId, goldCompanies.id))
+        .where(and(...conditions))
+        .orderBy(desc(goldNurturingState.churnRiskScore))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(goldNurturingState)
+        .where(and(...conditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: rows.map((r) => ({
+        ...r.state,
+        companyName: r.companyName,
+        cui: r.cui,
+        judet: r.judet,
+      })),
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        pages: Math.ceil(total / query.limit),
+        threshold: query.threshold,
+        aliasOf:
+          "GET /api/v1/nurturing/states + filter churnRiskScore (see also /api/v1/churn/factors)",
+      },
+    });
+  });
+
+  // ── GET /nurturing/referrals (Plan E5 — același contract ca /api/v1/referrals) ─
+
+  app.get("/referrals", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const query = nurturingReferralsQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
+
+    const conditions = [eq(goldReferrals.tenantId, tenantId)];
+    if (query.referrerId) conditions.push(eq(goldReferrals.referrerId, query.referrerId));
+    if (query.referredId) conditions.push(eq(goldReferrals.referredId, query.referredId));
+    if (query.status) conditions.push(eq(goldReferrals.status, query.status));
+    if (query.referralType) conditions.push(eq(goldReferrals.referralType, query.referralType));
+    if (query.consentGiven !== undefined)
+      conditions.push(eq(goldReferrals.consentGiven, query.consentGiven));
+
+    const referrerGc = alias(goldCompanies, "referrer_gc");
+    const referredGc = alias(goldCompanies, "referred_gc");
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select({
+          referral: goldReferrals,
+          referrerName: referrerGc.denumire,
+          referrerCui: referrerGc.cui,
+          referredName: referredGc.denumire,
+          referredCui: referredGc.cui,
+        })
+        .from(goldReferrals)
+        .leftJoin(referrerGc, eq(goldReferrals.referrerId, referrerGc.id))
+        .leftJoin(referredGc, eq(goldReferrals.referredId, referredGc.id))
+        .where(and(...conditions))
+        .orderBy(desc(goldReferrals.createdAt))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(goldReferrals)
+        .where(and(...conditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: rows.map((r) => ({
+        ...r.referral,
+        referrerName: r.referrerName,
+        referrerCui: r.referrerCui,
+        referredName: r.referredName,
+        referredCui: r.referredCui,
+      })),
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        pages: Math.ceil(total / query.limit),
+        aliasOf: "GET /api/v1/referrals",
+      },
+    });
+  });
 
   // ── GET /nurturing/states ──────────────────────────────────────────────────
 

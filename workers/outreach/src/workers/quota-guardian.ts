@@ -255,6 +255,17 @@ export function createQuotaDailyResetWorker(redis: Redis): Worker {
         }
       } while (cursor !== "0");
 
+      const smsPattern = "sms:quota:*";
+      cursor = "0";
+      do {
+        const [newCursor, keys] = await redis.scan(cursor, "MATCH", smsPattern, "COUNT", 100);
+        cursor = newCursor;
+        if (keys.length > 0) {
+          await redis.del(...keys);
+          keysDeleted += keys.length;
+        }
+      } while (cursor !== "0");
+
       return { keysDeleted };
     },
     {

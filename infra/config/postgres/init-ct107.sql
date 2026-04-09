@@ -22,6 +22,15 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
+-- pgTAP (teste SQL) — opțional pe imagini fără pachetul pgtap
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pgtap;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'pgtap extension optional: %', SQLERRM;
+END $$;
+
 -- ====================
 -- VERIFY EXTENSIONS
 -- ====================

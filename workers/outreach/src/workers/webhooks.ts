@@ -2,6 +2,9 @@
  * Webhook Processing Pipeline — Sprint 3 PR1
  * Source: etapa2-workers-F-L-remaining.md Cat. G, ADR-0061
  *
+ * Verificarea semnăturii HTTP (HMAC) pentru ingress se face în `apps/api/src/routes/webhooks.ts`
+ * înainte de enqueue; utilitar canonic: `verifyWebhookHmac` din `@cerniq/worker-shared`.
+ *
  * Workers:
  * - webhook:normalize          — Normalize all webhooks to SystemEvent (ADR-0061)
  * - webhook:timelinesai:ingest — TimelinesAI events, skip from_me

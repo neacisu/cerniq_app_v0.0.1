@@ -86,6 +86,10 @@ export async function registerPlugins(app: FastifyInstance) {
     credentials: true,
   });
 
+  const connectSrcExtra =
+    envConfig.CSP_CONNECT_SRC_EXTRA?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean) ?? [];
   await app.register(helmet, {
     contentSecurityPolicy:
       envConfig.NODE_ENV === "development"
@@ -96,7 +100,7 @@ export async function registerPlugins(app: FastifyInstance) {
               "script-src": ["'self'"],
               "style-src": ["'self'", "'unsafe-inline'"],
               "img-src": ["'self'", "data:", "blob:"],
-              "connect-src": ["'self'"],
+              "connect-src": ["'self'", "wss:", "https://infraq.app", ...connectSrcExtra],
               "font-src": ["'self'"],
               "object-src": ["'none'"],
               "frame-ancestors": ["'none'"],

@@ -25,6 +25,11 @@
       "types": "./src/resend/index.ts",
       "import": "./dist/resend/index.js",
       "default": "./dist/resend/index.js"
+    },
+    "./providers": {
+      "types": "./src/providers/index.ts",
+      "import": "./dist/providers/index.js",
+      "default": "./dist/providers/index.js"
     }
   },
   "scripts": {

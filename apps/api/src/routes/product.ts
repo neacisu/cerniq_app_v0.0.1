@@ -57,7 +57,7 @@ const patchProductSchema = z
   })
   .refine((b) => Object.keys(b).length > 0, { message: "At least one field required" });
 
-const hybridSearchSchema = z
+export const hybridSearchSchema = z
   .object({
     query: z.string().min(1).max(500).optional(),
     q: z.string().min(1).max(500).optional(),

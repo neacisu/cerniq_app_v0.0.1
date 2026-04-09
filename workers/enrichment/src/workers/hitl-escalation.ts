@@ -1,5 +1,5 @@
 import type { Processor } from "bullmq";
-import { withCognitiveSpan } from "@cerniq/worker-shared";
+import { dispatchNotification, withCognitiveSpan } from "@cerniq/worker-shared";
 import { approvalService, approvalTasks, db, setSessionTenantId, sql } from "@cerniq/db";
 
 export type HitlEscalationJobData = {
@@ -37,6 +37,19 @@ export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (
               updatedAt: now,
             })
             .where(sql`${approvalTasks.id} = ${task.id}`);
+          try {
+            await dispatchNotification({
+              tenantId: job.data.tenantId,
+              userId: task.assignedTo ?? null,
+              type: "HITL_TASK",
+              title: `Avertisment SLA: ${task.title}`,
+              body: task.description ?? "Aproape de termenul SLA.",
+              data: { taskId: task.id, phase: "sla_warning" },
+              channels: ["IN_APP", "EMAIL"],
+            });
+          } catch (err) {
+            console.error("[hitl-escalation] SLA warning notification failed", err);
+          }
         }
       }
 
@@ -57,6 +70,19 @@ export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (
             reason: "SLA breach reached 100%",
           });
           escalatedIds.push(escalated.id);
+          try {
+            await dispatchNotification({
+              tenantId: job.data.tenantId,
+              userId: task.assignedTo ?? null,
+              type: "HITL_TASK",
+              title: `Task HITL escalat: ${task.title}`,
+              body: task.description ?? "SLA depășit — revizuire necesară.",
+              data: { taskId: task.id, escalatedTaskId: escalated.id, phase: "sla_breach" },
+              channels: ["IN_APP", "EMAIL", "WEBHOOK"],
+            });
+          } catch (err) {
+            console.error("[hitl-escalation] breach notification failed", err);
+          }
         }
       }
 

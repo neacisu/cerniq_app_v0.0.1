@@ -1,15 +1,8 @@
 /**
  * Cerniq AI Worker — bootstrap TypeScript.
  *
- * Context: Toate cozile AI din queue-registry sunt deja acoperite de alți workers:
- *   - Etapa 1 (enrichment): ai:structure:xai, ai:merge:xai, ai:score:confidence, ai:fallback
- *                           → workers/enrichment/src/main.ts (j1-j4)
- *   - Etapa 2 (outreach):   ai:sentiment:analyze (includes intent), ai:response:generate
- *                           → workers/outreach/src/index.ts (ai-sentiment.ts)
- *                           (ai:intent:classify unified into ai:sentiment:analyze — removed from registry)
- *
- * Nu există cozi AI libere în registry. Acest worker pornește fără procesori activi
- * și va fi populat cu cozi E3/Cognitive Brain când vor fi adăugate în queue-registry.
+ * Procesează pipeline consensus în 3 faze: request → collect (LLM) → decide (audit).
+ * Alte cozi `ai:*` rămân la enrichment (j1–j4) și outreach (sentiment/response).
  *
  * Endpoints expuse:
  *   GET /health  → JSON cu status worker
@@ -23,6 +16,11 @@ import {
   queueRegistry,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
+import {
+  createConsensusVoteCollectWorker,
+  createConsensusVoteDecideWorker,
+  createConsensusVoteRequestWorker,
+} from "./consensus-vote-worker.js";
 
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
@@ -31,15 +29,20 @@ export async function bootstrap(): Promise<void> {
   loadSecretsFromFile(false, SECRETS_PATH);
   assertQueueRegistryComplete();
 
+  const consensusRequest = createConsensusVoteRequestWorker();
+  const consensusCollect = createConsensusVoteCollectWorker();
+  const consensusDecide = createConsensusVoteDecideWorker();
+
   const aiQueueNames = queueRegistry.map((q) => q.name).filter((n) => n.startsWith("ai:"));
 
   const healthServer = createHealthServer(PORT, () => ({
     ok: true,
     service: "worker-ai",
-    workerInstances: 0,
+    workerInstances: 3,
     registryQueues: queueRegistry.length,
     aiQueuesInRegistry: aiQueueNames,
-    note: "AI queues are processed by enrichment (j1-j4) and outreach (sentiment/response/intent). Ready for E3 cognitive queues.",
+    consensusQueues: ["consensus:vote:request", "consensus:vote:collect", "consensus:vote:decide"],
+    note: "Consensus: request→collect (LLM)→decide (audit). Enrichment/outreach own ai:* queues.",
     timestamp: new Date().toISOString(),
   }));
 
@@ -51,6 +54,11 @@ export async function bootstrap(): Promise<void> {
   const shutdown = async () => {
     console.info("[worker-ai] graceful shutdown initiated...");
     stopWatchingSecrets();
+    await Promise.all([
+      consensusRequest.close(),
+      consensusCollect.close(),
+      consensusDecide.close(),
+    ]).catch(() => undefined);
     healthServer.close();
     process.exit(0);
   };
