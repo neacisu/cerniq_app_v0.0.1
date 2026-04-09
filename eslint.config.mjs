@@ -37,7 +37,9 @@ export default tseslint.config(
     ignores: [
       "node_modules/**",
       "dist/**",
+      "**/dist/**",
       "coverage/**",
+      "**/coverage/**",
       "test-results/**",
       "**/*.js",
       "**/*.mjs",
