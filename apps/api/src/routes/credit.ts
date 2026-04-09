@@ -232,7 +232,7 @@ export async function creditRoutes(app: FastifyInstance) {
     const query = reservationsQuerySchema.parse(req.query);
     const offset = (query.page - 1) * query.limit;
 
-    const conditions = [sql`${goldCreditProfiles.tenantId} = ${tenantId}`];
+    const conditions = [eq(goldCreditProfiles.tenantId, tenantId)];
     if (query.status) conditions.push(eq(goldCreditReservations.status, query.status));
 
     const [rows, countResult] = await Promise.all([
@@ -330,9 +330,7 @@ export async function creditRoutes(app: FastifyInstance) {
         })
         .from(goldCreditReservations)
         .innerJoin(goldCreditProfiles, eq(goldCreditReservations.profileId, goldCreditProfiles.id))
-        .where(
-          and(eq(goldCreditReservations.id, id), sql`${goldCreditProfiles.tenantId} = ${tenantId}`),
-        )
+        .where(and(eq(goldCreditReservations.id, id), eq(goldCreditProfiles.tenantId, tenantId)))
         .limit(1);
 
       if (!reservation)

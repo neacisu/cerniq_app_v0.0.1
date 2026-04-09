@@ -22,7 +22,10 @@ describe("OpenAPI / Swagger UI", () => {
   it("GET /docs/json returnează OpenAPI 3.x cu info.title", async () => {
     const res = await app.inject({ method: "GET", url: "/docs/json" });
     expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body) as { openapi?: string; info?: { title?: string } };
+    const body = JSON.parse(res.body) as {
+      openapi?: string;
+      info?: { title?: string; description?: string };
+    };
     expect(body.openapi).toMatch(/^3\./);
     expect(body.info?.title).toBe("Cerniq API");
     expect(body.info?.description).toContain("Zod");

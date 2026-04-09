@@ -91,7 +91,10 @@
       "minimatch": "^10.2.3",
       "rollup": "^4.59.0",
       "esbuild": ">=0.25.0",
-      "ioredis": "^5.10.1"
+      "ioredis": "^5.10.1",
+      "drizzle-orm": "0.45.2",
+      "postgres": "3.4.9",
+      "@opentelemetry/api": "1.9.1"
     },
     "peerDependencyRules": {
       "allowedVersions": {
