@@ -208,6 +208,12 @@ export async function gdprRoutes(app: FastifyInstance) {
     const affected: { table: string; rows: number }[] = [];
 
     await db.transaction(async (tx) => {
+      // Invalidează explicit embedding-ul AI (halfvec) înainte de ștergere — trasabilitate GDPR / AI Act.
+      await tx
+        .update(goldCompanies)
+        .set({ aiEmbedding: null, embeddingUpdatedAt: new Date() })
+        .where(and(eq(goldCompanies.id, subjectId), eq(goldCompanies.tenantId, tenantId)));
+
       const bronzeIds = company.bronzeIds ?? [];
       if (bronzeIds.length > 0) {
         const br = await tx

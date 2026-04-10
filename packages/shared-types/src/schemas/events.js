@@ -21,4 +21,3 @@ export const EventTypes = {
     OUTREACH_SENT: "outreach.sent",
     OUTREACH_REPLIED: "outreach.replied",
 };
-//# sourceMappingURL=events.js.map

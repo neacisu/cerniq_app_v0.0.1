@@ -19,9 +19,7 @@
     "baseUrl": ".",
     "paths": {
       "@opentelemetry/api": [
-        "./node_modules/@opentelemetry/api/build/src/index.d.ts",
         "./node_modules/@opentelemetry/api",
-        "../../node_modules/@opentelemetry/api/build/src/index.d.ts",
         "../../node_modules/@opentelemetry/api"
       ],
       "drizzle-orm": ["../../node_modules/drizzle-orm"],

@@ -23,10 +23,39 @@
  *   OPENBAO_SKIP=true              — skip OpenBao file lookup (local dev)
  *   OPENBAO_READY_TIMEOUT_MS=30000 — max ms to wait for OPENBAO_SECRETS_LOADED=true
  *   SECRETS_PATH                   — explicit secrets file path override
+ *
+ * Verificare pattern-uri blocking (migrații strict ≥ 0070):
+ *   pnpm run db:migrate -- --check-locks
  */
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadMigrationCredentials } from "./migrate-openbao.js";
 import { migrateCliLog } from "./migrate-cli-log.js";
+import { auditAllDrizzleFiles } from "./migration-sql-audit.js";
 import { runAllMigrations, closeMigrationDb } from "./migrate.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function runCheckLocks(): number {
+  const drizzleDir = join(__dirname, "..", "drizzle");
+  const files = readdirSync(drizzleDir)
+    .filter((f) => f.endsWith(".sql"))
+    .map((name) => ({
+      name,
+      content: readFileSync(join(drizzleDir, name), "utf-8"),
+    }));
+  const issues = auditAllDrizzleFiles(files);
+  for (const detail of issues) {
+    migrateCliLog({ level: "warn", event: "migration_lock_check_issue", detail });
+  }
+  if (issues.length > 0) {
+    migrateCliLog({ level: "error", event: "migration_lock_check_failed", count: issues.length });
+    return 1;
+  }
+  migrateCliLog({ level: "info", event: "migration_lock_check_ok" });
+  return 0;
+}
 
 // ── Network error helpers ─────────────────────────────────────────────────────
 
@@ -109,6 +138,9 @@ async function main() {
   migrateCliLog({ level: "info", event: "migrate_using_db_url", dbSource, safeUrl });
 
   const args = new Set(process.argv.slice(2));
+  if (args.has("--check-locks")) {
+    process.exit(runCheckLocks());
+  }
   const dryRun = args.has("--dry-run") || process.env.MIGRATION_DRY_RUN === "true";
   const rollback = args.has("--rollback") || process.env.MIGRATION_ROLLBACK === "true";
 

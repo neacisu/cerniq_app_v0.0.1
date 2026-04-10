@@ -43,7 +43,7 @@ export function App() {
                 <Routes>
                   <Route path="/login" element={<Login />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <ProtectedLayoutRouteGroup />
+                  {ProtectedLayoutRouteGroup()}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ErrorBoundary>

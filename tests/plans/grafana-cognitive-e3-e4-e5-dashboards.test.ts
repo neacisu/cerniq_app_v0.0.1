@@ -19,6 +19,9 @@ const DASHBOARDS = [
       "cerniq_negotiation_active",
       "cerniq_fiscal_invoices_total",
       "cerniq_llm_requests_total",
+      "cerniq_llm_cost_usd_total",
+      "cerniq_semantic_entropy_score_bucket",
+      "cerniq_hallucination_flagged_total",
     ],
   },
   {
@@ -81,4 +84,33 @@ describe("Grafana dashboards E3 / E4 / E5 (FAZA 12)", () => {
       });
     });
   }
+});
+
+describe("Grafana dashboard LLM / vLLM (FAZA 23)", () => {
+  const rel = "infra/config/grafana/dashboards/cerniq/05-cerniq-llm-metrics.json";
+  const raw = readFileSync(path.join(ROOT, rel), "utf-8");
+  const json = JSON.parse(raw) as Record<string, unknown>;
+
+  it("JSON valid: uid, refresh, variabile Prometheus", () => {
+    expect(json.uid).toBe("cerniq-llm-metrics");
+    expect(json.title).toBe("CerniqAPP LLM Metrics");
+    expect(json.refresh).toBe("30s");
+    expect(json.schemaVersion).toBe(39);
+    const templating = json.templating as { list: Array<{ name: string }> };
+    expect(templating?.list?.some((v) => v.name === "DS_PROMETHEUS")).toBe(true);
+    expect(templating?.list?.some((v) => v.name === "instance")).toBe(true);
+  });
+
+  it("panouri: vLLM + metrici aplicație workers", () => {
+    for (const m of [
+      "vllm:gpu_cache_usage_perc",
+      "cerniq_llm_cost_usd_total",
+      "cerniq_llm_requests_total",
+      "cerniq_llm_fallback_total",
+      "cerniq_semantic_entropy_score_bucket",
+      "cerniq_hallucination_flagged_total",
+    ]) {
+      expect(raw).toContain(m);
+    }
+  });
 });

@@ -16,6 +16,7 @@ const {
   embedTextMock,
   addMock,
   createQueueMock,
+  e3EmbeddingDimensionRejectIncMock,
 } = vi.hoisted(() => {
   const addMock = vi.fn().mockResolvedValue({ id: "job-123" });
   const createQueueMock = vi.fn(() => ({ add: addMock }));
@@ -29,6 +30,7 @@ const {
     embedTextMock: vi.fn(),
     addMock,
     createQueueMock,
+    e3EmbeddingDimensionRejectIncMock: vi.fn(),
   };
 });
 
@@ -93,6 +95,10 @@ vi.mock("@cerniq/db", () => ({
 vi.mock("@cerniq/worker-shared", () => ({
   createQueue: createQueueMock,
   DEFAULT_JOB_OPTIONS: { attempts: 3, backoff: { type: "exponential", delay: 1000 } },
+}));
+
+vi.mock("../e3-metrics.js", () => ({
+  e3EmbeddingDimensionRejectTotal: { inc: e3EmbeddingDimensionRejectIncMock },
 }));
 
 vi.mock("../lib/llm-client.js", () => ({
@@ -256,7 +262,7 @@ describe("A2 — productEmbedProcessor", () => {
     expect(dbInsertMock).toHaveBeenCalled();
   });
 
-  it("embed fallback — isFallback=true (OpenAI fallback)", async () => {
+  it("respinge embedding non-MRL (1536) — incompatibil halfvec(3072)", async () => {
     embedTextMock.mockResolvedValue({
       embedding: new Array(1536).fill(0.2),
       model: "text-embedding-3-small",
@@ -278,12 +284,11 @@ describe("A2 — productEmbedProcessor", () => {
       data: { tenantId: "t1", productId: "prod-2" },
     } as unknown as Parameters<typeof productEmbedProcessor>[0];
 
-    const result = await productEmbedProcessor(job, {} as never);
-
-    expect(result.ok).toBe(true);
-    expect(result.isFallback).toBe(true);
-    expect(result.model).toBe("text-embedding-3-small");
-    expect(result.dimensions).toBe(1536);
+    await expect(productEmbedProcessor(job, {} as never)).rejects.toThrow(
+      /invalid embedding for halfvec/,
+    );
+    expect(dbInsertMock).not.toHaveBeenCalled();
+    expect(e3EmbeddingDimensionRejectIncMock).toHaveBeenCalledWith({ surface: "product" });
   });
 
   it("upsert — actualizează embedding existent (UPDATE, nu INSERT)", async () => {

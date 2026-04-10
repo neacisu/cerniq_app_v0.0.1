@@ -27,4 +27,3 @@ export const LeadCreateSchema = LeadSchema.omit({
     createdAt: true,
     updatedAt: true,
 });
-//# sourceMappingURL=lead.js.map

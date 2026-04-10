@@ -217,4 +217,3 @@ export const COLUMN_MAPPING_DEFINITIONS = [
 export function buildColumnAliasToTargetMap(normalizeFn) {
     return new Map(COLUMN_MAPPING_DEFINITIONS.flatMap((entry) => entry.aliases.map((alias) => [normalizeFn(alias), entry.key])));
 }
-//# sourceMappingURL=column-mapping.js.map

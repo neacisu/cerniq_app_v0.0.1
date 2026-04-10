@@ -2,7 +2,7 @@
  * A2 — product:embed (concurrency: 10, rateLimit: 60/min)
  *
  * Generează embedding pentru un produs și îl upsertează în gold_product_embeddings.
- * Folosește exclusiv embedText() din llm-client.ts — fallback automat la OpenAI.
+ * Folosește exclusiv embedText() din llm-client.ts — infraq 3072 dim (halfvec MRL), fără fallback 1536.
  */
 import type { Processor } from "bullmq";
 import {
@@ -13,9 +13,21 @@ import {
   goldProductChunks,
   eq,
 } from "@cerniq/db";
+import type { EmbedResult } from "../lib/llm-client.js";
 import { embedText } from "../lib/llm-client.js";
+import { e3EmbeddingDimensionRejectTotal } from "../e3-metrics.js";
 
 const LOG = "[a2-product-embed]";
+const MRL_DIM = 3072;
+
+function assertHalfvecMrlEmbedding(result: EmbedResult, surface: "product" | "chunk"): void {
+  if (result.dimensions !== MRL_DIM || result.embedding.length !== MRL_DIM || result.isFallback) {
+    e3EmbeddingDimensionRejectTotal.inc({ surface });
+    throw new Error(
+      `${LOG} invalid embedding for halfvec(${MRL_DIM}): dims=${result.dimensions} len=${result.embedding.length} isFallback=${result.isFallback}`,
+    );
+  }
+}
 
 export interface ProductEmbedJobData {
   tenantId: string;
@@ -53,6 +65,7 @@ export const productEmbedProcessor: Processor<ProductEmbedJobData, ProductEmbedR
 
     const chunkText = chunkRows[0].chunkText ?? "";
     const embedResult = await embedText(chunkText);
+    assertHalfvecMrlEmbedding(embedResult, "chunk");
 
     await db
       .update(goldProductChunks)
@@ -93,6 +106,7 @@ export const productEmbedProcessor: Processor<ProductEmbedJobData, ProductEmbedR
     .trim();
 
   const embedResult = await embedText(text);
+  assertHalfvecMrlEmbedding(embedResult, "product");
 
   console.info(
     `${LOG} embed ok productId=${productId} model=${embedResult.model} dims=${embedResult.dimensions} isFallback=${embedResult.isFallback}`,

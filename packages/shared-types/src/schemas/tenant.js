@@ -18,4 +18,3 @@ export const TenantCreateSchema = TenantSchema.omit({
     createdAt: true,
     updatedAt: true,
 });
-//# sourceMappingURL=tenant.js.map

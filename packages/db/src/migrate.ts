@@ -6,6 +6,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { extractAddConstraintName } from "./migrate-sql-helpers.js";
+import { migrateCliLog } from "./migrate-cli-log.js";
 import { getPostgresErrorFields } from "./pg-error-fields.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -141,11 +142,18 @@ async function executeDrizzleStatement(
   mdb: PostgresJsDatabase,
   statement: string,
   dryRun: boolean,
+  logContext?: { file?: string },
 ): Promise<void> {
   try {
     if (dryRun) {
       console.log(`[DRY-RUN] ${statement.slice(0, 120)}...`);
     } else {
+      migrateCliLog({
+        level: "info",
+        event: "migrate_drizzle_statement",
+        file: logContext?.file,
+        preview: statement.slice(0, 200).replaceAll(/\s+/g, " "),
+      });
       await mdb.execute(sql.raw(statement));
     }
   } catch (err: unknown) {
@@ -175,7 +183,7 @@ async function runDrizzleStatementsForFile(
       console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
       continue;
     }
-    await executeDrizzleStatement(mdb, statement, dryRun);
+    await executeDrizzleStatement(mdb, statement, dryRun, { file });
   }
   console.log(`Ran migration: ${file}`);
 }
@@ -194,6 +202,7 @@ export async function runDrizzleMigrations(options: MigrationRunOptions = {}) {
 
   // Suppress PostgreSQL NOTICE messages for idempotent IF NOT EXISTS statements
   if (!dryRun) await mdb.execute(sql.raw(`SET client_min_messages = warning`));
+  // Nu setăm lock_timeout aici: CREATE INDEX CONCURRENTLY poate depăși minute — vezi ghidul zero-downtime.
 
   const drizzleDir = join(__dirname, "..", "drizzle");
   const files = readdirSync(drizzleDir)

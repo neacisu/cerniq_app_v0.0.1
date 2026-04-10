@@ -121,6 +121,24 @@ function classifyChainError(err: unknown): LlmFallbackFailureReason {
   return "error";
 }
 
+async function assertSpendGuardAllowsFrontierFallback(spendGuard: {
+  readonly redis: RedisStringGet;
+  readonly tenantId: string;
+  readonly tier: TenantLlmSpendTier;
+}): Promise<void> {
+  await assertLlmDailySpendBelowHardCap(spendGuard);
+  const downgradeState = await resolveLlmSpendDowngradeState({
+    redis: spendGuard.redis,
+    tenantId: spendGuard.tenantId,
+    tier: spendGuard.tier,
+  });
+  if (downgradeState.downgradeToFast) {
+    llmAutoDowngradeTotal.inc({ tenant_id: spendGuard.tenantId });
+    throw new LlmAutoDowngradeFrontierBlockedError();
+  }
+  await assertLlmFrontierHourlySpendNoSpike(spendGuard);
+}
+
 /**
  * Încearcă `primary`; la eșec, pentru fiecare fallback înregistrează `recordLlmFallback` și încearcă următorul.
  */
@@ -135,11 +153,23 @@ export async function withLlmFallbackChain<T>(params: {
     readonly tenantId: string;
     readonly tier: TenantLlmSpendTier;
   };
+  /** Apelat doar când `primary` reușește (ex. screening entropie semantică). */
+  readonly afterPrimarySuccess?: (result: T) => void | Promise<void>;
 }): Promise<T> {
-  const { primary, fallbacks, dataSensitivity = "non_sensitive", spendGuard } = params;
+  const {
+    primary,
+    fallbacks,
+    dataSensitivity = "non_sensitive",
+    spendGuard,
+    afterPrimarySuccess,
+  } = params;
 
   try {
-    return await primary();
+    const result = await primary();
+    if (afterPrimarySuccess) {
+      await afterPrimarySuccess(result);
+    }
+    return result;
   } catch (primaryErr) {
     if (dataSensitivity === "sensitive") {
       throw new LlmFrontierGdprViolation(
@@ -148,17 +178,7 @@ export async function withLlmFallbackChain<T>(params: {
     }
 
     if (spendGuard) {
-      await assertLlmDailySpendBelowHardCap(spendGuard);
-      const downgradeState = await resolveLlmSpendDowngradeState({
-        redis: spendGuard.redis,
-        tenantId: spendGuard.tenantId,
-        tier: spendGuard.tier,
-      });
-      if (downgradeState.downgradeToFast) {
-        llmAutoDowngradeTotal.inc({ tenant_id: spendGuard.tenantId });
-        throw new LlmAutoDowngradeFrontierBlockedError();
-      }
-      await assertLlmFrontierHourlySpendNoSpike(spendGuard);
+      await assertSpendGuardAllowsFrontierFallback(spendGuard);
     }
 
     let lastErr: unknown = primaryErr;

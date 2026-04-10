@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { trace } from "@opentelemetry/api";
 import { Queue, Worker } from "bullmq";
 import type { Job, Processor, QueueOptions, WorkerOptions } from "bullmq";
 import { BullMQOtel } from "bullmq-otel";
@@ -63,6 +64,17 @@ function wrapProcessorWithAutoObservability<T>(
     const store = correlationStoreFromJob(job);
     return CorrelationContext.run(store, () =>
       withSpan(`bullmq:${queueName}`, async () => {
+        const span = trace.getActiveSpan();
+        if (span) {
+          span.setAttribute("cerniq.worker_queue", queueName);
+          if (job.id != null) span.setAttribute("cerniq.job_id", String(job.id));
+          span.setAttribute("cerniq.correlation_id", store.correlationId);
+          if (store.requestId) span.setAttribute("cerniq.request_id", store.requestId);
+          const jd = job.data as { tenantId?: string } | null | undefined;
+          if (typeof jd?.tenantId === "string" && jd.tenantId.trim()) {
+            span.setAttribute("cerniq.tenant_id", jd.tenantId.trim());
+          }
+        }
         jobLog.info({ jobId: job.id, jobName: job.name }, "job start");
         try {
           return await processor(job, token);

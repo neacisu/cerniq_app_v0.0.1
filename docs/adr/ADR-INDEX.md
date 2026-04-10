@@ -2,7 +2,7 @@
 
 ## Centralized Architecture Decision Records
 
-**Total ADR-uri:** 110  
+**Total ADR-uri:** 111  
 **Actualizat:** 10 Aprilie 2026  
 **Etapa 2 Sprint 4:** 🔄 **ÎN CURS — remediere defecte / aliniere plan audit** (20 Martie 2026)
 
@@ -17,7 +17,7 @@
 | [Etapa 0](#etapa-0-infrastructure-devops-security) | 33 | Infrastructure, DevOps, Security, CI/CD |
 | [Etapa 1](#etapa-1-data-pipeline-workers-schema) | 20 | Data Pipeline, Workers, Schema |
 | [Etapa 2](#etapa-2-outreach-whatsapp-email) | 15 | Outreach, WhatsApp, Email |
-| [Etapa 3](#etapa-3-ai-rag-negotiation) | 20 | AI, RAG, Negotiation |
+| [Etapa 3](#etapa-3-ai-rag-negotiation) | 21 | AI, RAG, Negotiation |
 | [Etapa 4](#etapa-4-payments-logistics) | 10 | Payments, Logistics |
 | [Etapa 5](#etapa-5-campaigns-churn-graph) | 10 | Campaigns, Churn, Graph |
 
@@ -137,6 +137,7 @@
 | [ADR-0085](./ADR%20Etapa%203/ADR-0085-OpenAI-Embeddings.md)                | Embeddings cu OpenAI text-embedding-3-small     | Accepted                            | 2026-01-18 |
 | [ADR-0086](./ADR%20Etapa%203/ADR-0086-LLM-Fallback-Strategy.md)            | LLM Fallback Strategy                           | Accepted                            | 2026-01-18 |
 | [ADR-0087](./ADR%20Etapa%203/ADR-0087-Hash-Chain-Audit-Trail.md)           | Audit Trail cu Hash Chain                       | Accepted                            | 2026-01-18 |
+| [ADR-0109](./ADR%20Etapa%203/ADR-0109-E3-Embeddings-Infraq-halfvec-3072-Exclusive.md) | E3 Embeddings infraq halfvec(3072) exclusiv      | Accepted                            | 2026-04-10 |
 
 ## ETAPA 4: PAYMENTS, LOGISTICS
 

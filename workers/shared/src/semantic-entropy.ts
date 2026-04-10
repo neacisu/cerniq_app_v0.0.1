@@ -6,13 +6,12 @@ export interface SemanticEntropyConfig {
   maxRetries: number;
 }
 
-export interface CompletionFn {
-  (prompt: string, options: { temperature: number; maxTokens: number }): Promise<string>;
-}
+export type CompletionFn = (
+  prompt: string,
+  options: { temperature: number; maxTokens: number },
+) => Promise<string>;
 
-export interface EmbeddingFn {
-  (text: string): Promise<number[]>;
-}
+export type EmbeddingFn = (text: string) => Promise<number[]>;
 
 export interface EntropyResult {
   isConsistent: boolean;
@@ -56,15 +55,101 @@ function selectConsensus(
   return null;
 }
 
+async function collectResponsesAtTemperatures(
+  completionFn: CompletionFn,
+  prompt: string,
+  maxTokens: number,
+  cfg: SemanticEntropyConfig,
+): Promise<string[]> {
+  const responses: string[] = [];
+  for (const temp of cfg.temperatures) {
+    let retries = 0;
+    while (retries <= cfg.maxRetries) {
+      try {
+        const response = await completionFn(prompt, {
+          temperature: temp,
+          maxTokens,
+        });
+        responses.push(response);
+        break;
+      } catch {
+        retries++;
+        if (retries > cfg.maxRetries) {
+          responses.push("");
+        }
+      }
+    }
+  }
+  return responses;
+}
+
+function pairwiseCosineSimilarities(embeddings: number[][]): number[] {
+  const similarities: number[] = [];
+  for (let i = 0; i < embeddings.length; i++) {
+    for (let j = i + 1; j < embeddings.length; j++) {
+      similarities.push(cosineSimilarity(embeddings[i], embeddings[j]));
+    }
+  }
+  return similarities;
+}
+
+function averageOf(values: number[]): number {
+  return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+}
+
+type EntropyMetricsOpts = {
+  checksTotal?: Counter;
+  hallucinationsDetected?: Counter;
+  latencySeconds?: Histogram;
+  entropyHistogram?: Histogram;
+  entropyLabels?: { model: string; task_type: string };
+  hallucinationFlagged?: Counter;
+  hallucinationLabels?: { model: string; action: string };
+};
+
+function finalizeInsufficientSampleResult(
+  responses: string[],
+  validResponses: string[],
+  startMs: number,
+  metricsOpts: EntropyMetricsOpts | undefined,
+): EntropyResult {
+  metricsOpts?.latencySeconds?.observe((Date.now() - startMs) / 1000);
+  if (metricsOpts?.entropyHistogram && metricsOpts.entropyLabels) {
+    metricsOpts.entropyHistogram.observe(metricsOpts.entropyLabels, 1);
+  }
+  return {
+    isConsistent: false,
+    entropy: 1,
+    responses,
+    similarities: [],
+    consensusResponse: validResponses[0] ?? null,
+    decision: "uncertain",
+  };
+}
+
+function resolveDecisionFromAvgSimilarity(
+  avgSimilarity: number,
+  threshold: number,
+  metricsOpts: EntropyMetricsOpts | undefined,
+): EntropyResult["decision"] {
+  if (avgSimilarity >= threshold) {
+    return "consistent";
+  }
+  if (avgSimilarity >= threshold * 0.7) {
+    return "uncertain";
+  }
+  metricsOpts?.hallucinationsDetected?.inc();
+  if (metricsOpts?.hallucinationFlagged && metricsOpts.hallucinationLabels) {
+    metricsOpts.hallucinationFlagged.inc(metricsOpts.hallucinationLabels);
+  }
+  return "hallucination_risk";
+}
+
 export function createSemanticEntropyChecker(
   completionFn: CompletionFn,
   embeddingFn: EmbeddingFn,
   config: Partial<SemanticEntropyConfig> = {},
-  metricsOpts?: {
-    checksTotal?: Counter;
-    hallucinationsDetected?: Counter;
-    latencySeconds?: Histogram;
-  },
+  metricsOpts?: EntropyMetricsOpts,
 ) {
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
@@ -75,64 +160,23 @@ export function createSemanticEntropyChecker(
     const startMs = Date.now();
     metricsOpts?.checksTotal?.inc();
 
-    const responses: string[] = [];
-    for (const temp of cfg.temperatures) {
-      let retries = 0;
-      while (retries <= cfg.maxRetries) {
-        try {
-          const response = await completionFn(prompt, {
-            temperature: temp,
-            maxTokens,
-          });
-          responses.push(response);
-          break;
-        } catch {
-          retries++;
-          if (retries > cfg.maxRetries) {
-            responses.push("");
-          }
-        }
-      }
-    }
+    const responses = await collectResponsesAtTemperatures(completionFn, prompt, maxTokens, cfg);
 
     const validResponses = responses.filter((r) => r.length > 0);
     if (validResponses.length < 2) {
-      metricsOpts?.latencySeconds?.observe((Date.now() - startMs) / 1000);
-      return {
-        isConsistent: false,
-        entropy: 1.0,
-        responses,
-        similarities: [],
-        consensusResponse: validResponses[0] ?? null,
-        decision: "uncertain",
-      };
+      return finalizeInsufficientSampleResult(responses, validResponses, startMs, metricsOpts);
     }
 
     const embeddings = await Promise.all(validResponses.map((r) => embeddingFn(r)));
-
-    const similarities: number[] = [];
-    for (let i = 0; i < embeddings.length; i++) {
-      for (let j = i + 1; j < embeddings.length; j++) {
-        similarities.push(cosineSimilarity(embeddings[i], embeddings[j]));
-      }
-    }
-
-    const avgSimilarity =
-      similarities.length > 0 ? similarities.reduce((a, b) => a + b, 0) / similarities.length : 0;
-
-    const entropy = 1.0 - avgSimilarity;
+    const similarities = pairwiseCosineSimilarities(embeddings);
+    const avgSimilarity = averageOf(similarities);
+    const entropy = 1 - avgSimilarity;
     const isConsistent = avgSimilarity >= cfg.similarityThreshold;
-
-    let decision: EntropyResult["decision"];
-    if (avgSimilarity >= cfg.similarityThreshold) {
-      decision = "consistent";
-    } else if (avgSimilarity >= cfg.similarityThreshold * 0.7) {
-      decision = "uncertain";
-    } else {
-      decision = "hallucination_risk";
-      metricsOpts?.hallucinationsDetected?.inc();
-    }
-
+    const decision = resolveDecisionFromAvgSimilarity(
+      avgSimilarity,
+      cfg.similarityThreshold,
+      metricsOpts,
+    );
     const consensusResponse = selectConsensus(
       validResponses,
       similarities,
@@ -140,6 +184,9 @@ export function createSemanticEntropyChecker(
     );
 
     metricsOpts?.latencySeconds?.observe((Date.now() - startMs) / 1000);
+    if (metricsOpts?.entropyHistogram && metricsOpts.entropyLabels) {
+      metricsOpts.entropyHistogram.observe(metricsOpts.entropyLabels, entropy);
+    }
 
     return {
       isConsistent,

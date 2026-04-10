@@ -6,37 +6,26 @@
     "moduleResolution": "bundler",
     "lib": ["ESNext"],
     "types": ["node"],
-    "baseUrl": ".",
+    "baseUrl": "../..",
     "paths": {
       "@cerniq/observability": [
-        "node_modules/@cerniq/observability/src/index.ts",
-        "../../node_modules/@cerniq/observability/src/index.ts",
-        "../observability/src/index.ts",
-        "../../packages/observability/src/index.ts",
-        "node_modules/@cerniq/observability/dist/index.d.ts",
-        "../../node_modules/@cerniq/observability/dist/index.d.ts",
-        "../observability/dist/index.d.ts",
-        "../../packages/observability/dist/index.d.ts"
+        "packages/observability/src/index.ts",
+        "packages/observability/dist/index.d.ts",
+        "node_modules/@cerniq/observability",
+        "node_modules/@cerniq/observability/src/index.ts"
       ],
       "@cerniq/observability/*": [
-        "node_modules/@cerniq/observability/src/*",
-        "../../node_modules/@cerniq/observability/src/*",
-        "../observability/src/*",
-        "../../packages/observability/src/*",
-        "node_modules/@cerniq/observability/dist/*",
-        "../../node_modules/@cerniq/observability/dist/*",
-        "../observability/dist/*",
-        "../../packages/observability/dist/*"
+        "packages/observability/src/*",
+        "packages/observability/dist/*",
+        "node_modules/@cerniq/observability/src/*"
       ],
       "@cerniq/worker-shared": [
-        "node_modules/@cerniq/worker-shared/src/index.ts",
-        "../../node_modules/@cerniq/worker-shared/src/index.ts",
-        "../../workers/shared/src/index.ts"
+        "workers/shared/src/index.ts",
+        "node_modules/@cerniq/worker-shared/src/index.ts"
       ],
       "@cerniq/worker-shared/*": [
-        "node_modules/@cerniq/worker-shared/src/*",
-        "../../node_modules/@cerniq/worker-shared/src/*",
-        "../../workers/shared/src/*"
+        "workers/shared/src/*",
+        "node_modules/@cerniq/worker-shared/src/*"
       ]
     },
     "declaration": true,

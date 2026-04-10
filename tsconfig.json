@@ -39,9 +39,7 @@
       "@cerniq/worker-shared": ["./workers/shared/src/index.ts"],
       "@cerniq/worker-shared/*": ["./workers/shared/src/*"],
       "@opentelemetry/api": [
-        "./node_modules/@opentelemetry/api/build/src/index.d.ts",
         "./node_modules/@opentelemetry/api",
-        "./packages/observability/node_modules/@opentelemetry/api/build/src/index.d.ts",
         "./packages/observability/node_modules/@opentelemetry/api"
       ],
       "@opentelemetry/instrumentation": [
@@ -122,12 +120,7 @@
         "./apps/api/node_modules/@fastify/rate-limit/types/index.d.ts",
         "./apps/api/node_modules/@fastify/rate-limit"
       ],
-      "pino": [
-        "./node_modules/pino/pino.d.ts",
-        "./node_modules/pino",
-        "./packages/observability/node_modules/pino/pino.d.ts",
-        "./packages/observability/node_modules/pino"
-      ],
+      "pino": ["./node_modules/pino", "./packages/observability/node_modules/pino"],
       "drizzle-orm": ["./node_modules/drizzle-orm"],
       "drizzle-orm/*": ["./node_modules/drizzle-orm/*"]
     }

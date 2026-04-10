@@ -26,4 +26,3 @@ export function ApiErrorResponseSchema() {
         error: ApiErrorSchema,
     });
 }
-//# sourceMappingURL=api-response.js.map

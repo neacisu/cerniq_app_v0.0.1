@@ -107,6 +107,7 @@
   "packageManager": "pnpm@10.32.1",
   "pnpm": {
     "overrides": {
+      "smol-toml": "1.6.1",
       "minimatch": "^10.2.3",
       "rollup": "^4.59.0",
       "esbuild": ">=0.25.0",
@@ -137,6 +138,9 @@
       "inflight": "1",
       "lodash.isequal": "4",
       "rimraf": "2"
+    },
+    "patchedDependencies": {
+      "@opentelemetry/api@1.9.1": "patches/@opentelemetry__api@1.9.1.patch"
     }
   },
   "dependencies": {

@@ -74,6 +74,18 @@ describe("withLlmFallbackChain", () => {
     expect(metrics.recordLlmFallback).not.toHaveBeenCalled();
   });
 
+  it("apelează afterPrimarySuccess când primary reușește", async () => {
+    const after = vi.fn().mockResolvedValue(undefined);
+    const r = await withLlmFallbackChain({
+      primary: async () => 7,
+      fallbacks: [{ name: "x", run: async () => 0 }],
+      afterPrimarySuccess: after,
+    });
+    expect(r).toBe(7);
+    expect(after).toHaveBeenCalledTimes(1);
+    expect(after).toHaveBeenCalledWith(7);
+  });
+
   it("primary eșuează → primul fallback reușește și înregistrează metrică", async () => {
     const r = await withLlmFallbackChain({
       primary: async () => {

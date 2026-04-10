@@ -4,6 +4,27 @@ groups:
 
       # ── AI Hallucination & Guardrails ─────────────────────────────────────────
 
+      # Entropie semantică (FAZA 23): raport flag-uri vs apeluri reasoning infraq (label task_type din scrape).
+      # Notă: când screening-ul e activ, există apeluri auxiliare — pragul poate necesita retuare operațională.
+      - alert: SemanticEntropyFlagRateHigh
+        expr: |
+          (
+            sum(rate(cerniq_hallucination_flagged_total[1h]))
+            /
+            clamp_min(sum(rate(cerniq_llm_requests_total{task_type="reasoning",status="success"}[1h])), 0.001)
+          ) > 0.05
+        for: 1h
+        labels:
+          severity: warning
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 — rată ridicată răspunsuri flagate entropie semantică vs reasoning (>5% / 1h)"
+          description: |
+            Verificați `CERNIQ_SEMANTIC_ENTROPY_ENABLED`, calitate model infraq și fals pozitive.
+            Runbook: triaj în Grafana (panou „Semantic entropy”) + revizuire eșantioane log.
+            Raport: {{ $value | humanizePercentage }} din apelurile reasoning (aprox.).
+
       # Paritate cod: `cerniq_ai_guardrail_pass_rate` este gauge (prom-client), nu counter —
       # `increase()` pe gauge nu este semnificativ. Prag absolut pe breach-uri/min.
       - alert: HighHallucinationRate

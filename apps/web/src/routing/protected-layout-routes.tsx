@@ -76,7 +76,11 @@ const DesignTokensPreviewPage = lazy(async () => {
   return { default: m.DesignTokensPreviewPage };
 });
 
-/** Grup de rute sub AppLayout + ProtectedRoute (identic cu App). */
+/**
+ * Grup de rute sub AppLayout + ProtectedRoute.
+ * Folosiți **apelul** `{ProtectedLayoutRouteGroup()}` ca copil direct al `<Routes>` —
+ * nu `<ProtectedLayoutRouteGroup />` (React Router cere elemente `<Route>`, nu componente wrapper).
+ */
 export function ProtectedLayoutRouteGroup() {
   return (
     <Route

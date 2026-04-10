@@ -2,7 +2,7 @@
  * Client LLM pentru workers/e3-ai-sales — delegare către @cerniq/worker-shared (Plan §XIII).
  *
  * - Gateway infraq: apiKey „unused”; fără INFRAQ_API_KEY obligatoriu.
- * - Embeddings: qwen3-embedding-8b-q5km → halfvec(3072); fallback OpenAI 1536 la eroare.
+ * - Embeddings: exclusiv qwen3-embedding-8b (infraq) →3072 dim — obligatoriu pentru `halfvec(3072)` în PG (ADR-0109).
  * - Fast / reasoning: `withLlmFallbackChain` + factory frontier (xAI → OpenAI → Anthropic → Gemini → DeepSeek).
  * - Cheltuială frontier: Redis zi + oră + `recordLlmCostUsd`.
  */
@@ -21,20 +21,11 @@ import {
   buildFrontierChatTextFallbackSteps,
 } from "@cerniq/worker-shared";
 import { noteFrontierReasoningSpend, resolveE3LlmSpendGuard } from "./llm-spend-redis.js";
+import { runOptionalSemanticEntropyReasoningScreen } from "./semantic-entropy-reasoning.js";
 
 export { embeddingsClient, fastClient, reasoningClient } from "@cerniq/worker-shared";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
-
 const EMBEDDINGS_DIMENSIONS = 3072;
-const OPENAI_FALLBACK_MODEL = "text-embedding-3-small";
-const OPENAI_FALLBACK_DIMENSIONS = 1536;
-
-const openAiFallbackClient = new OpenAI({
-  apiKey: OPENAI_API_KEY || "no-key",
-  timeout: 30_000,
-  maxRetries: 1,
-});
 
 // ── Embeddings ────────────────────────────────────────────────────────────────
 
@@ -72,39 +63,10 @@ const embeddingsBreaker = createCircuitBreaker(callInfraqEmbeddings, "infraq-emb
 });
 
 /**
- * Embedding halfvec(3072) via infraq; fallback OpenAI text-embedding-3-small (1536) la eroare.
+ * Embedding 3072 dim exclusiv via infraq (circuit breaker). Fără fallback 1536 — incompatibil cu `halfvec(3072)`.
  */
 export async function embedText(input: string): Promise<EmbedResult> {
-  const openAiFallback = async (): Promise<EmbedResult> => {
-    if (!OPENAI_API_KEY) throw new Error("OpenAI fallback unavailable: no OPENAI_API_KEY");
-    const response = await withExternalApiMetrics("openai-embeddings-fallback", () =>
-      openAiFallbackClient.embeddings.create({
-        model: OPENAI_FALLBACK_MODEL,
-        input,
-        dimensions: OPENAI_FALLBACK_DIMENSIONS,
-      }),
-    );
-    const embedding = response.data[0]?.embedding;
-    if (!embedding) throw new Error("OpenAI fallback embeddings returned empty");
-    return {
-      embedding,
-      model: OPENAI_FALLBACK_MODEL,
-      dimensions: OPENAI_FALLBACK_DIMENSIONS,
-      isFallback: true,
-    };
-  };
-
-  try {
-    return await withExternalApiMetrics("infraq-embeddings", () => embeddingsBreaker.fire(input));
-  } catch (primaryErr) {
-    console.warn("[e3-llm-client] infraq embeddings failed, falling back to OpenAI", primaryErr);
-    if (!OPENAI_API_KEY) throw primaryErr;
-    return withLlmFallbackChain({
-      primary: openAiFallback,
-      fallbacks: [],
-      dataSensitivity: "non_sensitive",
-    });
-  }
+  return withExternalApiMetrics("infraq-embeddings", () => embeddingsBreaker.fire(input));
 }
 
 // ── Fast LLM ───────────────────────────────────────────────────────────────────
@@ -246,5 +208,8 @@ export async function reasoningChat(
     fallbacks: frontier,
     dataSensitivity: "non_sensitive",
     spendGuard,
+    afterPrimarySuccess: async () => {
+      await runOptionalSemanticEntropyReasoningScreen(systemPrompt, userPrompt, options);
+    },
   });
 }

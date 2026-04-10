@@ -733,6 +733,23 @@ export const llmAutoDowngradeTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+/** Entropie semantică (1 - similitudine medie între eșantioane multi-temperatură). */
+export const semanticEntropyScore = new Histogram({
+  name: "cerniq_semantic_entropy_score",
+  help: "Semantic entropy score from multi-sample embedding spread (0=consistent, 1=divergent)",
+  labelNames: ["model", "task_type"] as const,
+  buckets: [0, 0.05, 0.1, 0.15, 0.2, 0.35, 0.5, 0.65, 0.8, 1],
+  registers: [metricsRegistry],
+});
+
+/** Răspunsuri flagate ca risc halucinație / instabilitate semantică. */
+export const hallucinationFlaggedTotal = new Counter({
+  name: "cerniq_hallucination_flagged_total",
+  help: "LLM outputs flagged by semantic entropy screening",
+  labelNames: ["model", "action"] as const,
+  registers: [metricsRegistry],
+});
+
 /**
  * Allocator telefoane WA — path SKIP LOCKED (fără Redis phone:lock).
  * outcome=acquired|exhausted

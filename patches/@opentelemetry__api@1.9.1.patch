@@ -1,0 +1,81 @@
+diff --git a/node-esm-reexport-experimental.mjs b/node-esm-reexport-experimental.mjs
+new file mode 100644
+index 0000000..c30f4b0
+--- /dev/null
++++ b/node-esm-reexport-experimental.mjs
+@@ -0,0 +1,6 @@
++/**
++ * Shim ESM pentru subpath `experimental` (default + named din CJS).
++ */
++import cjs from "./build/src/experimental/index.js";
++export default cjs;
++export const { wrapTracer, SugaredTracer } = cjs;
+diff --git a/node-esm-reexport.mjs b/node-esm-reexport.mjs
+new file mode 100644
+index 0000000..d26f16d
+--- /dev/null
++++ b/node-esm-reexport.mjs
+@@ -0,0 +1,37 @@
++/**
++ * Shim ESM pentru Node + tsx: importuri statice din `@opentelemetry/api` trebuie să rezolve
++ * la binding-uri reale (nu doar `export *` din CJS — lipsesc clase precum `DiagConsoleLogger`).
++ */
++import cjs from "./build/src/index.js";
++
++export default cjs;
++
++export const {
++  baggageEntryMetadataFromString,
++  createContextKey,
++  ROOT_CONTEXT,
++  DiagConsoleLogger,
++  DiagLogLevel,
++  createNoopMeter,
++  ValueType,
++  defaultTextMapGetter,
++  defaultTextMapSetter,
++  ProxyTracer,
++  ProxyTracerProvider,
++  SamplingDecision,
++  SpanKind,
++  SpanStatusCode,
++  TraceFlags,
++  createTraceState,
++  isSpanContextValid,
++  isValidTraceId,
++  isValidSpanId,
++  INVALID_SPANID,
++  INVALID_TRACEID,
++  INVALID_SPAN_CONTEXT,
++  context,
++  diag,
++  metrics,
++  propagation,
++  trace,
++} = cjs;
+diff --git a/package.json b/package.json
+index 1fae1b7..9056651 100644
+--- a/package.json
++++ b/package.json
+@@ -8,15 +8,19 @@
+   "types": "build/src/index.d.ts",
+   "exports": {
+     ".": {
++      "types": "./build/src/index.d.ts",
++      "import": "./node-esm-reexport.mjs",
++      "require": "./build/src/index.js",
+       "esnext": "./build/esnext/index.js",
+       "module": "./build/esm/index.js",
+-      "types": "./build/src/index.d.ts",
+       "default": "./build/src/index.js"
+     },
+     "./experimental": {
++      "types": "./build/src/experimental/index.d.ts",
++      "import": "./node-esm-reexport-experimental.mjs",
++      "require": "./build/src/experimental/index.js",
+       "esnext": "./build/esnext/experimental/index.js",
+       "module": "./build/esm/experimental/index.js",
+-      "types": "./build/src/experimental/index.d.ts",
+       "default": "./build/src/experimental/index.js"
+     }
+   },

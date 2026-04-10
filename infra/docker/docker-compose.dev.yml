@@ -199,6 +199,9 @@ services:
 
   # ==========================================================================
   # Web Frontend — Vite Dev Server with HMR
+  # Hot reload în Docker: CHOKIDAR_USEPOLLING (volume bind pe unele host-uri).
+  # HMR prin Traefik HTTPS: setează VITE_HMR_CLIENT_HOST (ex. dev.cerniq.app),
+  # VITE_HMR_PROTOCOL=wss, VITE_HMR_CLIENT_PORT=443; opțional VITE_HMR_PATH.
   # ==========================================================================
   cerniq-web:
     image: node:25.8.1
@@ -213,6 +216,9 @@ services:
       NODE_ENV: development
       # DNS în Compose = numele serviciului (cerniq-api), nu container_name (cerniq-dev-api).
       VITE_API_PROXY_TARGET: "http://cerniq-api:64010"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
+      WATCHPACK_POLLING: "true"
     networks:
       - cerniq_public
       - cerniq_backend
@@ -238,6 +244,9 @@ services:
     environment:
       NODE_ENV: development
       VITE_API_PROXY_TARGET: "http://cerniq-api:64010"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
+      WATCHPACK_POLLING: "true"
     networks:
       - cerniq_public
       - cerniq_backend
@@ -268,6 +277,8 @@ services:
       LOG_LEVEL: debug
       SECRETS_PATH: /secrets/api.env
       IMPORT_UPLOAD_DIR: /app/data/imports
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
     extra_hosts:
       - "ct107-postgres:10.0.1.107"
     networks:
@@ -302,6 +313,8 @@ services:
       NODE_ENV: development
       PORT: "64080"
       SECRETS_PATH: /secrets/api.env
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
     networks:
       - cerniq_backend
     depends_on:

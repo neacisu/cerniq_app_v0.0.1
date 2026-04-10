@@ -168,6 +168,14 @@ export const stockReservationActive = new Gauge({
   registers: [metricsRegistry],
 });
 
+/** Apeluri `product:embed` respinse: vector MRL ≠ 3072 (nu trebuie să apară dacă `embedText` e singura sursă). */
+export const e3EmbeddingDimensionRejectTotal = new Counter({
+  name: "cerniq_e3_embedding_dimension_reject_total",
+  help: "E3 product/chunk embed rejected: embedding length or dimensions not 3072 (halfvec MRL)",
+  labelNames: ["surface"] as const,
+  registers: [metricsRegistry],
+});
+
 // ---------------------------------------------------------------------------
 // LLM client unificat — sursa unică: @cerniq/worker-shared (metrics.ts + llm-client)
 // ---------------------------------------------------------------------------

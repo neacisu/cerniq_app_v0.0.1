@@ -36,4 +36,3 @@ export const StructuredLogSchema = z.object({
         .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
 });
-//# sourceMappingURL=structured-logs.js.map

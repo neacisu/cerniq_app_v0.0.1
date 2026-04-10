@@ -72,6 +72,13 @@ INFRAQ_GUARD_TOKEN={{- $v := index $d "infraq_guard_token" -}}{{ if $v }}{{ $v }
 {{- end }}
 
 # =============================================================================
+# OpenTelemetry — BullMQ (bullmq-otel) + @cerniq/observability
+# OTEL_SERVICE_NAME se setează per serviciu în stack (ex. cerniq-worker-enrichment).
+# =============================================================================
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-cerniq.neanelu.ro:4318
+OTEL_TRACES_EXPORTER=otlp
+
+# =============================================================================
 # OpenBao Metadata
 # =============================================================================
 OPENBAO_SECRETS_LOADED=true

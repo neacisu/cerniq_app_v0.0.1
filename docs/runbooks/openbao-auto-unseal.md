@@ -172,3 +172,9 @@ seal "transit" {
 | "invalid seal configuration" | Key length incorrect              | Ensure 32-byte base64 key          |
 | Agents failing healthcheck   | OpenBao still sealed              | Check seal status, key             |
 | "seal migration required"    | Changed seal type without migrate | Run `bao operator unseal -migrate` |
+
+---
+
+## Monitoring (Prometheus)
+
+În repo **nu** există încă o metrică standard `Sealed` expusă de OpenBao către Prometheus; o alertă de tip **OpenBaoSealed** necesită fie un exporter/blackbox pe endpoint-ul de health al serverului, fie integrare în orchestrator. Până la acea sursă, triajul rămâne manual: `bao status`, healthcheck agenți și loguri structurate.

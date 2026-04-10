@@ -113,6 +113,59 @@
           "legendFormat": "Failed {{ instance }}"
         }
       ]
+    },
+    {
+      "title": "App LLM — frontier cost USD/min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "custom": { "lineWidth": 2, "fillOpacity": 12 } }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider) (rate(cerniq_llm_cost_usd_total[$__rate_interval]) * 60)",
+          "legendFormat": "{{ provider }}"
+        }
+      ]
+    },
+    {
+      "title": "App LLM — requests & fallback / min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 12 } }
+      },
+      "targets": [
+        {
+          "expr": "sum by (model_id, task_type) (rate(cerniq_llm_requests_total[$__rate_interval]) * 60)",
+          "legendFormat": "req {{ model_id }} / {{ task_type }}"
+        },
+        {
+          "expr": "sum by (frontier_model, reason) (rate(cerniq_llm_fallback_total[$__rate_interval]) * 60)",
+          "legendFormat": "fallback {{ frontier_model }} ({{ reason }})"
+        }
+      ]
+    },
+    {
+      "title": "Semantic entropy — P95 & flagged / min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, model, task_type) (rate(cerniq_semantic_entropy_score_bucket[$__rate_interval])))",
+          "legendFormat": "entropy P95 {{ model }} / {{ task_type }}"
+        },
+        {
+          "expr": "sum by (model, action) (rate(cerniq_hallucination_flagged_total[$__rate_interval]) * 60)",
+          "legendFormat": "flagged/min {{ model }} ({{ action }})"
+        }
+      ]
     }
   ],
   "refresh": "30s",

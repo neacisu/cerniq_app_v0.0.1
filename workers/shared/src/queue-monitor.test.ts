@@ -216,9 +216,9 @@ describe("startQueueDepthMonitor", () => {
     await stop();
   });
 
-  it("uses console.warn fallback logger when no logger provided", async () => {
+  it("apelează logger.warn la eșec poll (semnătură obj, msg)", async () => {
     const startQueueDepthMonitor = await importMonitor();
-    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warn = vi.fn();
     const failingQueue = makeQueueMock();
     failingQueue.getJobCounts.mockRejectedValueOnce(new Error("network error"));
     queueMocks.set("score:completeness", failingQueue);
@@ -226,15 +226,15 @@ describe("startQueueDepthMonitor", () => {
     const stop = startQueueDepthMonitor({
       queueNames: ["score:completeness"],
       intervalMs: 15_000,
+      logger: { warn },
     });
 
     await vi.advanceTimersByTimeAsync(15_000);
 
-    expect(consoleSpy).toHaveBeenCalledWith(
+    expect(warn).toHaveBeenCalledWith(
+      { queue: "score:completeness", error: "network error" },
       "Queue depth poll failed",
-      expect.objectContaining({ queue: "score:completeness" }),
     );
-    consoleSpy.mockRestore();
     await stop();
   });
 

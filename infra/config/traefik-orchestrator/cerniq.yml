@@ -121,9 +121,29 @@ http:
     # Direct routing from orchestrator Traefik to dev machine (no HAProxy).
     # Dev containers: volume-mounted source + Vite HMR / tsx watch.
     # Shared services: OpenBao, Redis, PostgreSQL, Observability from orchestrator.
+    #
+    # /api pe același host ca Vite: rută directă la API (64010), nu prin proxy-ul Vite.
+    # La repornirea API (tsx watch) proxy-ul Vite dă ECONNREFUSED → 502 în browser.
     # ==========================================================================
+    cerniq-dev-same-host-api:
+      rule: "Host(`dev.cerniq.app`) && PathPrefix(`/api`)"
+      priority: 100
+      service: cerniq-dev-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
     cerniq-dev-web:
       rule: "Host(`dev.cerniq.app`)"
+      priority: 1
       service: cerniq-dev-web-svc
       entryPoints:
         - websecure
