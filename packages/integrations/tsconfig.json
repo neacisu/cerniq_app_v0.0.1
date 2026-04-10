@@ -11,12 +11,22 @@
       "@cerniq/observability": [
         "node_modules/@cerniq/observability/src/index.ts",
         "../../node_modules/@cerniq/observability/src/index.ts",
-        "../observability/src/index.ts"
+        "../observability/src/index.ts",
+        "../../packages/observability/src/index.ts",
+        "node_modules/@cerniq/observability/dist/index.d.ts",
+        "../../node_modules/@cerniq/observability/dist/index.d.ts",
+        "../observability/dist/index.d.ts",
+        "../../packages/observability/dist/index.d.ts"
       ],
       "@cerniq/observability/*": [
         "node_modules/@cerniq/observability/src/*",
         "../../node_modules/@cerniq/observability/src/*",
-        "../observability/src/*"
+        "../observability/src/*",
+        "../../packages/observability/src/*",
+        "node_modules/@cerniq/observability/dist/*",
+        "../../node_modules/@cerniq/observability/dist/*",
+        "../observability/dist/*",
+        "../../packages/observability/dist/*"
       ],
       "@cerniq/worker-shared": [
         "node_modules/@cerniq/worker-shared/src/index.ts",
