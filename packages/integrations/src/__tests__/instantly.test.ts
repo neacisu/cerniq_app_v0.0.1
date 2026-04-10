@@ -5,6 +5,21 @@
  * All HTTP calls are mocked — no real Instantly API is called.
  */
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+
+const { mockObsInfo, mockObsError } = vi.hoisted(() => ({
+  mockObsInfo: vi.fn(),
+  mockObsError: vi.fn(),
+}));
+
+vi.mock("@cerniq/observability", () => ({
+  createServiceLogger: vi.fn(() => ({
+    info: mockObsInfo,
+    error: mockObsError,
+    warn: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
+
 import { InstantlyClient, normalizeInstantlyEvent, BOUNCE_THRESHOLD } from "../instantly/client.js";
 import type { InstantlyWebhookPayload } from "../instantly/types.js";
 
@@ -29,6 +44,8 @@ function makeClient() {
 describe("InstantlyClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockObsInfo.mockClear();
+    mockObsError.mockClear();
   });
 
   afterEach(() => {
@@ -59,6 +76,17 @@ describe("InstantlyClient", () => {
       expect(body.campaign_id).toBe("camp-1");
       expect(body.email).toBe("test@example.com");
       expect(body.first_name).toBe("Ion");
+
+      expect(mockObsInfo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: "instantly_request_start",
+          path: "/lead/add",
+          campaignId: "camp-1",
+        }),
+      );
+      expect(mockObsInfo).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "instantly_request_success", campaignId: "camp-1" }),
+      );
     });
 
     it("handles ALREADY_EXISTS response gracefully", async () => {

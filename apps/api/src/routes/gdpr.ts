@@ -76,8 +76,9 @@ function erasureTenantKey(req: FastifyRequest): string {
 
 export async function gdprRoutes(app: FastifyInstance) {
   const consentLimiter = app.rateLimit({ max: 120, timeWindow: "1 minute" });
+  /** Minim 4–5 cereri legitime / tenant / min în fluxuri admin (403/404 +ștergeri); max:1 bloca testele și retry-uri UI. */
   const erasureLimiter = app.rateLimit({
-    max: 1,
+    max: 30,
     timeWindow: "1 minute",
     keyGenerator: (req) => erasureTenantKey(req),
   });

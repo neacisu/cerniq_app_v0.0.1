@@ -4,7 +4,10 @@
  * Usage: node dist/migrate-runner.js
  */
 import "./config.js";
+import { createServiceLogger } from "@cerniq/observability";
 import { runAllMigrations, closeMigrationDb } from "@cerniq/db";
+
+const migrateLog = createServiceLogger("db-migrate-runner");
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run") || process.env.MIGRATION_DRY_RUN === "true";
@@ -13,9 +16,9 @@ const rollback = args.has("--rollback") || process.env.MIGRATION_ROLLBACK === "t
 let exitCode = 0;
 try {
   await runAllMigrations({ dryRun, rollback });
-  console.log("Migrations completed successfully.");
+  migrateLog.info({ event: "migrations_completed" }, "Migrations completed successfully.");
 } catch (err) {
-  console.error("Migration failed:", err);
+  migrateLog.error({ err, event: "migrations_failed" }, "Migration failed");
   exitCode = 1;
 } finally {
   await closeMigrationDb();

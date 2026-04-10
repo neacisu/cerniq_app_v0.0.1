@@ -1,8 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { approvalService, approvalTasks, db, sql } from "@cerniq/db";
+import { auditWriter } from "@cerniq/observability";
 import { createQueue } from "../lib/queue-factory.js";
 import { isKnownQueueName, queueRegistry, QUEUES } from "@cerniq/worker-shared";
+import { httpRouteLabel } from "../plugins/metrics.js";
 import { getActorId, parseOffset, requireTenantId } from "./utils.js";
 import { buildApiJobPayloadContext } from "../lib/http-job-tracing.js";
 import {
@@ -250,6 +252,18 @@ export async function enrichmentRoutes(app: FastifyInstance) {
         assigneeUserId: b.data.userId,
         actorId,
       });
+      auditWriter.write({
+        method: request.method.toUpperCase(),
+        routePattern: httpRouteLabel(request),
+        statusCode: 200,
+        tenantId,
+        userId: actorId,
+        metadata: {
+          approvalAction: "assign",
+          taskId: task.id,
+          assigneeUserId: b.data.userId,
+        },
+      });
       return { success: true, data: task };
     },
   );
@@ -298,6 +312,19 @@ export async function enrichmentRoutes(app: FastifyInstance) {
       });
       await resumeQueue.close();
 
+      auditWriter.write({
+        method: request.method.toUpperCase(),
+        routePattern: httpRouteLabel(request),
+        statusCode: 200,
+        tenantId,
+        userId: actorId,
+        metadata: {
+          approvalAction: "decide",
+          taskId: task.id,
+          decision: b.data.decision,
+        },
+      });
+
       return { success: true, data: task };
     },
   );
@@ -332,6 +359,17 @@ export async function enrichmentRoutes(app: FastifyInstance) {
         taskId: p.data.id,
         actorId,
         reason: b.data.reason,
+      });
+      auditWriter.write({
+        method: request.method.toUpperCase(),
+        routePattern: httpRouteLabel(request),
+        statusCode: 200,
+        tenantId,
+        userId: actorId,
+        metadata: {
+          approvalAction: "escalate",
+          taskId: task.id,
+        },
       });
       return { success: true, data: task };
     },

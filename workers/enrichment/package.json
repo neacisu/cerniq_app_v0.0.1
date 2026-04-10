@@ -17,7 +17,7 @@
     "@cerniq/shared-types": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "@types/papaparse": "^5.5.2",
-    "bullmq": "^5.73.2",
+    "bullmq": "^5.73.3",
     "exceljs": "^4.4.0",
     "fuzzball": "^2.2.3",
     "ioredis": "^5.10.1",

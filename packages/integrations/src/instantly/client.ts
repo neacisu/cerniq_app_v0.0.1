@@ -14,6 +14,7 @@
  *   4xx: 0 retries, throw immediately
  */
 import Bottleneck from "bottleneck";
+import { createServiceLogger } from "@cerniq/observability";
 import { callExternalApi } from "@cerniq/worker-shared";
 import type {
   AddLeadRequest,
@@ -30,6 +31,16 @@ import type {
 
 // Bounce threshold from ADR-0066 (MUST NOT change)
 export const BOUNCE_THRESHOLD = 0.03;
+
+const log = createServiceLogger("instantly-client");
+
+const INSTANTLY_CAMPAIGN_PATH_RE = /^\/campaign\/([^/]+)\/(analytics|pause)$/;
+
+function readCampaignIdFromCreateResponse(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const id = (data as { id?: unknown }).id;
+  return typeof id === "string" ? id : undefined;
+}
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -82,34 +93,191 @@ export class InstantlyClient {
     );
   }
 
+  /** campaignId din path (`/campaign/:id/...`) sau din body (`campaign_id` la addLead). */
+  private instantlyCampaignContext(path: string, body?: unknown): { campaignId?: string } {
+    const fromPath = INSTANTLY_CAMPAIGN_PATH_RE.exec(path);
+    if (fromPath?.[1]) return { campaignId: fromPath[1] };
+    if (body && typeof body === "object" && body !== null) {
+      const cid = (body as Record<string, unknown>).campaign_id;
+      if (typeof cid === "string") return { campaignId: cid };
+    }
+    return {};
+  }
+
+  private instantlySuccessExtras(
+    path: string,
+    method: string,
+    body: unknown,
+    data: unknown,
+  ): { campaignId?: string } {
+    const fromCtx = this.instantlyCampaignContext(path, body);
+    if (fromCtx.campaignId) return fromCtx;
+    const createdId = readCampaignIdFromCreateResponse(data);
+    if (path === "/campaign" && method === "POST" && createdId) {
+      return { campaignId: createdId };
+    }
+    return {};
+  }
+
+  private async shouldRetry429Instantly(
+    response: Response,
+    attempt: number,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+    body?: unknown,
+  ): Promise<boolean> {
+    if (response.status !== 429) return false;
+    if (attempt <= 5) {
+      await sleep(60000);
+      return true;
+    }
+    log.error({
+      event: "instantly_request_failed",
+      reason: "rate_limit_exhausted",
+      method,
+      path,
+      attempts: attempt,
+      latencyMs: latencyMs(),
+      ...this.instantlyCampaignContext(path, body),
+    });
+    throw new Error(`Instantly rate limit exceeded after ${attempt} retries`, {
+      cause: new Error("HTTP 429"),
+    });
+  }
+
+  private async shouldRetry5xxInstantly(
+    response: Response,
+    attempt: number,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+    body?: unknown,
+  ): Promise<boolean> {
+    if (response.status < 500) return false;
+    if (attempt <= 3) {
+      await sleep(Math.pow(2, attempt) * 1000);
+      return true;
+    }
+    log.error({
+      event: "instantly_request_failed",
+      reason: "server_error_exhausted",
+      httpStatus: response.status,
+      method,
+      path,
+      attempts: attempt,
+      latencyMs: latencyMs(),
+      ...this.instantlyCampaignContext(path, body),
+    });
+    throw new Error(`Instantly server error ${response.status} after ${attempt} retries`, {
+      cause: new Error(`HTTP ${response.status}`),
+    });
+  }
+
+  private async throwInstantlyClientErrorIfNeeded(
+    response: Response,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+    body?: unknown,
+  ): Promise<void> {
+    if (response.ok) return;
+    let errorText: string;
+    try {
+      errorText = await response.text();
+    } catch (readErr) {
+      errorText = `read_error:${readErr instanceof Error ? readErr.message : String(readErr)}`;
+    }
+    log.error({
+      event: "instantly_request_failed",
+      reason: "client_error",
+      httpStatus: response.status,
+      method,
+      path,
+      latencyMs: latencyMs(),
+      ...this.instantlyCampaignContext(path, body),
+    });
+    throw new Error(`Instantly error ${response.status}: ${errorText}`, {
+      cause: new Error(errorText),
+    });
+  }
+
+  private async parseInstantlyJsonBody<T>(
+    response: Response,
+    method: string,
+    path: string,
+    body: unknown,
+    attempt: number,
+    latencyMs: () => number,
+  ): Promise<T> {
+    try {
+      const data = (await response.json()) as T;
+      log.info({
+        event: "instantly_request_success",
+        method,
+        path,
+        statusCode: response.status,
+        attempts: attempt,
+        latencyMs: latencyMs(),
+        ...this.instantlySuccessExtras(path, method, body, data),
+      });
+      return data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error({
+        event: "instantly_request_error",
+        phase: "json_parse",
+        method,
+        path,
+        latencyMs: latencyMs(),
+        ...this.instantlyCampaignContext(path, body),
+        err,
+      });
+      throw new Error(`Instantly invalid JSON: ${msg}`, { cause: err });
+    }
+  }
+
   private async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    const t0 = performance.now();
+    const latencyMs = () => Math.round(performance.now() - t0);
     let attempt = 0;
+
+    log.info({
+      event: "instantly_request_start",
+      method,
+      path,
+      ...this.instantlyCampaignContext(path, body),
+    });
+
     for (;;) {
       attempt += 1;
-      const response = await this.fetchOnce(method, path, body);
-
-      if (response.status === 429) {
-        if (attempt <= 5) {
-          await sleep(60000);
-          continue;
-        }
-        throw new Error(`Instantly rate limit exceeded after ${attempt} retries`);
+      let response: Response;
+      try {
+        response = await this.fetchOnce(method, path, body);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log.error({
+          event: "instantly_request_error",
+          phase: "fetch",
+          method,
+          path,
+          attempt,
+          latencyMs: latencyMs(),
+          ...this.instantlyCampaignContext(path, body),
+          err,
+        });
+        throw new Error(`Instantly network error: ${msg}`, { cause: err });
       }
 
-      if (response.status >= 500) {
-        if (attempt <= 3) {
-          await sleep(Math.pow(2, attempt) * 1000);
-          continue;
-        }
-        throw new Error(`Instantly server error ${response.status} after ${attempt} retries`);
+      if (await this.shouldRetry429Instantly(response, attempt, method, path, latencyMs, body)) {
+        continue;
+      }
+      if (await this.shouldRetry5xxInstantly(response, attempt, method, path, latencyMs, body)) {
+        continue;
       }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Instantly error ${response.status}: ${errorText}`);
-      }
-
-      return response.json() as Promise<T>;
+      await this.throwInstantlyClientErrorIfNeeded(response, method, path, latencyMs, body);
+      return this.parseInstantlyJsonBody<T>(response, method, path, body, attempt, latencyMs);
     }
   }
 

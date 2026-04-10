@@ -831,6 +831,22 @@ async function processOneBronzeContact(
     bronzeContactId: bronze.id,
     sourceAuthority: "import",
   });
+
+  svcLog.info({
+    event: "bronze_identity_resolution",
+    context: "promotion_reprocess",
+    tenantId,
+    bronzeContactId: bronze.id,
+    status: resolution.status,
+    ...(resolution.status === "resolved" ? { companyId: resolution.companyId } : {}),
+    ...(resolution.status === "duplicate_source"
+      ? { duplicateOfId: resolution.duplicateOfId }
+      : {}),
+    ...(resolution.status === "identity_conflict"
+      ? { conflictCompanyCount: resolution.conflictCompanyIds.length }
+      : {}),
+  });
+
   if (resolution.status === "resolved") {
     counters.resolved += 1;
     return;

@@ -501,17 +501,17 @@ describe("Queue Registry — E25-F36 queues prezente", () => {
 });
 
 // ============================================================================
-// Secțiunea 12: assertQueueRegistryComplete (expect 350)
+// Secțiunea 12: assertQueueRegistryComplete (expect 358)
 // ============================================================================
 
-describe("assertQueueRegistryComplete (expect 350)", () => {
+describe("assertQueueRegistryComplete (expect 358)", () => {
   it("assertQueueRegistryComplete() nu aruncă eroare", async () => {
     const { assertQueueRegistryComplete } = await import("@cerniq/worker-shared");
     expect(() => assertQueueRegistryComplete()).not.toThrow();
   });
 
-  it("dimensiunea exactă a registrului este 350 (canon worker-shared)", () => {
-    expect(queueRegistry.length).toBe(350);
+  it("dimensiunea exactă a registrului este 358 (canon worker-shared)", () => {
+    expect(queueRegistry.length).toBe(358);
   });
 });
 

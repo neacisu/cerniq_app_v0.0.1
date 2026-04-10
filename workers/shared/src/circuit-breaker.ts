@@ -1,6 +1,9 @@
 import CircuitBreaker from "opossum";
+import { createServiceLogger } from "@cerniq/observability";
 import { Counter, Gauge } from "prom-client";
 import { metricsRegistry } from "./metrics.js";
+
+const cbLog = createServiceLogger("circuit-breaker-generic");
 
 const DEFAULT_OPTIONS = {
   timeout: 10000,
@@ -96,9 +99,15 @@ export function createCircuitBreaker<TArgs extends unknown[], TResult>(
     name,
   });
 
-  breaker.on("open", () => console.warn(`[CircuitBreaker:${name}] opened`));
-  breaker.on("halfOpen", () => console.info(`[CircuitBreaker:${name}] half-open`));
-  breaker.on("close", () => console.info(`[CircuitBreaker:${name}] closed`));
+  breaker.on("open", () => {
+    cbLog.warn({ event: "circuit_breaker_open", breakerName: name });
+  });
+  breaker.on("halfOpen", () => {
+    cbLog.info({ event: "circuit_breaker_half_open", breakerName: name });
+  });
+  breaker.on("close", () => {
+    cbLog.info({ event: "circuit_breaker_closed", breakerName: name });
+  });
 
   return breaker as unknown as {
     fire(...args: TArgs): Promise<TResult>;

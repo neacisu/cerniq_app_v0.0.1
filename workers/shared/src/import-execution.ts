@@ -15,8 +15,11 @@ import {
   inArray,
   tenants,
 } from "@cerniq/db";
+import { createServiceLogger } from "@cerniq/observability";
 import { createQueue } from "./factory.js";
 import { dispatchNotification } from "./notification-dispatcher.js";
+
+const importExecLog = createServiceLogger("import-execution");
 
 export type ImportRuntimeSessionKind =
   | "ingest"
@@ -1004,7 +1007,7 @@ async function reconcileImportRuntimeSessionStatus(args: { tenantId: string; ses
           );
         await resetSessionContext();
       } catch (err) {
-        console.error("[import-execution] IMPORT_DONE notification failed", err);
+        importExecLog.error({ event: "import_done_notification_failed", err });
       }
     }
   }

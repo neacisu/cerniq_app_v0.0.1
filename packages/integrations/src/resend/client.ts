@@ -1,4 +1,5 @@
 import Bottleneck from "bottleneck";
+import { createServiceLogger } from "@cerniq/observability";
 import { callExternalApi } from "@cerniq/worker-shared";
 
 /**
@@ -20,6 +21,8 @@ import type {
 /** Tipurile sunt re-exportate și din `./types.js` via `resend/index.ts` — fără duplicare `export type` aici (Sonar S7763). */
 export { WARM_ALLOWED_STAGES } from "./types.js";
 export type { WarmAllowedStage } from "./types.js";
+
+const log = createServiceLogger("resend-client");
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -74,34 +77,168 @@ export class ResendClient {
     );
   }
 
+  private resendSuccessLogPayload(
+    path: string,
+    method: string,
+    statusCode: number,
+    attempt: number,
+    latencyMs: number,
+    data: unknown,
+  ): Record<string, unknown> {
+    const successPayload: Record<string, unknown> = {
+      event: "resend_request_success",
+      method,
+      path,
+      statusCode,
+      attempts: attempt,
+      latencyMs,
+    };
+    const dataObj = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+    if (path === "/emails" && dataObj && typeof dataObj.id === "string") {
+      successPayload.emailId = dataObj.id;
+    }
+    return successPayload;
+  }
+
+  private async shouldRetry429Resend(
+    response: Response,
+    attempt: number,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+  ): Promise<boolean> {
+    if (response.status !== 429) return false;
+    if (attempt <= 5) {
+      await sleep(60000);
+      return true;
+    }
+    log.error({
+      event: "resend_request_failed",
+      reason: "rate_limit_exhausted",
+      method,
+      path,
+      attempts: attempt,
+      latencyMs: latencyMs(),
+    });
+    throw new Error(`Resend rate limit exceeded after ${attempt} retries`, {
+      cause: new Error("HTTP 429"),
+    });
+  }
+
+  private async shouldRetry5xxResend(
+    response: Response,
+    attempt: number,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+  ): Promise<boolean> {
+    if (response.status < 500) return false;
+    if (attempt <= 3) {
+      await sleep(Math.pow(2, attempt) * 1000);
+      return true;
+    }
+    log.error({
+      event: "resend_request_failed",
+      reason: "server_error_exhausted",
+      httpStatus: response.status,
+      method,
+      path,
+      attempts: attempt,
+      latencyMs: latencyMs(),
+    });
+    throw new Error(`Resend server error ${response.status}`, {
+      cause: new Error(`HTTP ${response.status}`),
+    });
+  }
+
+  private async throwResendClientErrorIfNeeded(
+    response: Response,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+  ): Promise<void> {
+    if (response.ok) return;
+    let errorText: string;
+    try {
+      errorText = await response.text();
+    } catch (readErr) {
+      errorText = `read_error:${readErr instanceof Error ? readErr.message : String(readErr)}`;
+    }
+    log.error({
+      event: "resend_request_failed",
+      reason: "client_error",
+      httpStatus: response.status,
+      method,
+      path,
+      latencyMs: latencyMs(),
+    });
+    throw new Error(`Resend error ${response.status}: ${errorText}`, {
+      cause: new Error(errorText),
+    });
+  }
+
+  private async parseResendJsonBody<T>(
+    response: Response,
+    method: string,
+    path: string,
+    attempt: number,
+    latencyMs: () => number,
+  ): Promise<T> {
+    try {
+      const data = (await response.json()) as T;
+      log.info(
+        this.resendSuccessLogPayload(path, method, response.status, attempt, latencyMs(), data),
+      );
+      return data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error({
+        event: "resend_request_error",
+        phase: "json_parse",
+        method,
+        path,
+        latencyMs: latencyMs(),
+        err,
+      });
+      throw new Error(`Resend invalid JSON: ${msg}`, { cause: err });
+    }
+  }
+
   private async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    const t0 = performance.now();
+    const latencyMs = () => Math.round(performance.now() - t0);
     let attempt = 0;
+
+    log.info({ event: "resend_request_start", method, path });
+
     for (;;) {
       attempt += 1;
-      const response = await this.fetchOnce(method, path, body);
-
-      if (response.status === 429) {
-        if (attempt <= 5) {
-          await sleep(60000);
-          continue;
-        }
-        throw new Error(`Resend rate limit exceeded after ${attempt} retries`);
+      let response: Response;
+      try {
+        response = await this.fetchOnce(method, path, body);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log.error({
+          event: "resend_request_error",
+          phase: "fetch",
+          method,
+          path,
+          attempt,
+          latencyMs: latencyMs(),
+          err,
+        });
+        throw new Error(`Resend network error: ${msg}`, { cause: err });
       }
 
-      if (response.status >= 500) {
-        if (attempt <= 3) {
-          await sleep(Math.pow(2, attempt) * 1000);
-          continue;
-        }
-        throw new Error(`Resend server error ${response.status}`);
+      if (await this.shouldRetry429Resend(response, attempt, method, path, latencyMs)) {
+        continue;
+      }
+      if (await this.shouldRetry5xxResend(response, attempt, method, path, latencyMs)) {
+        continue;
       }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Resend error ${response.status}: ${errorText}`);
-      }
-
-      return response.json() as Promise<T>;
+      await this.throwResendClientErrorIfNeeded(response, method, path, latencyMs);
+      return this.parseResendJsonBody<T>(response, method, path, attempt, latencyMs);
     }
   }
 

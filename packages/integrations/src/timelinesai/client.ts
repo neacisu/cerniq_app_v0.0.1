@@ -13,6 +13,7 @@
  *   4xx: 0 retries, throw immediately
  */
 import Bottleneck from "bottleneck";
+import { createServiceLogger } from "@cerniq/observability";
 import { callExternalApi } from "@cerniq/worker-shared";
 import type {
   SendMessageRequest,
@@ -26,6 +27,8 @@ import type {
 } from "./types.js";
 
 /** Tipurile publice: `timelinesai/index.ts` face `export *` din `./types.js` (Sonar S7763). */
+
+const log = createServiceLogger("timelinesai-client");
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -86,35 +89,150 @@ export class TimelinesAIClient {
     );
   }
 
+  private async shouldRetry429Timelines(
+    response: Response,
+    attempt: number,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+  ): Promise<boolean> {
+    if (response.status !== 429) return false;
+    if (attempt <= 5) {
+      await sleep(60000);
+      return true;
+    }
+    log.error({
+      event: "timelinesai_request_failed",
+      reason: "rate_limit_exhausted",
+      method,
+      path,
+      attempts: attempt,
+      latencyMs: latencyMs(),
+    });
+    throw new Error(`TimelinesAI rate limit exceeded after ${attempt} retries`, {
+      cause: new Error("HTTP 429"),
+    });
+  }
+
+  private async shouldRetry5xxTimelines(
+    response: Response,
+    attempt: number,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+  ): Promise<boolean> {
+    if (response.status < 500) return false;
+    if (attempt <= 3) {
+      await sleep(Math.pow(2, attempt) * 1000);
+      return true;
+    }
+    log.error({
+      event: "timelinesai_request_failed",
+      reason: "server_error_exhausted",
+      httpStatus: response.status,
+      method,
+      path,
+      attempts: attempt,
+      latencyMs: latencyMs(),
+    });
+    throw new Error(`TimelinesAI server error ${response.status} after ${attempt} retries`, {
+      cause: new Error(`HTTP ${response.status}`),
+    });
+  }
+
+  private async throwTimelinesClientErrorIfNeeded(
+    response: Response,
+    method: string,
+    path: string,
+    latencyMs: () => number,
+  ): Promise<void> {
+    if (response.ok) return;
+    let errorText: string;
+    try {
+      errorText = await response.text();
+    } catch (readErr) {
+      errorText = `read_error:${readErr instanceof Error ? readErr.message : String(readErr)}`;
+    }
+    log.error({
+      event: "timelinesai_request_failed",
+      reason: "client_error",
+      httpStatus: response.status,
+      method,
+      path,
+      latencyMs: latencyMs(),
+    });
+    throw new Error(`TimelinesAI error ${response.status}: ${errorText}`, {
+      cause: new Error(errorText),
+    });
+  }
+
+  private async parseTimelinesJsonBody<T>(
+    response: Response,
+    method: string,
+    path: string,
+    attempt: number,
+    latencyMs: () => number,
+  ): Promise<T> {
+    try {
+      const data = (await response.json()) as T;
+      log.info({
+        event: "timelinesai_request_success",
+        method,
+        path,
+        statusCode: response.status,
+        attempts: attempt,
+        latencyMs: latencyMs(),
+      });
+      return data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error({
+        event: "timelinesai_request_error",
+        phase: "json_parse",
+        method,
+        path,
+        latencyMs: latencyMs(),
+        err,
+      });
+      throw new Error(`TimelinesAI invalid JSON: ${msg}`, { cause: err });
+    }
+  }
+
   private async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    const t0 = performance.now();
+    const latencyMs = () => Math.round(performance.now() - t0);
     let attempt = 0;
+
+    log.info({ event: "timelinesai_request_start", method, path });
+
     for (;;) {
       attempt += 1;
-      const response = await this.fetchOnce(method, path, body);
-
-      if (response.status === 429) {
-        if (attempt <= 5) {
-          await sleep(60000);
-          continue;
-        }
-        throw new Error(`TimelinesAI rate limit exceeded after ${attempt} retries`);
+      let response: Response;
+      try {
+        response = await this.fetchOnce(method, path, body);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log.error({
+          event: "timelinesai_request_error",
+          phase: "fetch",
+          method,
+          path,
+          attempt,
+          latencyMs: latencyMs(),
+          err,
+        });
+        throw new Error(`TimelinesAI network error: ${msg}`, { cause: err });
       }
 
-      if (response.status >= 500) {
-        if (attempt <= 3) {
-          const backoff = Math.pow(2, attempt) * 1000;
-          await sleep(backoff);
-          continue;
-        }
-        throw new Error(`TimelinesAI server error ${response.status} after ${attempt} retries`);
+      if (await this.shouldRetry429Timelines(response, attempt, method, path, latencyMs)) {
+        continue;
+      }
+      if (await this.shouldRetry5xxTimelines(response, attempt, method, path, latencyMs)) {
+        continue;
       }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`TimelinesAI error ${response.status}: ${errorText}`);
-      }
-
-      return response.json() as Promise<T>;
+      await this.throwTimelinesClientErrorIfNeeded(response, method, path, latencyMs);
+      return this.parseTimelinesJsonBody<T>(response, method, path, attempt, latencyMs);
     }
   }
 

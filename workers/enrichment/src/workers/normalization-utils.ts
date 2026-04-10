@@ -1,5 +1,15 @@
 import { bronzeContacts, db, setSessionTenantId, sql } from "@cerniq/db";
+import { createServiceLogger } from "@cerniq/observability";
 import { enqueueImportJob, type ImportExecutionContext, QUEUES } from "@cerniq/worker-shared";
+
+/**
+ * I11 — Mapare plan YAML (generic) → contract real:
+ * - `normalizeType` / `inputSample` (YAML vechi) → `operation` + câmpuri eveniment (`event`,
+ *   `bronzeContactId`, `correlationId`, `valueKeys`, fără PII în clar).
+ * - `markNormalizationResult` → `event: mark_normalization_result`, `fieldsTouched` din keys.
+ * - `triggerCuiValidationIfPossible` → `event: cui_validation_enqueue` / `cui_validation_skip`.
+ */
+const log = createServiceLogger("normalization-utils", { etapa: "e1" });
 
 export type BronzeNormalizationJobData = {
   tenantId: string;
@@ -15,6 +25,12 @@ export async function getBronzeContactForTenant(tenantId: string, bronzeContactI
     where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, bronzeContactId)),
   });
   if (!contact) {
+    log.warn({
+      event: "bronze_contact_missing",
+      operation: "getBronzeContactForTenant",
+      tenantId,
+      bronzeContactId,
+    });
     throw new Error(`Bronze contact not found: ${bronzeContactId}`);
   }
   return contact;
@@ -32,6 +48,17 @@ export async function markNormalizationResult(
   },
   metadataPatch: Record<string, unknown>,
 ) {
+  const valueKeys = Object.keys(values).filter(
+    (k) => values[k as keyof typeof values] != null && values[k as keyof typeof values] !== "",
+  );
+  log.debug({
+    event: "mark_normalization_result",
+    operation: "markNormalizationResult",
+    tenantId,
+    bronzeContactId,
+    valueKeys,
+    metadataKeys: Object.keys(metadataPatch),
+  });
   await setSessionTenantId(tenantId);
   await db
     .update(bronzeContacts)
@@ -66,6 +93,14 @@ export async function triggerCuiValidationIfPossible(
   const meta = (contact.metadata ?? {}) as Record<string, unknown>;
   const batchId = typeof meta.batchId === "string" ? meta.batchId : undefined;
   if (meta.anafBronzeEnrichmentStatus === "pending") {
+    log.debug({
+      event: "cui_validation_deferred",
+      operation: "triggerCuiValidationIfPossible",
+      reason: "anaf_bronze_pending",
+      tenantId,
+      bronzeContactId,
+      correlationId,
+    });
     return; // b5 will call triggerCuiValidationIfPossible when done
   }
 
@@ -109,6 +144,15 @@ export async function triggerCuiValidationIfPossible(
       contactId: bronzeContactId,
       sessionKind: "ingest",
     });
+    log.info({
+      event: "bronze_promote_enqueued",
+      operation: "triggerCuiValidationIfPossible",
+      queue: "PIPELINE_PROMOTE_BRONZE_SILVER",
+      reason: "nrregcom_only",
+      tenantId,
+      bronzeContactId,
+      correlationId,
+    });
     return;
   }
 
@@ -134,5 +178,14 @@ export async function triggerCuiValidationIfPossible(
     entityId: bronzeContactId,
     contactId: bronzeContactId,
     sessionKind: "ingest",
+  });
+  log.info({
+    event: "cui_validation_enqueued",
+    operation: "triggerCuiValidationIfPossible",
+    queue: "VALIDATE_CUI_MOD11",
+    tenantId,
+    bronzeContactId,
+    correlationId,
+    cui,
   });
 }

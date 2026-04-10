@@ -1,7 +1,6 @@
 /**
  * Apeluri către monitoring-api prin circuit breaker (`monitoring-internal` în worker-shared).
  */
-import { trace } from "@opentelemetry/api";
 import { getCorrelationStore } from "@cerniq/observability";
 import { getProviderBreaker } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
@@ -39,20 +38,13 @@ export async function monitoringInternalFetch(
     }),
   );
   const durationSec = (performance.now() - started) / 1000;
-  const traceId = trace.getActiveSpan()?.spanContext().traceId;
-  const exemplar =
-    traceId && traceId !== "00000000000000000000000000000000" ? { trace_id: traceId } : undefined;
-  if (exemplar) {
-    httpClientRequestDurationSeconds.observe({
-      value: durationSec,
-      labels: { method, peer_service: "monitoring_api" },
-      exemplarLabels: exemplar,
-    } as never);
-  } else {
-    httpClientRequestDurationSeconds.observe(
-      { method, peer_service: "monitoring_api" },
-      durationSec,
-    );
-  }
+  /**
+   * prom-client 15: `exemplarLabels` trebuie să fie `LabelValues<"method"|"peer_service">`,
+   * nu chei arbitrare (`trace_id`). Exemplare cu trace rămân pe span-uri OTEL, nu pe histogramă.
+   */
+  httpClientRequestDurationSeconds.observe({
+    value: durationSec,
+    labels: { method, peer_service: "monitoring_api" },
+  });
   return res as Response;
 }

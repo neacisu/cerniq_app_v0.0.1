@@ -10,7 +10,7 @@ describe("Navigation Config", () => {
   });
   it("has expected total nav items (incl. Dashboard E1)", () => {
     const total = navigation.reduce((sum, s) => sum + s.items.length, 0);
-    expect(total).toBe(45);
+    expect(total).toBe(46);
   });
   it("Cognitive Brain section exists with /brain path", () => {
     const cogSection = navigation.find((s) => s.title === "COGNITIVE BRAIN");

@@ -1,5 +1,8 @@
+import { createServiceLogger } from "@cerniq/observability";
 import { createQueue } from "./factory.js";
 import { dlqDepth, queueDepth, queueDepthByState } from "./metrics.js";
+
+const queueMonitorLog = createServiceLogger("queue-monitor");
 
 const BULLMQ_DEPTH_STATES = [
   "waiting",
@@ -22,7 +25,11 @@ export function startQueueDepthMonitor(options: QueueDepthMonitorOptions): () =>
     queueNames,
     dlqNames = [],
     intervalMs = 15_000,
-    logger = { warn: (obj, msg) => console.warn(msg, obj) },
+    logger = {
+      warn: (obj, msg) => {
+        queueMonitorLog.warn({ ...obj, msg });
+      },
+    },
   } = options;
 
   const monitorQueues = queueNames.map((name) => ({

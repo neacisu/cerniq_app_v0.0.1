@@ -13,7 +13,10 @@ import {
   tenants,
   users,
 } from "@cerniq/db";
+import { createServiceLogger } from "@cerniq/observability";
 import { callExternalApi } from "./external-api-wrapper.js";
+
+const notifyLog = createServiceLogger("notification-dispatcher");
 
 export type NotificationChannel = "IN_APP" | "EMAIL" | "WEBHOOK";
 
@@ -73,7 +76,7 @@ async function resolveTenantWebhookUrl(
 async function sendNotificationEmail(input: DispatchNotificationInput, to: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
-    console.warn("[notification-dispatcher] RESEND_API_KEY missing — skip EMAIL channel");
+    notifyLog.warn({ event: "resend_api_key_missing", msg: "skip EMAIL channel" });
     return;
   }
   const base = process.env.RESEND_API_URL?.trim() ?? "https://api.resend.com";
@@ -157,7 +160,7 @@ async function dispatchOneChannel(
         const to = await resolveRecipientEmail(input.tenantId, input.userId);
         if (to) await sendNotificationEmail(input, to);
       } catch (err) {
-        console.error("[notification-dispatcher] EMAIL channel failed", err);
+        notifyLog.error({ event: "notification_email_failed", err });
       }
       return;
     case "WEBHOOK":
@@ -165,7 +168,7 @@ async function dispatchOneChannel(
         const url = await resolveTenantWebhookUrl(input.tenantId, data);
         if (url) await postTenantWebhook(url, input);
       } catch (err) {
-        console.error("[notification-dispatcher] WEBHOOK channel failed", err);
+        notifyLog.error({ event: "notification_webhook_failed", err });
       }
       return;
     default:

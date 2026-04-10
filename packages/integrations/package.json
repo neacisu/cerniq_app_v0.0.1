@@ -39,13 +39,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@cerniq/observability": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "bottleneck": "^2.19.5",
     "svix": "^1.90.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
   }

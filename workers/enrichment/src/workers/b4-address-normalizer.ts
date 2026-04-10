@@ -208,7 +208,7 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
           errorStack: error instanceof Error ? error.stack : undefined,
         });
         jobErrors.add(1, { worker: "b4-address-normalizer" });
-        classifyAndRethrow(error);
+        classifyAndRethrow(error, { workerName: "b4-address-normalizer" });
       } finally {
         jobsProcessed.add(1, { worker: "b4-address-normalizer" });
         jobDuration.record(Date.now() - startedAt, { worker: "b4-address-normalizer" });

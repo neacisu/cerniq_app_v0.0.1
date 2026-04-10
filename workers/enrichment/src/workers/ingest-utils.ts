@@ -373,6 +373,23 @@ function getMetadataRowNumber(metadataInput: unknown): number | null {
     : null;
 }
 
+/** I10: context rând import pentru log structurat (echivalent vechiului batchId / fileName / rowIndex). */
+function ingestRowSourceContext(metadataInput: unknown): {
+  batchId: string | null;
+  fileName: string | null;
+} {
+  const metadata = (metadataInput as Record<string, unknown> | undefined) ?? {};
+  let batchId: string | null = null;
+  if (typeof metadata.batchId === "string") batchId = metadata.batchId;
+  else if (typeof metadata.importBatchId === "string") batchId = metadata.importBatchId;
+
+  let fileName: string | null = null;
+  if (typeof metadata.fileName === "string") fileName = metadata.fileName;
+  else if (typeof metadata.sourceFileName === "string") fileName = metadata.sourceFileName;
+
+  return { batchId, fileName };
+}
+
 function getMetadataWorksheetRow(metadataInput: unknown): number | null {
   const metadata = (metadataInput as Record<string, unknown> | undefined) ?? {};
   return typeof metadata.worksheetRow === "number" && Number.isFinite(metadata.worksheetRow)
@@ -649,6 +666,22 @@ async function resolveInsertedBronzeRow(
       sourceAuthority: "import",
     });
 
+    svcLog.info({
+      event: "bronze_identity_resolution",
+      context: "ingest_insert",
+      tenantId: String(sourceRow.tenantId),
+      bronzeContactId: insertedId,
+      rowNumber,
+      status: resolution.status,
+      ...(resolution.status === "resolved" ? { companyId: resolution.companyId } : {}),
+      ...(resolution.status === "duplicate_source"
+        ? { companyId: resolution.companyId, duplicateOfId: resolution.duplicateOfId }
+        : {}),
+      ...(resolution.status === "identity_conflict"
+        ? { conflictCompanyCount: resolution.conflictCompanyIds.length }
+        : {}),
+    });
+
     switch (resolution.status) {
       case "resolved":
         return {
@@ -689,16 +722,28 @@ async function resolveInsertedBronzeRow(
         };
     }
   } catch (error) {
+    const rowCtx = ingestRowSourceContext(sourceRow.metadata);
     const enr = enrichError(error, {
       insertedId,
       tenantId: String(sourceRow.tenantId),
       rowNumber,
+      ...rowCtx,
     });
+    const message = truncateErrorMessage(getErrorMessage(error));
     svcLog.error(
-      { err: error, fingerprint: enr.fingerprint, errorType: enr.errorType, insertedId },
+      {
+        event: "ingest_row_identity_resolution_failed",
+        err: error,
+        fingerprint: enr.fingerprint,
+        errorType: enr.errorType,
+        insertedId,
+        rowNumber,
+        batchId: rowCtx.batchId,
+        fileName: rowCtx.fileName,
+        errorDetail: message,
+      },
       "resolveInsertedBronzeRow identity resolution failed",
     );
-    const message = truncateErrorMessage(getErrorMessage(error));
     await db
       .update(bronzeContacts)
       .set({

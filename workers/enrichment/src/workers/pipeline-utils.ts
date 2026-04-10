@@ -7,6 +7,7 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
+import { createServiceLogger } from "@cerniq/observability";
 import type { JobsOptions } from "bullmq";
 import {
   enqueueImportJob,
@@ -15,6 +16,8 @@ import {
   hitlTasksCreatedTotal,
   type ImportRuntimeSessionKind,
 } from "@cerniq/worker-shared";
+
+const pipelineLog = createServiceLogger("pipeline-utils", { etapa: "e1" });
 
 export async function resolveRequesterUserId(tenantId: string): Promise<string | null> {
   if (process.env.SYSTEM_USER_ID) return process.env.SYSTEM_USER_ID;
@@ -98,6 +101,14 @@ export async function createHitlApprovalTask(args: {
   const taskId = inserted[0]?.id ?? null;
   if (taskId) {
     hitlTasksCreatedTotal.inc({ approval_type: args.type, tenant_id: args.tenantId });
+    pipelineLog.info({
+      event: "hitl_approval_task_created",
+      taskId,
+      approvalType: args.type,
+      tenantId: args.tenantId,
+      entityType: args.entityType,
+      entityId: args.entityId,
+    });
   }
   return taskId;
 }
@@ -181,6 +192,11 @@ export async function patchCompanyMetadata(
 /**
  * Insert an audit log entry into silver_enrichment_log with field-level changes.
  * Used for tracking enrichment mutations with before/after values.
+ *
+ * I9 — `logEnrichmentAudit` (helper): apelat din ingest-utils + promotion-bronze-silver pentru
+ * audit „cursă” import/promovare. Majoritatea workerilor E1 scriu direct `silverEnrichmentLog`
+ * după job (d*, e*, f*, …) — același tabel, fără acest helper. Nu e dead code; inventarul
+ * fazelor: vezi `docs/developer-guide/f6-f7-instrumentation-traceability.md`.
  */
 export async function logEnrichmentAudit(args: {
   tenantId: string;
@@ -224,5 +240,17 @@ export async function logEnrichmentAudit(args: {
     durationMs: args.durationMs ?? null,
     errorMessage: args.errorMessage ?? null,
     errorCode: args.errorCode ?? null,
+  });
+
+  pipelineLog.info({
+    event: "enrichment_audit_persisted",
+    entityType: args.entityType,
+    entityId: args.entityId,
+    operation: args.operation,
+    source: args.source,
+    status: args.status ?? "success",
+    fieldsUpdatedCount: fieldsUpdated.length,
+    correlationId: args.correlationId,
+    jobId: args.jobId,
   });
 }

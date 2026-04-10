@@ -237,7 +237,7 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
           errorStack: error instanceof Error ? error.stack : undefined,
         });
         jobErrors.add(1, { worker: "b2-email-normalizer" });
-        classifyAndRethrow(error);
+        classifyAndRethrow(error, { workerName: "b2-email-normalizer" });
       } finally {
         jobsProcessed.add(1, { worker: "b2-email-normalizer" });
         jobDuration.record(Date.now() - startedAt, { worker: "b2-email-normalizer" });

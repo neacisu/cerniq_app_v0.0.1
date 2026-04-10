@@ -5,6 +5,21 @@
  * All HTTP calls are mocked — no real TimelinesAI API is called.
  */
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+
+const { mockObsInfo, mockObsError } = vi.hoisted(() => ({
+  mockObsInfo: vi.fn(),
+  mockObsError: vi.fn(),
+}));
+
+vi.mock("@cerniq/observability", () => ({
+  createServiceLogger: vi.fn(() => ({
+    info: mockObsInfo,
+    error: mockObsError,
+    warn: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
+
 import { TimelinesAIClient, normalizeTimelinesAIEvent } from "../timelinesai/client.js";
 import type { TimelinesAIWebhookPayload } from "../timelinesai/types.js";
 
@@ -31,6 +46,8 @@ function makeClient() {
 describe("TimelinesAIClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockObsInfo.mockClear();
+    mockObsError.mockClear();
   });
 
   afterEach(() => {
@@ -64,6 +81,14 @@ describe("TimelinesAIClient", () => {
       const body = JSON.parse(calledOptions.body as string);
       expect(body.phone).toBe("+40712345678");
       expect(body.recipient).toBe("+40798765432");
+
+      expect(mockObsInfo).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "timelinesai_request_start", path: "/messages/send" }),
+      );
+      expect(mockObsInfo).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "timelinesai_request_success", statusCode: 200 }),
+      );
+      expect(mockObsError).not.toHaveBeenCalled();
     });
 
     it("retries on 429 rate limit response", async () => {
@@ -104,6 +129,35 @@ describe("TimelinesAIClient", () => {
       ).rejects.toThrow("404");
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("logs a single final error when 429 persists after all retries", async () => {
+      vi.useFakeTimers();
+      const rateLimitResponse = makeJsonResponse({ error: "rate limited" }, 429);
+      mockFetch.mockResolvedValue(rateLimitResponse);
+
+      const client = makeClient();
+      const sendPromise = client.sendMessage({
+        phone: "+40712345678",
+        recipient: "+40798765432",
+        message: "x",
+      });
+
+      const assertion = expect(sendPromise).rejects.toThrow(/rate limit exceeded/);
+      for (let i = 0; i < 6; i += 1) {
+        await vi.advanceTimersByTimeAsync(65000);
+      }
+      await assertion;
+
+      expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(6);
+      expect(mockObsError).toHaveBeenCalledTimes(1);
+      expect(mockObsError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: "timelinesai_request_failed",
+          reason: "rate_limit_exhausted",
+        }),
+      );
+      vi.useRealTimers();
     });
   });
 

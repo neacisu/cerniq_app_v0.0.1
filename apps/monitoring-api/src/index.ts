@@ -1,5 +1,7 @@
 import { loadSecretsFromFile, watchSecretsFile } from "@cerniq/worker-shared";
-import { initTelemetry } from "@cerniq/observability";
+import { createServiceLogger, initTelemetry } from "@cerniq/observability";
+
+const monitoringBootstrapLog = createServiceLogger("monitoring-api");
 
 const MONITORING_SECRETS_PATH = process.env.SECRETS_PATH ?? "/secrets/api.env";
 
@@ -20,7 +22,10 @@ const PORT = Number(process.env.PORT ?? 64080);
 const REDIS_URL: string = process.env.REDIS_URL ?? "";
 
 if (!REDIS_URL) {
-  console.error("REDIS_URL is required. Ensure OpenBao agent has rendered secrets.");
+  monitoringBootstrapLog.error({
+    event: "redis_url_missing",
+    msg: "REDIS_URL is required. Ensure OpenBao agent has rendered secrets.",
+  });
   process.exit(1);
 }
 
@@ -61,6 +66,6 @@ async function start() {
 try {
   await start();
 } catch (err) {
-  console.error(err);
+  monitoringBootstrapLog.error({ err, event: "monitoring_start_failed" }, "start() failed");
   process.exit(1);
 }

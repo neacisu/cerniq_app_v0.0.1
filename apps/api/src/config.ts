@@ -47,6 +47,7 @@ const EnvSchema = z.object({
   MONITORING_API_INTERNAL_URL: z.url().default("http://cerniq-monitoring-api:64080"),
 });
 
+/** I13 / I17 — singurele `console.error` rămase aici: înainte de logger/Pino valid (eșec parsing env fatal). */
 function parseEnv(): z.infer<typeof EnvSchema> {
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {

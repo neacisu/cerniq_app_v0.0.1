@@ -2,11 +2,56 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": ["ESNext"],
     "types": ["node"],
-    "baseUrl": "../..",
+    "baseUrl": ".",
+    "paths": {
+      "@cerniq/observability": [
+        "node_modules/@cerniq/observability/src/index.ts",
+        "../../node_modules/@cerniq/observability/src/index.ts",
+        "../../packages/observability/src/index.ts"
+      ],
+      "@cerniq/observability/*": [
+        "node_modules/@cerniq/observability/src/*",
+        "../../node_modules/@cerniq/observability/src/*",
+        "../../packages/observability/src/*"
+      ],
+      "@cerniq/db": [
+        "node_modules/@cerniq/db/src/index.ts",
+        "../../node_modules/@cerniq/db/src/index.ts",
+        "../../packages/db/src/index.ts"
+      ],
+      "@cerniq/db/*": [
+        "node_modules/@cerniq/db/src/*",
+        "../../node_modules/@cerniq/db/src/*",
+        "../../packages/db/src/*"
+      ],
+      "@cerniq/shared": [
+        "node_modules/@cerniq/shared/src/index.ts",
+        "../../node_modules/@cerniq/shared/src/index.ts",
+        "../../packages/shared/src/index.ts"
+      ],
+      "@cerniq/shared/*": [
+        "node_modules/@cerniq/shared/src/*",
+        "../../node_modules/@cerniq/shared/src/*",
+        "../../packages/shared/src/*"
+      ],
+      "@cerniq/shared-types": [
+        "node_modules/@cerniq/shared-types/src/index.ts",
+        "../../node_modules/@cerniq/shared-types/src/index.ts",
+        "../../packages/shared-types/src/index.ts"
+      ],
+      "@cerniq/shared-types/*": [
+        "node_modules/@cerniq/shared-types/src/*",
+        "../../node_modules/@cerniq/shared-types/src/*",
+        "../../packages/shared-types/src/*"
+      ]
+    },
     "noEmit": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../../packages/observability" }]
 }

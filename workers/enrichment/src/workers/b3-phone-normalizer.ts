@@ -158,7 +158,7 @@ export const phoneNormalizerProcessor: Processor<PhoneNormalizerJobData> = async
           errorStack: error instanceof Error ? error.stack : undefined,
         });
         jobErrors.add(1, { worker: "b3-phone-normalizer" });
-        classifyAndRethrow(error);
+        classifyAndRethrow(error, { workerName: "b3-phone-normalizer" });
       } finally {
         jobsProcessed.add(1, { worker: "b3-phone-normalizer" });
         jobDuration.record(Date.now() - startedAt, { worker: "b3-phone-normalizer" });

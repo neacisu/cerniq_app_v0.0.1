@@ -3,6 +3,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { InferSelectModel } from "drizzle-orm";
 import postgres from "postgres";
 
+import { markDbClientInitNow } from "./db-client-init-marker.js";
 import { wrapPostgresClientForTracing } from "./traced-postgres.js";
 
 import * as tenants from "./schemas/tenants.js";
@@ -64,7 +65,35 @@ const postgresOptions = {
  * sunt create în `traced-postgres.ts` pentru apeluri `sql\`\`` și `sql.unsafe`, inclusiv
  * în `sql.begin` / savepoint-uri (clientul din callback este re-învelit).
  */
+function logDbClientBootstrapSafe(connectionString: string, poolSize: number): void {
+  markDbClientInitNow();
+  if (process.env.NODE_ENV === "test") return;
+  try {
+    const normalized = connectionString.replace(/^postgres(ql)?:/i, "http:");
+    const u = new URL(normalized);
+    const database = (u.pathname || "").replace(/^\//, "").split("?")[0] || "(default)";
+    process.stderr.write(
+      `${JSON.stringify({
+        event: "db_client_init",
+        host: u.hostname,
+        database,
+        poolSize,
+      })}\n`,
+    );
+  } catch {
+    process.stderr.write(
+      `${JSON.stringify({
+        event: "db_client_init",
+        host: "(unparsed)",
+        database: "(unknown)",
+        poolSize,
+      })}\n`,
+    );
+  }
+}
+
 export function createDbClient(connectionString: string) {
+  logDbClientBootstrapSafe(connectionString, poolSize);
   const sqlRaw = postgres(connectionString, {
     ...postgresOptions,
   });

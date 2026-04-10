@@ -6,6 +6,21 @@
  * Svix signature verification is also mocked.
  */
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+
+const { mockObsInfo, mockObsError } = vi.hoisted(() => ({
+  mockObsInfo: vi.fn(),
+  mockObsError: vi.fn(),
+}));
+
+vi.mock("@cerniq/observability", () => ({
+  createServiceLogger: vi.fn(() => ({
+    info: mockObsInfo,
+    error: mockObsError,
+    warn: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
+
 import { ResendClient, normalizeResendEvent, WARM_ALLOWED_STAGES } from "../resend/client.js";
 import type { ResendWebhookPayload } from "../resend/types.js";
 
@@ -31,6 +46,8 @@ function makeClient() {
 describe("ResendClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockObsInfo.mockClear();
+    mockObsError.mockClear();
   });
 
   afterEach(() => {
@@ -53,6 +70,16 @@ describe("ResendClient", () => {
       });
 
       expect(result.id).toBe("email-xyz");
+
+      expect(mockObsInfo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: "resend_request_success",
+          path: "/emails",
+          emailId: "email-xyz",
+        }),
+      );
+      const logged = JSON.stringify(mockObsInfo.mock.calls);
+      expect(logged).not.toContain("Oferta");
 
       const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(calledUrl).toContain("/emails");

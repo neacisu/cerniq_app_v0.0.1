@@ -1,4 +1,7 @@
 import fs from "node:fs";
+import { createServiceLogger } from "@cerniq/observability";
+
+const secretsLog = createServiceLogger("worker-shared-secrets");
 
 const DEFAULT_SECRETS_PATH = "/secrets/workers.env";
 const SENSITIVE_KEYS = new Set([
@@ -74,8 +77,11 @@ export function loadSecretsFromFile(
   if (!resolvedPath) {
     if (exitOnMissing && process.env.NODE_ENV !== "test") {
       const searched = searchPaths ? searchPaths.join(", ") : path;
-      console.error(`Secrets file not found: ${searched}`);
-      console.error("Ensure OpenBao agent has rendered secrets before the service starts.");
+      secretsLog.error({
+        event: "secrets_file_missing",
+        searched,
+        msg: "Ensure OpenBao agent has rendered secrets before the service starts.",
+      });
       process.exit(1);
     }
     return;
@@ -109,7 +115,7 @@ export function watchSecretsFile(
     try {
       await onReload();
     } catch (error) {
-      console.error("[secrets-watch] reload failed", error);
+      secretsLog.error({ event: "secrets_watch_reload_failed", err: error });
     } finally {
       reloading = false;
     }

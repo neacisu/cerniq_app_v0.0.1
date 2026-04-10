@@ -6,5 +6,9 @@
     "./infra/config/otel/otel-collector-pipeline.schema.json": [
       "infra/config/otel/otel-collector-pipeline.yaml"
     ]
+  },
+  "sonarlint.connectedMode.project": {
+    "connectionId": "neacisu",
+    "projectKey": "neacisu_cerniq_app_v0.0.1"
   }
 }

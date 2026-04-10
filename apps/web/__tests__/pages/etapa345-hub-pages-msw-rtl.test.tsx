@@ -94,7 +94,7 @@ describe("E3 hub pages (MSW)", () => {
       await screen.findByRole("heading", { name: /Anti-Hallucination Guardrails/i }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Discount Guard")).toBeInTheDocument();
-    expect(screen.getByText(/Fragment răspuns AI/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hash prompt/i)).toBeInTheDocument();
   });
 
   it("NegotiationConversation: SC AgroSud SRL din GET /negotiation MSW", async () => {

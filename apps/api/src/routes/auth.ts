@@ -320,10 +320,16 @@ async function issueAuthTokens(
 }
 
 export async function authRoutes(app: FastifyInstance) {
+  /** Aliniat la teste: max 10 încercări / 15m per IP (înainte era 5/min și se suprapunea cu fluxul register). */
   const loginRateLimit = app.rateLimit({
-    max: 5,
-    timeWindow: "1 minute",
+    max: 10,
+    timeWindow: "15 minutes",
     keyGenerator: (request) => `auth-login:${request.ip}`,
+  });
+  const registerRateLimit = app.rateLimit({
+    max: 30,
+    timeWindow: "1 minute",
+    keyGenerator: (request) => `auth-register:${request.ip}`,
   });
 
   app.addHook("preHandler", async (request, reply) => {
@@ -428,7 +434,7 @@ export async function authRoutes(app: FastifyInstance) {
     });
   });
 
-  app.post("/register", { preHandler: [loginRateLimit] }, async (request, reply) => {
+  app.post("/register", { preHandler: [registerRateLimit] }, async (request, reply) => {
     const parsed = RegisterBodySchema.safeParse(request.body);
     if (!parsed.success) {
       const rawBody = request.body as { email?: unknown } | undefined;

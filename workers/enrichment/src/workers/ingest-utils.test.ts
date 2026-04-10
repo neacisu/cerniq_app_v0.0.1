@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 beforeEach(() => {
@@ -6,9 +9,13 @@ beforeEach(() => {
 });
 
 function mockSharedTypes() {
-  vi.doMock("@cerniq/shared-types", () => ({
-    buildColumnAliasToTargetMap: vi.fn(() => new Map()),
-  }));
+  vi.doMock("@cerniq/shared-types", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@cerniq/shared-types")>();
+    return {
+      ...actual,
+      buildColumnAliasToTargetMap: vi.fn(() => new Map()),
+    };
+  });
 }
 
 function createDbMock(overrides?: Record<string, unknown>) {
@@ -29,6 +36,7 @@ function createDbMock(overrides?: Record<string, unknown>) {
     computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) => JSON.stringify(row)),
     resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
     setSessionTenantId: vi.fn(async () => undefined),
+    insertJobLogRows: vi.fn(async () => undefined),
     sql: (parts: TemplateStringsArray) => parts.join(""),
     ...overrides,
   };
@@ -465,5 +473,13 @@ describe("ingest-utils control chars and idempotency", () => {
     expect(result.invariantConflictRows).toBe(1);
     expect(quarantineValues).toHaveBeenCalledTimes(1);
     expect(bronzeValues).not.toHaveBeenCalled();
+  });
+});
+
+describe("ingest-utils source hygiene (F6.11 / F7.1)", () => {
+  it("does not use console.* — row-level context folosește createServiceLogger în același modul", () => {
+    const dir = path.dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(path.join(dir, "ingest-utils.ts"), "utf8");
+    expect(src).not.toMatch(/console\.(log|error|warn|info|debug)\s*\(/);
   });
 });

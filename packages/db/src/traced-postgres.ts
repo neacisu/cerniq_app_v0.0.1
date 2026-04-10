@@ -7,12 +7,23 @@
  * Limitări PgBouncer (vezi și `client.ts`): în `pool_mode=transaction`, prepared statements pe conexiune nu persistă între tranzacții — `prepare: false` evită
  * conflictul; span-urile reflectă totuși round-trip-urile reale către server.
  */
+import { createHash } from "node:crypto";
 import { context, trace, SpanKind, SpanStatusCode } from "@opentelemetry/api";
 import type postgres from "postgres";
+
+import { getDbClientInitPerformanceMs } from "./db-client-init-marker.js";
 
 const TRACER_NAME = "@cerniq/db";
 const TRACER_VERSION = "0.0.1";
 const MAX_STATEMENT_LEN = 2000;
+const SLOW_QUERY_THRESHOLD_MS = 1000;
+
+/** O singură dată per proces: ms de la primul `createDbClient` până la primul query reușit (lazy pool). */
+let emittedFirstQueryConnectLatency = false;
+
+export function queryStatementHash(redactedStatement: string): string {
+  return createHash("sha256").update(redactedStatement, "utf8").digest("hex").slice(0, 16);
+}
 
 export function truncateStatement(sqlText: string): string {
   if (sqlText.length <= MAX_STATEMENT_LEN) return sqlText;
@@ -34,7 +45,47 @@ export function templateToRedactedStatement(strings: TemplateStringsArray): stri
   return truncateStatement(out);
 }
 
+/**
+ * Ultimul argument la `sql.begin` / `sql.savepoint` este handler-ul `(sql) => …`.
+ * Fără acest narrowing, rămânem pe `unknown` + `as` redundant pentru Sonar/TS.
+ */
+function isPostgresTransactionHandler(value: unknown): value is (sql: postgres.Sql) => unknown {
+  return typeof value === "function";
+}
+
+/** `postgres.js` Query extinde Promise și expune `.values()` — nu trebuie „aplatizat” la Promise simplu. */
+function isPostgresJsQueryLike(result: unknown): boolean {
+  return (
+    result !== null &&
+    typeof result === "object" &&
+    typeof (result as { then?: unknown }).then === "function" &&
+    typeof (result as { values?: unknown }).values === "function"
+  );
+}
+
+function wrapPostgresTransactionCallback(
+  handler: (sql: postgres.Sql) => unknown,
+  proxyFor: (sql: postgres.Sql) => postgres.Sql,
+): (tx: postgres.Sql) => unknown {
+  return (tx: postgres.Sql) => handler(proxyFor(tx));
+}
+
+function wrapTransactionTailCallback(
+  args: unknown[],
+  proxyFor: (sql: postgres.Sql) => postgres.Sql,
+): unknown[] | null {
+  const last = args.at(-1);
+  if (!isPostgresTransactionHandler(last)) {
+    return null;
+  }
+  const wrappedFn = wrapPostgresTransactionCallback(last, proxyFor);
+  return [...args.slice(0, -1), wrappedFn];
+}
+
 function wrapPromiseWithDbSpan(result: unknown, statement: string): unknown {
+  if (isPostgresJsQueryLike(result)) {
+    return result;
+  }
   const pending = result as {
     then?: (onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) => unknown;
   };
@@ -52,10 +103,26 @@ function wrapPromiseWithDbSpan(result: unknown, statement: string): unknown {
   });
 
   const ctx = trace.setSpan(context.active(), span);
+  const t0 = performance.now();
 
   return context.with(ctx, () =>
     Promise.resolve(pending)
       .then((value) => {
+        const durationMs = Math.round(performance.now() - t0);
+        if (!emittedFirstQueryConnectLatency) {
+          const initAt = getDbClientInitPerformanceMs();
+          if (initAt !== undefined) {
+            emittedFirstQueryConnectLatency = true;
+            const connectLatencyMs = Math.round(performance.now() - initAt);
+            span.addEvent("db_client_first_query", { connectLatencyMs });
+          }
+        }
+        if (durationMs >= SLOW_QUERY_THRESHOLD_MS) {
+          span.addEvent("slow_query", {
+            "db.query.duration_ms": durationMs,
+            "db.query.hash": queryStatementHash(statement),
+          });
+        }
         span.setStatus({ code: SpanStatusCode.OK });
         return value;
       })
@@ -98,14 +165,9 @@ export function wrapPostgresClientForTracing<T extends postgres.Sql>(baseSql: T)
         if (prop === "begin") {
           const origBegin = Reflect.get(target, prop, receiver) as (...a: unknown[]) => unknown;
           return function begin(this: unknown, ...args: unknown[]) {
-            const last = args[args.length - 1];
-            if (typeof last === "function") {
-              const wrappedFn = (tx: unknown) =>
-                (last as (sql: unknown) => unknown)(createProxy(tx as postgres.Sql));
-              if (args.length === 1) {
-                return Reflect.apply(origBegin, client, [wrappedFn]);
-              }
-              return Reflect.apply(origBegin, client, [args[0], wrappedFn]);
+            const wrappedArgs = wrapTransactionTailCallback(args, createProxy);
+            if (wrappedArgs !== null) {
+              return Reflect.apply(origBegin, client, wrappedArgs);
             }
             return Reflect.apply(origBegin, client, args);
           };
@@ -114,14 +176,9 @@ export function wrapPostgresClientForTracing<T extends postgres.Sql>(baseSql: T)
         if (prop === "savepoint") {
           const origSp = Reflect.get(target, prop, receiver) as (...a: unknown[]) => unknown;
           return function savepoint(this: unknown, ...args: unknown[]) {
-            const last = args[args.length - 1];
-            if (typeof last === "function") {
-              const wrappedFn = (tx: unknown) =>
-                (last as (sql: unknown) => unknown)(createProxy(tx as postgres.Sql));
-              if (args.length === 1) {
-                return Reflect.apply(origSp, client, [wrappedFn]);
-              }
-              return Reflect.apply(origSp, client, [args[0], wrappedFn]);
+            const wrappedArgs = wrapTransactionTailCallback(args, createProxy);
+            if (wrappedArgs !== null) {
+              return Reflect.apply(origSp, client, wrappedArgs);
             }
             return Reflect.apply(origSp, client, args);
           };
@@ -135,7 +192,7 @@ export function wrapPostgresClientForTracing<T extends postgres.Sql>(baseSql: T)
         }
         return value;
       },
-    }) as postgres.Sql;
+    });
   }
 
   return createProxy(baseSql) as T;

@@ -1,4 +1,7 @@
 import { db, setSessionTenantId, silverCompanyLocations, silverContacts, sql } from "@cerniq/db";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+
+const log = createServiceLogger("company-enrichment-utils", { etapa: "e1" });
 
 export function splitName(fullName: string): { prenume: string | null; nume: string | null } {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -17,51 +20,76 @@ export async function upsertSilverContact(args: {
   isDecisionMaker?: boolean;
   metadata: Record<string, unknown>;
 }): Promise<void> {
-  await setSessionTenantId(args.tenantId);
-  const split = splitName(args.fullName);
+  try {
+    await setSessionTenantId(args.tenantId);
+    const split = splitName(args.fullName);
 
-  const existing = await db.query.silverContacts.findFirst({
-    where: (t) =>
-      sql`${t.tenantId} = ${args.tenantId}
+    const existing = await db.query.silverContacts.findFirst({
+      where: (t) =>
+        sql`${t.tenantId} = ${args.tenantId}
           AND ${t.companyId} = ${args.companyId}
           AND COALESCE(${t.prenume}, '') = ${split.prenume ?? ""}
           AND COALESCE(${t.nume}, '') = ${split.nume ?? ""}
           AND COALESCE(${t.functie}, '') = ${args.functie}`,
-  });
+    });
 
-  if (existing) {
-    await db
-      .update(silverContacts)
-      .set({
-        email: args.email ?? existing.email ?? undefined,
-        telefon: args.telefon ?? existing.telefon ?? undefined,
-        isDecisionMaker: args.isDecisionMaker ?? existing.isDecisionMaker,
-        metadata: (() => {
-          const keys = Object.keys(args.metadata);
-          let expr = sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb)`;
-          for (const key of keys) {
-            const pathLiteral = sql.raw(`'{${key}}'`);
-            expr = sql`jsonb_set(${expr}, ${pathLiteral}, ${JSON.stringify(args.metadata[key])}::jsonb)`;
-          }
-          return expr;
-        })(),
-        updatedAt: new Date(),
-      })
-      .where(sql`${silverContacts.id} = ${existing.id}`);
-    return;
+    if (existing) {
+      await db
+        .update(silverContacts)
+        .set({
+          email: args.email ?? existing.email ?? undefined,
+          telefon: args.telefon ?? existing.telefon ?? undefined,
+          isDecisionMaker: args.isDecisionMaker ?? existing.isDecisionMaker,
+          metadata: (() => {
+            const keys = Object.keys(args.metadata);
+            let expr = sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb)`;
+            for (const key of keys) {
+              const pathLiteral = sql.raw(`'{${key}}'`);
+              expr = sql`jsonb_set(${expr}, ${pathLiteral}, ${JSON.stringify(args.metadata[key])}::jsonb)`;
+            }
+            return expr;
+          })(),
+          updatedAt: new Date(),
+        })
+        .where(sql`${silverContacts.id} = ${existing.id}`);
+      log.info({
+        event: "silver_contact_upsert",
+        outcome: "update",
+        tenantId: args.tenantId,
+        companyId: args.companyId,
+        silverContactId: existing.id,
+      });
+      return;
+    }
+
+    await db.insert(silverContacts).values({
+      tenantId: args.tenantId,
+      companyId: args.companyId,
+      prenume: split.prenume ?? undefined,
+      nume: split.nume ?? undefined,
+      functie: args.functie,
+      email: args.email ?? undefined,
+      telefon: args.telefon ?? undefined,
+      isDecisionMaker: args.isDecisionMaker ?? false,
+      metadata: args.metadata,
+    });
+    log.info({
+      event: "silver_contact_upsert",
+      outcome: "insert",
+      tenantId: args.tenantId,
+      companyId: args.companyId,
+    });
+  } catch (err) {
+    log.error({
+      event: "silver_contact_upsert_failed",
+      operation: "upsertSilverContact",
+      tenantId: args.tenantId,
+      companyId: args.companyId,
+      ...enrichError(err, { tenantId: args.tenantId, companyId: args.companyId }),
+      err,
+    });
+    throw err;
   }
-
-  await db.insert(silverContacts).values({
-    tenantId: args.tenantId,
-    companyId: args.companyId,
-    prenume: split.prenume ?? undefined,
-    nume: split.nume ?? undefined,
-    functie: args.functie,
-    email: args.email ?? undefined,
-    telefon: args.telefon ?? undefined,
-    isDecisionMaker: args.isDecisionMaker ?? false,
-    metadata: args.metadata,
-  });
 }
 
 export async function upsertCompanyLocation(args: {
@@ -74,37 +102,71 @@ export async function upsertCompanyLocation(args: {
   source: string;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
-  await setSessionTenantId(args.tenantId);
+  try {
+    await setSessionTenantId(args.tenantId);
 
-  const existing = await db.query.silverCompanyLocations.findFirst({
-    where: (t, { and, eq }) =>
-      and(
-        eq(t.tenantId, args.tenantId),
-        eq(t.companyId, args.companyId),
-        eq(t.adresa, args.adresa),
-      ),
-  });
+    const existing = await db.query.silverCompanyLocations.findFirst({
+      where: (t, { and, eq }) =>
+        and(
+          eq(t.tenantId, args.tenantId),
+          eq(t.companyId, args.companyId),
+          eq(t.adresa, args.adresa),
+        ),
+    });
 
-  if (existing) {
-    await db
-      .update(silverCompanyLocations)
-      .set({
-        tipLocatie: args.tipLocatie,
-        localitate: args.localitate ?? existing.localitate ?? undefined,
-        judet: args.judet ?? existing.judet ?? undefined,
+    if (existing) {
+      await db
+        .update(silverCompanyLocations)
+        .set({
+          tipLocatie: args.tipLocatie,
+          localitate: args.localitate ?? existing.localitate ?? undefined,
+          judet: args.judet ?? existing.judet ?? undefined,
+          source: args.source,
+        })
+        .where(sql`${silverCompanyLocations.id} = ${existing.id}`);
+      log.info({
+        event: "company_location_upsert",
+        outcome: "update",
+        tenantId: args.tenantId,
+        companyId: args.companyId,
         source: args.source,
-      })
-      .where(sql`${silverCompanyLocations.id} = ${existing.id}`);
-    return;
-  }
+        locationId: existing.id,
+        tipLocatie: args.tipLocatie,
+      });
+      return;
+    }
 
-  await db.insert(silverCompanyLocations).values({
-    tenantId: args.tenantId,
-    companyId: args.companyId,
-    tipLocatie: args.tipLocatie,
-    adresa: args.adresa,
-    localitate: args.localitate ?? undefined,
-    judet: args.judet ?? undefined,
-    source: args.source,
-  });
+    await db.insert(silverCompanyLocations).values({
+      tenantId: args.tenantId,
+      companyId: args.companyId,
+      tipLocatie: args.tipLocatie,
+      adresa: args.adresa,
+      localitate: args.localitate ?? undefined,
+      judet: args.judet ?? undefined,
+      source: args.source,
+    });
+    log.info({
+      event: "company_location_upsert",
+      outcome: "insert",
+      tenantId: args.tenantId,
+      companyId: args.companyId,
+      source: args.source,
+      tipLocatie: args.tipLocatie,
+    });
+  } catch (err) {
+    log.error({
+      event: "company_location_upsert_failed",
+      operation: "upsertCompanyLocation",
+      tenantId: args.tenantId,
+      companyId: args.companyId,
+      source: args.source,
+      ...enrichError(err, {
+        tenantId: args.tenantId,
+        companyId: args.companyId,
+        source: args.source,
+      }),
+      err,
+    });
+    throw err;
+  }
 }

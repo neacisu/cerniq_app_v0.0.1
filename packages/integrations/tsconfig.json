@@ -2,8 +2,33 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": ["ESNext"],
     "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@cerniq/observability": [
+        "node_modules/@cerniq/observability/src/index.ts",
+        "../../node_modules/@cerniq/observability/src/index.ts",
+        "../observability/src/index.ts"
+      ],
+      "@cerniq/observability/*": [
+        "node_modules/@cerniq/observability/src/*",
+        "../../node_modules/@cerniq/observability/src/*",
+        "../observability/src/*"
+      ],
+      "@cerniq/worker-shared": [
+        "node_modules/@cerniq/worker-shared/src/index.ts",
+        "../../node_modules/@cerniq/worker-shared/src/index.ts",
+        "../../workers/shared/src/index.ts"
+      ],
+      "@cerniq/worker-shared/*": [
+        "node_modules/@cerniq/worker-shared/src/*",
+        "../../node_modules/@cerniq/worker-shared/src/*",
+        "../../workers/shared/src/*"
+      ]
+    },
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -11,5 +36,6 @@
     "noEmit": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../observability" }]
 }

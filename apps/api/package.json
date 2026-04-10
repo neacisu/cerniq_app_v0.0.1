@@ -14,12 +14,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
-    "@cerniq/integrations": "workspace:*",
     "@cerniq/config": "workspace:*",
     "@cerniq/db": "workspace:*",
-    "@cerniq/shared": "workspace:*",
+    "@cerniq/integrations": "workspace:*",
     "@cerniq/observability": "workspace:*",
+    "@cerniq/shared": "workspace:*",
     "@cerniq/shared-types": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "@fastify/cookie": "^11.0.2",
@@ -30,9 +29,10 @@
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.5",
+    "@opentelemetry/api": "1.9.1",
     "@types/papaparse": "^5.5.2",
     "bcrypt": "^6.0.0",
-    "bullmq": "^5.73.2",
+    "bullmq": "^5.73.3",
     "exceljs": "^4.4.0",
     "fastify": "^5.8.4",
     "fastify-plugin": "^5.1.0",
@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }

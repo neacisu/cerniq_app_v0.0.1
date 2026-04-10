@@ -425,8 +425,8 @@ describe("Secțiunea 7: Rate Limit Config G37-G38", () => {
 // ---------------------------------------------------------------------------
 
 describe("Secțiunea 8: Queue Registry count", () => {
-  it("queueRegistry are exact 350 înregistrări (canon worker-shared)", () => {
-    expect(queueRegistry.length).toBe(350);
+  it("queueRegistry are exact 358 înregistrări (canon worker-shared)", () => {
+    expect(queueRegistry.length).toBe(358);
   });
 
   it("QUEUES.E5_ASSOCIATION_OUAI_SCRAPE există și este 'association:ouai:scrape'", () => {

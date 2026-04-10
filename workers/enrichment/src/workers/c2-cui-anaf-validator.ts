@@ -23,6 +23,7 @@ import { sanitizeCui } from "../lib/cui-validation.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import { createServiceLogger, enrichError } from "@cerniq/observability";
 
+/** I16 — Log serviciu pentru flux validare CUI + breaker local; nu duplică `anaf-api-client` (HTTP batch). */
 const svcLog = createServiceLogger("c2-cui-anaf-validator", { etapa: "e1" });
 
 export type CuiAnafJobData = {

@@ -25,6 +25,7 @@
  *   SECRETS_PATH                   — explicit secrets file path override
  */
 import { loadMigrationCredentials } from "./migrate-openbao.js";
+import { migrateCliLog } from "./migrate-cli-log.js";
 import { runAllMigrations, closeMigrationDb } from "./migrate.js";
 
 // ── Network error helpers ─────────────────────────────────────────────────────
@@ -63,27 +64,33 @@ function printConnectFailureHint(sys: ConnectErr, connUrl: string): void {
   const port = sys.port ?? 5432;
   const safeUrl = connUrl.replace(/\/\/[^@]+@/, "//***@");
   if (sys.code === "ECONNREFUSED") {
-    console.error(`
-[migrate] TCP connection refused at ${host}:${port}
-  This is not a SQL migration failure — PostgreSQL did not accept the connection.
-  Check: service running on that host, listen_addresses, firewall, VPN/network route.
-  URL in use (redacted): ${safeUrl}
-  Override for local/staging: export DATABASE_DIRECT_URL='postgresql://user:pass@reachable-host:5432/cerniq'
-`);
+    migrateCliLog({
+      level: "error",
+      event: "migrate_connect_refused",
+      host,
+      port,
+      safeUrl,
+      hint: "PostgreSQL did not accept the connection; check service, firewall, DATABASE_DIRECT_URL.",
+    });
     return;
   }
   if (sys.code === "ENOTFOUND") {
-    console.error(`
-[migrate] Host not found (DNS): ${host}
-  Verify DATABASE_DIRECT_URL / DATABASE_URL hostname. URL (redacted): ${safeUrl}
-`);
+    migrateCliLog({
+      level: "error",
+      event: "migrate_host_not_found",
+      host,
+      safeUrl,
+    });
     return;
   }
   if (sys.code === "ETIMEDOUT" || sys.code === "EHOSTUNREACH") {
-    console.error(`
-[migrate] Network unreachable or timed out (${sys.code}) toward ${host}:${port}
-  Check routing, security groups, and whether PostgreSQL listens on that interface.
-`);
+    migrateCliLog({
+      level: "error",
+      event: "migrate_network_unreachable",
+      code: sys.code,
+      host,
+      port,
+    });
   }
 }
 
@@ -97,9 +104,9 @@ async function main() {
   const dbSource = process.env.DATABASE_DIRECT_URL ? "DATABASE_DIRECT_URL" : "DATABASE_URL";
 
   if (source === "openbao") {
-    console.log(`[migrate] OpenBao secrets loaded from: ${filePath}`);
+    migrateCliLog({ level: "info", event: "openbao_secrets_loaded", filePath });
   }
-  console.log(`Using ${dbSource}: ${safeUrl}`);
+  migrateCliLog({ level: "info", event: "migrate_using_db_url", dbSource, safeUrl });
 
   const args = new Set(process.argv.slice(2));
   const dryRun = args.has("--dry-run") || process.env.MIGRATION_DRY_RUN === "true";
@@ -107,7 +114,7 @@ async function main() {
 
   try {
     await runAllMigrations({ dryRun, rollback });
-    console.log("Done.");
+    migrateCliLog({ level: "info", event: "migrate_done" });
   } finally {
     await closeMigrationDb();
   }
@@ -117,7 +124,11 @@ async function main() {
 try {
   await main();
 } catch (err) {
-  console.error(err);
+  migrateCliLog({
+    level: "error",
+    event: "migrate_cli_failed",
+    err: err instanceof Error ? err.message : String(err),
+  });
   const sys = findNodeConnectError(err);
   if (sys) {
     const connUrl = process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL ?? "";

@@ -315,7 +315,7 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
           bronzeContactId: job.data.bronzeContactId,
         });
         jobErrors.add(1, { worker: "b1-name-normalizer" });
-        classifyAndRethrow(error);
+        classifyAndRethrow(error, { workerName: "b1-name-normalizer" });
       } finally {
         jobsProcessed.add(1, { worker: "b1-name-normalizer" });
         jobDuration.record(Date.now() - startedAt, { worker: "b1-name-normalizer" });
