@@ -4,6 +4,7 @@
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { and, bronzeImportBatches, db, desc, eq, inArray, setSessionTenantId } from "@cerniq/db";
+import { deriveQueueSnapshotStatus } from "../lib/system-process-queue-status.js";
 import { monitoringInternalFetch } from "../lib/monitoring-internal-fetch.js";
 import { requireTenantId } from "./utils.js";
 
@@ -80,13 +81,6 @@ function categorizeQueue(name: string): SystemProcessCategory {
 
 function queueActivity(q: QueueSnapshot): number {
   return (q.waiting ?? 0) + (q.active ?? 0) + (q.delayed ?? 0) + (q.failed ?? 0);
-}
-
-function queueStatus(q: QueueSnapshot): SystemProcessRow["status"] {
-  if (q.paused) return "paused";
-  if ((q.failed ?? 0) > 0 && (q.active ?? 0) === 0 && (q.waiting ?? 0) === 0) return "failed";
-  if ((q.active ?? 0) > 0) return "running";
-  return "queued";
 }
 
 async function fetchMonitoringQueues(
@@ -170,7 +164,7 @@ export async function systemProcessesRoutes(app: FastifyInstance) {
         name,
         progressPercent: null,
         durationMs: null,
-        status: queueStatus(q),
+        status: deriveQueueSnapshotStatus(q),
         cancellable: false,
         startedAt: null,
         meta: {
