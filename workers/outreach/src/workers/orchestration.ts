@@ -184,13 +184,19 @@ async function fetchJourneyCurrentStateForPhoneAllocator(
   and: AndFn,
   journeyId: string,
   tenantId: string,
-): Promise<string> {
+): Promise<string | undefined> {
   const [journeyStateRow] = await db
     .select({ currentState: leadJourney.currentState })
     .from(leadJourney)
     .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
     .limit(1);
-  return journeyStateRow?.currentState ?? "COLD";
+  if (!journeyStateRow) {
+    console.warn(
+      `[outreach:phone-allocator] journey ${journeyId} not found for tenant ${tenantId} (no COLD fallback)`,
+    );
+    return undefined;
+  }
+  return journeyStateRow.currentState;
 }
 
 async function tryReuseStickyWaPhoneAssignment(params: {
@@ -287,7 +293,7 @@ async function allocateNewWaPhoneWithMinimumQuota(params: {
     eq,
   } = params;
 
-  const { sql } = await import("@cerniq/db");
+  const { sql, and } = await import("@cerniq/db");
   const today = new Date().toISOString().split("T")[0];
 
   const { selectedId, phoneNumber } = await db.transaction(async (tx) => {
@@ -305,7 +311,7 @@ async function allocateNewWaPhoneWithMinimumQuota(params: {
         assignedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(leadJourney.id, journeyId));
+      .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)));
 
     return { selectedId: row.id, phoneNumber: row.phoneNumber };
   });
@@ -365,6 +371,12 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
           journeyId,
           tenantId,
         );
+
+        if (journeyCurrentState === undefined) {
+          throw new Error(
+            `[outreach:phone-allocator] Lead journey not found: ${journeyId} (tenant ${tenantId})`,
+          );
+        }
 
         const sticky =
           forceReassign === true
@@ -442,11 +454,14 @@ export function createChannelSelectorWorker(): Worker {
             consentEmailMarketing: goldCompanies.consentEmailMarketing,
             emailOptedOut: leadJourney.emailOptedOut,
             whatsappOptedOut: leadJourney.whatsappOptedOut,
+            journeyCurrentState: leadJourney.currentState,
           })
           .from(leadJourney)
           .innerJoin(goldCompanies, eq(leadJourney.leadId, goldCompanies.id))
           .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
           .limit(1);
+
+        const routingState = dncFlags?.journeyCurrentState ?? currentState;
 
         const waBlocked =
           dncFlags?.doNotWhatsapp === true ||
@@ -492,7 +507,7 @@ export function createChannelSelectorWorker(): Worker {
           };
         }
 
-        if (EMAIL_WARM_STAGES.has(currentState) && !emailBlocked) {
+        if (EMAIL_WARM_STAGES.has(routingState) && !emailBlocked) {
           return {
             channel: "EMAIL_WARM",
             targetQueue: QUEUES.EMAIL_WARM,
@@ -500,7 +515,7 @@ export function createChannelSelectorWorker(): Worker {
           };
         }
 
-        if (EMAIL_COLD_STAGES.has(currentState) && !emailBlocked) {
+        if (EMAIL_COLD_STAGES.has(routingState) && !emailBlocked) {
           return {
             channel: "EMAIL_COLD",
             targetQueue: QUEUES.EMAIL_COLD,
@@ -509,7 +524,7 @@ export function createChannelSelectorWorker(): Worker {
         }
 
         // Fallback: WA was preferred but blocked → email cold if allowed by ADR-0059
-        if (!emailBlocked && EMAIL_COLD_STAGES.has(currentState)) {
+        if (!emailBlocked && EMAIL_COLD_STAGES.has(routingState)) {
           return {
             channel: "EMAIL_COLD",
             targetQueue: QUEUES.EMAIL_COLD,
@@ -518,7 +533,7 @@ export function createChannelSelectorWorker(): Worker {
         }
 
         throw new Error(
-          `No available channel for state=${currentState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
+          `No available channel for state=${routingState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
         );
       });
     },

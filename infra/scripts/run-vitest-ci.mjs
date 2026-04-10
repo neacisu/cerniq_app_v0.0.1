@@ -68,6 +68,7 @@ let failed = false;
       "vitest",
       "run",
       "tests/plans",
+      "tests/infra",
       "--reporter=json",
       `--outputFile=${outputFile}`,
     ],

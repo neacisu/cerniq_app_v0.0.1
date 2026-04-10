@@ -26,6 +26,8 @@ const PROVIDER_BREAKER_OPTIONS: Record<string, Partial<typeof DEFAULT_OPTIONS>> 
   resend: { timeout: 8000, errorThresholdPercentage: 50, resetTimeout: 30000 },
   /** Trebuie să acopere `AbortSignal.timeout(120_000)` din `infraq-structured-json`. */
   "infraq-reasoning": { timeout: 120000, errorThresholdPercentage: 20, resetTimeout: 120000 },
+  /** Apeluri HTTP de la API către monitoring-api (cozi, metrici). */
+  "monitoring-internal": { timeout: 15000, errorThresholdPercentage: 50, resetTimeout: 30000 },
   /** Apeluri embeddings batch — păstrăm latență mai mare decât xAI chat. */
   "infraq-embeddings": { timeout: 60000, errorThresholdPercentage: 20, resetTimeout: 120000 },
 };

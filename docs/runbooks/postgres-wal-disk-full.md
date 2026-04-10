@@ -6,6 +6,8 @@
 | Last Updated | 2026-03-25                         |
 | Host         | CT107 — 10.0.1.107:5432            |
 | PostgreSQL   | 18 (native, NOT Docker)            |
+
+**Nume / compose:** PostgreSQL pe CT107 nu este serviciul Docker `cerniq-postgres` din `infra/docker/docker-compose.yml` (acolo apar în schimb `cerniq-pgbouncer`, agenți OpenBao, etc.). Alertele Prometheus pot folosi label-uri de tip `host: ct107-postgres-main` — echivalent operațional cu host-ul 10.0.1.107, nu cu numele unui container de aplicație.
 | Backup tool  | pgbackrest stanza=main             |
 | Severity     | CRITICAL — causes full DB outage   |
 

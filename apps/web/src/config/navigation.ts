@@ -67,6 +67,7 @@ export const navigation: NavSection[] = [
   {
     title: "ETAPA 4 — POST-VÂNZARE",
     items: [
+      { label: "Dashboard Post-vânzare", path: "/postsale/dashboard", icon: "Activity" },
       { label: "Order Board (Kanban)", path: "/orders/board", icon: "LayoutDashboard" },
       { label: "Credit Profiles", path: "/credit/profile", icon: "BarChart3" },
       { label: "Contract Builder", path: "/contracts/builder", icon: "FileCheck" },

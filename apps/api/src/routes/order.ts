@@ -113,6 +113,10 @@ const tenantPaymentsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
+const paymentsSummaryQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(90).default(30),
+});
+
 // ─── Route Registration ───────────────────────────────────────────────────────
 
 export async function orderRoutes(app: FastifyInstance) {
@@ -240,6 +244,58 @@ export async function orderRoutes(app: FastifyInstance) {
       success: true,
       data: rows,
       meta: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
+    });
+  });
+
+  // ── GET /orders/payments/summary — agregări plăți (dashboard E4) ─────────────
+
+  app.get("/payments/summary", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const { days } = paymentsSummaryQuerySchema.parse(req.query);
+
+    const paymentTs = sql`COALESCE(${goldPayments.receivedAt}, ${goldPayments.createdAt})`;
+
+    const dailyVolume = await db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${paymentTs} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+        totalAmount: sql<string>`coalesce(sum(${goldPayments.amount}), 0)::text`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(goldPayments)
+      .where(
+        and(
+          eq(goldPayments.tenantId, tenantId),
+          sql`${paymentTs} >= date_trunc('day', now() AT TIME ZONE 'UTC') - ${days} * interval '1 day'`,
+        ),
+      )
+      .groupBy(sql`date_trunc('day', ${paymentTs} AT TIME ZONE 'UTC')`)
+      .orderBy(sql`date_trunc('day', ${paymentTs} AT TIME ZONE 'UTC')`);
+
+    const [todayRow] = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+        totalAmount: sql<string>`coalesce(sum(${goldPayments.amount}), 0)::text`,
+      })
+      .from(goldPayments)
+      .where(
+        and(
+          eq(goldPayments.tenantId, tenantId),
+          sql`date_trunc('day', ${paymentTs} AT TIME ZONE 'UTC') = date_trunc('day', now() AT TIME ZONE 'UTC')`,
+        ),
+      );
+
+    return reply.send({
+      success: true,
+      data: {
+        todayPaymentsCount: todayRow?.count ?? 0,
+        todayPaymentsTotal: todayRow?.totalAmount ?? "0",
+        dailyVolume: dailyVolume.map((r) => ({
+          day: r.day,
+          totalAmount: r.totalAmount,
+          count: r.count,
+        })),
+        meta: { days, source: "gold.payments" },
+      },
     });
   });
 

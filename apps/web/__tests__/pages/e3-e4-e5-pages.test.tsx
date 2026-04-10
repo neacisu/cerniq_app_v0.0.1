@@ -189,8 +189,8 @@ describe("ProductCatalog page", () => {
   it("allows typing in search box", async () => {
     const user = userEvent.setup();
     wrap(<ProductCatalog />);
-    const input = document.querySelector("input") as HTMLInputElement;
-    if (input) {
+    const input = document.querySelector("input");
+    if (input instanceof HTMLInputElement) {
       await user.type(input, "g");
       expect(input.value.length).toBeGreaterThan(0);
     } else {
@@ -203,8 +203,10 @@ describe("ProductCatalog page", () => {
     const user = userEvent.setup();
     wrap(<ProductCatalog />);
     const input = document.querySelector("input");
-    expect(input).toBeTruthy();
-    await user.type(input as HTMLInputElement, "gr");
+    if (!(input instanceof HTMLInputElement)) {
+      expect.fail("ProductCatalog: lipsește input de căutare pentru testul RRF");
+    }
+    await user.type(input, "gr");
     await user.click(screen.getByRole("button", { name: /Caută în listă/i }));
     expect(await screen.findByText(/afișate.*RRF\(60%v\+40%BM25\)/)).toBeTruthy();
   });
@@ -687,7 +689,10 @@ describe("App.tsx route registration for E3/E4/E5 pages", () => {
   let appSrc: string;
 
   beforeAll(() => {
-    appSrc = readFileSync(resolve(__dirname, "../../src/App.tsx"), "utf-8");
+    appSrc = readFileSync(
+      resolve(__dirname, "../../src/routing/protected-layout-routes.tsx"),
+      "utf-8",
+    );
   });
 
   it.each([

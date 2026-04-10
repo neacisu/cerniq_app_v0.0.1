@@ -21,6 +21,8 @@ export * from "./llm-cost-governance.js";
 export * from "./llm-cost-tracker.js";
 export * from "./consensus-voting.js";
 export * from "./llm-fallback.js";
+export * from "./llm-structured-output.js";
+export * from "./outreach-llm-routing.js";
 export * from "./llm-frontier-factory.js";
 export * from "./webhook-hmac.js";
 export * from "./notification-dispatcher.js";

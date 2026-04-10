@@ -47,6 +47,8 @@ export const outreachSchema = pgSchema("outreach");
 // ---------------------------------------------------------------------------
 // Lead Journey (state machine — one row per lead)
 // Source: etapa2-schema-outreach.md sec. 3
+// Nu confundați cu `gold.gold_lead_journey`: acolo este event log / audit în stratul analytics;
+// aici este starea curentă FSM + câmpuri operaționale outreach.
 // ---------------------------------------------------------------------------
 export const leadJourney = outreachSchema.table(
   "lead_journey",

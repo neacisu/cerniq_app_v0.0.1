@@ -12,6 +12,11 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appTsxPath = path.join(__dirname, "../../src/App.tsx");
+const protectedRoutesPath = path.join(__dirname, "../../src/routing/protected-layout-routes.tsx");
+
+function loadAppRoutingSource(): string {
+  return `${readFileSync(appTsxPath, "utf-8")}\n${readFileSync(protectedRoutesPath, "utf-8")}`;
+}
 
 function extractRoutePathsFromAppSource(src: string): string[] {
   const paths: string[] = [];
@@ -26,7 +31,7 @@ function extractRoutePathsFromAppSource(src: string): string[] {
 
 describe("navigation ↔ App.tsx parity", () => {
   it("fiecare rută protejată din App este în meniu sau în INTENTIONAL_MENU_ORPHAN_ROUTES", () => {
-    const src = readFileSync(appTsxPath, "utf-8");
+    const src = loadAppRoutingSource();
     const paths = extractRoutePathsFromAppSource(src);
     const skip = new Set(["/login", "/forgot-password", "*"]);
     const protectedPaths = paths.filter((p) => !skip.has(p));
@@ -44,7 +49,7 @@ describe("navigation ↔ App.tsx parity", () => {
   });
 
   it("fiecare path din navigation apare ca path= în App.tsx", () => {
-    const src = readFileSync(appTsxPath, "utf-8");
+    const src = loadAppRoutingSource();
     const nav = getNavigationPathSet();
     for (const p of nav) {
       expect(
@@ -55,7 +60,7 @@ describe("navigation ↔ App.tsx parity", () => {
   });
 
   it("alias E2: rutele scurte /leads … /review există lângă /outreach/*", () => {
-    const src = readFileSync(appTsxPath, "utf-8");
+    const src = loadAppRoutingSource();
     for (const shortPath of ["/leads", "/sequences", "/templates", "/phones", "/review"]) {
       expect(src).toContain(`path="${shortPath}"`);
     }
@@ -63,7 +68,7 @@ describe("navigation ↔ App.tsx parity", () => {
   });
 
   it("alias import: /import și /imports indică același ecran Import", () => {
-    const src = readFileSync(appTsxPath, "utf-8");
+    const src = loadAppRoutingSource();
     expect(src).toContain(`path="/import"`);
     expect(src).toContain(`path="/imports"`);
   });

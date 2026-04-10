@@ -9,14 +9,19 @@ import {
   fetchTenantPayments,
   fetchShipmentsList,
   fetchShipmentDetail,
+  fetchShipmentStats,
+  fetchPaymentsSummary,
   fetchCreditProfiles,
   fetchCreditStats,
+  fetchCreditHistory,
   fetchContractsList,
+  postContractSendDocusign,
 } from "@/lib/etapa4-api.js";
 
 describe("etapa4-api — căi /api/v1/orders|credit|contracts|shipments", () => {
   beforeEach(() => {
     vi.spyOn(api, "get").mockResolvedValue({ success: true, data: [] });
+    vi.spyOn(api, "post").mockResolvedValue({ success: true, data: {} });
   });
 
   afterEach(() => {
@@ -31,6 +36,19 @@ describe("etapa4-api — căi /api/v1/orders|credit|contracts|shipments", () => 
   it("fetchOrderStats", async () => {
     await fetchOrderStats();
     expect(api.get).toHaveBeenCalledWith("/api/v1/orders/stats");
+  });
+
+  it("fetchShipmentStats", async () => {
+    await fetchShipmentStats();
+    expect(api.get).toHaveBeenCalledWith("/api/v1/shipments/stats");
+  });
+
+  it("fetchPaymentsSummary", async () => {
+    await fetchPaymentsSummary(30);
+    expect(api.get).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/orders/payments/summary"),
+    );
+    expect(vi.mocked(api.get).mock.calls.at(-1)?.[0]).toContain("days=30");
   });
 
   it("fetchTenantPayments", async () => {
@@ -61,5 +79,18 @@ describe("etapa4-api — căi /api/v1/orders|credit|contracts|shipments", () => 
   it("fetchContractsList", async () => {
     await fetchContractsList({ page: 1, limit: 20 });
     expect(api.get).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/v1\/contracts\?/));
+  });
+
+  it("fetchCreditHistory", async () => {
+    await fetchCreditHistory("client-uuid", 15);
+    expect(api.get).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/api\/v1\/credit\/profiles\/client-uuid\/history\?/),
+    );
+    expect(vi.mocked(api.get).mock.calls.at(-1)?.[0]).toContain("limit=15");
+  });
+
+  it("postContractSendDocusign", async () => {
+    await postContractSendDocusign("c1");
+    expect(api.post).toHaveBeenCalledWith("/api/v1/contracts/c1/send-docusign");
   });
 });

@@ -214,7 +214,10 @@ describe("E5 hub pages (MSW)", () => {
 describe("App.tsx — înregistrare rute hub E3/E4/E5 (21 căi)", () => {
   let appSrc: string;
   beforeEach(() => {
-    appSrc = readFileSync(resolve(__dirname, "../../src/App.tsx"), "utf-8");
+    appSrc = readFileSync(
+      resolve(__dirname, "../../src/routing/protected-layout-routes.tsx"),
+      "utf-8",
+    );
   });
 
   it.each([

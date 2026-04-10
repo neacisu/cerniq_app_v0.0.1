@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api } from "@/lib/api.js";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { StatusDot } from "@/components/data/StatusDot.js";
@@ -9,6 +7,16 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/lib/utils.js";
 import { X, ShieldCheck, ShieldAlert, ShieldX, Info } from "lucide-react";
+import {
+  useAuditLog,
+  useGuardrailMetrics,
+  useGuardrailStatus,
+  type LlmAuditRow,
+} from "@/hooks/use-guardrails.js";
+import { GuardrailViolationsChart } from "@/components/etapa3/GuardrailViolationsChart.js";
+import { GuardrailLatencyMetrics } from "@/components/etapa3/GuardrailLatencyMetrics.js";
+import { RegenerationAttemptsPanel } from "@/components/etapa3/RegenerationAttemptsPanel.js";
+import { ModelRoutingTable } from "@/components/etapa3/ModelRoutingTable.js";
 
 type GuardStatus = "ok" | "warning" | "error";
 type AuditResult = "PASS" | "BLOCKED" | "WARN";
@@ -54,7 +62,7 @@ const GUARD_TYPES: GuardType[] = [
     code: "M73",
     name: "Discount Guard",
     description: "Discount >15% → HITL escalare SLA 4h. Discount >30% → blocare automată.",
-    status: "warning",
+    status: "ok",
     passCount: 0,
     blockedCount: 0,
   },
@@ -76,14 +84,6 @@ const GUARD_TYPES: GuardType[] = [
   },
 ];
 
-type ViolationApiRow = {
-  id?: string;
-  violationType?: string | null;
-  severity?: string | null;
-  details?: Record<string, unknown> | null;
-  createdAt?: string;
-};
-
 function violationTypeToCode(t: string | undefined | null): string {
   const x = (t ?? "").toLowerCase();
   if (x === "price") return "M71";
@@ -99,35 +99,58 @@ function codeToGuardName(code: string): string {
   return g?.name ?? code;
 }
 
-function mapViolationToAudit(row: ViolationApiRow): AuditEntry {
-  const code = violationTypeToCode(row.violationType);
-  const det = row.details;
-  let inputStr = "—";
-  let detailStr = "—";
-  if (det && typeof det === "object") {
-    if (typeof det.violation === "string") detailStr = det.violation;
-    else detailStr = JSON.stringify(det).slice(0, 500);
-    inputStr =
-      typeof det.response === "string"
-        ? det.response.slice(0, 200)
-        : JSON.stringify(det).slice(0, 200);
-  }
-  const sev = (row.severity ?? "").toUpperCase();
-  const result: AuditResult = sev === "LOW" || sev === "MEDIUM" ? "WARN" : "BLOCKED";
+function hasJsonViolations(row: LlmAuditRow): boolean {
+  return Array.isArray(row.guardrailViolations) && row.guardrailViolations.length > 0;
+}
+
+function resolveAuditResult(row: LlmAuditRow, hasViolations: boolean): AuditResult {
+  if (row.guardrailPassed && hasViolations === false) return "PASS";
+  if (row.guardrailPassed === false) return "BLOCKED";
+  return "WARN";
+}
+
+function resolveGuardCode(row: LlmAuditRow, hasViolations: boolean): string {
+  if (hasViolations === false) return "M73";
+  const arr = row.guardrailViolations;
+  if (arr === undefined || arr === null || arr.length === 0) return "M73";
+  const first = arr[0] as { violationType?: string };
+  return violationTypeToCode(first?.violationType ?? null);
+}
+
+function buildAuditDetailStr(row: LlmAuditRow, hasViolations: boolean): string {
+  const detailPayload = hasViolations
+    ? row.guardrailViolations
+    : (row.llmguardScores ?? row.allResponses);
+  if (detailPayload === null || detailPayload === undefined) return "—";
+  return JSON.stringify(detailPayload).slice(0, 600);
+}
+
+function resolveAuditAction(row: LlmAuditRow, result: AuditResult): string {
+  if (row.regenerationAttempt > 0) return `Regenerare ×${row.regenerationAttempt}`;
+  if (result === "PASS") return "OK";
+  if (result === "WARN") return "Atenție";
+  return "Blocat";
+}
+
+function mapLlmAuditToAuditEntry(row: LlmAuditRow): AuditEntry {
+  const hasViolations = hasJsonViolations(row);
+  const result = resolveAuditResult(row, hasViolations);
+  const guardCode = resolveGuardCode(row, hasViolations);
+  const detailStr = buildAuditDetailStr(row, hasViolations);
+  const action = resolveAuditAction(row, result);
+
   return {
     id: row.id,
-    time: row.createdAt
-      ? new Date(row.createdAt).toLocaleString("ro-RO", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })
-      : "—",
-    guardCode: code,
-    guard: codeToGuardName(code),
-    input: inputStr,
+    time: new Date(row.createdAt).toLocaleString("ro-RO", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
+    guardCode,
+    guard: codeToGuardName(guardCode),
+    input: row.promptHash.length > 28 ? `${row.promptHash.slice(0, 28)}…` : row.promptHash,
     result,
-    action: result === "WARN" ? "Atenție / HITL" : "Respins",
+    action,
     detail: detailStr,
   };
 }
@@ -216,7 +239,7 @@ function AuditDetailDrawer({
         })()}
 
         <div>
-          <div style={{ fontSize: 9, color: "var(--color-t4)", marginBottom: 4 }}>INPUT AGENT</div>
+          <div style={{ fontSize: 9, color: "var(--color-t4)", marginBottom: 4 }}>PROMPT HASH</div>
           <div
             style={{
               padding: "8px 10px",
@@ -236,7 +259,7 @@ function AuditDetailDrawer({
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
             <Info size={12} color="var(--color-b5)" />
             <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-t3)" }}>
-              DETALIU EVALUARE
+              DETALIU (violări / scoruri)
             </span>
           </div>
           <div style={{ fontSize: 12, color: "var(--color-t2)", lineHeight: 1.6 }}>
@@ -260,51 +283,68 @@ function AuditDetailDrawer({
   );
 }
 
+function countForViolationType(
+  rows: Array<{ violationType: string; count: number }>,
+  code: string,
+): number {
+  const want = {
+    M71: "price",
+    M72: "stock",
+    M73: "discount",
+    M74: "sku",
+    M75: "fiscal",
+  }[code];
+  if (!want) return 0;
+  const hit = rows.find((r) => (r.violationType ?? "").toLowerCase() === want);
+  return hit?.count ?? 0;
+}
+
 export function Guardrails() {
   const [selectedAudit, setSelectedAudit] = useState<AuditEntry | null>(null);
 
-  const violationsQuery = useQuery({
-    queryKey: ["negotiation", "guardrails", "tenant"],
-    queryFn: () =>
-      api.get<{ success?: boolean; data?: ViolationApiRow[] }>(
-        "/api/v1/negotiation/guardrails?limit=100",
-      ),
-  });
+  const statusQuery = useGuardrailStatus();
+  const metricsQuery = useGuardrailMetrics(30);
+  const auditQuery = useAuditLog({ limit: 50, type: "guardrail" });
 
   const auditRows = useMemo(() => {
-    const raw = violationsQuery.data?.data ?? [];
-    return raw.map(mapViolationToAudit);
-  }, [violationsQuery.data]);
+    const raw = auditQuery.data?.data ?? [];
+    return raw.map(mapLlmAuditToAuditEntry);
+  }, [auditQuery.data]);
 
   const guardCards = useMemo(() => {
-    const byCode: Record<string, { pass: number; blocked: number; status: GuardStatus }> = {};
-    for (const g of GUARD_TYPES) {
-      byCode[g.code] = { pass: 0, blocked: 0, status: "ok" };
-    }
-    for (const r of auditRows) {
-      const code = r.guardCode;
-      if (!byCode[code]) continue;
-      if (r.result === "PASS") byCode[code].pass += 1;
-      else {
-        byCode[code].blocked += 1;
-        if (r.result === "WARN") byCode[code].status = "warning";
-        else byCode[code].status = "error";
-      }
-    }
-    return GUARD_TYPES.map((g) => ({
-      ...g,
-      passCount: byCode[g.code]?.pass ?? 0,
-      blockedCount: byCode[g.code]?.blocked ?? 0,
-      status: (byCode[g.code]?.status ?? g.status) as GuardStatus,
-    }));
-  }, [auditRows]);
+    const byTypeRows = statusQuery.data?.data?.by_violation_type ?? [];
+    return GUARD_TYPES.map((g) => {
+      const blocked = countForViolationType(byTypeRows, g.code);
+      let status: GuardStatus = "ok";
+      if (blocked > 10) status = "error";
+      else if (blocked > 0) status = "warning";
+      return {
+        ...g,
+        passCount: 0,
+        blockedCount: blocked,
+        status,
+      };
+    });
+  }, [statusQuery.data]);
 
-  const totalPass = guardCards.reduce((s, g) => s + g.passCount, 0);
-  const totalBlocked = guardCards.reduce((s, g) => s + g.blockedCount, 0);
+  const llm7 = metricsQuery.data?.data?.llm_audit_7d;
+  const totalPass = llm7?.passed ?? 0;
+  const totalBlocked = llm7?.failed ?? 0;
   const blockRateDenom = totalPass + totalBlocked;
   const blockRate = blockRateDenom > 0 ? ((totalBlocked / blockRateDenom) * 100).toFixed(1) : "0.0";
 
-  const err = violationsQuery.error instanceof Error ? violationsQuery.error.message : null;
+  function firstErrorMessage(): string | null {
+    if (statusQuery.error instanceof Error) return statusQuery.error.message;
+    if (auditQuery.error instanceof Error) return auditQuery.error.message;
+    if (metricsQuery.error instanceof Error) return metricsQuery.error.message;
+    return null;
+  }
+  const err = firstErrorMessage();
+
+  const metrics = metricsQuery.data?.data;
+  const violationPoints = metrics?.violations_daily_last_7_days ?? [];
+  const latencyRows = metrics?.latency_ms_by_queue ?? [];
+  const modelRows = metrics?.model_routing ?? [];
 
   return (
     <PageWrapper title="Anti-Hallucination Guardrails" actions={<EtapaBadge label="Etapa 3" />}>
@@ -313,8 +353,8 @@ export function Guardrails() {
           {err}
         </p>
       ) : null}
-      {violationsQuery.isLoading ? (
-        <p className="text-sm text-t3 mb-4">Se încarcă violările din API…</p>
+      {(statusQuery.isLoading || metricsQuery.isLoading) && !statusQuery.data ? (
+        <p className="text-sm text-t3 mb-4">Se încarcă status guardrail din API…</p>
       ) : null}
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         <div
@@ -346,7 +386,7 @@ export function Guardrails() {
             M71-M75
           </div>
           <div style={{ fontSize: 10, color: "var(--color-t4)", marginTop: 2 }}>
-            5 reguli active
+            5 reguli + audit LLM (7z)
           </div>
         </div>
         <div
@@ -365,7 +405,7 @@ export function Guardrails() {
               marginBottom: 4,
             }}
           >
-            TOTAL PASS
+            TOTAL PASS (audit LLM 7z)
           </div>
           <div
             style={{
@@ -378,7 +418,7 @@ export function Guardrails() {
             {totalPass.toLocaleString()}
           </div>
           <div style={{ fontSize: 10, color: "var(--color-t4)", marginTop: 2 }}>
-            evaluări aprobate
+            apeluri trecute guard
           </div>
         </div>
         <div
@@ -397,7 +437,7 @@ export function Guardrails() {
               marginBottom: 4,
             }}
           >
-            TOTAL BLOCKED
+            TOTAL FAIL (audit LLM 7z)
           </div>
           <div
             style={{
@@ -410,7 +450,7 @@ export function Guardrails() {
             {totalBlocked}
           </div>
           <div style={{ fontSize: 10, color: "var(--color-t4)", marginTop: 2 }}>
-            hallucinations blocate
+            eșuat guardrailPassed
           </div>
         </div>
         <div
@@ -442,12 +482,39 @@ export function Guardrails() {
             {blockRate}%
           </div>
           <div style={{ fontSize: 10, color: "var(--color-t4)", marginTop: 2 }}>
-            din total evaluări
+            din apeluri audit 7z
           </div>
         </div>
       </div>
 
-      {/* Guard status cards */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+        <GuardrailViolationsChart points={violationPoints} isLoading={metricsQuery.isLoading} />
+        <div className="grid grid-cols-1 gap-4">
+          <RegenerationAttemptsPanel
+            totalAttempts={metrics?.regeneration.totalAttempts ?? "0"}
+            callsWithRegeneration={metrics?.regeneration.callsWithRegeneration ?? 0}
+            windowDays={metrics?.regeneration.windowDays ?? 30}
+          />
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <GuardrailLatencyMetrics
+          rows={latencyRows}
+          windowDays={metrics?.regeneration.windowDays ?? 30}
+          isLoading={metricsQuery.isLoading}
+        />
+      </div>
+
+      <div className="mb-6">
+        <ModelRoutingTable
+          rows={modelRows}
+          windowDays={metrics?.regeneration.windowDays ?? 30}
+          isLoading={metricsQuery.isLoading}
+        />
+      </div>
+
+      {/* Guard status cards — violări din gold.guardrail_violations (agregat) */}
       <div className="grid grid-cols-5 gap-3 mb-6 max-[900px]:grid-cols-3">
         {guardCards.map((g) => (
           <Card key={g.code} className="p-3">
@@ -475,35 +542,39 @@ export function Guardrails() {
               {g.description}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9 }}>
-              <span style={{ color: "var(--color-ok)" }}>✓ {g.passCount}</span>
-              <span style={{ color: "var(--color-er)" }}>✗ {g.blockedCount}</span>
+              <span style={{ color: "var(--color-t3)" }}>violări înregistrate</span>
+              <span style={{ color: "var(--color-er)" }}>{g.blockedCount}</span>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Audit Log */}
+      {/* Audit Log — GET /api/v1/ai/audit-log?type=guardrail */}
       <Card>
         <CardHeader>
-          <CardTitle>Audit Log — Evaluări Recent</CardTitle>
+          <CardTitle>Audit Log — Apeluri LLM (filtru guardrail)</CardTitle>
         </CardHeader>
         <CardBody className="p-0 overflow-x-auto">
+          {auditQuery.isLoading ? (
+            <p className="px-4 py-6 text-sm text-t3">Se încarcă audit LLM…</p>
+          ) : null}
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-s700">
                 <th className="px-4 py-3 text-left font-medium text-t3">Ora</th>
                 <th className="px-4 py-3 text-left font-medium text-t3">Cod</th>
                 <th className="px-4 py-3 text-left font-medium text-t3">Guard</th>
-                <th className="px-4 py-3 text-left font-medium text-t3">Input</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Hash prompt</th>
                 <th className="px-4 py-3 text-left font-medium text-t3">Rezultat</th>
                 <th className="px-4 py-3 text-left font-medium text-t3">Acțiune</th>
               </tr>
             </thead>
             <tbody>
-              {!violationsQuery.isLoading && auditRows.length === 0 ? (
+              {!auditQuery.isLoading && auditRows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-t3 text-sm">
-                    Nu există violări înregistrate în `guardrail_violations` pentru acest tenant.
+                    Nu există înregistrări în audit LLM pentru filtrul guardrail (trecut / violări
+                    JSON / regenerări) în această fereastră.
                   </td>
                 </tr>
               ) : null}
@@ -532,7 +603,9 @@ export function Guardrails() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-t2">{r.guard}</td>
-                    <td className="px-4 py-3 text-t1 max-w-40 truncate">{r.input}</td>
+                    <td className="px-4 py-3 text-t1 max-w-40 truncate font-mono text-xs">
+                      {r.input}
+                    </td>
                     <td className="py-3 px-4">
                       <span
                         style={{

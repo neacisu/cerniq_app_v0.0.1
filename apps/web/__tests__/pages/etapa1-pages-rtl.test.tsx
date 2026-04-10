@@ -400,7 +400,8 @@ describe("Etapa 1 pages (RTL + hook mock)", () => {
         <EnrichmentQueues />
       </MemoryRouter>,
     );
-    expect(await screen.findByText("silver-enrich")).toBeInTheDocument();
+    const silverEnrich = await screen.findAllByText("silver-enrich");
+    expect(silverEnrich.length).toBeGreaterThanOrEqual(1);
     await user.click(screen.getByRole("button", { name: /^Pause$/i }));
     expect(pauseAsync).toHaveBeenCalledWith("silver-enrich");
   });
@@ -607,5 +608,234 @@ describe("Etapa 1 pages (RTL + hook mock)", () => {
     render(<GoldSelectColumnHeader allPageSelected={false} onTogglePage={onTogglePage} />);
     await user.click(screen.getByRole("checkbox", { name: /Selectează toate pe pagină/i }));
     expect(onTogglePage).toHaveBeenCalled();
+  });
+
+  it("Approval review: spinner în încărcare", () => {
+    vi.mocked(useApprovalDetail).mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    wrap(
+      <MemoryRouter initialEntries={["/approvals/x1"]}>
+        <Routes>
+          <Route path="/approvals/:id" element={<ApprovalReview />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { name: /Approval Review/i })).toBeInTheDocument();
+    expect(document.querySelector(".animate-spin")).toBeTruthy();
+  });
+
+  it("Approval review: afișează eroare hook", () => {
+    vi.mocked(useApprovalDetail).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: true,
+      error: new Error("timeout"),
+      refetch: vi.fn(),
+    } as never);
+    wrap(
+      <MemoryRouter initialEntries={["/approvals/x1"]}>
+        <Routes>
+          <Route path="/approvals/:id" element={<ApprovalReview />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/timeout/)).toBeInTheDocument();
+  });
+
+  it("Approval review: tab Entity, SLA, merge/skip/escalare", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({});
+    const escAsync = vi.fn().mockResolvedValue({});
+    vi.mocked(useDecideApproval).mockReturnValue({ mutateAsync, isPending: false } as never);
+    vi.mocked(useEscalateApproval).mockReturnValue({
+      mutateAsync: escAsync,
+      isPending: false,
+    } as never);
+    vi.mocked(useApprovalDetail).mockReturnValue({
+      data: {
+        success: true,
+        data: {
+          id: "a2",
+          title: "Task titlu",
+          status: "pending",
+          approvalType: "dup",
+          priorityLevel: "P1",
+          dueAt: "2030-01-01T12:00:00.000Z",
+        },
+        entityData: { cui: "RO1" },
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    } as never);
+    const user = userEvent.setup();
+    wrap(
+      <MemoryRouter initialEntries={["/approvals/a2"]}>
+        <Routes>
+          <Route path="/approvals/:id" element={<ApprovalReview />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(await screen.findByRole("tab", { name: /Entity Context/i }));
+    expect(screen.getByText(/"cui"/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Merge$/i }));
+    await user.click(screen.getByRole("button", { name: /^Skip$/i }));
+    expect(mutateAsync).toHaveBeenCalledWith({ id: "a2", decision: "merge" });
+    expect(mutateAsync).toHaveBeenCalledWith({ id: "a2", decision: "skip" });
+    await user.click(screen.getByRole("button", { name: /Escaleaza/i }));
+    const ta = screen.getByPlaceholderText(/Descrie motivul escalarii/i);
+    await user.type(ta, "motiv lung");
+    await user.click(screen.getByRole("button", { name: /Confirma escalare/i }));
+    expect(escAsync).toHaveBeenCalledWith({ id: "a2", reason: "motiv lung" });
+  });
+
+  it("Bronze detail: stare eroare API", () => {
+    vi.mocked(useBronzeContactDetail).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: true,
+      error: new Error("offline"),
+      refetch: vi.fn(),
+    } as never);
+    wrap(
+      <MemoryRouter initialEntries={["/bronze/contacts/bx"]}>
+        <Routes>
+          <Route path="/bronze/contacts/:id" element={<BronzeDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/offline/)).toBeInTheDocument();
+  });
+
+  it("Bronze detail: contact negăsit (fără id în răspuns)", () => {
+    vi.mocked(useBronzeContactDetail).mockReturnValue({
+      data: { success: true, data: {} },
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    wrap(
+      <MemoryRouter initialEntries={["/bronze/contacts/b0"]}>
+        <Routes>
+          <Route path="/bronze/contacts/:id" element={<BronzeDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/Contact negasit/i)).toBeInTheDocument();
+  });
+
+  it("Bronze detail: tab Metadata/Raw + câmpuri complexe + reprocesare", async () => {
+    const mutate = vi.fn((_, { onError }: { onError?: () => void }) => {
+      onError?.();
+    });
+    vi.mocked(useReprocessBronze).mockReturnValue({
+      mutate,
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useBronzeContactDetail).mockReturnValue({
+      data: {
+        success: true,
+        data: {
+          id: "b99",
+          extractedName: "Complex",
+          processingStatus: 123,
+          validationErrors: [{ code: "e1" }, "x"],
+          createdAt: new Date("2020-01-01T00:00:00.000Z"),
+          rawRowIndex: 5,
+        },
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    const user = userEvent.setup();
+    wrap(
+      <MemoryRouter initialEntries={["/bronze/contacts/b99"]}>
+        <Routes>
+          <Route path="/bronze/contacts/:id" element={<BronzeDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(await screen.findByRole("tab", { name: /^Metadata$/i }));
+    expect(screen.getByText(/Erori validare/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /^Raw JSON$/i }));
+    await user.click(screen.getByRole("button", { name: /Reproceseaza/i }));
+    expect(mutate).toHaveBeenCalled();
+  });
+
+  it("Silver company detail: taburi + loguri enrichment + acțiuni", async () => {
+    const enrich = vi.fn().mockResolvedValue({});
+    const promote = vi.fn().mockResolvedValue({});
+    vi.mocked(useTriggerSilverEnrich).mockReturnValue({
+      mutateAsync: enrich,
+      isPending: false,
+    } as never);
+    vi.mocked(useTriggerSilverPromote).mockReturnValue({
+      mutateAsync: promote,
+      isPending: false,
+    } as never);
+    vi.mocked(useSilverCompanyDetail).mockReturnValue({
+      data: {
+        success: true,
+        data: {
+          id: "s9",
+          denumire: "Firma X",
+          cui: "RO9",
+          cifraAfaceri: 1234.56,
+          profitNet: "bad",
+          numarAngajati: 3,
+          email: "a@b.c",
+          telefon: "07",
+          website: "https://x.ro",
+          adresa: "Str 1",
+          enrichmentStatus: "complete",
+          promotionStatus: "ready",
+          totalQualityScore: 88,
+          metadata: { k: 1 },
+          enrichmentLogs: [
+            {
+              id: "l1",
+              source: "anaf",
+              operation: "pull",
+              createdAt: "2024-06-01T10:00:00.000Z",
+              fieldsUpdated: ["cui", "tel"],
+              durationMs: 42,
+            },
+          ],
+        },
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    } as never);
+    vi.mocked(useSilverEnrichmentLog).mockReturnValue(qList([]) as never);
+    const user = userEvent.setup();
+    wrap(
+      <MemoryRouter initialEntries={["/silver/companies/s9"]}>
+        <Routes>
+          <Route path="/silver/companies/:id" element={<SilverCompanyDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(await screen.findByRole("tab", { name: /^Financial$/i }));
+    expect(screen.getByText(/Cifra Afaceri/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /^Contact$/i }));
+    await user.click(screen.getByRole("tab", { name: /^Enrichment$/i }));
+    await user.click(screen.getByRole("tab", { name: /Enrichment Logs/i }));
+    expect(screen.getByText(/anaf/)).toBeInTheDocument();
+    expect(screen.getByText(/Durată: 42ms/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Re-Enrich/i }));
+    await user.click(screen.getByRole("button", { name: /Promote to Gold/i }));
+    expect(enrich).toHaveBeenCalledWith("s9");
+    expect(promote).toHaveBeenCalledWith("s9");
   });
 });

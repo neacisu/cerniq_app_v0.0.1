@@ -7,7 +7,6 @@ import {
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
 import { bronzeContacts, db, sql } from "@cerniq/db";
-import { jobsProcessed, jobDuration, jobErrors, jobsFailed } from "../lib/worker-metrics.js";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
 import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
 
@@ -279,7 +278,9 @@ export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
 
         await job.updateProgress(100);
 
-        jobsProcessed.add(1, { worker: "a4-api-poller" });
+        // Metrici job: createWorker din main.ts (observeDuration în `finally` al wrapper-ului) —
+        // cerniq_worker_jobs_processed_total, cerniq_worker_jobs_failed_total, job_duration_seconds.
+        // Nu duplicăm contoare OTel aici.
 
         return {
           ok: true,
@@ -291,16 +292,12 @@ export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
           deltaDetectionEnabled: job.data.enableDeltaDetection !== false,
         };
       } catch (error) {
-        jobErrors.add(1, { worker: "a4-api-poller" });
-        jobsFailed.add(1, { worker: "a4-api-poller" });
         log.error("fatal", `Eroare critică la polling API ${job.data.apiSource}`, {
           endpoint: job.data.endpoint,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         });
         throw error;
-      } finally {
-        jobDuration.record(Date.now() - startedAt, { worker: "a4-api-poller" });
       }
     },
     { tenantId: job.data.tenantId },

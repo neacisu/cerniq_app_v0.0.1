@@ -22,6 +22,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.d.ts",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
     "vite.manual-chunks.ts",
     "vite.config.ts",
     "e2e/**/*.ts",

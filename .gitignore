@@ -95,11 +95,13 @@ venv/
 dist/
 build/
 *.tsbuildinfo
+apps/web/storybook-static/
 
 # =============================================================================
 # Test outputs
 # =============================================================================
 coverage/
+coverage-app/
 .nyc_output/
 test-results/
 

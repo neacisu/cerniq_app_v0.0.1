@@ -250,3 +250,27 @@ export function postContractSendDocusign(
 ): Promise<ApiDataResponse<{ jobId: string }>> {
   return api.post(`${CONTRACTS}/${contractId}/send-docusign`);
 }
+
+// ─── Shipments stats (dashboard E4) ───────────────────────────────────────────
+
+export type ShipmentStatsPayload = {
+  byStatus: Array<{ status: string; count: number }>;
+  cod: { total: number; collected: number; codAmount: string };
+};
+
+export function fetchShipmentStats(): Promise<ApiDataResponse<ShipmentStatsPayload>> {
+  return api.get(`${SHIPMENTS}/stats`);
+}
+
+// ─── Payments aggregate (dashboard E4) ──────────────────────────────────────
+
+export type PaymentsSummaryPayload = {
+  todayPaymentsCount: number;
+  todayPaymentsTotal: string;
+  dailyVolume: Array<{ day: string; totalAmount: string; count: number }>;
+  meta?: { days: number; source: string };
+};
+
+export function fetchPaymentsSummary(days = 30): Promise<ApiDataResponse<PaymentsSummaryPayload>> {
+  return api.get(withQuery(`${ORDERS}/payments/summary`, { days }));
+}

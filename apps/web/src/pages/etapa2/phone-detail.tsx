@@ -2,7 +2,13 @@ import { Link, useParams } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody } from "@/components/ui/index.js";
 import { Skeleton } from "@/components/ui/skeleton.js";
-import { useOutreachLeads, useOutreachPhone, usePhoneHealthCheck } from "@/hooks/use-etapa2.js";
+import {
+  useOutreachLeads,
+  useOutreachPhone,
+  usePhoneAnalytics,
+  usePhoneHealthCheck,
+} from "@/hooks/use-etapa2.js";
+import { PhoneReputationDashboard } from "@/components/outreach/phones/PhoneReputationDashboard.js";
 import type { OutreachLead, PhoneStatus } from "@/lib/etapa2-api.js";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils.js";
@@ -81,6 +87,7 @@ function renderPhoneMessageHistory(messages: readonly PhoneRecentMessageRow[]) {
 export function PhoneDetail() {
   const { phoneId } = useParams<{ phoneId: string }>();
   const { data: phoneRes, isLoading: phoneLoading } = useOutreachPhone(phoneId);
+  const { data: analyticsRes } = usePhoneAnalytics({ period: "30d", phoneId });
   const { data: leadsRes, isLoading: leadsLoading } = useOutreachLeads({
     assignedPhone: phoneId,
     limit: 50,
@@ -154,24 +161,20 @@ export function PhoneDetail() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <PhoneReputationDashboard phone={phone} phoneAnalytics={analyticsRes?.data ?? null} />
+
+      <div className="grid gap-6 lg:grid-cols-2 mt-6">
         <Card>
           <CardBody className="p-5 space-y-4">
-            <h2 className="text-lg font-semibold text-t1">Cotă & reputație</h2>
+            <h2 className="text-lg font-semibold text-t1">Operațional</h2>
+            <p className="text-xs text-t3 mb-2">
+              Reputație și utilizare cotă: vezi panoul de mai sus. Aici: prioritate, ultim health
+              check, bară cotă.
+            </p>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-t3">Prioritate</span>
                 <p className="font-mono text-t1">{phone.priority}</p>
-              </div>
-              <div>
-                <span className="text-t3">Reputație</span>
-                <p className="font-mono text-t1">{phone.reputationScore}</p>
-              </div>
-              <div>
-                <span className="text-t3">Utilizare azi</span>
-                <p className="font-mono text-t1">
-                  {phone.currentUsage ?? 0} / {phone.dailyQuotaLimit}
-                </p>
               </div>
               <div>
                 <span className="text-t3">Ultim health check</span>

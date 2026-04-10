@@ -12,7 +12,7 @@
 import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import type { Redis } from "ioredis";
-import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 
 // =============================================================================
 // Constants
@@ -374,14 +374,8 @@ export async function executeHealthCheckAggregatorJob(
   const phonesActive = p?.active ?? 0;
 
   if (phonesActive < LOW_PHONE_ALERT_THRESHOLD) {
-    const alertQueue = createQueue(QUEUES.ALERT_PHONE_OFFLINE);
-    await alertQueue.add(
-      "low-phones",
-      {
-        alertType: "PIPELINE_DEGRADED",
-        payload: { phonesActive, threshold: LOW_PHONE_ALERT_THRESHOLD },
-      },
-      { priority: 1, removeOnComplete: 100 },
+    console.warn(
+      `[health-aggregator] pipeline degraded: active phones ${phonesActive} < threshold ${LOW_PHONE_ALERT_THRESHOLD} (not enqueued — ALERT_PHONE_OFFLINE requires tenant-scoped phone payload)`,
     );
   }
 

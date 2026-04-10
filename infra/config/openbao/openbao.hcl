@@ -131,3 +131,15 @@ max_lease_ttl     = "24h"
 # Audit logging will be enabled via:
 #   bao audit enable file file_path=/openbao/data/audit.log
 # =============================================================================
+#
+# --- Secrete așteptate în fișiere render-uite de Agent (referință operațională) ---
+# Policy/mount-uri se definesc în cluster (CLI/Terraform), nu în acest HCL server-only.
+#
+# `/secrets/workers.env` (vezi workers/shared/src/secrets.ts — SENSITIVE_KEYS):
+#   DATABASE_URL, DATABASE_DIRECT_URL, POSTGRES_*, REDIS_*, BULLMQ_PREFIX,
+#   JWT_SECRET, JWT_REFRESH_SECRET, INFRAQ_GUARD_TOKEN,
+#   XAI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, GOOGLE_AI_API_KEY, DEEPSEEK_API_KEY,
+#   TIMELINESAI_API_KEY, INSTANTLY_API_KEY, RESEND_API_KEY
+#
+# `/secrets/api.env` (apps/api): acoperă în principal DB/Redis/JWT; aliniază cu EnvSchema din apps/api/src/config.ts
+#

@@ -1,10 +1,10 @@
 /**
  * GET /api/v1/system/processes — agregare cozi (Monitoring API) + importuri active (tenant).
- * Autentificare JWT standard; date cozi prin fetch intern (ADMIN_KEY).
+ * Autentificare JWT standard; cozi prin `monitoringInternalFetch` (circuit breaker + ADMIN_KEY).
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { and, bronzeImportBatches, db, desc, eq, inArray, setSessionTenantId } from "@cerniq/db";
-import { envConfig } from "../config.js";
+import { monitoringInternalFetch } from "../lib/monitoring-internal-fetch.js";
 import { requireTenantId } from "./utils.js";
 
 const ROLE_RANK: Record<string, number> = {
@@ -90,11 +90,8 @@ function queueStatus(q: QueueSnapshot): SystemProcessRow["status"] {
 }
 
 async function fetchMonitoringQueues(): Promise<{ queues: QueueSnapshot[]; ok: boolean }> {
-  const base = envConfig.MONITORING_API_INTERNAL_URL.replace(/\/$/, "");
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (envConfig.ADMIN_KEY) headers["x-admin-key"] = envConfig.ADMIN_KEY;
   try {
-    const res = await fetch(`${base}/api/queues`, { headers });
+    const res = await monitoringInternalFetch("/api/queues");
     if (!res.ok) return { queues: [], ok: false };
     const body = (await res.json()) as { data?: QueueSnapshot[] };
     return { queues: Array.isArray(body.data) ? body.data : [], ok: true };

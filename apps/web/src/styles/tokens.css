@@ -1,3 +1,5 @@
+/* Tailwind CSS v4: `@theme` este at-rule validă. Dacă editorul marchează „unknown @rule”, setați
+   `css.lint.unknownAtRules: "ignore"` în setările workspace (vezi și `.vscode/settings.json` local). */
 @theme {
   /* Brand — Amber / Gold */
   --color-b3: oklch(0.83 0.13 76);
@@ -131,6 +133,24 @@
   --shadow-md: 0 4px 12px oklch(0 0 0 / 0.25);
   --shadow-lg: 0 8px 24px oklch(0 0 0 / 0.35);
   --shadow-glow: 0 0 20px oklch(0.7 0.18 72 / 0.3);
+
+  /* Semantic aliases — P3 gamut (Dark Terroir; alias-uri pentru UI + charts) */
+  --color-primary: var(--color-b5);
+  --color-primary-hover: var(--color-b4);
+  --color-surface-base: var(--color-s950);
+  --color-surface-raised: var(--color-s900);
+  --color-surface-overlay: var(--color-s800);
+  --color-border-subtle: oklch(0.2 0.01 255);
+  --color-border-default: oklch(0.28 0.015 255);
+  --color-focus-ring: oklch(0.7 0.18 72 / 0.5);
+  --color-chart-1: oklch(0.65 0.2 145);
+  --color-chart-2: oklch(0.6 0.22 25);
+  --color-chart-3: oklch(0.55 0.18 280);
+  --color-chart-4: oklch(0.7 0.17 72);
+  --color-chart-5: oklch(0.6 0.15 190);
+  --color-chart-6: oklch(0.65 0.12 55);
+  --color-chart-7: oklch(0.58 0.2 310);
+  --color-chart-8: oklch(0.72 0.14 110);
 
   /* Z-index */
   --z-dropdown: 100;

@@ -217,7 +217,10 @@ export function createTimelinesAIEventProcessorWorker(): Worker {
         .limit(1);
 
       if (logs.length === 0) {
-        return; // Cannot identify lead — ignore
+        console.warn(
+          `[webhook:timelinesai] no communication_log row for thread_id=${rawEvent.chat_id} tenantId=${tenantId} — inbound WA message skipped`,
+        );
+        return;
       }
 
       const journeyId = logs[0].leadJourneyId;
@@ -327,6 +330,15 @@ export function createInstantlyEventProcessorWorker(): Worker {
         }
       } else {
         console.warn("[webhook:instantly] lead_email missing, cannot resolve lead");
+      }
+
+      const needsJourney =
+        rawEvent.event_type === "reply_received" || rawEvent.event_type === "lead_unsubscribed";
+      if (needsJourney && (journeyId === undefined || journeyId === "")) {
+        console.warn(
+          `[webhook:instantly] skip tracking queue: event=${rawEvent.event_type} requires journey but none resolved (email=${emailRaw || "—"})`,
+        );
+        return;
       }
 
       // Route to email cold tracking worker

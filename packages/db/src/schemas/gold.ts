@@ -224,6 +224,8 @@ export const goldCompanies = goldSchema.table(
     calls30Zile: integer("calls_30_zile").notNull().default(0),
 
     // --- SECȚIUNEA 7: RELAȚII ȘI ASOCIERI ---
+    // UUID-uri OUAI / cooperative / grup: referințe soft (fără FK) către entități externe sau catalog viitor;
+    // nu există încă `gold_organizations` — inserțiile rămân consistente prin pipeline-ul de îmbogățire.
     actionari: jsonb("actionari").notNull().default([]),
     administratori: jsonb("administratori").notNull().default([]),
     membruOuai: boolean("membru_ouai").notNull().default(false),
@@ -348,6 +350,10 @@ export const goldContacts = goldSchema.table(
   ],
 );
 
+/**
+ * Jurnal de evenimente (append-only) pentru istoricul lead-ului în stratul gold.
+ * Starea curentă FSM pentru outreach este în `outreach.lead_journey` — nu în acest tabel.
+ */
 export const goldLeadJourney = goldSchema.table(
   "gold_lead_journey",
   {

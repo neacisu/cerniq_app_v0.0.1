@@ -1,8 +1,12 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
   "sonarlint.connectedMode.project": {
     "connectionId": "neacisu",
     "projectKey": "neacisu_cerniq_app_v0.0.1"
+  },
+  "sonarlint.rules": {
+    "typescript:S6747": { "level": "off" },
+    "typescript:S6766": { "level": "off" }
   }
 }

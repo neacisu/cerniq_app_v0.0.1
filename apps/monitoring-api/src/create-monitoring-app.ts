@@ -7,6 +7,11 @@ import Fastify, {
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import type { QueueControlAction, QueueSnapshot } from "./queue-monitor.js";
+import {
+  monitoringPathRequiresAdmin,
+  verifyMonitoringAccess,
+  verifyMonitoringTokenString,
+} from "./monitoring-auth.js";
 
 export type MonitoringMonitor = {
   getAllQueues: () => Promise<QueueSnapshot[]>;
@@ -49,6 +54,27 @@ export async function buildMonitoringApp(
   await app.register(cors, { origin: true });
   await app.register(websocket);
 
+  app.addHook("onRequest", async (request, reply) => {
+    const pathOnly = request.url.split("?")[0] ?? "";
+    if (pathOnly === "/health" || pathOnly === "/health/live") {
+      return;
+    }
+    if (pathOnly === "/ws/live") {
+      const token = (request.query as { token?: string }).token;
+      if (verifyMonitoringAccess(request, "viewer")) {
+        return;
+      }
+      if (typeof token === "string" && token && verifyMonitoringTokenString(token, "viewer")) {
+        return;
+      }
+      return reply.status(401).send({ success: false, error: "Unauthorized" });
+    }
+    const minRole = monitoringPathRequiresAdmin(pathOnly) ? "admin" : "viewer";
+    if (!verifyMonitoringAccess(request, minRole)) {
+      return reply.status(401).send({ success: false, error: "Unauthorized" });
+    }
+  });
+
   app.get("/api/queues", async () => ({
     success: true,
     data: await monitorRef.current.getAllQueues(),
@@ -89,10 +115,7 @@ export async function buildMonitoringApp(
     reply: FastifyReply,
     action: QueueControlAction,
   ) {
-    const adminKey = request.headers["x-admin-key"];
-    if (adminKey !== process.env.ADMIN_KEY) {
-      return reply.status(403).send({ success: false, error: "Forbidden" });
-    }
+    // Autentificare: hook global (`verifyMonitoringAccess` admin sau x-admin-key).
     try {
       const snapshot = await monitorRef.current.controlQueue(request.params.name, action);
       return { success: true, data: snapshot };

@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js"
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/lib/utils.js";
 import { X, MapPin, Users, TrendingUp, Package, PhoneCall } from "lucide-react";
+import { ClusterMapChart } from "@/components/etapa5/ClusterMapChart.js";
 import { fetchGraphGeoSummary, type GeoSummaryRow } from "@/lib/etapa5-api.js";
 
 interface RegionData {
@@ -228,6 +229,27 @@ export function GeoMap() {
   const totalRevenueNum = regions.reduce((s, r) => s + r.revenueNum, 0);
   const totalRevenue = `RON ${Math.round(totalRevenueNum).toLocaleString("ro-RO")}`;
 
+  const openRegionFromGeoRow = (row: GeoSummaryRow) => {
+    const match = regions.find((r) => r.id === row.regionLabel);
+    if (match) {
+      setSelectedRegion(match);
+      return;
+    }
+    const rev = Number(row.revenueSum) || 0;
+    setSelectedRegion({
+      id: row.regionLabel,
+      label: row.regionLabel,
+      county: row.regionLabel,
+      value: row.companyCount,
+      revenue: `RON ${Math.round(rev).toLocaleString("ro-RO")}`,
+      revenueNum: rev,
+      density: 3,
+      x: 50,
+      y: 50,
+      r: 20,
+    });
+  };
+
   return (
     <PageWrapper title="Geographic Map — agregare Gold" actions={<EtapaBadge label="Etapa 5" />}>
       <EtapaBanner
@@ -242,6 +264,19 @@ export function GeoMap() {
           Eroare la încărcarea agregării geografice.
         </div>
       )}
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Hartă Leaflet — densitate (coord. medii regiune)</CardTitle>
+        </CardHeader>
+        <CardBody className="pt-0">
+          <ClusterMapChart
+            rows={geoQuery.data?.data ?? []}
+            height={400}
+            onSelectRegion={openRegionFromGeoRow}
+          />
+        </CardBody>
+      </Card>
 
       <div
         style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}

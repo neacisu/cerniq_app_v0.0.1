@@ -224,6 +224,13 @@ export function createEmailColdTrackingWorker(): Worker {
       const { tenantId, leadId, journeyId, eventType, campaignId, timestamp, replyContent } =
         job.data;
 
+      if (journeyId === undefined || journeyId === null || journeyId === "") {
+        console.warn(
+          `[email:cold:lead:status] skip: missing journeyId for eventType=${String(eventType)} tenantId=${tenantId}`,
+        );
+        return;
+      }
+
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");

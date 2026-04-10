@@ -2,7 +2,7 @@ import { readdir, stat, unlink } from "node:fs/promises";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { join } from "node:path";
 import type { Processor } from "bullmq";
-import { bronzeImportBatches, db, eq, sql } from "@cerniq/db";
+import { bronzeImportBatches, db, eq, sql, asc } from "@cerniq/db";
 
 export type ImportFileCleanupJobData = {
   tenantId?: string;
@@ -12,6 +12,11 @@ export type ImportFileCleanupJobData = {
 
 const DEFAULT_RETENTION_DAYS = Number(process.env.IMPORT_FILE_RETENTION_DAYS ?? "90");
 const IMPORT_DIR = process.env.IMPORT_UPLOAD_DIR || "/app/data/imports";
+
+/** Path-uri absolute non-goale — evită `unlink("")` și căi relative periculoase. */
+export function isSafeImportStoredPath(p: unknown): p is string {
+  return typeof p === "string" && p.length > 0 && p.startsWith("/");
+}
 
 async function cleanupTrackedFiles(tenantId: string | undefined, cutoff: Date) {
   const tenantFilter = tenantId ? sql`AND ${bronzeImportBatches.tenantId} = ${tenantId}` : sql``;
@@ -30,6 +35,7 @@ async function cleanupTrackedFiles(tenantId: string | undefined, cutoff: Date) {
           AND COALESCE((${bronzeImportBatches.metadata}->>'fileDeleted')::boolean, false) = false
           ${tenantFilter}`,
     )
+    .orderBy(asc(bronzeImportBatches.createdAt))
     .limit(500);
 
   let deleted = 0;
@@ -39,8 +45,9 @@ async function cleanupTrackedFiles(tenantId: string | undefined, cutoff: Date) {
 
   for (const batch of eligibleBatches) {
     const meta = (batch.metadata as Record<string, unknown> | null) ?? {};
-    const storedPath = typeof meta.storedPath === "string" ? meta.storedPath : null;
-    if (!storedPath) continue;
+    const rawPath = meta.storedPath;
+    if (!isSafeImportStoredPath(rawPath)) continue;
+    const storedPath = rawPath;
 
     const deletedPatch = JSON.stringify({ fileDeleted: true, fileDeletedAt: deletedAt });
     const missingPatch = JSON.stringify({

@@ -116,6 +116,7 @@ export const cognitiveNodeConfigs = bronzeSchema.table(
     rateLimitMax: integer("rate_limit_max"),
     rateLimitDuration: integer("rate_limit_duration"),
     paused: boolean("paused").notNull().default(false),
+    /** Override-uri JSON: rate limits, `batchOverrides`, `preferredModel` (`VLLM_FAST` | `VLLM_REASONING` | `ANTHROPIC`) pentru workerii E2 outreach, etc. */
     configOverrides: jsonb("config_overrides").notNull().default({}),
     // Coloane adăugate în 0036_cognitive_brain_v2 (config lifecycle)
     applyStatus: cognitiveApplyStatusEnum("apply_status").notNull().default("immediate"),

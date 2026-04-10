@@ -26,6 +26,7 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
       },
     };
     vi.stubEnv("ADMIN_KEY", "test-admin-key");
+    vi.stubEnv("JWT_SECRET", "a".repeat(32));
   });
 
   afterEach(() => {
@@ -51,7 +52,7 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
     await app.close();
   });
 
-  it("GET /api/queues — envelope { success, data }", async () => {
+  it("GET /api/queues — 401 fără auth", async () => {
     const app = await buildMonitoringApp({
       monitorRef,
       metrics: { collect: () => ({}) },
@@ -60,6 +61,24 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
     await app.ready();
 
     const res = await app.inject({ method: "GET", url: "/api/queues" });
+    expect(res.statusCode).toBe(401);
+
+    await app.close();
+  });
+
+  it("GET /api/queues — envelope { success, data }", async () => {
+    const app = await buildMonitoringApp({
+      monitorRef,
+      metrics: { collect: () => ({}) },
+      logger: false,
+    });
+    await app.ready();
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/queues",
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.payload) as { success: boolean; data: QueueSnapshot[] };
     expect(body.success).toBe(true);
@@ -77,7 +96,11 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
     });
     await app.ready();
 
-    const res = await app.inject({ method: "GET", url: "/api/queues/ingest%3Acsv" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/queues/ingest%3Acsv",
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     expect(res.statusCode).toBe(200);
     expect(monitorRef.current.getQueue).toHaveBeenCalledWith("ingest:csv");
 
@@ -92,7 +115,11 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
     });
     await app.ready();
 
-    const res = await app.inject({ method: "GET", url: "/api/system/metrics" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/system/metrics",
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     const body = JSON.parse(res.payload) as { success: boolean; data: { hostname: string } };
     expect(body.success).toBe(true);
     expect(body.data.hostname).toBe("x");
@@ -108,21 +135,33 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
     });
     await app.ready();
 
-    const a = await app.inject({ method: "GET", url: "/api/logs" });
+    const a = await app.inject({
+      method: "GET",
+      url: "/api/logs",
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     const bodyA = JSON.parse(a.payload) as { data: unknown[]; meta: { limit: number } };
     expect(bodyA.data).toEqual([]);
     expect(bodyA.meta.limit).toBe(100);
 
-    const b = await app.inject({ method: "GET", url: "/api/logs?limit=9999" });
+    const b = await app.inject({
+      method: "GET",
+      url: "/api/logs?limit=9999",
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     expect((JSON.parse(b.payload) as { meta: { limit: number } }).meta.limit).toBe(500);
 
-    const c = await app.inject({ method: "GET", url: "/api/logs?limit=0" });
+    const c = await app.inject({
+      method: "GET",
+      url: "/api/logs?limit=0",
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     expect((JSON.parse(c.payload) as { meta: { limit: number } }).meta.limit).toBe(1);
 
     await app.close();
   });
 
-  it("POST control queue — 403 fără x-admin-key; 200 cu cheie corectă", async () => {
+  it("POST control queue — 401 fără auth; 200 cu x-admin-key", async () => {
     const app = await buildMonitoringApp({
       monitorRef,
       metrics: { collect: () => ({}) },
@@ -134,7 +173,7 @@ describe("buildMonitoringApp — contract HTTP aliniat la proxy `/api/admin/*`",
       method: "POST",
       url: "/api/queues/ingest:csv/pause",
     });
-    expect(forbidden.statusCode).toBe(403);
+    expect(forbidden.statusCode).toBe(401);
 
     const ok = await app.inject({
       method: "POST",

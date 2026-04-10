@@ -78,7 +78,7 @@ export function createStateTransitionWorker(): Worker {
 
         const { db, setSessionTenantId } = await import("@cerniq/db");
         await setSessionTenantId(tenantId);
-        const { leadJourney } = await import("@cerniq/db");
+        const { leadJourney, goldLeadJourney } = await import("@cerniq/db");
         const { eq, and } = await import("@cerniq/db");
 
         // Fetch current state
@@ -95,11 +95,26 @@ export function createStateTransitionWorker(): Worker {
         const journey = journeys[0];
         const currentState = journey.currentState;
 
-        // Validate transition
+        // Validate transition — invalid: log + metric, return (no throw) to avoid BullMQ retries
         if (!validateTransition(currentState, newState)) {
-          throw new Error(
-            `FSM invalid transition from ${currentState} to ${newState} for lead ${leadId}`,
+          console.warn(
+            JSON.stringify({
+              event: "fsm_invalid_transition",
+              tenantId,
+              leadId,
+              journeyId,
+              fromState: currentState,
+              toState: newState,
+            }),
           );
+          fsmTransitions.inc({ from: currentState, to: "INVALID" });
+          return {
+            success: false,
+            previousState: currentState,
+            newState,
+            sideEffects: [],
+            error: `FSM invalid transition from ${currentState} to ${newState} for lead ${leadId}`,
+          };
         }
         if (!isLeadJourneyFsmStateValue(currentState) || !isLeadJourneyFsmStateValue(newState)) {
           throw new Error(
@@ -119,6 +134,22 @@ export function createStateTransitionWorker(): Worker {
             ...(newState === "CONVERTED" ? { convertedAt: new Date() } : {}),
           })
           .where(eq(leadJourney.id, journeyId));
+
+        await db.insert(goldLeadJourney).values({
+          tenantId,
+          companyId: journey.leadId,
+          eventType: "FSM_STATE_TRANSITION",
+          fromState: currentState,
+          toState: newState,
+          metadata: {
+            trigger,
+            journeyId,
+            reason: reason ?? null,
+            leadId,
+            source: "outreach.lead_fsm",
+          },
+          correlationId: job.data.traceId ?? undefined,
+        });
 
         fsmTransitions.inc({ from: currentState, to: newState });
 

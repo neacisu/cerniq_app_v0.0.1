@@ -47,17 +47,19 @@ export function buildKolFlowGraph(
     const x = 220 + 200 * Math.cos(angle);
     const y = 220 + 200 * Math.sin(angle);
     const topMember = maxMembers > 0 && p.memberCount === maxMembers;
+    const influenceW = maxMembers > 0 ? 118 + Math.round((p.memberCount / maxMembers) * 52) : 140;
     const labelParts: string[] = [p.companyName?.trim() || "KOL"];
     const cn = p.clusterName;
     if (cn !== null && cn !== undefined && cn.length > 0) {
       labelParts.push(`Cluster: ${cn}`);
     }
     labelParts.push(`${p.memberCount} membri · modularity ${Number(p.modularityScore).toFixed(3)}`);
+    const base = nodeStyle(topMember);
     return {
       id: p.clusterId,
       position: { x, y },
       data: { label: labelParts.join("\n") },
-      style: nodeStyle(topMember),
+      style: { ...base, width: influenceW, minWidth: influenceW },
     };
   });
 

@@ -52,6 +52,36 @@ if (!("ResizeObserver" in globalThis)) {
   });
 }
 
+/** jsdom: `<dialog>` fără `showModal`/`close` — folosit de CookieConsentBanner și alte dialoguri. */
+if (typeof HTMLDialogElement !== "undefined") {
+  if (!HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    };
+  }
+  if (!HTMLDialogElement.prototype.close) {
+    HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    };
+  }
+}
+
+/** Radix Select/Menu: Pointer Capture API lipsește din unele medii jsdom. */
+if (typeof Element !== "undefined") {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => undefined;
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => undefined;
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => undefined;
+  }
+}
+
 const localStorageMock = (() => {
   let store = new Map<string, string>();
   return {

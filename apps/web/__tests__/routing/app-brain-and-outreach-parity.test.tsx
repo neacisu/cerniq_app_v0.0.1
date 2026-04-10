@@ -11,7 +11,7 @@ import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { BrainBatchRedirect } from "@/App.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const appTsxPath = path.join(__dirname, "../../src/App.tsx");
+const protectedRoutesPath = path.join(__dirname, "../../src/routing/protected-layout-routes.tsx");
 
 function LocationProbe() {
   const loc = useLocation();
@@ -25,7 +25,7 @@ function LocationProbe() {
 
 describe("App.tsx — outreach parity + brain redirect", () => {
   it("rutele scurte și /outreach/* folosesc aceleași componente de pagină", () => {
-    const src = readFileSync(appTsxPath, "utf8");
+    const src = readFileSync(protectedRoutesPath, "utf8");
     const pairs: [string, string, string][] = [
       ["Leads", "/outreach/leads", "/leads"],
       ["Sequences", "/outreach/sequences", "/sequences"],
@@ -40,7 +40,7 @@ describe("App.tsx — outreach parity + brain redirect", () => {
   });
 
   it("/brain folosește Suspense și CognitiveBrainPage lazy", () => {
-    const src = readFileSync(appTsxPath, "utf8");
+    const src = readFileSync(protectedRoutesPath, "utf8");
     expect(src).toContain('path="/brain"');
     expect(src).toContain("Suspense");
     expect(src).toContain("CognitiveBrainPage");

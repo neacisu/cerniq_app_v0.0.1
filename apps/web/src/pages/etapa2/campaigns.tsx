@@ -4,6 +4,7 @@ import { Card, CardBody } from "@/components/ui/index.js";
 import { Skeleton } from "@/components/ui/skeleton.js";
 import { useOutreachCampaigns } from "@/hooks/use-etapa2.js";
 import type { OutreachCampaign } from "@/lib/etapa2-api.js";
+import { CampaignAnalytics } from "@/components/outreach/analytics/CampaignAnalytics.js";
 import { cn } from "@/lib/utils.js";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -74,6 +75,10 @@ export function Campaigns() {
                     </div>
                   ))}
                 </div>
+                <CampaignAnalytics
+                  campaign={c}
+                  className="mt-4 border border-[var(--color-s700)]"
+                />
               </CardBody>
             </Card>
           );

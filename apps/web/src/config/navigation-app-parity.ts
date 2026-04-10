@@ -43,6 +43,8 @@ export const INTENTIONAL_MENU_ORPHAN_ROUTES: readonly string[] = [
   "/phones",
   "/review",
   "/brain/:batchId",
+  /** Doar în DEV; fără intrare în meniul lateral. */
+  "/settings/design-system",
 ];
 
 export function getIntentionalOrphanPathSet(): ReadonlySet<string> {

@@ -22,6 +22,7 @@ function createRedisMock(cachedValue: string | null = null) {
   return {
     get: vi.fn(async (_key: string) => cachedValue),
     set: vi.fn(async (_key: string, _value: string, _ex: string, _ttl: number) => "OK" as const),
+    del: vi.fn(async () => 1),
   };
 }
 
@@ -51,6 +52,9 @@ vi.mock("@cerniq/worker-shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@cerniq/worker-shared")>();
   return {
     ...actual,
+    generateValidatedJsonWithRetries: actual.generateValidatedJsonWithRetries,
+    OUTREACH_NODE_SENTIMENT: actual.OUTREACH_NODE_SENTIMENT,
+    OUTREACH_NODE_RESPONSE: actual.OUTREACH_NODE_RESPONSE,
     fastClient: {
       chat: {
         completions: {
@@ -58,6 +62,17 @@ vi.mock("@cerniq/worker-shared", async (importOriginal) => {
         },
       },
     },
+    resolveOutreachLlmRouting: vi.fn(async () => ({
+      client: {
+        chat: {
+          completions: {
+            create: fastCompletionCreate,
+          },
+        },
+      },
+      model: "mock-infraq-model",
+      preference: "VLLM_FAST" as const,
+    })),
     recordLlmFallback: vi.fn(),
     buildFrontierChatTextFallbackSteps: vi.fn(() => [
       { name: "mock-frontier-sentiment", run: frontierStepsRun },
@@ -466,6 +481,62 @@ describe("createSentimentAnalyzerWorker: Redis cache", () => {
     expect(frontierStepsRun).toHaveBeenCalled();
   });
 
+  it("șterge cache-ul și reîncarcă LLM când JSON din Redis nu trece schema Zod", async () => {
+    const bad = JSON.stringify({
+      score: "invalid",
+      intent: "NEUTRAL",
+      urgency: "LOW",
+      requiresHuman: false,
+    });
+    const redis = createRedisMock(bad);
+    setupFastSentimentResponse({
+      score: 40,
+      intent: "NEUTRAL",
+      urgency: "LOW",
+      requiresHuman: false,
+    });
+
+    const { createWorker } = await import("@cerniq/worker-shared");
+    (createWorker as ReturnType<typeof vi.fn>).mockClear();
+
+    const { createSentimentAnalyzerWorker } = await import("./ai-sentiment.js");
+    createSentimentAnalyzerWorker(redis as never);
+
+    const [, processor] = (createWorker as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      (job: unknown) => Promise<unknown>,
+    ];
+    await processor(makeJob("test"));
+
+    expect(redis.del).toHaveBeenCalled();
+    expect(fastCompletionCreate).toHaveBeenCalled();
+  });
+
+  it("escaladează la human:review după epuizarea validării JSON (3 runde LLM invalide)", async () => {
+    const redis = createRedisMock(null);
+    fastCompletionCreate.mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify({ broken: true }) } }],
+    });
+
+    const { createWorker } = await import("@cerniq/worker-shared");
+    (createWorker as ReturnType<typeof vi.fn>).mockClear();
+
+    const { createSentimentAnalyzerWorker } = await import("./ai-sentiment.js");
+    createSentimentAnalyzerWorker(redis as never);
+
+    const [, processor] = (createWorker as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      (job: unknown) => Promise<unknown>,
+    ];
+    const result = (await processor(makeJob("mesaj"))) as Record<string, unknown>;
+
+    expect(result.routedTo).toBe("HUMAN");
+    expect(result.intent).toBe("NEUTRAL");
+    expect(result.requiresHuman).toBe(true);
+    const reviewQueue = queueInstances.get("human:review:queue");
+    expect(reviewQueue?.add).toHaveBeenCalled();
+  });
+
   it("uses tenant-scoped cache key (sentiment:{tenantId}:{hash}) to prevent cross-tenant leaks", async () => {
     const redis = createRedisMock(null);
     setupFastSentimentResponse({
@@ -489,6 +560,44 @@ describe("createSentimentAnalyzerWorker: Redis cache", () => {
 
     const getCall = redis.get.mock.calls[0]?.[0] as string;
     expect(getCall).toMatch(/^sentiment:t1:/);
+  });
+});
+
+describe("createResponseGeneratorWorker", () => {
+  it("adaugă human review și fallback RO când toate încercările au text prea scurt", async () => {
+    const redis = createRedisMock(null);
+    fastCompletionCreate.mockResolvedValue({
+      choices: [{ message: { content: "scurt" } }],
+    });
+    frontierStepsRun.mockResolvedValue("mic");
+
+    const { createWorker } = await import("@cerniq/worker-shared");
+    (createWorker as ReturnType<typeof vi.fn>).mockClear();
+    queueInstances.clear();
+
+    const { createResponseGeneratorWorker } = await import("./ai-sentiment.js");
+    createResponseGeneratorWorker(redis as never);
+
+    const responseEntry = (createWorker as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === "ai:response:generate",
+    );
+    expect(responseEntry).toBeDefined();
+    const [, processor] = responseEntry as [string, (job: unknown) => Promise<unknown>];
+
+    const result = (await processor({
+      id: "jg1",
+      data: {
+        tenantId: TENANT,
+        leadId: LEAD_ID,
+        journeyId: JOURNEY_ID,
+        content: "Detalii?",
+        analysis: { score: 50, intent: "QUESTION", urgency: "LOW" },
+      },
+    })) as { response: string; sent: boolean };
+
+    expect(result.response).toContain("Mulțumim");
+    const reviewQueue = queueInstances.get("human:review:queue");
+    expect(reviewQueue?.add).toHaveBeenCalled();
   });
 });
 
@@ -525,7 +634,7 @@ describe("queue-registry: AI_INTENT_CLASSIFY removed", () => {
   it("total queue count matches assertQueueRegistryComplete (canonical registry)", async () => {
     const { assertQueueRegistryComplete, queueRegistry } = await import("@cerniq/worker-shared");
     expect(() => assertQueueRegistryComplete()).not.toThrow();
-    expect(queueRegistry).toHaveLength(350);
+    expect(queueRegistry).toHaveLength(358);
   });
 
   it("QUEUES constant does not export AI_INTENT_CLASSIFY", async () => {

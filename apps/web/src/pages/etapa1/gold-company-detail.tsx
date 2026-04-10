@@ -19,6 +19,7 @@ import {
   usePatchGoldCompany,
   useTransitionGoldCompany,
 } from "@/hooks/use-etapa1.js";
+import { DataQualityScorecard } from "@/components/etapa1/DataQualityScorecard.js";
 import { toast } from "@/components/ui/toast-api.js";
 import { fetchOutreachLeads } from "@/lib/etapa2-api.js";
 
@@ -223,8 +224,19 @@ export function GoldCompanyDetail() {
                 Contactele detaliate (email, telefon) sunt disponibile în tabela gold_contacts.
               </p>
             </TabsContent>
-            <TabsContent value="enrichment">
-              <pre className="text-xs text-t2">{JSON.stringify(metadata, null, 2)}</pre>
+            <TabsContent value="enrichment" className="space-y-4">
+              <DataQualityScorecard
+                metadata={metadata}
+                leadScore={item.leadScore == null ? undefined : Number(item.leadScore)}
+              />
+              <details className="rounded-lg border border-[var(--color-s700)] bg-[var(--color-s950)] p-3">
+                <summary className="cursor-pointer text-xs font-medium text-t3">
+                  Metadata brut (JSON)
+                </summary>
+                <pre className="mt-2 max-h-64 overflow-auto text-xs text-t2">
+                  {JSON.stringify(metadata, null, 2)}
+                </pre>
+              </details>
             </TabsContent>
             <TabsContent value="journey">
               {journey.length === 0 ? (

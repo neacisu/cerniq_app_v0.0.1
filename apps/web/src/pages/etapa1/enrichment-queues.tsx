@@ -3,6 +3,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { usePauseQueue, useQueueStatuses, useResumeQueue } from "@/hooks/use-etapa1.js";
 import { QueueStatusCard } from "@/components/data/QueueStatusCard.js";
+import { EnrichmentProviderStatus } from "@/components/etapa1/EnrichmentProviderStatus.js";
 import { Button } from "@/components/ui/button.js";
 import { Brain } from "lucide-react";
 export function EnrichmentQueues() {
@@ -53,6 +54,8 @@ export function EnrichmentQueues() {
         <code className="font-mono">failed</code>, <code className="font-mono">delayed</code>,{" "}
         <code className="font-mono">paused</code>). Controale: POST pause/resume pe coadă.
       </p>
+      <EnrichmentProviderStatus queues={queues as Record<string, unknown>[]} className="mb-6" />
+
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-t2">
           Monitorizare și control cozi BullMQ pentru pipeline enrichment (date din API,

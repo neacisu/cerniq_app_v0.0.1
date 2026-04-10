@@ -5,9 +5,8 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { isKnownQueueName } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
+import { monitoringInternalFetch } from "../lib/monitoring-internal-fetch.js";
 import { getRegisteredPrometheusMetricsCatalog } from "../plugins/metrics.js";
-
-const MONITORING_API_BASE = envConfig.MONITORING_API_INTERNAL_URL;
 
 async function proxyRequest(
   request: FastifyRequest,
@@ -16,11 +15,9 @@ async function proxyRequest(
   init: RequestInit = {},
 ) {
   try {
-    const res = await fetch(`${MONITORING_API_BASE}${path}`, {
+    const res = await monitoringInternalFetch(path, {
       headers: {
-        Accept: "application/json",
         ...(init.body ? { "Content-Type": "application/json" } : {}),
-        ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
         ...(init.headers as Record<string, string> | undefined),
       },
       ...init,
@@ -99,18 +96,8 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
   app.get("/live", authOpts, async (request, reply) => {
     try {
       const [queuesRes, metricsRes] = await Promise.all([
-        fetch(`${MONITORING_API_BASE}/api/queues`, {
-          headers: {
-            Accept: "application/json",
-            ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
-          },
-        }),
-        fetch(`${MONITORING_API_BASE}/api/system/metrics`, {
-          headers: {
-            Accept: "application/json",
-            ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
-          },
-        }),
+        monitoringInternalFetch("/api/queues"),
+        monitoringInternalFetch("/api/system/metrics"),
       ]);
       const [queuesBody, metricsBody] = await Promise.all([
         queuesRes.json().catch(() => ({})),

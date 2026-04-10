@@ -29,6 +29,16 @@ import { LifecycleNeuronComponent } from "@/components/cognitive/neurons/Lifecyc
 import { ChurnNeuronComponent } from "@/components/cognitive/neurons/ChurnNeuron.js";
 import { ComplianceNeuronComponent } from "@/components/cognitive/neurons/ComplianceNeuron.js";
 import { KnowledgeNeuronComponent } from "@/components/cognitive/neurons/KnowledgeNeuron.js";
+import { ReconciliationNeuronComponent } from "@/components/cognitive/neurons/ReconciliationNeuron.js";
+import { CreditNeuronComponent } from "@/components/cognitive/neurons/CreditNeuron.js";
+import { LogisticsNeuronComponent } from "@/components/cognitive/neurons/LogisticsNeuron.js";
+import { ContractNeuronComponent } from "@/components/cognitive/neurons/ContractNeuron.js";
+import { SocialNeuronComponent } from "@/components/cognitive/neurons/SocialNeuron.js";
+import { GraphNeuronComponent } from "@/components/cognitive/neurons/GraphNeuron.js";
+import { EnvironmentNeuronComponent } from "@/components/cognitive/neurons/EnvironmentNeuron.js";
+import { FeedbackNeuronComponent } from "@/components/cognitive/neurons/FeedbackNeuron.js";
+import { MemoryNeuronComponent } from "@/components/cognitive/neurons/MemoryNeuron.js";
+import { SpatialNeuronComponent } from "@/components/cognitive/neurons/SpatialNeuron.js";
 
 // ─── Shared test helpers ──────────────────────────────────────────────────────
 
@@ -389,6 +399,99 @@ describe("KnowledgeNeuronComponent", () => {
       />,
     );
     expect(screen.getByText(/embeds:/)).toBeInTheDocument();
+  });
+});
+
+// ─── E4/E5 neuroni — acoperire smoke (testid, selected, metrics) ─────────────
+
+describe("ReconciliationNeuronComponent", () => {
+  it("renders reconciliation-neuron", () => {
+    render(
+      <ReconciliationNeuronComponent {...makeProps({ neuronType: "ReconciliationNeuron" })} />,
+    );
+    expect(screen.getByTestId("reconciliation-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("CreditNeuronComponent", () => {
+  it("renders credit-neuron și border la selected", () => {
+    render(<CreditNeuronComponent {...makeProps({ neuronType: "CreditNeuron" }, true)} />);
+    const el = screen.getByTestId("credit-neuron");
+    expect(el).toBeInTheDocument();
+    expect(el.style.border).toContain("var(--color-b5)");
+  });
+});
+
+describe("LogisticsNeuronComponent", () => {
+  it("renders logistics-neuron cu metrici", () => {
+    render(
+      <LogisticsNeuronComponent
+        {...makeProps({
+          neuronType: "LogisticsNeuron",
+          showMetrics: true,
+          metrics: { processed: 1, failed: 0, avgLatency: 12 },
+        })}
+      />,
+    );
+    expect(screen.getByTestId("logistics-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("ContractNeuronComponent", () => {
+  it("renders contract-neuron și ramură failed>0 la metrici", () => {
+    render(
+      <ContractNeuronComponent
+        {...makeProps({
+          neuronType: "ContractNeuron",
+          showMetrics: true,
+          metrics: { processed: 3, failed: 2, avgLatency: 40 },
+        })}
+      />,
+    );
+    expect(screen.getByTestId("contract-neuron")).toBeInTheDocument();
+    expect(screen.getByText(/✗/)).toBeInTheDocument();
+  });
+});
+
+describe("SocialNeuronComponent", () => {
+  it("renders social-neuron", () => {
+    render(<SocialNeuronComponent {...makeProps({ neuronType: "SocialNeuron" })} />);
+    expect(screen.getByTestId("social-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("GraphNeuronComponent", () => {
+  it("renders graph-neuron", () => {
+    render(<GraphNeuronComponent {...makeProps({ neuronType: "GraphNeuron" })} />);
+    expect(screen.getByTestId("graph-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("EnvironmentNeuronComponent", () => {
+  it("renders environment-neuron", () => {
+    render(<EnvironmentNeuronComponent {...makeProps({ neuronType: "EnvironmentNeuron" })} />);
+    expect(screen.getByTestId("environment-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("FeedbackNeuronComponent", () => {
+  it("renders feedback-neuron", () => {
+    render(<FeedbackNeuronComponent {...makeProps({ neuronType: "FeedbackNeuron" })} />);
+    expect(screen.getByTestId("feedback-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("MemoryNeuronComponent", () => {
+  it("renders memory-neuron", () => {
+    render(<MemoryNeuronComponent {...makeProps({ neuronType: "MemoryNeuron" })} />);
+    expect(screen.getByTestId("memory-neuron")).toBeInTheDocument();
+  });
+});
+
+describe("SpatialNeuronComponent", () => {
+  it("renders spatial-neuron", () => {
+    render(<SpatialNeuronComponent {...makeProps({ neuronType: "SpatialNeuron" })} />);
+    expect(screen.getByTestId("spatial-neuron")).toBeInTheDocument();
   });
 });
 

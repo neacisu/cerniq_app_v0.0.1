@@ -6,6 +6,7 @@
  * - outreach:orchestrator:router — redirecționare job către coada finală
  */
 import type { Job, Worker } from "bullmq";
+import { v4 as uuidv4 } from "uuid";
 import { QUEUES, createWorker, createQueue, dispatchNotification } from "@cerniq/worker-shared";
 import { getInstantlyClient, getTimelinesAIClient } from "@cerniq/integrations";
 import {
@@ -62,7 +63,7 @@ export function createEmailColdCampaignPauseWorker(): Worker {
 }
 
 export type AlertPhoneOfflineJobData = {
-  tenantId?: string;
+  tenantId: string;
   phoneId: string;
   phoneNumber?: string;
   offlineSince?: string;
@@ -75,26 +76,49 @@ export function createAlertPhoneOfflineWorker(): Worker {
     QUEUES.ALERT_PHONE_OFFLINE,
     async (job: Job<AlertPhoneOfflineJobData>) => {
       console.warn("[alert:phone:offline]", JSON.stringify(job.data));
-      if (job.data.tenantId) {
-        try {
-          await dispatchNotification({
-            tenantId: job.data.tenantId,
-            type: "ALERT",
-            title: "Telefon offline",
-            body:
-              job.data.message ??
-              `Linie indisponibilă (telefon ${job.data.phoneNumber ?? job.data.phoneId}).`,
-            data: {
-              phoneId: job.data.phoneId,
-              phoneNumber: job.data.phoneNumber,
-              offlineSince: job.data.offlineSince,
-              status: job.data.status,
-            },
-            channels: ["IN_APP", "EMAIL", "WEBHOOK"],
-          });
-        } catch (err) {
-          console.error("[alert:phone:offline] notification dispatch failed", err);
-        }
+      const { tenantId, phoneId, phoneNumber, offlineSince, status, message } = job.data;
+
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
+      const { webhookEventArchive } = await import("@cerniq/db");
+
+      const eventId = `ops-phone-offline-${phoneId}-${uuidv4()}`;
+      await db
+        .insert(webhookEventArchive)
+        .values({
+          tenantId,
+          eventId,
+          source: "OPS_MONITORING",
+          eventType: "PHONE_OFFLINE",
+          eventTimestamp: new Date(),
+          payload: {
+            phoneId,
+            phoneNumber,
+            offlineSince,
+            status,
+            message,
+          },
+        })
+        .onConflictDoNothing({
+          target: [webhookEventArchive.tenantId, webhookEventArchive.eventId],
+        });
+
+      try {
+        await dispatchNotification({
+          tenantId,
+          type: "ALERT",
+          title: "Telefon offline",
+          body: message ?? `Linie indisponibilă (telefon ${phoneNumber ?? phoneId}).`,
+          data: {
+            phoneId,
+            phoneNumber,
+            offlineSince,
+            status,
+          },
+          channels: ["IN_APP", "EMAIL", "WEBHOOK"],
+        });
+      } catch (err) {
+        console.error("[alert:phone:offline] notification dispatch failed", err);
       }
       return { logged: true };
     },

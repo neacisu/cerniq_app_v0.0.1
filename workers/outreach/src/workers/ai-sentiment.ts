@@ -8,6 +8,9 @@
  *
  * @deprecated ai:intent:classify (createIntentClassifierWorker) a fost unificat în
  *   ai:sentiment:analyze. Logica NOT_INTERESTED este acum gestionată de sentiment worker.
+ *
+ * Chei LLM (ex. ANTHROPIC_API_KEY) vin din OpenBao → `/secrets/workers.env` (global per mediu).
+ * Override per-tenant (tabel `integration_configs`) nu face parte din MVP — vezi plan cognitiv db-integration-configs.
  */
 import type { Job, Worker } from "bullmq";
 import { createHash } from "node:crypto";
@@ -20,14 +23,35 @@ import {
   createQueue,
   withCognitiveSpan,
   getWaPhoneFollowupQueueName,
-  fastClient,
-  INFRAQ_FAST_MODEL,
   withLlmFallbackChain,
   buildFrontierChatTextFallbackSteps,
+  generateValidatedJsonWithRetries,
+  resolveOutreachLlmRouting,
+  OUTREACH_NODE_SENTIMENT,
+  OUTREACH_NODE_RESPONSE,
+  llmRegenerationAttempts,
 } from "@cerniq/worker-shared";
 
 // AI rate limit: 60/min from workers-overview RATE_LIMITS
 const AI_CACHE_TTL_SECONDS = 3600; // 1h cache
+
+/** Răspuns minimal când generarea eșuează după retry-uri — conversația nu rămâne fără mesaj. */
+const OUTREACH_RESPONSE_GENERATION_FALLBACK_RO =
+  "Mulțumim pentru mesaj. Un consultant revine în curând cu detalii.";
+
+const RESPONSE_TEXT_GUARD_LABEL = "structured_text" as const;
+const MIN_GENERATED_RESPONSE_CHARS = 10;
+const MAX_GENERATED_RESPONSE_CHARS = 4000;
+
+function isStructuredOutputExhaustedError(e: unknown): boolean {
+  return e instanceof Error && e.name === "LlmStructuredOutputExhaustedError";
+}
+
+function responseLengthValidationError(raw: string): string {
+  if (raw.length === 0) return "empty";
+  if (raw.length < MIN_GENERATED_RESPONSE_CHARS) return "too_short";
+  return "too_long";
+}
 
 // =============================================================================
 // Types
@@ -82,6 +106,64 @@ export interface ResponseGenerateJobData {
   chatId?: string;
 }
 
+type OutreachLlmRoute = Awaited<ReturnType<typeof resolveOutreachLlmRouting>>;
+
+async function generateOutreachResponseTextWithRetries(params: {
+  readonly route: OutreachLlmRoute;
+  readonly content: string;
+  readonly analysis: ResponseGenerateJobData["analysis"];
+  readonly system: string;
+}): Promise<string> {
+  const { route, content, analysis, system } = params;
+  let lastTextErr = "";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const correction =
+      attempt > 1
+        ? `\n\n(Notă: ieșire invalidă — ${lastTextErr}. Generează 2-3 propoziții RO, fără liste lungi, fără ghilimele exterioare pe tot răspunsul.)`
+        : "";
+    const user = `Prospectul a răspuns: "${content.slice(0, 300)}"
+Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă conversația.${correction}`;
+
+    const respMessages: ChatCompletionMessageParam[] = [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ];
+    const frontierResp = buildFrontierChatTextFallbackSteps(respMessages, {
+      maxTokens: 300,
+      temperature: 0.35,
+      timeoutMs: 45_000,
+    });
+    const raw = (
+      await withLlmFallbackChain({
+        primary: async () => {
+          const completion = await route.client.chat.completions.create(
+            {
+              model: route.model,
+              max_tokens: 300,
+              temperature: 0.35,
+              messages: respMessages,
+            },
+            { signal: AbortSignal.timeout(15_000) },
+          );
+          return completion.choices[0]?.message?.content?.trim() ?? "";
+        },
+        fallbacks: frontierResp.map((f) => ({ name: f.name, run: f.run })),
+        dataSensitivity: "non_sensitive",
+      })
+    ).trim();
+
+    if (raw.length >= MIN_GENERATED_RESPONSE_CHARS && raw.length <= MAX_GENERATED_RESPONSE_CHARS) {
+      if (attempt > 1) {
+        llmRegenerationAttempts.observe({ guardrail_type: RESPONSE_TEXT_GUARD_LABEL }, attempt - 1);
+      }
+      return raw;
+    }
+    lastTextErr = responseLengthValidationError(raw);
+    llmRegenerationAttempts.observe({ guardrail_type: RESPONSE_TEXT_GUARD_LABEL }, attempt);
+  }
+  return "";
+}
+
 // =============================================================================
 // Worker: ai:sentiment:analyze
 // Score -100..100, rate 60/min
@@ -101,7 +183,53 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
 
         // Use cached wrapper — tenantId is included in the hash to prevent
         // cross-tenant cache leaks (different tenants may have different thresholds).
-        const analysis = await callAIForSentimentCached({ content, tenantId, redis });
+        let analysis: {
+          score: number;
+          intent: SentimentIntent;
+          urgency: SentimentUrgency;
+          requiresHuman: boolean;
+        };
+        try {
+          analysis = await callAIForSentimentCached({ content, tenantId, redis });
+        } catch (e) {
+          if (isStructuredOutputExhaustedError(e)) {
+            const { db, setSessionTenantId } = await import("@cerniq/db");
+            await setSessionTenantId(tenantId);
+            const { leadJourney } = await import("@cerniq/db");
+            const { eq } = await import("@cerniq/db");
+            await db
+              .update(leadJourney)
+              .set({
+                sentimentScore: 0,
+                requiresHumanReview: true,
+                humanReviewReason: "AI_UNCERTAIN",
+                humanReviewPriority: "URGENT",
+                updatedAt: new Date(),
+              })
+              .where(eq(leadJourney.id, journeyId));
+            await reviewQueue.add(
+              "queue",
+              {
+                tenantId,
+                leadId,
+                journeyId,
+                reason: "AI_UNCERTAIN",
+                priority: "HIGH",
+                content,
+                channel,
+              },
+              { priority: 1, removeOnComplete: 100 },
+            );
+            return {
+              score: 0,
+              intent: "NEUTRAL",
+              urgency: "HIGH",
+              requiresHuman: true,
+              routedTo: "HUMAN",
+            };
+          }
+          throw e;
+        }
 
         // Update lead journey with sentiment.
         // NOT_INTERESTED intent triggers human review regardless of requiresHuman flag
@@ -181,9 +309,17 @@ async function callAIForSentimentCached(opts: {
   const cacheKey = `sentiment:${tenantId}:${sentimentHash}`;
   const cached = await redis.get(cacheKey);
   if (cached) {
-    return JSON.parse(cached);
+    try {
+      const parsed = sentimentAnalysisSchema.safeParse(JSON.parse(cached));
+      if (parsed.success) {
+        return parsed.data;
+      }
+    } catch {
+      // cache corupt / non-JSON — reîncarcă de la LLM
+    }
+    await redis.del(cacheKey);
   }
-  const result = await callAIForSentiment(content);
+  const result = await callAIForSentiment(content, tenantId);
   await redis.set(cacheKey, JSON.stringify(result), "EX", AI_CACHE_TTL_SECONDS);
   return result;
 }
@@ -195,57 +331,61 @@ const sentimentAnalysisSchema = z.object({
   requiresHuman: z.boolean(),
 });
 
-function parseSentimentJsonText(text: string): z.infer<typeof sentimentAnalysisSchema> {
-  const cleaned = text.replaceAll(/```(?:json)?/gi, "").trim();
-  const raw = JSON.parse(cleaned) as unknown;
-  const parsed = sentimentAnalysisSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw new Error(`Sentiment JSON invalid: ${parsed.error.message}`);
-  }
-  return parsed.data;
-}
-
 /**
- * Plan §XIII: clasificare/sentiment pe fastClient (Qwen2.5-14B); fallback frontier complet.
+ * Sentiment: rutare model via `cognitive_node_configs.configOverrides.preferredModel`;
+ * validare Zod + max 3 runde cu corecție; fallback frontier în fiecare rundă (Plan §XIII).
  */
-async function callAIForSentiment(content: string): Promise<{
+async function callAIForSentiment(
+  content: string,
+  tenantId: string,
+): Promise<{
   score: number;
   intent: SentimentIntent;
   urgency: SentimentUrgency;
   requiresHuman: boolean;
 }> {
-  const userMsg = `Analizează sentimentul mesajului de business (RO/EN). Returnează DOAR JSON:
+  const route = await resolveOutreachLlmRouting(tenantId, OUTREACH_NODE_SENTIMENT);
+
+  return generateValidatedJsonWithRetries({
+    schema: sentimentAnalysisSchema,
+    maxAttempts: 3,
+    generateRaw: async ({ correctionHint }) => {
+      const base = `Analizează sentimentul mesajului de business (RO/EN). Returnează DOAR JSON:
 {"score": <int -100..100>, "intent": "INTERESTED"|"NOT_INTERESTED"|"QUESTION"|"COMPLAINT"|"NEUTRAL", "urgency": "LOW"|"MEDIUM"|"HIGH", "requiresHuman": <bool>}
 
 Mesaj: ${JSON.stringify(content.slice(0, 500))}`;
+      const userMsg = correctionHint
+        ? `${base}\n\nEroare validare anterioară: ${correctionHint}. Repetă DOAR un obiect JSON valid conform schemei, fără text în plus.`
+        : base;
 
-  const messages: ChatCompletionMessageParam[] = [{ role: "user", content: userMsg }];
-  const frontier = buildFrontierChatTextFallbackSteps(messages, {
-    maxTokens: 256,
-    temperature: 0.1,
-    timeoutMs: 25_000,
-  });
+      const messages: ChatCompletionMessageParam[] = [{ role: "user", content: userMsg }];
+      const frontier = buildFrontierChatTextFallbackSteps(messages, {
+        maxTokens: 256,
+        temperature: 0.1,
+        timeoutMs: 25_000,
+      });
 
-  return withLlmFallbackChain({
-    primary: async () => {
-      const completion = await fastClient.chat.completions.create(
-        {
-          model: INFRAQ_FAST_MODEL,
-          max_tokens: 256,
-          temperature: 0.1,
-          response_format: { type: "json_object" },
-          messages,
+      return withLlmFallbackChain({
+        primary: async () => {
+          const completion = await route.client.chat.completions.create(
+            {
+              model: route.model,
+              max_tokens: 256,
+              temperature: 0.1,
+              response_format: { type: "json_object" },
+              messages,
+            },
+            { signal: AbortSignal.timeout(10_000) },
+          );
+          return completion.choices[0]?.message?.content ?? "{}";
         },
-        { signal: AbortSignal.timeout(10_000) },
-      );
-      const text = completion.choices[0]?.message?.content ?? "{}";
-      return parseSentimentJsonText(text);
+        fallbacks: frontier.map((f) => ({
+          name: f.name,
+          run: f.run,
+        })),
+        dataSensitivity: "non_sensitive",
+      });
     },
-    fallbacks: frontier.map((f) => ({
-      name: f.name,
-      run: async () => parseSentimentJsonText(await f.run()),
-    })),
-    dataSensitivity: "non_sensitive",
   });
 }
 
@@ -255,6 +395,7 @@ Mesaj: ${JSON.stringify(content.slice(0, 500))}`;
 // =============================================================================
 
 export function createResponseGeneratorWorker(redis: Redis): Worker {
+  const reviewQueue = createQueue(QUEUES.HUMAN_REVIEW_QUEUE);
   const { worker } = createWorker(
     QUEUES.AI_RESPONSE_GENERATE,
     async (job: Job<ResponseGenerateJobData>): Promise<{ response: string; sent: boolean }> => {
@@ -272,40 +413,34 @@ export function createResponseGeneratorWorker(redis: Redis): Worker {
           return { response: cached, sent: false };
         }
 
+        const route = await resolveOutreachLlmRouting(tenantId, OUTREACH_NODE_RESPONSE);
+
         const system = `Ești un reprezentant de vânzări profesionist pentru Cerniq, o platformă B2B pentru agricultură din România.
 Răspunzi în română, prietenos dar profesional. Compania: ${companyName ?? "prospectul"}.
 IMPORTANT: Răspunde în maxim 2-3 propoziții scurte.`;
 
-        const user = `Prospectul a răspuns: "${content.slice(0, 300)}"
-Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă conversația.`;
-
-        const respMessages: ChatCompletionMessageParam[] = [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ];
-        const frontierResp = buildFrontierChatTextFallbackSteps(respMessages, {
-          maxTokens: 300,
-          temperature: 0.35,
-          timeoutMs: 45_000,
+        let generatedResponse = await generateOutreachResponseTextWithRetries({
+          route,
+          content,
+          analysis,
+          system,
         });
-        const generatedResponse = (
-          await withLlmFallbackChain({
-            primary: async () => {
-              const completion = await fastClient.chat.completions.create(
-                {
-                  model: INFRAQ_FAST_MODEL,
-                  max_tokens: 300,
-                  temperature: 0.35,
-                  messages: respMessages,
-                },
-                { signal: AbortSignal.timeout(15_000) },
-              );
-              return completion.choices[0]?.message?.content?.trim() ?? "";
+
+        if (!generatedResponse) {
+          await reviewQueue.add(
+            "queue",
+            {
+              tenantId,
+              leadId,
+              journeyId,
+              reason: "AI_UNCERTAIN",
+              priority: "HIGH",
+              content: content.slice(0, 500),
             },
-            fallbacks: frontierResp.map((f) => ({ name: f.name, run: f.run })),
-            dataSensitivity: "non_sensitive",
-          })
-        ).trim();
+            { priority: 1, removeOnComplete: 100 },
+          );
+          generatedResponse = OUTREACH_RESPONSE_GENERATION_FALLBACK_RO;
+        }
 
         // Cache generated response
         await redis.set(cacheKey, generatedResponse, "EX", AI_CACHE_TTL_SECONDS);

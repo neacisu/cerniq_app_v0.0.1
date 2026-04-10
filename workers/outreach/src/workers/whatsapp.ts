@@ -16,6 +16,8 @@ import {
   WA_PHONE_COUNT,
   createWorker,
   createQueue,
+  getWaPhoneQueueName,
+  getWaPhoneFollowupQueueName,
   waSent,
   outreachMessagesSentTotal,
 } from "@cerniq/worker-shared";
@@ -105,8 +107,8 @@ export function createWaWorker(
   luaSha: string,
 ): Worker {
   const queueName = isFollowup
-    ? `q:wa:phone-${String(phoneIndex).padStart(2, "0")}:followup`
-    : `q:wa:phone-${String(phoneIndex).padStart(2, "0")}`;
+    ? getWaPhoneFollowupQueueName(phoneIndex)
+    : getWaPhoneQueueName(phoneIndex);
 
   const { worker } = createWorker(
     queueName,
@@ -151,28 +153,40 @@ export function createWaWorker(
         };
       }
 
-      // 1. Apply jitter BEFORE sending — ADR-0057
-      const jitterMs = applyJitter();
-      await sleep(jitterMs);
-
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { waPhoneNumbers } = await import("@cerniq/db");
       const { processSpintax } = await import("../utils/spintax.js");
-      const { eq } = await import("@cerniq/db");
+      const { eq, and } = await import("@cerniq/db");
 
-      // 2. Verify phone is still ACTIVE before send
+      // 1. Verify phone is still ACTIVE BEFORE jitter — evită 30–150s inutile pentru linii OFFLINE/BANNED
       const phones = await db
         .select()
         .from(waPhoneNumbers)
-        .where(eq(waPhoneNumbers.id, phoneId))
+        .where(and(eq(waPhoneNumbers.id, phoneId), eq(waPhoneNumbers.tenantId, tenantId)))
         .limit(1);
 
       if (phones.length === 0 || phones[0].status !== "ACTIVE" || !phones[0].isEnabled) {
-        throw new Error(`Phone ${phoneId} is not active or disabled`);
+        return {
+          success: false,
+          messageId: "",
+          chatId: "",
+          deliveryStatus: "FAILED",
+          quotaCost: 0,
+          jitterAppliedMs: 0,
+          error: {
+            code: "PHONE_INACTIVE",
+            message: `Phone ${phoneId} is not active, missing, or disabled`,
+            retryable: false,
+          },
+        };
       }
+
+      // 2. Apply jitter BEFORE sending — ADR-0057
+      const jitterMs = applyJitter();
+      await sleep(jitterMs);
 
       // 3. Process spintax with personalization variables
       const spintaxVariables: Record<string, string> = {
@@ -222,22 +236,28 @@ export function createWaWorker(
         const [journeyRow] = await db
           .select({ currentState: leadJourney.currentState })
           .from(leadJourney)
-          .where(eq(leadJourney.id, journeyId))
+          .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
           .limit(1);
 
-        const previousState = journeyRow?.currentState ?? "COLD";
+        if (journeyRow) {
+          const previousState = journeyRow.currentState;
 
-        await db
-          .update(leadJourney)
-          .set({
-            currentState: "CONTACTED_WA",
-            previousState,
-            stateChangedAt: new Date(),
-            lastChannelUsed: "WHATSAPP",
-            lastContactAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(leadJourney.id, journeyId));
+          await db
+            .update(leadJourney)
+            .set({
+              currentState: "CONTACTED_WA",
+              previousState,
+              stateChangedAt: new Date(),
+              lastChannelUsed: "WHATSAPP",
+              lastContactAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)));
+        } else {
+          console.error(
+            `[wa:send] Journey ${journeyId} not found for tenant ${tenantId}; skip state update (message already sent)`,
+          );
+        }
       }
 
       outreachMessagesSentTotal.inc({ channel: "WHATSAPP", tenant_id: tenantId });

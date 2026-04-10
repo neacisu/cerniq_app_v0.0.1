@@ -1,0 +1,30 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Cerniq/Introducere" />
+
+# Cerniq — Storybook
+
+Bibliotecă de componente pentru **apps/web**: token-uri OKLCH (Dark Terroir), layout, date, outreach, cognitive brain.
+
+## Cum rulezi
+
+- Dezvoltare: `pnpm --filter @cerniq/web run storybook` (port **6006**).
+- Build static: `pnpm --filter @cerniq/web run build-storybook` → `apps/web/storybook-static`.
+
+## Mediul Canvas
+
+- **Tailwind v4** + `src/index.css` (tokens în `src/styles/tokens.css`).
+- Decorator global: `MemoryRouter` + `QueryClient` + `ThemeProvider` + `AuthProvider`.
+- **MSW** implicite: `/api/v1/auth/me`, `/api/v1/dashboard/stats`, `/api/v1/brain/topology`, `/api/v1/system/processes`, etc. (vezi `.storybook/msw-handlers.ts`).
+
+## Regenerare stories automate
+
+```bash
+python3 scripts/generate-storybook-stories.py --force
+```
+
+(exclude `components/ui/*` și `feedback/ErrorBoundary.tsx` — scrise manual.)
+
+## A11y
+
+Addon **@storybook/addon-a11y** activ; contrast automat dezactivat pentru fundaluri OKLCH custom (vezi `.storybook/preview.tsx`).

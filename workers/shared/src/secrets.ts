@@ -21,6 +21,10 @@ const SENSITIVE_KEYS = new Set([
   "GEMINI_API_KEY",
   "GOOGLE_AI_API_KEY",
   "DEEPSEEK_API_KEY",
+  /** Etapa 2 outreach — integrări externe (OpenBao → workers.env). */
+  "TIMELINESAI_API_KEY",
+  "INSTANTLY_API_KEY",
+  "RESEND_API_KEY",
 ]);
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 

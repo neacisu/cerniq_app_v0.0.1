@@ -94,7 +94,9 @@ export function createSequenceSchedulerWorker(): Worker {
           const sequences = await db
             .select()
             .from(outreachSequences)
-            .where(eq(outreachSequences.id, sequenceId))
+            .where(
+              and(eq(outreachSequences.id, sequenceId), eq(outreachSequences.tenantId, tenantId)),
+            )
             .limit(1);
 
           if (sequences.length === 0) {
@@ -106,6 +108,13 @@ export function createSequenceSchedulerWorker(): Worker {
           const nextStepRows = await db
             .select()
             .from(outreachSequenceSteps)
+            .innerJoin(
+              outreachSequences,
+              and(
+                eq(outreachSequenceSteps.sequenceId, outreachSequences.id),
+                eq(outreachSequences.tenantId, tenantId),
+              ),
+            )
             .where(
               and(
                 eq(outreachSequenceSteps.sequenceId, sequenceId),
@@ -119,12 +128,17 @@ export function createSequenceSchedulerWorker(): Worker {
             await db
               .update(sequenceEnrollments)
               .set({ status: "COMPLETED", completedAt: new Date() })
-              .where(eq(sequenceEnrollments.id, sequenceEnrollmentId));
+              .where(
+                and(
+                  eq(sequenceEnrollments.id, sequenceEnrollmentId),
+                  eq(sequenceEnrollments.tenantId, tenantId),
+                ),
+              );
 
             return { scheduled: false, reason: "SEQUENCE_COMPLETE" };
           }
 
-          const nextStep = nextStepRows[0];
+          const nextStep = nextStepRows[0].outreach_sequence_steps;
 
           // Calculate next action time: delay_hours + delay_minutes
           let nextActionAt = DateTime.now()
@@ -162,7 +176,7 @@ export function createSequenceSchedulerWorker(): Worker {
               sequenceStep: currentStep + 1,
               updatedAt: new Date(),
             })
-            .where(eq(leadJourney.id, journeyId));
+            .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)));
 
           // Schedule the advance job with delay
           const delayMs = Math.max(nextActionAt.toMillis() - Date.now(), 0);
@@ -222,6 +236,7 @@ export function createSequenceStopWorker(): Worker {
             .where(
               and(
                 eq(sequenceEnrollments.journeyId, journeyId),
+                eq(sequenceEnrollments.tenantId, tenantId),
                 eq(sequenceEnrollments.status, "ACTIVE"),
               ),
             );
@@ -234,7 +249,7 @@ export function createSequenceStopWorker(): Worker {
               sequencePaused: true,
               updatedAt: new Date(),
             })
-            .where(eq(leadJourney.id, journeyId));
+            .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)));
         },
         { tenantId: job.data.tenantId },
       );
@@ -264,27 +279,46 @@ export function createSequenceAdvanceWorker(): Worker {
           await setSessionTenantId(tenantId);
           const { leadJourney } = await import("@cerniq/db");
           const { sequenceEnrollments } = await import("@cerniq/db");
-          const { eq } = await import("@cerniq/db");
+          const { eq, and } = await import("@cerniq/db");
 
           // Verify enrollment is still ACTIVE before dispatching
           const enrollments = await db
             .select()
             .from(sequenceEnrollments)
-            .where(eq(sequenceEnrollments.id, sequenceEnrollmentId))
+            .where(
+              and(
+                eq(sequenceEnrollments.id, sequenceEnrollmentId),
+                eq(sequenceEnrollments.tenantId, tenantId),
+              ),
+            )
             .limit(1);
 
-          if (enrollments.length === 0 || enrollments[0].status !== "ACTIVE") {
-            return; // Enrollment stopped, skip
+          if (enrollments.length === 0) {
+            console.warn(
+              `[sequence:advance] skip: enrollment ${sequenceEnrollmentId} not found (tenantId=${tenantId})`,
+            );
+            return;
+          }
+          if (enrollments[0].status !== "ACTIVE") {
+            console.warn(
+              `[sequence:advance] skip: enrollment ${sequenceEnrollmentId} status=${enrollments[0].status} (tenantId=${tenantId}, journeyId=${journeyId})`,
+            );
+            return;
           }
 
           // Dispatch via channel router
           const journeys = await db
             .select()
             .from(leadJourney)
-            .where(eq(leadJourney.id, journeyId))
+            .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
             .limit(1);
 
-          if (journeys.length === 0) return;
+          if (journeys.length === 0) {
+            console.warn(
+              `[sequence:advance] skip: journey ${journeyId} not found for tenant ${tenantId}`,
+            );
+            return;
+          }
 
           await channelSelectorQueue.add(
             "route",

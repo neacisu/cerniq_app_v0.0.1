@@ -132,6 +132,43 @@ describe("missing-api-endpoints — /api/v1/ai (guardrails, audit, search, conse
     expect(Array.isArray(body.data)).toBe(true);
   });
 
+  it("GET /ai/audit-log?type=guardrail — 200", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/ai/audit-log?type=guardrail&limit=10",
+      headers: { authorization: `Bearer ${authToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as { success?: boolean; data?: unknown[] };
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+  });
+
+  it("GET /ai/guardrails/metrics — 200 structură", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/ai/guardrails/metrics?latencyDays=30",
+      headers: { authorization: `Bearer ${authToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as {
+      success?: boolean;
+      data?: {
+        violations_daily_last_7_days?: unknown[];
+        llm_audit_7d?: unknown;
+        regeneration?: unknown;
+        latency_ms_by_queue?: unknown;
+        model_routing?: unknown;
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data?.violations_daily_last_7_days)).toBe(true);
+    expect(body.data?.llm_audit_7d).toBeDefined();
+    expect(body.data?.regeneration).toBeDefined();
+    expect(Array.isArray(body.data?.latency_ms_by_queue)).toBe(true);
+    expect(Array.isArray(body.data?.model_routing)).toBe(true);
+  });
+
   it("POST /ai/products/search — 200 enqueue (același contract ca /products/search)", async () => {
     const res = await app.inject({
       method: "POST",
@@ -168,6 +205,24 @@ describe("missing-api-endpoints — /api/v1/ai (guardrails, audit, search, conse
   it("GET /ai/guardrails/status — 401 fără auth", async () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/ai/guardrails/status" });
     expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("missing-api-endpoints — /api/v1/orders/payments/summary (E4 dashboard)", () => {
+  it("GET /orders/payments/summary — 200", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/orders/payments/summary?days=30",
+      headers: { authorization: `Bearer ${authToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as {
+      success?: boolean;
+      data?: { todayPaymentsCount?: number; dailyVolume?: unknown[] };
+    };
+    expect(body.success).toBe(true);
+    expect(typeof body.data?.todayPaymentsCount).toBe("number");
+    expect(Array.isArray(body.data?.dailyVolume)).toBe(true);
   });
 });
 

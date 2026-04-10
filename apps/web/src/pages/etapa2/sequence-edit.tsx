@@ -14,6 +14,7 @@ import {
   SequenceBuilder,
   type SequenceBuilderStep,
 } from "@/components/outreach/sequences/SequenceBuilder.js";
+import { SequenceTimeline } from "@/components/outreach/sequences/SequenceTimeline.js";
 
 function newDraftKey(): string {
   return (
@@ -195,6 +196,22 @@ function SequenceEditForm({ sequenceId, sequence }: SequenceEditFormProps) {
               onUpdateStep={updateStep}
               onMoveStep={moveStep}
             />
+            <div className="mt-6 border-t border-[var(--color-s700)] pt-4">
+              <SequenceTimeline
+                steps={steps.map(
+                  (s): SequenceStep => ({
+                    id: s.draftKey,
+                    sequenceId: sequence.id,
+                    stepNumber: s.stepNumber,
+                    channel: s.channel,
+                    templateId: s.templateId || null,
+                    delayHours: s.delayHours,
+                    delayMinutes: s.delayMinutes,
+                    subject: s.subject.trim() || null,
+                  }),
+                )}
+              />
+            </div>
           </CardBody>
         </Card>
 

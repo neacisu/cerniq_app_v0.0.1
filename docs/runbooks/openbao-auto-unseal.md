@@ -12,6 +12,7 @@
 ## Problem Statement
 
 Without auto-unseal, every OpenBao server restart requires manual intervention to unseal the vault using Shamir key shares. During this window:
+
 - All 3 OpenBao agents (api, workers, infra) cannot renew tokens or fetch secrets
 - All dependent services (API, workers, PgBouncer) fail to start or lose credentials
 - Total downtime for 313+ workers until manual unsealing
@@ -30,7 +31,7 @@ The `aes-gcm` seal backend uses an AES-256 key from an environment variable to a
 openssl rand -base64 32
 ```
 
-2. Store the key securely (NOT in the same volume as OpenBao data):
+1. Store the key securely (NOT in the same volume as OpenBao data):
 
 ```bash
 # On the orchestrator host
@@ -50,6 +51,8 @@ seal "aes-gcm" {
 ```
 
 ### Docker Compose Integration
+
+În repo, agenții OpenBao sunt servicii precum `cerniq-openbao-agent-api`, `cerniq-openbao-agent-workers` (vezi `infra/docker/docker-compose.yml`). Serverul OpenBao (vault) folosește `infra/config/openbao/openbao.hcl` — nu amestecați numele containerului agent cu rolul de server.
 
 Add the environment variable to the OpenBao server service:
 
@@ -115,20 +118,20 @@ bao secrets enable transit
 bao write -f transit/keys/autounseal
 ```
 
-2. Create a policy for the primary to use:
+1. Create a policy for the primary to use:
 
 ```hcl
 path "transit/encrypt/autounseal" { capabilities = ["update"] }
 path "transit/decrypt/autounseal" { capabilities = ["update"] }
 ```
 
-3. Generate a token:
+1. Generate a token:
 
 ```bash
 bao token create -policy=autounseal -orphan -period=24h
 ```
 
-4. Configure primary OpenBao:
+1. Configure primary OpenBao:
 
 ```hcl
 seal "transit" {
@@ -143,12 +146,12 @@ seal "transit" {
 
 ## Security Considerations
 
-| Concern                  | Mitigation                                       |
-| ------------------------ | ------------------------------------------------ |
-| Seal key exposure        | Store in separate location from OpenBao data     |
-| Key rotation             | Generate new key, perform seal migration          |
-| Backup recovery          | Seal key must be available during restore         |
-| Container escape         | Env vars visible in /proc; use Docker secrets     |
+| Concern           | Mitigation                                     |
+| ----------------- | ---------------------------------------------- |
+| Seal key exposure | Store in separate location from OpenBao data   |
+| Key rotation      | Generate new key, perform seal migration       |
+| Backup recovery   | Seal key must be available during restore      |
+| Container escape  | Env vars visible in /proc; use Docker secrets  |
 
 ### Key Rotation Procedure
 
@@ -163,9 +166,9 @@ seal "transit" {
 
 ## Troubleshooting
 
-| Symptom                    | Cause                              | Fix                          |
-| -------------------------- | ---------------------------------- | ---------------------------- |
-| Sealed after restart       | OPENBAO_SEAL_KEY not set           | Check env var availability   |
-| "invalid seal configuration" | Key length incorrect            | Ensure 32-byte base64 key    |
-| Agents failing healthcheck | OpenBao still sealed               | Check seal status, key       |
-| "seal migration required"  | Changed seal type without migrate  | Run `bao operator unseal -migrate` |
+| Symptom                      | Cause                             | Fix                                |
+| ---------------------------- | --------------------------------- | ---------------------------------- |
+| Sealed after restart         | OPENBAO_SEAL_KEY not set          | Check env var availability         |
+| "invalid seal configuration" | Key length incorrect              | Ensure 32-byte base64 key          |
+| Agents failing healthcheck   | OpenBao still sealed              | Check seal status, key             |
+| "seal migration required"    | Changed seal type without migrate | Run `bao operator unseal -migrate` |

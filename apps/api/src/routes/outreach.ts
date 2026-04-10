@@ -42,6 +42,7 @@ import {
   getWaPhoneQueueName,
   WA_PHONE_COUNT,
   QUEUES,
+  isKnownQueueName,
 } from "@cerniq/worker-shared";
 import { requireTenantId, getActorId } from "./utils.js";
 import { requireRole } from "../middleware/authz.js";
@@ -728,6 +729,10 @@ export async function outreachRoutes(app: FastifyInstance) {
   };
   const writeAuth = {
     onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("operator")],
+  };
+  /** Agregate / integrări externe (dashboard, funnel, campanii Instantly) — minim rol manager. */
+  const managerReadAuth = {
+    onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("manager")],
   };
 
   const outreachSendLimiter = app.rateLimit({ max: 10, timeWindow: "1 minute" });
@@ -2198,7 +2203,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Analytics ────────────────────────────────────────────────────────────
 
-  app.get("/dashboard", { ...readAuth }, async (req, reply) => {
+  app.get("/dashboard", { ...managerReadAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({ period: z.enum(["7d", "30d", "90d", "custom"]).default("7d") })
@@ -2208,7 +2213,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send(payload);
   });
 
-  app.get("/analytics/overview", { ...readAuth }, async (req, reply) => {
+  app.get("/analytics/overview", { ...managerReadAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({ period: z.enum(["7d", "30d", "90d", "custom"]).default("7d") })
@@ -2241,7 +2246,7 @@ export async function outreachRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/analytics/daily", { ...readAuth }, async (req, reply) => {
+  app.get("/analytics/daily", { ...managerReadAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({ from: z.string().optional(), to: z.string().optional() })
@@ -2262,7 +2267,7 @@ export async function outreachRoutes(app: FastifyInstance) {
   });
 
   /** Metrici per telefon WA (spec etapa2-api-endpoints.md §6.3). */
-  app.get("/analytics/phones", { ...readAuth }, async (req, reply) => {
+  app.get("/analytics/phones", { ...managerReadAuth }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const query = z
       .object({
@@ -2357,9 +2362,74 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: { phones: phonesOut } });
   });
 
+  app.get<{ Params: { jobId: string }; Querystring: { queue: string } }>(
+    "/jobs/:jobId/logs",
+    { ...writeAuth },
+    async (req, reply) => {
+      const tenantId = requireTenantId(req);
+      const { jobId } = req.params;
+      const q = z.object({ queue: z.string().min(1) }).parse(req.query);
+      if (!isKnownQueueName(q.queue)) {
+        return reply.status(400).send({ success: false, error: "Invalid queue name" });
+      }
+      const queue = createQueue(q.queue);
+      let job;
+      try {
+        job = await queue.getJob(jobId);
+      } catch (err) {
+        await queue.close();
+        req.log.warn({ err }, "outreach job logs: getJob failed");
+        return reply.status(502).send({ success: false, error: "Queue unavailable" });
+      }
+      if (!job) {
+        await queue.close();
+        return reply.status(404).send({ success: false, error: "Job not found" });
+      }
+      const data = job.data as { tenantId?: string };
+      if (!data.tenantId || data.tenantId !== tenantId) {
+        await queue.close();
+        return reply
+          .status(403)
+          .send({ success: false, error: "Job not accessible for this tenant" });
+      }
+
+      reply.hijack();
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      });
+      const send = (payload: Record<string, unknown>) => {
+        reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
+      };
+      send({ type: "subscribed", jobId, queue: q.queue });
+
+      const poll = async () => {
+        try {
+          const { logs, count } = await queue.getJobLogs(jobId, 0, -1, true);
+          send({ type: "logs", logs, count });
+        } catch (err) {
+          send({
+            type: "error",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      };
+      await poll();
+      const interval = setInterval(() => {
+        void poll();
+      }, 2000);
+
+      req.raw.on("close", () => {
+        clearInterval(interval);
+        void queue.close();
+      });
+    },
+  );
+
   // ─── Campaigns ────────────────────────────────────────────────────────────
 
-  app.get("/campaigns", { ...readAuth }, async (req, reply) => {
+  app.get("/campaigns", { ...managerReadAuth }, async (req, reply) => {
     try {
       const { getInstantlyClient } = await import("@cerniq/integrations/instantly");
       const res = await getInstantlyClient().getCampaigns();

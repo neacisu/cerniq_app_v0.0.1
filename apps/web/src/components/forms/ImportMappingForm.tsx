@@ -85,9 +85,11 @@ export function ImportMappingForm({
             <div className="text-xs text-t3">{sourceCol}</div>
             <SelectField
               label=""
-              value={mappings[sourceCol] ?? ""}
-              onChange={(v) => setMappings((prev) => ({ ...prev, [sourceCol]: v }))}
-              options={[{ label: "Ignora", value: "" }, ...targetFields]}
+              value={mappings[sourceCol] || "__ignore__"}
+              onChange={(v) =>
+                setMappings((prev) => ({ ...prev, [sourceCol]: v === "__ignore__" ? "" : v }))
+              }
+              options={[{ label: "Ignora", value: "__ignore__" }, ...targetFields]}
             />
           </div>
         ))}

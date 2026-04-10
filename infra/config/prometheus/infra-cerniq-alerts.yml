@@ -72,25 +72,40 @@ groups:
           summary: "Cerniq memory low (<10% available)"
           description: "Memory available is below 10% on {{ $labels.instance }}"
 
+      # cAdvisor: folosim schimbări ale start time (nu counter generic de restart din alte exportere).
       - alert: CerniqContainerRestarting
-        expr: increase(container_restart_count{project="cerniq"}[15m]) > 0
+        expr: |
+          sum by (name, instance) (
+            changes(container_start_time_seconds{job=~"cadvisor|cerniq-docker", name!=""}[15m])
+          ) > 0
         for: 5m
         labels:
           severity: warning
           project: cerniq
         annotations:
           summary: "Cerniq container restarting"
-          description: "Container {{ $labels.name }} has restarted in the last 15m"
+          description: "Container {{ $labels.name }} pe {{ $labels.instance }} — container_start_time_seconds s-a schimbat în ultimele 15m (cAdvisor)."
 
+      # prometheuscommunity/pgbouncer-exporter v0.11+: pools → pgbouncer_pools_client_* ; config → pgbouncer_config_max_client_connections
       - alert: PgBouncerPoolExhausted
-        expr: pgbouncer_pool_client_wait_ratio > 0.9 or pgbouncer_pools_cl_active >= pgbouncer_pools_max_client_conn
+        expr: |
+          (
+            sum(pgbouncer_pools_client_waiting_connections{project="cerniq"}) > 10
+          )
+          or
+          (
+            sum(pgbouncer_pools_client_active_connections{project="cerniq"})
+            /
+            clamp_min(max(pgbouncer_config_max_client_connections{project="cerniq"}), 1)
+            > 0.95
+          )
         for: 5m
         labels:
           severity: critical
           project: cerniq
         annotations:
           summary: "PgBouncer pool near or at capacity"
-          description: "PgBouncer connection pool exhausted or high wait ratio"
+          description: "Multe conexiuni client în așteptare sau utilizare >95% din max_client_conn (exporter pgbouncer-exporter)."
 
       - alert: RedisMemoryHigh
         expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
@@ -440,14 +455,17 @@ groups:
   - name: cerniq-cognitive
     rules:
       - alert: NeuronStaleFiring
-        expr: absent(increase(cerniq_worker_jobs_processed_total[5m]))
+        expr: |
+          sum(increase(cerniq_worker_jobs_processed_total{queue=~"ai:.*"}[5m])) == 0
+          and
+          sum(cerniq_worker_queue_depth{queue=~"ai:.*"}) > 0
         for: 10m
         labels:
           severity: warning
           project: cerniq
         annotations:
-          summary: "Worker job counters missing or stale (cognitive pipeline)"
-          description: "Prometheus sees no cerniq_worker_jobs_processed_total series for increase(5m) — scrape or worker metrics may be absent."
+          summary: "Cognitive (ai:*) workers stalled with backlog"
+          description: "Niciun job procesat pe cozi ai:* în 5m, dar adâncimea cozilor > 0 — verifică worker-ii AI sau Redis."
 
       - alert: DeliberativeNeuronFail
         expr: |
