@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cerniq.app/schemas/otel-collector-pipeline.json",
+  "title": "OpenTelemetry Collector — pipeline YAML (clasic)",
+  "description": "Configurație receivers/processors/exporters/service. NU este OpenTelemetry Declarative Configuration (nu folosește file_format).",
+  "type": "object",
+  "properties": {
+    "receivers": { "type": "object" },
+    "processors": { "type": "object" },
+    "exporters": { "type": "object" },
+    "extensions": { "type": "object" },
+    "service": {
+      "type": "object",
+      "properties": {
+        "extensions": { "type": "array", "items": { "type": "string" } },
+        "pipelines": { "type": "object" }
+      },
+      "required": ["pipelines"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["receivers", "processors", "exporters", "service"],
+  "additionalProperties": true
+}

@@ -11,6 +11,8 @@
 import type { Job, Worker } from "bullmq";
 import type { Redis } from "ioredis";
 import { v4 as uuidv4 } from "uuid";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import {
   QUEUES,
   WA_PHONE_COUNT,
@@ -33,6 +35,7 @@ import { quotaGuardianCheck } from "./quota-guardian.js";
 
 const JITTER_BASE_MS = 30_000;
 const JITTER_RANDOM_MS = 120_000;
+const svcLog = createServiceLogger("outreach-whatsapp", { etapa: "e2" });
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -136,7 +139,10 @@ export function createWaWorker(
       });
       if (!quotaResult.allowed) {
         if (quotaResult.reason === "QUOTA_EXCEEDED") {
-          console.warn(`quota exceeded for phone ${phoneId}, message skipped`);
+          svcLog.warn(
+            { phoneId, correlationId, tenantId },
+            "Quota exceeded for phone; message skipped",
+          );
         }
         return {
           success: false,
@@ -254,8 +260,11 @@ export function createWaWorker(
             })
             .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)));
         } else {
-          console.error(
-            `[wa:send] Journey ${journeyId} not found for tenant ${tenantId}; skip state update (message already sent)`,
+          const err = new Error("Journey not found after WhatsApp send");
+          const enr = enrichError(err, { journeyId, tenantId, correlationId });
+          svcLog.error(
+            { err, ...enr, journeyId, tenantId, correlationId },
+            "Journey not found; skipping WhatsApp state update after message send",
           );
         }
       }
@@ -338,7 +347,7 @@ export async function processWaDeliveryStatusJob(job: Job<WaDeliveryStatusJobDat
     const retryQueue = createQueue(QUEUES.WA_MESSAGE_RETRY);
     await retryQueue.add(
       "evaluate",
-      { tenantId, externalMessageId, failureReason },
+      ensureJobDataCorrelationId({ tenantId, externalMessageId, failureReason }),
       { removeOnComplete: 100 },
     );
   }

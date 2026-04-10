@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import { trace } from "@opentelemetry/api";
 import { dailyStats, db, sql } from "@cerniq/db";
 import { z } from "zod";
 import { loadDashboardStatsPayload } from "../lib/dashboard-stats-payload.js";
+import { sseConnectionErrorsTotal, sseEventsSentTotal } from "../plugins/metrics.js";
 import {
   ensureRequestTenantIdFromJwtIfMissing,
   parseLimit,
@@ -44,6 +46,8 @@ function formatSsePayload(payload: string): string {
   return body + "\n\n";
 }
 
+const SSE_ROUTE_DASHBOARD_KPI = "/api/v1/dashboard/kpi-stream";
+
 export async function dashboardRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
 
@@ -65,7 +69,11 @@ export async function dashboardRoutes(app: FastifyInstance) {
         (request.headers as Record<string, string>).authorization = `Bearer ${queryToken}`;
       }
       await request.jwtVerify();
-    } catch {
+    } catch (err) {
+      request.log.warn(
+        { err, route: SSE_ROUTE_DASHBOARD_KPI, hasQueryToken: Boolean(queryToken) },
+        "dashboard kpi-stream: JWT verify failed",
+      );
       return reply.code(401).send({
         success: false,
         error: "Autentificare SSE eșuată — token lipsă sau expirat",
@@ -76,9 +84,18 @@ export async function dashboardRoutes(app: FastifyInstance) {
     let tenantId: string;
     try {
       tenantId = requireTenantId(request);
-    } catch {
+    } catch (err) {
+      request.log.warn(
+        { err, route: SSE_ROUTE_DASHBOARD_KPI },
+        "dashboard kpi-stream: tenant missing after JWT",
+      );
       return reply.code(401).send({ success: false, error: "Tenant lipsă în context" });
     }
+
+    request.log.info(
+      { route: SSE_ROUTE_DASHBOARD_KPI, tenantId },
+      "dashboard kpi-stream: session start",
+    );
 
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -89,6 +106,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
     });
     reply.raw.write(": connected\n\n");
 
+    let sseEventsSent = 0;
     const push = (payload: unknown) => {
       const body = JSON.stringify({
         type: "kpi" as const,
@@ -97,8 +115,14 @@ export async function dashboardRoutes(app: FastifyInstance) {
       });
       try {
         reply.raw.write(formatSsePayload(body));
-      } catch {
-        /* client disconnected */
+        sseEventsSent += 1;
+        sseEventsSentTotal.inc({ route: SSE_ROUTE_DASHBOARD_KPI });
+      } catch (err) {
+        request.log.debug(
+          { err, route: SSE_ROUTE_DASHBOARD_KPI, tenantId, phase: "push" },
+          "dashboard kpi-stream: push skipped (client likely disconnected)",
+        );
+        sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_DASHBOARD_KPI, phase: "push" });
       }
     };
 
@@ -120,10 +144,15 @@ export async function dashboardRoutes(app: FastifyInstance) {
         .then((payload) => push(payload))
         .catch((err) => {
           app.log.warn({ err, tenantId }, "dashboard kpi-stream: tick eșuat");
+          sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_DASHBOARD_KPI, phase: "tick" });
         });
     }, intervalMs);
 
     const onClose = () => {
+      trace.getActiveSpan()?.addEvent("sse.session_end", {
+        "sse.events_sent": sseEventsSent,
+        "sse.route": SSE_ROUTE_DASHBOARD_KPI,
+      });
       clearInterval(timer);
     };
     request.raw.on("close", onClose);

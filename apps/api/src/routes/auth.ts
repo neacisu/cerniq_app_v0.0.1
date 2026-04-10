@@ -3,12 +3,21 @@ import { z, flattenError } from "zod";
 import bcrypt from "bcrypt";
 import { randomBytes } from "node:crypto";
 import {
+  logAndAuditLoginFailure,
+  logAndAuditLogoutValidationFailure,
+  logAndAuditRefreshFailure,
+  logAndAuditRegisterFailure,
+  writeAuthAuditEvent,
+  writeAuthCsrfDeniedAudit,
+} from "../lib/auth-audit.js";
+import {
   get_user_by_email,
   get_invite_code,
   register_new_company,
   register_with_invite_code,
 } from "@cerniq/db";
 import { envConfig } from "../config.js";
+import { authLoginAttemptsTotal } from "../plugins/metrics.js";
 import { AppError } from "../errors/app-error.js";
 import {
   consumeRefreshToken,
@@ -138,12 +147,14 @@ function replyRegisterDatabaseError(
   const pgCode = getPgErrorCode(err);
   request.log.error({ err, pgCode }, `${logLabel} failed`);
   if (pgCode === "42P01") {
+    logAndAuditRegisterFailure(request, { reason: "db_unavailable", statusCode: 503 });
     return reply.status(503).send({
       success: false,
       error:
         "Serviciu temporar indisponibil. Migrările bazei de date nu au fost aplicate. Contactați administratorul.",
     });
   }
+  logAndAuditRegisterFailure(request, { reason: "register_db_error", statusCode: 500 });
   const message = envConfig.NODE_ENV === "development" ? getErrorMessage(err) : undefined;
   return reply.status(500).send({
     success: false,
@@ -323,6 +334,7 @@ export async function authRoutes(app: FastifyInstance) {
     const rawCookie = request.cookies?.[CSRF_COOKIE_NAME];
     const csrfCookieValue = typeof rawCookie === "string" ? rawCookie : null;
     if (!csrfHeaderValue || !csrfCookieValue || csrfHeaderValue !== csrfCookieValue) {
+      writeAuthCsrfDeniedAudit(request);
       return reply.status(403).send({
         success: false,
         error: "CSRF validation failed",
@@ -333,6 +345,14 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/login", { preHandler: [loginRateLimit] }, async (request, reply) => {
     const parsed = LoginBodySchema.safeParse(request.body);
     if (!parsed.success) {
+      authLoginAttemptsTotal.inc({ result: "validation_error" });
+      const rawBody = request.body as { email?: unknown } | undefined;
+      const rawEmail = typeof rawBody?.email === "string" ? rawBody.email : undefined;
+      logAndAuditLoginFailure(request, {
+        email: rawEmail,
+        reason: "validation_error",
+        statusCode: 400,
+      });
       return reply.status(400).send({
         success: false,
         error: "Invalid email or password",
@@ -347,6 +367,8 @@ export async function authRoutes(app: FastifyInstance) {
       user = await get_user_by_email(email);
     } catch (err: unknown) {
       request.log.error({ err }, "login: database unreachable");
+      authLoginAttemptsTotal.inc({ result: "service_unavailable" });
+      logAndAuditLoginFailure(request, { email, reason: "db_unavailable", statusCode: 503 });
       return reply.status(503).send({
         success: false,
         error: "Service temporarily unavailable. Please try again shortly.",
@@ -354,6 +376,8 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      authLoginAttemptsTotal.inc({ result: "invalid_credentials" });
+      logAndAuditLoginFailure(request, { email, reason: "invalid_credentials", statusCode: 401 });
       return reply.status(401).send({
         success: false,
         error: "Invalid email or password",
@@ -361,6 +385,8 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     if (user.status !== "active") {
+      authLoginAttemptsTotal.inc({ result: "account_inactive" });
+      logAndAuditLoginFailure(request, { email, reason: "account_inactive", statusCode: 401 });
       return reply.status(401).send({
         success: false,
         error: "Account is not active",
@@ -383,6 +409,13 @@ export async function authRoutes(app: FastifyInstance) {
     );
     const csrfToken = issueCsrfToken(reply);
 
+    authLoginAttemptsTotal.inc({ result: "success" });
+    writeAuthAuditEvent(request, {
+      action: "login",
+      statusCode: 200,
+      tenantId,
+      userId: user.id,
+    });
     return reply.send({
       success: true,
       data: {
@@ -398,6 +431,13 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/register", { preHandler: [loginRateLimit] }, async (request, reply) => {
     const parsed = RegisterBodySchema.safeParse(request.body);
     if (!parsed.success) {
+      const rawBody = request.body as { email?: unknown } | undefined;
+      const rawEmail = typeof rawBody?.email === "string" ? rawBody.email : undefined;
+      logAndAuditRegisterFailure(request, {
+        reason: "validation_error",
+        statusCode: 400,
+        ...(rawEmail ? { email: rawEmail } : {}),
+      });
       return reply.status(400).send({
         success: false,
         error: "Date invalide",
@@ -406,12 +446,27 @@ export async function authRoutes(app: FastifyInstance) {
     }
     const { email, password } = parsed.data;
 
-    const existing = await get_user_by_email(email);
+    let existing;
+    try {
+      existing = await get_user_by_email(email);
+    } catch (err: unknown) {
+      request.log.error({ err }, "register: database unreachable (duplicate check)");
+      logAndAuditRegisterFailure(request, { reason: "db_unavailable", statusCode: 503, email });
+      return reply.status(503).send({
+        success: false,
+        error: "Service temporarily unavailable. Please try again shortly.",
+      });
+    }
     if (existing) {
       request.log.info(
         { email: email.slice(0, 3) + "***" },
         "register 409: email already registered",
       );
+      logAndAuditRegisterFailure(request, {
+        reason: "email_already_registered",
+        statusCode: 409,
+        email,
+      });
       return reply.status(409).send({
         success: false,
         error: "Acest email este deja înregistrat.",
@@ -437,6 +492,12 @@ export async function authRoutes(app: FastifyInstance) {
     );
     const csrfToken = issueCsrfToken(reply);
 
+    writeAuthAuditEvent(request, {
+      action: "register",
+      statusCode: 200,
+      tenantId: user.tenantId,
+      userId: user.id,
+    });
     return reply.send({
       success: true,
       data: {
@@ -458,6 +519,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/refresh", async (request, reply) => {
     const parsed = RefreshBodySchema.safeParse(request.body ?? {});
     if (!parsed.success) {
+      logAndAuditRefreshFailure(request, { reason: "validation_error", statusCode: 400 });
       return reply.status(400).send({
         success: false,
         error: "Date invalide",
@@ -467,6 +529,7 @@ export async function authRoutes(app: FastifyInstance) {
     const cookieToken = request.cookies?.refreshToken;
     const refreshToken = parsed.data.refreshToken ?? cookieToken;
     if (!refreshToken) {
+      logAndAuditRefreshFailure(request, { reason: "missing_refresh_token", statusCode: 401 });
       return reply.status(401).send({ success: false, error: "Refresh token lipsa" });
     }
 
@@ -478,6 +541,7 @@ export async function authRoutes(app: FastifyInstance) {
         allowedAud: AUTH_AUDIENCE,
       });
     } catch {
+      logAndAuditRefreshFailure(request, { reason: "invalid_jwt", statusCode: 401 });
       return reply.status(401).send({ success: false, error: "Refresh token invalid" });
     }
 
@@ -486,36 +550,55 @@ export async function authRoutes(app: FastifyInstance) {
       typeof payload.jti !== "string" ||
       typeof payload.familyId !== "string"
     ) {
+      logAndAuditRefreshFailure(request, { reason: "invalid_refresh_payload", statusCode: 401 });
       return reply.status(401).send({ success: false, error: "Refresh token invalid" });
     }
     const familyRevoked = await isRefreshFamilyRevoked(payload.familyId);
     if (familyRevoked) {
+      logAndAuditRefreshFailure(request, { reason: "refresh_family_revoked", statusCode: 401 });
       return reply.status(401).send({ success: false, error: "Refresh token family revocata" });
     }
 
     const isHashValid = await verifyRefreshTokenHash(payload.jti, refreshToken);
     if (!isHashValid) {
       await revokeRefreshFamily(payload.familyId);
+      logAndAuditRefreshFailure(request, {
+        reason: "refresh_token_hash_mismatch",
+        statusCode: 401,
+      });
       return reply.status(401).send({ success: false, error: "Refresh token invalidat" });
     }
 
     const consumed = await consumeRefreshToken(payload.jti);
     if (!consumed) {
       await revokeRefreshFamily(payload.familyId);
+      logAndAuditRefreshFailure(request, { reason: "refresh_token_reuse", statusCode: 401 });
       return reply.status(401).send({ success: false, error: "Refresh token reutilizat" });
     }
 
-    const user = await get_user_by_email(jwtPayloadStringField(payload, "email"));
-    if (user?.status !== "active") {
+    let user;
+    try {
+      user = await get_user_by_email(jwtPayloadStringField(payload, "email"));
+    } catch (err: unknown) {
+      request.log.error({ err }, "refresh: database unreachable");
+      logAndAuditRefreshFailure(request, { reason: "db_unavailable", statusCode: 503 });
+      return reply.status(503).send({
+        success: false,
+        error: "Service temporarily unavailable. Please try again shortly.",
+      });
+    }
+    const activeUser = user?.status === "active" ? user : null;
+    if (!activeUser) {
+      logAndAuditRefreshFailure(request, { reason: "user_inactive_or_missing", statusCode: 401 });
       return reply.status(401).send({ success: false, error: "Utilizator invalid" });
     }
     const { accessToken, refreshToken: rotatedRefresh } = await issueAuthTokens(
       app,
       {
-        id: user.id,
-        email: user.email,
-        tenantId: user.tenantId,
-        role: user.role,
+        id: activeUser.id,
+        email: activeUser.email,
+        tenantId: activeUser.tenantId,
+        role: activeUser.role,
       },
       payload.familyId,
     );
@@ -526,6 +609,12 @@ export async function authRoutes(app: FastifyInstance) {
     );
     const csrfToken = issueCsrfToken(reply);
 
+    writeAuthAuditEvent(request, {
+      action: "refresh",
+      statusCode: 200,
+      tenantId: activeUser.tenantId,
+      userId: activeUser.id,
+    });
     return reply.send({
       success: true,
       data: {
@@ -540,6 +629,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/logout", async (request, reply) => {
     const parsed = LogoutBodySchema.safeParse(request.body ?? {});
     if (!parsed.success) {
+      logAndAuditLogoutValidationFailure(request);
       return reply.status(400).send({
         success: false,
         error: "Date invalide",
@@ -547,6 +637,8 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
     const refreshToken = parsed.data.refreshToken ?? request.cookies?.refreshToken;
+    let logoutUserId: string | null = null;
+    let logoutTenantId: string | null = null;
     if (refreshToken) {
       try {
         const payload = app.jwt.verify<Record<string, unknown>>(refreshToken, {
@@ -554,6 +646,11 @@ export async function authRoutes(app: FastifyInstance) {
           allowedIss: AUTH_ISSUER,
           allowedAud: AUTH_AUDIENCE,
         });
+        let uid: string | null = null;
+        if (typeof payload.sub === "string") uid = payload.sub;
+        else if (typeof payload.id === "string") uid = payload.id;
+        logoutUserId = uid;
+        logoutTenantId = typeof payload.tenantId === "string" ? payload.tenantId : null;
         if (typeof payload.familyId === "string") {
           await revokeRefreshFamily(payload.familyId);
         }
@@ -567,6 +664,12 @@ export async function authRoutes(app: FastifyInstance) {
 
     reply.clearCookie("refreshToken", { path: AUTH_COOKIE_PATH });
     reply.clearCookie(CSRF_COOKIE_NAME, { path: AUTH_COOKIE_PATH });
+    writeAuthAuditEvent(request, {
+      action: "logout",
+      statusCode: 200,
+      tenantId: logoutTenantId,
+      userId: logoutUserId,
+    });
     return reply.send({ success: true, data: { loggedOut: true } });
   });
 

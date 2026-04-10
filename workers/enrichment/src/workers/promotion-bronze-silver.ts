@@ -34,9 +34,10 @@ import {
   withCognitiveSpan,
   recordDataMutation,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
-import { createHitlApprovalTask } from "./pipeline-utils.js";
+import { createHitlApprovalTask, logEnrichmentAudit } from "./pipeline-utils.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import { z } from "zod";
 
@@ -47,6 +48,12 @@ export type PromotionBronzeSilverJobData = {
   correlationId?: string;
   reprocessErrorsOnly?: boolean;
   importExecution?: ImportExecutionContext;
+  requestId?: string;
+  httpCorrelationId?: string;
+  traceId?: string;
+  causationKey?: string;
+  sourceEndpoint?: string;
+  actorId?: string;
 };
 
 const promotionBronzeSilverJobDataSchema = z
@@ -56,6 +63,13 @@ const promotionBronzeSilverJobDataSchema = z
     batchId: z.uuid().optional(),
     correlationId: z.string().trim().min(1).optional(),
     reprocessErrorsOnly: z.boolean().optional(),
+    /** Propagate din API (F5) — opționale, ignorate de logică dacă lipsesc */
+    requestId: z.string().optional(),
+    httpCorrelationId: z.string().optional(),
+    traceId: z.string().optional(),
+    causationKey: z.string().optional(),
+    sourceEndpoint: z.string().optional(),
+    actorId: z.string().optional(),
   })
   .refine((data) => Boolean(data.bronzeContactId || data.batchId), {
     message: "Either bronzeContactId or batchId must be provided",
@@ -67,6 +81,7 @@ const CONTACT_REPROCESS_RETRY_DELAYS_MS = [12_000, 24_000, 36_000] as const;
 const REPROCESS_ERROR_HISTORY_LIMIT = 10;
 const JOB_HEARTBEAT_MIN_INTERVAL_MS = 10_000;
 const JOB_HEARTBEAT_CONTACT_INTERVAL = 25;
+const svcLog = createServiceLogger("promotion-bronze-silver", { etapa: "e1" });
 
 const NEXT_ENRICHMENT_QUEUES = [
   QUEUES.ENRICH_ANAF_FULL,
@@ -224,12 +239,28 @@ async function withBatchMetadataRetry<T>(
       return await fn();
     } catch (error) {
       if (!isRetriableBatchMetadataError(error) || attempt === maxAttempts) {
+        const enr = enrichError(error, { tenantId, operation, attempt });
+        svcLog.error(
+          { err: error, ...enr, tenantId, operation },
+          "promotion batch metadata operation failed",
+        );
         throw error;
       }
 
       const delayMs = Math.min(100 * 2 ** (attempt - 1), 2000);
-      console.warn(
-        `[promotion-bronze-silver] retrying ${operation} for tenant ${tenantId} (attempt ${attempt}/${maxAttempts}): ${readErrorMessage(error)}`,
+      const enr = enrichError(error, { tenantId, operation, attempt });
+      svcLog.warn(
+        {
+          tenantId,
+          operation,
+          attempt,
+          maxAttempts,
+          delayMs,
+          errorMessage: readErrorMessage(error),
+          fingerprint: enr.fingerprint,
+          errorType: enr.errorType,
+        },
+        "Retrying promotion batch metadata operation",
       );
       await delay(delayMs);
     }
@@ -724,8 +755,15 @@ function createBatchProgressReporter(
         heartbeatAt: new Date(lastHeartbeatAt).toISOString(),
       });
     } catch (error) {
-      console.warn(
-        `[promotion-bronze-silver] failed to update job progress for ${String(job.id)}: ${readErrorMessage(error)}`,
+      const enr = enrichError(error, { jobId: String(job.id) });
+      svcLog.warn(
+        {
+          jobId: String(job.id),
+          errorMessage: readErrorMessage(error),
+          fingerprint: enr.fingerprint,
+          errorType: enr.errorType,
+        },
+        "Failed to update promotion job progress",
       );
     }
   }
@@ -826,6 +864,12 @@ async function processOneBronzeContactWithRetries(
       return;
     } catch (error) {
       lastError = error;
+      const enrAttempt = enrichError(error, {
+        bronzeContactId: bronze.id,
+        batchId,
+        attempt,
+      });
+      svcLog.warn({ err: error, ...enrAttempt }, "Bronze contact reprocess attempt failed");
       await recordContactReprocessFailure({
         tenantId,
         bronzeId: bronze.id,
@@ -843,8 +887,21 @@ async function processOneBronzeContactWithRetries(
 
   counters.processed += 1;
   counters.failedContacts += 1;
-  console.error(
-    `[promotion-bronze-silver] contact ${bronze.id} failed after ${CONTACT_REPROCESS_MAX_ATTEMPTS} attempts in batch ${batchId}: ${readErrorMessage(lastError)}`,
+  const enr = enrichError(lastError, {
+    bronzeContactId: bronze.id,
+    batchId,
+    attempts: CONTACT_REPROCESS_MAX_ATTEMPTS,
+  });
+  svcLog.error(
+    {
+      err: lastError,
+      ...enr,
+      bronzeContactId: bronze.id,
+      batchId,
+      attempts: CONTACT_REPROCESS_MAX_ATTEMPTS,
+      errorMessage: readErrorMessage(lastError),
+    },
+    "Bronze contact failed after maximum reprocess attempts",
   );
 }
 
@@ -1016,8 +1073,16 @@ async function loadBatchReprocessCheckpoint(
     try {
       return await rebuildFullRunCheckpointFromCursor(tenantId, batchId, baseCheckpoint);
     } catch (error) {
-      console.error(
-        `[promotion-bronze-silver] failed to rebuild checkpoint for batch ${batchId}; falling back to persisted metadata: ${readErrorMessage(error)}`,
+      const enr = enrichError(error, { batchId, tenantId });
+      svcLog.error(
+        {
+          err: error,
+          ...enr,
+          batchId,
+          tenantId,
+          errorMessage: readErrorMessage(error),
+        },
+        "Failed to rebuild checkpoint; falling back to persisted metadata",
       );
     }
   }
@@ -1385,6 +1450,15 @@ async function handleBatchReprocess(
       status: "completed",
     });
   } catch (error) {
+    const enrMain = enrichError(error, {
+      batchId,
+      tenantId: jobData.tenantId,
+      phase,
+    });
+    svcLog.error(
+      { err: error, ...enrMain, batchId, tenantId: jobData.tenantId, phase },
+      "identity reprocess batch failed",
+    );
     try {
       await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
         identityReprocessStatus: "failed",
@@ -1410,8 +1484,19 @@ async function handleBatchReprocess(
         identityReprocessFailedContactCount: counters.failedContacts,
       });
     } catch (metadataError) {
-      console.error(
-        `[promotion-bronze-silver] failed to persist reprocess failure metadata for batch ${batchId}: ${readErrorMessage(metadataError)}`,
+      const enrMeta = enrichError(metadataError, {
+        batchId,
+        tenantId: jobData.tenantId,
+      });
+      svcLog.error(
+        {
+          err: metadataError,
+          ...enrMeta,
+          batchId,
+          tenantId: jobData.tenantId,
+          errorMessage: readErrorMessage(metadataError),
+        },
+        "Failed to persist reprocess failure metadata for batch",
       );
     }
     await progressReporter.force({
@@ -2166,10 +2251,18 @@ async function persistSilverCompany(args: {
   } catch (error: unknown) {
     const pgError = error as { code?: string };
     if (pgError?.code !== "23505") {
+      const enr = enrichError(error, { tenantId, cui: cui ?? null, op: "insert_silver_company" });
+      svcLog.error({ err: error, ...enr }, "insert silver company failed (non-unique)");
       throw error;
     }
     const raced = await findCompanyByIdentifiers(tenantId, cui, nrRegCom);
     if (!raced) {
+      const enr = enrichError(error, {
+        tenantId,
+        cui: cui ?? null,
+        op: "insert_silver_company_race",
+      });
+      svcLog.error({ err: error, ...enr }, "unique violation but company row not found on retry");
       throw error;
     }
     await db
@@ -2892,6 +2985,24 @@ export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobD
           ...result,
           durationMs: Date.now() - startedAt,
         });
+        await logEnrichmentAudit({
+          tenantId: job.data.tenantId,
+          entityType: "batch",
+          entityId: job.data.batchId,
+          source: "promotion_bronze_silver",
+          operation: "batch_reprocess_complete",
+          status: "success",
+          previousValues: {},
+          newValues: {
+            ...result,
+            queued: (result as Record<string, unknown>).queued ?? null,
+            processed: (result as Record<string, unknown>).processed ?? null,
+            failedContacts: (result as Record<string, unknown>).failedContacts ?? null,
+          },
+          correlationId: job.data.correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
         return result;
       }
 
@@ -2977,3 +3088,5 @@ export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobD
     { tenantId: job.data.tenantId },
   );
 };
+
+export { promotionBronzeSilverJobDataSchema };

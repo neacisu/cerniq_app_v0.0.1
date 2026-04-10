@@ -38,6 +38,7 @@ import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js
 import { requireRole } from "../middleware/authz.js";
 import { importConfigSchema, listBronzeContactsSchema } from "../schemas/etapa1.js";
 import { createQueue } from "../lib/queue-factory.js";
+import { buildApiJobPayloadContext } from "../lib/http-job-tracing.js";
 
 const IMPORT_DIR = process.env.IMPORT_UPLOAD_DIR || "/app/data/imports";
 const LEGACY_IMPORT_DIR = process.env.LEGACY_IMPORT_DIR ?? `${IMPORT_DIR}/legacy`;
@@ -1422,6 +1423,7 @@ function buildCommonJobLogFilters(args: ImportJobLogsListArgs): SQL[] {
   const filters: SQL[] = [
     sql`${jobLogs.tenantId} = ${args.tenantId}`,
     sql`${jobLogs.batchId} = ${args.batchId}`,
+    sql`${jobLogs.etapa} = ${"e1"}`,
   ];
   const storedLevel = resolveStoredJobLogLevel(args.level);
 
@@ -1535,6 +1537,10 @@ function buildJobLogResponseRow(row: typeof jobLogs.$inferSelect) {
     details,
     durationMs,
     createdAt: row.createdAt.toISOString(),
+    correlationId: row.correlationId ?? null,
+    traceId: row.traceId ?? null,
+    entityType: row.entityType ?? null,
+    entityId: row.entityId ?? null,
   };
 }
 
@@ -2535,7 +2541,9 @@ async function loadImportRuntimeObservedLogs(
     db
       .select()
       .from(jobLogs)
-      .where(sql`${jobLogs.tenantId} = ${tenantId} AND ${jobLogs.batchId} = ${batchId}`)
+      .where(
+        sql`${jobLogs.tenantId} = ${tenantId} AND ${jobLogs.batchId} = ${batchId} AND ${jobLogs.etapa} = ${"e1"}`,
+      )
       .orderBy(sql`${jobLogs.createdAt} DESC`)
       .limit(6000),
     db
@@ -3858,6 +3866,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             tenantId,
             batchId: parsedParams.data.id,
             correlationId: `re-promote-${parsedParams.data.id}-${Date.now()}`,
+            ...buildApiJobPayloadContext(request),
           },
           opts: {
             jobId: reprocessJobId,
@@ -4310,6 +4319,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             tenantId,
             batchId,
             correlationId: `resume-promote-${batchId}-${Date.now()}`,
+            ...buildApiJobPayloadContext(request),
           },
           opts: {
             jobId: reprocessJobId,
@@ -4494,6 +4504,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             batchId,
             reprocessErrorsOnly: true,
             correlationId: `resume-reprocess-errors-${batchId}-${Date.now()}`,
+            ...buildApiJobPayloadContext(request),
           },
           opts: {
             jobId: reprocessJobId,
@@ -4689,6 +4700,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             correlationId: `manual-anaf-${batchId}-${Date.now()}`,
             batchIndex: i,
             totalBatches,
+            ...buildApiJobPayloadContext(request),
           },
           opts: {
             jobId: `anaf-bronze-${batchId}-manual-${i}`,
@@ -5569,6 +5581,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           sheetName: uploadConfig.sheetName,
           columnMapping: uploadConfig.mapping,
           correlationId: `import-${batch.id}`,
+          ...buildApiJobPayloadContext(request),
         },
         workerName: isCsv ? "A1:csv-parser" : "A2:excel-parser",
         stageKey: "ingest",
@@ -5740,6 +5753,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           sheetName: uploadConfig.sheetName ?? null,
           columnMapping: effectiveMapping,
           correlationId: `retry-${existing.id}-${Date.now()}`,
+          ...buildApiJobPayloadContext(request),
         },
         workerName: isExcel ? "A2:excel-parser" : "A1:csv-parser",
         stageKey: "ingest",
@@ -5875,6 +5889,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           tenantId,
           bronzeContactId: contact.id,
           correlationId: `reprocess-${contact.id}`,
+          ...buildApiJobPayloadContext(request),
         },
         workerName: "promotion:bronze-silver",
         stageKey: "promotion",

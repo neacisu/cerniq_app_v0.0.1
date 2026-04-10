@@ -1,0 +1,751 @@
+{
+  "generatedAt": "2026-04-10T07:36:47.556Z",
+  "paths": {
+    "/": [
+      "GET"
+    ],
+    "/api/admin/control/pause": [
+      "POST"
+    ],
+    "/api/admin/live": [
+      "GET"
+    ],
+    "/api/admin/logs": [
+      "GET"
+    ],
+    "/api/admin/prometheus/api-plugin-catalog": [
+      "GET"
+    ],
+    "/api/admin/queues": [
+      "GET"
+    ],
+    "/api/admin/queues/{name}": [
+      "GET"
+    ],
+    "/api/admin/queues/{name}/drain": [
+      "POST"
+    ],
+    "/api/admin/queues/{name}/pause": [
+      "POST"
+    ],
+    "/api/admin/queues/{name}/resume": [
+      "POST"
+    ],
+    "/api/admin/queues/{name}/retry-failed": [
+      "POST"
+    ],
+    "/api/admin/system/metrics": [
+      "GET"
+    ],
+    "/api/v1/admin/llm-costs": [
+      "GET"
+    ],
+    "/api/v1/ai/audit-log": [
+      "GET"
+    ],
+    "/api/v1/ai/consensus/votes": [
+      "GET"
+    ],
+    "/api/v1/ai/decisions/{id}/explanation": [
+      "GET"
+    ],
+    "/api/v1/ai/guardrails/metrics": [
+      "GET"
+    ],
+    "/api/v1/ai/guardrails/status": [
+      "GET"
+    ],
+    "/api/v1/ai/products/search": [
+      "POST"
+    ],
+    "/api/v1/auth/login": [
+      "POST"
+    ],
+    "/api/v1/auth/logout": [
+      "POST"
+    ],
+    "/api/v1/auth/me": [
+      "GET"
+    ],
+    "/api/v1/auth/refresh": [
+      "POST"
+    ],
+    "/api/v1/auth/register": [
+      "POST"
+    ],
+    "/api/v1/brain/catalog": [
+      "GET"
+    ],
+    "/api/v1/brain/events/stream": [
+      "GET"
+    ],
+    "/api/v1/brain/mutations/{batchId}": [
+      "GET"
+    ],
+    "/api/v1/brain/nodes/{nodeKey}/config": [
+      "PUT"
+    ],
+    "/api/v1/brain/nodes/{nodeKey}/pause": [
+      "POST"
+    ],
+    "/api/v1/brain/nodes/{nodeKey}/resume": [
+      "POST"
+    ],
+    "/api/v1/brain/nodes/{nodeKey}/traces": [
+      "GET"
+    ],
+    "/api/v1/brain/topology": [
+      "GET"
+    ],
+    "/api/v1/brain/traces/{traceId}": [
+      "GET"
+    ],
+    "/api/v1/bronze/contacts": [
+      "GET"
+    ],
+    "/api/v1/bronze/contacts/{id}": [
+      "GET"
+    ],
+    "/api/v1/bronze/contacts/{id}/reprocess": [
+      "POST"
+    ],
+    "/api/v1/churn/factors": [
+      "GET"
+    ],
+    "/api/v1/churn/factors/{leadId}": [
+      "GET"
+    ],
+    "/api/v1/churn/sentiment": [
+      "GET"
+    ],
+    "/api/v1/churn/signals": [
+      "GET"
+    ],
+    "/api/v1/churn/stats": [
+      "GET"
+    ],
+    "/api/v1/churn/{leadId}/evaluate": [
+      "POST"
+    ],
+    "/api/v1/contracts/": [
+      "GET"
+    ],
+    "/api/v1/contracts/audit": [
+      "GET"
+    ],
+    "/api/v1/contracts/clauses": [
+      "GET"
+    ],
+    "/api/v1/contracts/orders/{orderId}/generate": [
+      "POST"
+    ],
+    "/api/v1/contracts/stats": [
+      "GET"
+    ],
+    "/api/v1/contracts/templates": [
+      "GET"
+    ],
+    "/api/v1/contracts/{id}": [
+      "GET"
+    ],
+    "/api/v1/contracts/{id}/send-docusign": [
+      "POST"
+    ],
+    "/api/v1/credit/profiles": [
+      "GET"
+    ],
+    "/api/v1/credit/profiles/{clientId}": [
+      "GET"
+    ],
+    "/api/v1/credit/profiles/{clientId}/evaluate": [
+      "POST"
+    ],
+    "/api/v1/credit/profiles/{clientId}/history": [
+      "GET"
+    ],
+    "/api/v1/credit/refresh-all": [
+      "POST"
+    ],
+    "/api/v1/credit/reservations": [
+      "GET"
+    ],
+    "/api/v1/credit/reservations/{id}/release": [
+      "POST"
+    ],
+    "/api/v1/credit/stats": [
+      "GET"
+    ],
+    "/api/v1/dashboard/activity": [
+      "GET"
+    ],
+    "/api/v1/dashboard/daily-stats": [
+      "GET"
+    ],
+    "/api/v1/dashboard/kpi-stream": [
+      "GET"
+    ],
+    "/api/v1/dashboard/stats": [
+      "GET"
+    ],
+    "/api/v1/e5/alerts/": [
+      "GET"
+    ],
+    "/api/v1/e5/alerts/apia/trigger": [
+      "POST"
+    ],
+    "/api/v1/e5/alerts/campaign/trigger": [
+      "POST"
+    ],
+    "/api/v1/e5/alerts/compliance/check": [
+      "POST"
+    ],
+    "/api/v1/e5/alerts/compliance/stats": [
+      "GET"
+    ],
+    "/api/v1/e5/alerts/weather/status": [
+      "GET"
+    ],
+    "/api/v1/e5/alerts/weather/trigger": [
+      "POST"
+    ],
+    "/api/v1/enrichment/approvals": [
+      "GET"
+    ],
+    "/api/v1/enrichment/approvals/stats": [
+      "GET"
+    ],
+    "/api/v1/enrichment/approvals/{id}": [
+      "GET"
+    ],
+    "/api/v1/enrichment/approvals/{id}/assign": [
+      "POST"
+    ],
+    "/api/v1/enrichment/approvals/{id}/decide": [
+      "POST"
+    ],
+    "/api/v1/enrichment/approvals/{id}/escalate": [
+      "POST"
+    ],
+    "/api/v1/enrichment/queues": [
+      "GET"
+    ],
+    "/api/v1/enrichment/queues/{name}": [
+      "GET"
+    ],
+    "/api/v1/enrichment/queues/{name}/pause": [
+      "POST"
+    ],
+    "/api/v1/enrichment/queues/{name}/resume": [
+      "POST"
+    ],
+    "/api/v1/fiscal/einvoice/submissions": [
+      "GET"
+    ],
+    "/api/v1/fiscal/einvoice/submissions/{id}": [
+      "GET"
+    ],
+    "/api/v1/fiscal/oblio/documents": [
+      "GET"
+    ],
+    "/api/v1/fiscal/oblio/documents/{id}": [
+      "GET"
+    ],
+    "/api/v1/fiscal/oblio/einvoice/{id}": [
+      "POST"
+    ],
+    "/api/v1/fiscal/oblio/invoice": [
+      "POST"
+    ],
+    "/api/v1/fiscal/oblio/proforma": [
+      "POST"
+    ],
+    "/api/v1/fiscal/oblio/stats": [
+      "GET"
+    ],
+    "/api/v1/fiscal/timeline": [
+      "GET"
+    ],
+    "/api/v1/gdpr/consent-log": [
+      "POST"
+    ],
+    "/api/v1/gdpr/erasure": [
+      "POST"
+    ],
+    "/api/v1/gold/companies": [
+      "GET"
+    ],
+    "/api/v1/gold/companies/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/gold/companies/{id}/journey": [
+      "GET"
+    ],
+    "/api/v1/gold/companies/{id}/transition": [
+      "POST"
+    ],
+    "/api/v1/graph/clusters": [
+      "GET"
+    ],
+    "/api/v1/graph/clusters/{id}": [
+      "GET"
+    ],
+    "/api/v1/graph/detect": [
+      "POST"
+    ],
+    "/api/v1/graph/geo-summary": [
+      "GET"
+    ],
+    "/api/v1/graph/kol-profiles": [
+      "GET"
+    ],
+    "/api/v1/graph/proximity": [
+      "GET"
+    ],
+    "/api/v1/graph/relationships": [
+      "GET"
+    ],
+    "/api/v1/graph/stats": [
+      "GET"
+    ],
+    "/api/v1/imports": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/imports/control": [
+      "GET"
+    ],
+    "/api/v1/imports/control/pause": [
+      "POST"
+    ],
+    "/api/v1/imports/control/resume": [
+      "POST"
+    ],
+    "/api/v1/imports/mapping-targets": [
+      "GET"
+    ],
+    "/api/v1/imports/template": [
+      "GET"
+    ],
+    "/api/v1/imports/template/columns": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}": [
+      "DELETE",
+      "GET"
+    ],
+    "/api/v1/imports/{id}/anaf-enrich": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/cancel": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/entities": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/headers": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/job-logs": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/mapping": [
+      "PUT"
+    ],
+    "/api/v1/imports/{id}/pause": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/pipeline-status": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/promote-job-status": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/quarantine": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/re-promote": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/reprocess-errors": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/reprocess-errors/resume": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/resume": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/resume-promote": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/retry": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/rows": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/runtime-topology": [
+      "GET"
+    ],
+    "/api/v1/imports/{id}/workers/{workerName}/pause": [
+      "POST"
+    ],
+    "/api/v1/imports/{id}/workers/{workerName}/resume": [
+      "POST"
+    ],
+    "/api/v1/imports/{importId}/logs/stream": [
+      "GET"
+    ],
+    "/api/v1/negotiation/": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/negotiation/by-lead/{leadId}": [
+      "GET"
+    ],
+    "/api/v1/negotiation/guardrails": [
+      "GET"
+    ],
+    "/api/v1/negotiation/stats": [
+      "GET"
+    ],
+    "/api/v1/negotiation/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/negotiation/{id}/abandon": [
+      "POST"
+    ],
+    "/api/v1/negotiation/{id}/guardrails": [
+      "GET"
+    ],
+    "/api/v1/negotiation/{id}/items": [
+      "PUT"
+    ],
+    "/api/v1/negotiation/{id}/messages": [
+      "GET"
+    ],
+    "/api/v1/negotiation/{id}/reminder": [
+      "POST"
+    ],
+    "/api/v1/negotiations/": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/negotiations/by-lead/{leadId}": [
+      "GET"
+    ],
+    "/api/v1/negotiations/guardrails": [
+      "GET"
+    ],
+    "/api/v1/negotiations/stats": [
+      "GET"
+    ],
+    "/api/v1/negotiations/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/negotiations/{id}/abandon": [
+      "POST"
+    ],
+    "/api/v1/negotiations/{id}/guardrails": [
+      "GET"
+    ],
+    "/api/v1/negotiations/{id}/items": [
+      "PUT"
+    ],
+    "/api/v1/negotiations/{id}/messages": [
+      "GET"
+    ],
+    "/api/v1/negotiations/{id}/reminder": [
+      "POST"
+    ],
+    "/api/v1/notifications/": [
+      "GET"
+    ],
+    "/api/v1/notifications/read-all": [
+      "POST"
+    ],
+    "/api/v1/notifications/{id}/read": [
+      "PATCH"
+    ],
+    "/api/v1/nurturing/actions": [
+      "GET"
+    ],
+    "/api/v1/nurturing/churn-risks": [
+      "GET"
+    ],
+    "/api/v1/nurturing/drips": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/nurturing/drips/{id}": [
+      "PATCH"
+    ],
+    "/api/v1/nurturing/nps": [
+      "GET"
+    ],
+    "/api/v1/nurturing/nps/{leadId}/send": [
+      "POST"
+    ],
+    "/api/v1/nurturing/referrals": [
+      "GET"
+    ],
+    "/api/v1/nurturing/states": [
+      "GET"
+    ],
+    "/api/v1/nurturing/states/{leadId}": [
+      "GET"
+    ],
+    "/api/v1/nurturing/states/{leadId}/evaluate": [
+      "POST"
+    ],
+    "/api/v1/nurturing/stats": [
+      "GET"
+    ],
+    "/api/v1/orders/": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/orders/payments": [
+      "GET"
+    ],
+    "/api/v1/orders/payments/reconciliations": [
+      "GET"
+    ],
+    "/api/v1/orders/payments/summary": [
+      "GET"
+    ],
+    "/api/v1/orders/stats": [
+      "GET"
+    ],
+    "/api/v1/orders/{id}": [
+      "DELETE",
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/orders/{id}/payments": [
+      "GET"
+    ],
+    "/api/v1/outreach/analytics/daily": [
+      "GET"
+    ],
+    "/api/v1/outreach/analytics/overview": [
+      "GET"
+    ],
+    "/api/v1/outreach/analytics/phones": [
+      "GET"
+    ],
+    "/api/v1/outreach/campaigns": [
+      "GET"
+    ],
+    "/api/v1/outreach/dashboard": [
+      "GET"
+    ],
+    "/api/v1/outreach/jobs/{jobId}/logs": [
+      "GET"
+    ],
+    "/api/v1/outreach/leads": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/outreach/leads/export": [
+      "GET"
+    ],
+    "/api/v1/outreach/leads/import": [
+      "POST"
+    ],
+    "/api/v1/outreach/leads/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/outreach/leads/{id}/activity": [
+      "GET"
+    ],
+    "/api/v1/outreach/leads/{id}/send-message": [
+      "POST"
+    ],
+    "/api/v1/outreach/leads/{id}/takeover": [
+      "POST"
+    ],
+    "/api/v1/outreach/notifications": [
+      "GET"
+    ],
+    "/api/v1/outreach/notifications/mark-all-read": [
+      "POST"
+    ],
+    "/api/v1/outreach/notifications/{id}/read": [
+      "PATCH"
+    ],
+    "/api/v1/outreach/phones": [
+      "GET"
+    ],
+    "/api/v1/outreach/phones/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/outreach/phones/{id}/health-check": [
+      "POST"
+    ],
+    "/api/v1/outreach/reviews": [
+      "GET"
+    ],
+    "/api/v1/outreach/reviews/stats": [
+      "GET"
+    ],
+    "/api/v1/outreach/reviews/{id}": [
+      "GET"
+    ],
+    "/api/v1/outreach/reviews/{id}/assign": [
+      "POST"
+    ],
+    "/api/v1/outreach/reviews/{id}/resolve": [
+      "POST"
+    ],
+    "/api/v1/outreach/sequences": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/outreach/sequences/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/outreach/sequences/{id}/enroll": [
+      "POST"
+    ],
+    "/api/v1/outreach/settings": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/outreach/templates": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/outreach/templates/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/outreach/templates/{id}/preview": [
+      "POST"
+    ],
+    "/api/v1/postsale/credit-scores/{companyId}": [
+      "GET"
+    ],
+    "/api/v1/postsale/payments/{id}": [
+      "GET"
+    ],
+    "/api/v1/products/": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/products/categories": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/products/index/rebuild": [
+      "POST"
+    ],
+    "/api/v1/products/search": [
+      "POST"
+    ],
+    "/api/v1/products/stats": [
+      "GET"
+    ],
+    "/api/v1/products/{id}": [
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/products/{id}/embed": [
+      "POST"
+    ],
+    "/api/v1/products/{id}/ingest": [
+      "POST"
+    ],
+    "/api/v1/products/{id}/stock": [
+      "GET"
+    ],
+    "/api/v1/referrals/": [
+      "GET",
+      "POST"
+    ],
+    "/api/v1/referrals/stats": [
+      "GET"
+    ],
+    "/api/v1/referrals/{id}": [
+      "GET"
+    ],
+    "/api/v1/referrals/{id}/consent": [
+      "PATCH"
+    ],
+    "/api/v1/referrals/{id}/outreach": [
+      "POST"
+    ],
+    "/api/v1/shipments/": [
+      "GET"
+    ],
+    "/api/v1/shipments/addresses": [
+      "POST"
+    ],
+    "/api/v1/shipments/addresses/{clientId}": [
+      "GET"
+    ],
+    "/api/v1/shipments/orders/{orderId}/create-awb": [
+      "POST"
+    ],
+    "/api/v1/shipments/stats": [
+      "GET"
+    ],
+    "/api/v1/shipments/{id}": [
+      "GET"
+    ],
+    "/api/v1/silver/companies": [
+      "GET"
+    ],
+    "/api/v1/silver/companies/{id}": [
+      "GET"
+    ],
+    "/api/v1/silver/companies/{id}/enrich": [
+      "POST"
+    ],
+    "/api/v1/silver/companies/{id}/promote": [
+      "POST"
+    ],
+    "/api/v1/silver/dedup-candidates": [
+      "GET"
+    ],
+    "/api/v1/silver/dedup-candidates/{id}/decide": [
+      "POST"
+    ],
+    "/api/v1/silver/enrichment-log": [
+      "GET"
+    ],
+    "/api/v1/system/processes": [
+      "GET"
+    ],
+    "/api/v1/webhooks/instantly": [
+      "POST"
+    ],
+    "/api/v1/webhooks/resend": [
+      "POST"
+    ],
+    "/api/v1/webhooks/timelinesai": [
+      "POST"
+    ],
+    "/documentation": [
+      "GET"
+    ],
+    "/health/deps": [
+      "GET"
+    ],
+    "/health/live": [
+      "GET"
+    ],
+    "/health/ready": [
+      "GET"
+    ],
+    "/metrics": [
+      "GET"
+    ]
+  }
+}

@@ -1,5 +1,7 @@
 {
+  /* Bare specifier: folderul pachetului → package.json "types"/"exports" (dist). Nu mapăm la src (evită TS6059 rootDir la build). */
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -9,7 +11,12 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@cerniq/observability": ["../../packages/observability"],
+      "@cerniq/observability/*": ["../../packages/observability/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

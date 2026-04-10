@@ -388,41 +388,7 @@ export const importRuntimeWorkerCounters = bronzeSchema.table(
   ],
 );
 
-// ─── Job Logs ─────────────────────────────────────────────────────────────────
-// Granular per-worker / per-job execution logs for the import pipeline.
-// Queried by GET /imports/:id/logs and streamed via GET /imports/:id/logs/stream (SSE).
-
-export const jobLogLevelEnum = pgEnum("job_log_level", ["debug", "info", "warn", "error"]);
-
-export const jobLogs = bronzeSchema.table(
-  "job_logs",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    tenantId: uuid("tenant_id")
-      .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
-    // Loose reference (no FK constraint) so logs survive batch deletion gracefully.
-    batchId: uuid("batch_id").notNull(),
-    sessionId: uuid("session_id"),
-    contactId: uuid("contact_id"),
-    workerName: varchar("worker_name", { length: 64 }).notNull(),
-    jobId: varchar("job_id", { length: 255 }),
-    runtimeJobKey: varchar("runtime_job_key", { length: 255 }),
-    parentRuntimeJobKey: varchar("parent_runtime_job_key", { length: 255 }),
-    level: jobLogLevelEnum("level").notNull().default("info"),
-    step: varchar("step", { length: 128 }),
-    message: text("message").notNull(),
-    context: jsonb("context"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    index("idx_job_logs_batch_created").on(t.batchId, t.createdAt),
-    index("idx_job_logs_batch_level").on(t.batchId, t.level),
-    index("idx_job_logs_tenant_batch").on(t.tenantId, t.batchId),
-    index("idx_job_logs_batch_session_created").on(t.batchId, t.sessionId, t.createdAt),
-    index("idx_job_logs_runtime_job_key").on(t.tenantId, t.runtimeJobKey),
-  ],
-);
+// Job logs moved to observability.job_logs — see schemas/observability.ts
 
 export const importRowQuarantine = bronzeSchema.table(
   "import_row_quarantine",

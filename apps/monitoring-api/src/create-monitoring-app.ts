@@ -12,6 +12,12 @@ import {
   verifyMonitoringAccess,
   verifyMonitoringTokenString,
 } from "./monitoring-auth.js";
+import {
+  monitoringMetricsPlugin,
+  wsLiveBroadcastErrorsTotal,
+  wsLiveConnections,
+  wsLiveMessagesSentTotal,
+} from "./metrics.js";
 
 export type MonitoringMonitor = {
   getAllQueues: () => Promise<QueueSnapshot[]>;
@@ -51,12 +57,13 @@ export async function buildMonitoringApp(
 
   const { monitorRef, metrics } = options;
 
+  await app.register(monitoringMetricsPlugin);
   await app.register(cors, { origin: true });
   await app.register(websocket);
 
   app.addHook("onRequest", async (request, reply) => {
     const pathOnly = request.url.split("?")[0] ?? "";
-    if (pathOnly === "/health" || pathOnly === "/health/live") {
+    if (pathOnly === "/health" || pathOnly === "/health/live" || pathOnly === "/metrics") {
       return;
     }
     if (pathOnly === "/ws/live") {
@@ -142,6 +149,7 @@ export async function buildMonitoringApp(
 
   app.register(async function wsRoutes(fastify) {
     fastify.get("/ws/live", { websocket: true }, (socket) => {
+      wsLiveConnections.inc();
       const interval = setInterval(async () => {
         try {
           const data = {
@@ -153,12 +161,16 @@ export async function buildMonitoringApp(
             },
           };
           socket.send(JSON.stringify(data));
+          wsLiveMessagesSentTotal.inc();
         } catch {
-          /* client disconnected */
+          wsLiveBroadcastErrorsTotal.inc();
         }
       }, 2000);
 
-      socket.on("close", () => clearInterval(interval));
+      socket.on("close", () => {
+        wsLiveConnections.dec();
+        clearInterval(interval);
+      });
     });
   });
 

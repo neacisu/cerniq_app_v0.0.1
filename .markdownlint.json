@@ -2,5 +2,8 @@
   "default": true,
   "MD013": {
     "line_length": 5000
+  },
+  "MD033": {
+    "allowed_elements": ["table", "thead", "tbody", "tr", "th", "td", "code"]
   }
 }

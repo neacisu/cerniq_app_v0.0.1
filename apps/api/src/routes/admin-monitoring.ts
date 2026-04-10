@@ -4,6 +4,7 @@
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { isKnownQueueName } from "@cerniq/worker-shared";
+import { auditWriter } from "@cerniq/observability";
 import { envConfig } from "../config.js";
 import { monitoringInternalFetch } from "../lib/monitoring-internal-fetch.js";
 import { getRegisteredPrometheusMetricsCatalog } from "../plugins/metrics.js";
@@ -38,10 +39,17 @@ async function proxyRequest(
 
 const ALLOWED_ADMIN_ROLES = new Set(["admin", "owner", "superadmin"]);
 
+function actorUserIdFromRequest(request: FastifyRequest): string | null {
+  const user = request.user as { id?: string; userId?: string; sub?: string } | undefined;
+  const id = user?.id ?? user?.userId ?? user?.sub;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
 async function requireAdminOrOwner(request: FastifyRequest, reply: FastifyReply) {
   try {
     await request.jwtVerify();
-  } catch {
+  } catch (err) {
+    request.log.warn({ err }, "admin monitoring: JWT verification failed");
     return reply.status(401).send({ success: false, error: "Unauthorized" });
   }
   const user = request.user as { role?: string } | undefined;
@@ -145,9 +153,36 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
       if (!envConfig.ADMIN_KEY) {
         return reply.status(503).send({ success: false, error: "Admin control unavailable" });
       }
-      return proxyRequest(request, reply, `/api/queues/${encodeURIComponent(name)}/${action}`, {
-        method: "POST",
-      });
+      const path = `/api/queues/${encodeURIComponent(name)}/${action}`;
+      try {
+        const res = await monitoringInternalFetch(path, { method: "POST" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return reply.status(res.status).send(data);
+        }
+        const userId = actorUserIdFromRequest(request);
+        if (userId) {
+          const tenantId = (request.user as { tenantId?: string } | undefined)?.tenantId ?? null;
+          auditWriter.write({
+            method: "POST",
+            routePattern: `/api/admin/queues/:name/${action}`,
+            statusCode: res.status,
+            userId,
+            tenantId,
+            action: `admin_queue_${action.replaceAll("-", "_")}`,
+            resource: "bullmq_queue",
+            resourceId: name,
+            metadata: { queue: name, controlAction: action },
+          });
+        }
+        return data;
+      } catch (err) {
+        request.log.warn({ err, path }, "Monitoring API proxy error");
+        return reply.status(502).send({
+          success: false,
+          error: "Monitoring API unavailable",
+        });
+      }
     };
 
   app.post("/queues/:name/pause", authOpts, controlRoute("pause"));
@@ -165,8 +200,38 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
     if (action !== "pause" && action !== "resume") {
       return reply.status(400).send({ success: false, error: "Invalid action" });
     }
-    return proxyRequest(request, reply, `/api/queues/${encodeURIComponent(queue)}/${action}`, {
-      method: "POST",
-    });
+    if (!envConfig.ADMIN_KEY) {
+      return reply.status(503).send({ success: false, error: "Admin control unavailable" });
+    }
+    const path = `/api/queues/${encodeURIComponent(queue)}/${action}`;
+    try {
+      const res = await monitoringInternalFetch(path, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return reply.status(res.status).send(data);
+      }
+      const userId = actorUserIdFromRequest(request);
+      if (userId) {
+        const tenantId = (request.user as { tenantId?: string } | undefined)?.tenantId ?? null;
+        auditWriter.write({
+          method: "POST",
+          routePattern: "/api/admin/control/pause",
+          statusCode: res.status,
+          userId,
+          tenantId,
+          action: `admin_queue_${action}`,
+          resource: "bullmq_queue",
+          resourceId: queue,
+          metadata: { queue, controlAction: action },
+        });
+      }
+      return data;
+    } catch (err) {
+      request.log.warn({ err, path }, "Monitoring API proxy error");
+      return reply.status(502).send({
+        success: false,
+        error: "Monitoring API unavailable",
+      });
+    }
   });
 }

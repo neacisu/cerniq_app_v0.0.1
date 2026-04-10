@@ -11,8 +11,14 @@
  * ADR-0056/0057 (retry, DLQ, business hours RO), nu bootstrap generic BullMQ.
  */
 import type { Job, Worker } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { DateTime } from "luxon";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
+import { createOutreachJobLogger, tenantIdFromUnknownPayload } from "../lib/outreach-job-logger.js";
+
+const svcLog = createServiceLogger("outreach-resilience", { etapa: "e2" });
 
 // =============================================================================
 // Romanian public holidays 2026 — EXACT from ADR-0056 specification
@@ -167,39 +173,81 @@ export function createRetryOrchestratorWorker(): Worker {
       const { originalQueue, originalJobData, errorType, errorMessage, statusCode, attemptsMade } =
         job.data;
 
+      const tenantId = tenantIdFromUnknownPayload(originalJobData);
+      const jlog = createOutreachJobLogger(job, {
+        workerName: "outreach-retry-orchestrator",
+        queueName: QUEUES.WA_MESSAGE_RETRY,
+        tenantId,
+        entityType: "target_queue",
+        entityId: originalQueue,
+      });
+      jlog.info("retry", "job_received", { errorType, attemptsMade, statusCode });
+
       const policy = RETRY_POLICIES[errorType];
 
       // 4xx errors go straight to DLQ (0 retries)
       if (errorType === "CLIENT_ERROR" || (statusCode && statusCode >= 400 && statusCode < 500)) {
+        const enr = enrichError(new Error("retry_orchestrator_client_error"), {
+          originalQueue,
+          errorType,
+          statusCode,
+        });
+        svcLog.warn(
+          { ...enr, tenantId, originalQueue, errorType, statusCode, attemptsMade },
+          "retry_orchestrator_dlq_immediate_client_error",
+        );
         await dlqQueue.add(
           "failed",
-          { originalQueue, originalJobData, errorMessage, statusCode },
+          {
+            originalQueue,
+            originalJobData: ensureJobDataCorrelationId(originalJobData),
+            errorMessage,
+            statusCode,
+            correlationId: randomUUID(),
+          },
           {
             removeOnComplete: false,
             removeOnFail: { age: DLQ_CONFIG.retentionDays * 86400 },
           },
         );
+        jlog.warn("retry", "routed_to_dlq", { reason: "client_error_or_4xx" });
         return;
       }
 
       if (attemptsMade >= ("attempts" in policy ? policy.attempts : 0)) {
+        const enr = enrichError(new Error("retry_orchestrator_retries_exhausted"), {
+          originalQueue,
+          errorType,
+        });
+        svcLog.warn(
+          { ...enr, tenantId, originalQueue, errorType, attemptsMade },
+          "retry_orchestrator_dlq_retries_exhausted",
+        );
         // Exhausted retries → DLQ
         await dlqQueue.add(
           "exhausted",
-          { originalQueue, originalJobData, errorMessage, attemptsMade },
+          {
+            originalQueue,
+            originalJobData: ensureJobDataCorrelationId(originalJobData),
+            errorMessage,
+            attemptsMade,
+            correlationId: randomUUID(),
+          },
           { removeOnFail: { age: DLQ_CONFIG.retentionDays * 86400 } },
         );
+        jlog.warn("retry", "routed_to_dlq", { reason: "retries_exhausted" });
         return;
       }
 
       const targetQueue = createQueue(originalQueue);
       const delay = computeRetryDelayMs(policy, attemptsMade);
 
-      await targetQueue.add("retry", originalJobData, {
+      await targetQueue.add("retry", ensureJobDataCorrelationId(originalJobData), {
         delay,
         attempts: ("attempts" in policy ? policy.attempts : 0) - attemptsMade,
         backoff: "backoff" in policy ? policy.backoff : undefined,
       });
+      jlog.done("retry", "requeued", { delayMs: delay, targetQueue: originalQueue });
     },
     { concurrency: 50 },
   );
@@ -217,6 +265,16 @@ export function createBusinessHoursSchedulerWorker(): Worker {
     async (job: Job<SchedulerJobData>): Promise<SchedulerResult> => {
       const { targetQueue, jobData, jobName = "scheduled", enforceBusinessHours = true } = job.data;
 
+      const tenantId = tenantIdFromUnknownPayload(jobData);
+      const jlog = createOutreachJobLogger(job, {
+        workerName: "outreach-business-hours-scheduler",
+        queueName: QUEUES.QUOTA_BUSINESS_HOURS_CHECK,
+        tenantId,
+        entityType: "target_queue",
+        entityId: targetQueue,
+      });
+      jlog.info("scheduler", "start", { jobName, enforceBusinessHours });
+
       if (enforceBusinessHours && !isBusinessHours()) {
         const nextSlot = getNextBusinessSlot();
         const delayMs = nextSlot.toMillis() - Date.now();
@@ -228,23 +286,29 @@ export function createBusinessHoursSchedulerWorker(): Worker {
         }
 
         const queue = createQueue(targetQueue);
-        await queue.add(jobName, jobData as object, {
+        await queue.add(jobName, ensureJobDataCorrelationId(jobData), {
           delay: Math.max(delayMs, 0),
           removeOnComplete: { count: 1000 },
         });
 
-        return {
-          scheduled: true,
+        const out = {
+          scheduled: true as const,
           scheduledAt,
-          reason: "RESCHEDULED_OUTSIDE_BUSINESS_HOURS",
+          reason: "RESCHEDULED_OUTSIDE_BUSINESS_HOURS" as const,
         };
+        jlog.done("scheduler", "rescheduled_outside_bh", {
+          scheduledAt,
+          delayMs: Math.max(delayMs, 0),
+        });
+        return out;
       }
 
       const queue = createQueue(targetQueue);
-      await queue.add(jobName, jobData as object, {
+      await queue.add(jobName, ensureJobDataCorrelationId(jobData), {
         removeOnComplete: { count: 1000 },
       });
 
+      jlog.done("scheduler", "dispatched_immediately", { jobName });
       return { scheduled: true };
     },
     { concurrency: 20 },
@@ -264,13 +328,31 @@ export async function executePriorityRouteJob(
 ): Promise<void> {
   const { targetQueue, jobData, jobName, priority } = job.data;
 
+  const tenantId = tenantIdFromUnknownPayload(jobData);
+  const jlog = createOutreachJobLogger(job, {
+    workerName: "outreach-priority-route",
+    queueName: "outreach:priority-route",
+    tenantId,
+    entityType: "target_queue",
+    entityId: targetQueue,
+  });
+  jlog.info("priority_route", "start", { jobName, priority });
+
   if (![1, 2, 3].includes(priority)) {
-    throw new Error(`Invalid priority ${priority}. Must be 1, 2, or 3.`);
+    const err = new Error(`Invalid priority ${priority}. Must be 1, 2, or 3.`);
+    const enr = enrichError(err, { targetQueue, jobName });
+    jlog.error("priority_route", "invalid_priority", {
+      priority,
+      fingerprint: enr.fingerprint,
+      errorType: enr.errorType,
+    });
+    throw err;
   }
 
   const queue = createQueue(targetQueue);
-  await queue.add(jobName, jobData as object, {
+  await queue.add(jobName, ensureJobDataCorrelationId(jobData), {
     priority,
     removeOnComplete: { count: 1000 },
   });
+  jlog.done("priority_route", "complete", { jobName, priority });
 }

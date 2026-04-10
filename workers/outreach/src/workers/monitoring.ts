@@ -12,6 +12,7 @@
 import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import type { Redis } from "ioredis";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { QUEUES, createWorker } from "@cerniq/worker-shared";
 
 // =============================================================================
@@ -20,33 +21,39 @@ import { QUEUES, createWorker } from "@cerniq/worker-shared";
 
 const STATS_RETENTION_DAYS = 90; // Keep 90 days of stats
 const LOW_PHONE_ALERT_THRESHOLD = 10; // Alert if < 10 phones online
+const svcLog = createServiceLogger("outreach-monitoring", { etapa: "e2" });
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface StatsAggregatorJobData {
+  correlationId?: string;
   tenantId: string;
   statDate?: string; // ISO date, defaults to today
 }
 
 export interface DailyReportJobData {
+  correlationId?: string;
   tenantId: string;
   reportDate: string;
 }
 
 export interface AlertJobData {
+  correlationId?: string;
   tenantId: string;
   alertType: "QUOTA_HIGH" | "BOUNCE_HIGH" | "PHONE_OFFLINE" | "PHONE_BANNED" | "PIPELINE_DEGRADED";
   payload: Record<string, unknown>;
 }
 
 export interface CleanupJobData {
+  correlationId?: string;
   tenantId?: string; // If omitted, cleans all tenants
   retainDays?: number; // Default 90
 }
 
 export interface HealthCheckJobData {
+  correlationId?: string;
   tenantId?: string;
 }
 
@@ -374,8 +381,17 @@ export async function executeHealthCheckAggregatorJob(
   const phonesActive = p?.active ?? 0;
 
   if (phonesActive < LOW_PHONE_ALERT_THRESHOLD) {
-    console.warn(
-      `[health-aggregator] pipeline degraded: active phones ${phonesActive} < threshold ${LOW_PHONE_ALERT_THRESHOLD} (not enqueued — ALERT_PHONE_OFFLINE requires tenant-scoped phone payload)`,
+    const enr = enrichError(new Error("low_active_phone_count"), {
+      phonesActive,
+      threshold: LOW_PHONE_ALERT_THRESHOLD,
+    });
+    svcLog.warn(
+      {
+        ...enr,
+        phonesActive,
+        threshold: LOW_PHONE_ALERT_THRESHOLD,
+      },
+      "Pipeline degraded: active phones below threshold; ALERT_PHONE_OFFLINE not enqueued without tenant-scoped payload",
     );
   }
 

@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const files = [
   "apps/api/src/plugins/metrics.ts",
+  "apps/monitoring-api/src/metrics.ts",
   "workers/e3-ai-sales/src/e3-metrics.ts",
   "workers/e4-postsale/src/e4-metrics.ts",
   "workers/e5-nurturing/src/lib/e5-metrics.ts",

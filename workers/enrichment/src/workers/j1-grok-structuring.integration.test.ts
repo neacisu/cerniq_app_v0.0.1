@@ -30,6 +30,7 @@ vi.mock("@cerniq/db", () => ({
   },
   silverCompanies: { id: "id", metadata: "metadata", lastEnrichedAt: "lastEnrichedAt" },
   silverEnrichmentLog: {},
+  jobLogs: {},
   sql: { raw: vi.fn((s: unknown) => s) },
   setSessionTenantId: vi.fn(async () => undefined),
 }));

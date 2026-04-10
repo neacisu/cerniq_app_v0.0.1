@@ -25,7 +25,7 @@ import { z } from "zod";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
 import { requireRole } from "../middleware/authz.js";
 import { createQueue } from "../lib/queue-factory.js";
-import { buildProvenanceContext } from "../lib/provenance.js";
+import { buildApiJobPayloadContext } from "../lib/http-job-tracing.js";
 import { QUEUES } from "@cerniq/worker-shared";
 import {
   assignLeadSchema,
@@ -361,8 +361,8 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         stage: "post_validation",
         force: body.data.force,
         sources: body.data.sources,
+        ...buildApiJobPayloadContext(request),
         correlationId: `api-enrich-${company.id}`,
-        ...buildProvenanceContext(request),
       });
       await queue.close();
 
@@ -408,8 +408,8 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         tenantId,
         companyId: params.data.id,
         force: body.data.force,
+        ...buildApiJobPayloadContext(request),
         correlationId: `api-promote-${params.data.id}`,
-        ...buildProvenanceContext(request),
       });
       await queue.close();
       return { success: true, data: { id: params.data.id, queued: true } };

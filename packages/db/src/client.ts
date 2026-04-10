@@ -3,6 +3,8 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { InferSelectModel } from "drizzle-orm";
 import postgres from "postgres";
 
+import { wrapPostgresClientForTracing } from "./traced-postgres.js";
+
 import * as tenants from "./schemas/tenants.js";
 import * as users from "./schemas/users.js";
 import * as rbac from "./schemas/rbac.js";
@@ -11,6 +13,7 @@ import * as audit from "./schemas/audit.js";
 import * as consent from "./schemas/consent.js";
 import * as inviteCodesSchema from "./schemas/invite-codes.js";
 import * as bronze from "./schemas/bronze.js";
+import * as observability from "./schemas/observability.js";
 import * as silver from "./schemas/silver.js";
 import * as gold from "./schemas/gold.js";
 import * as cognitive from "./schemas/cognitive.js";
@@ -26,6 +29,7 @@ const schema = {
   ...consent,
   ...inviteCodesSchema,
   ...bronze,
+  ...observability,
   ...silver,
   ...gold,
   ...cognitive,
@@ -55,11 +59,16 @@ const postgresOptions = {
  * "unsupported startup parameter" (see ignore_startup_parameters in pgbouncer.ini).
  * With pool_mode=transaction, session GUCs belong in set_config at the start of each
  * request/transaction (see API tenant-context plugin and resetSessionContext for workers).
+ *
+ * Observabilitate: span-uri `db.postgresql.query` (fără valori de parametri în atribute)
+ * sunt create în `traced-postgres.ts` pentru apeluri `sql\`\`` și `sql.unsafe`, inclusiv
+ * în `sql.begin` / savepoint-uri (clientul din callback este re-învelit).
  */
 export function createDbClient(connectionString: string) {
-  const sql = postgres(connectionString, {
+  const sqlRaw = postgres(connectionString, {
     ...postgresOptions,
   });
+  const sql = wrapPostgresClientForTracing(sqlRaw);
   const db = drizzle(sql, { schema });
   return { db, sql };
 }

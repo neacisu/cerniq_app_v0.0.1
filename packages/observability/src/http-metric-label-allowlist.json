@@ -1,0 +1,11 @@
+{
+  "cerniq_http_requests_total": ["method", "route", "status"],
+  "cerniq_http_request_duration_seconds": ["method", "route", "status"],
+  "cerniq_http_active_requests": [],
+  "cerniq_rate_limit_exceeded_total": ["route", "surface"],
+  "cerniq_http_auth_failures_total": ["route", "reason", "surface"],
+  "cerniq_sse_streams_completed_total": ["route"],
+  "cerniq_sse_stream_duration_seconds": ["route"],
+  "cerniq_sse_events_sent_total": ["route"],
+  "cerniq_sse_connection_errors_total": ["route", "phase"]
+}

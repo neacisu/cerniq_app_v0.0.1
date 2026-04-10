@@ -1060,6 +1060,10 @@ export type JobLog = {
   details: Record<string, unknown> | null;
   durationMs: number | null;
   createdAt: string;
+  correlationId?: string | null;
+  traceId?: string | null;
+  entityType?: string | null;
+  entityId?: string | null;
 };
 
 export type JobLogsParams = {

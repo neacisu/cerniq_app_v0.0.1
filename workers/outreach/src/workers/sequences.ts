@@ -12,14 +12,18 @@
 import type { Job, Worker } from "bullmq";
 import { DateTime } from "luxon";
 import { v4 as uuidv4 } from "uuid";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import { QUEUES, createWorker, createQueue, withCognitiveSpan } from "@cerniq/worker-shared";
 import { ROMANIAN_HOLIDAYS_2026, BUSINESS_HOURS } from "./resilience.js";
+const svcLog = createServiceLogger("outreach-sequences", { etapa: "e2" });
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface ScheduleFollowupJobData {
+  correlationId?: string;
   tenantId: string;
   leadId: string;
   journeyId: string;
@@ -37,12 +41,14 @@ export interface ScheduleFollowupResult {
 }
 
 export interface SequenceStopJobData {
+  correlationId?: string;
   tenantId: string;
   journeyId: string;
   reason?: string;
 }
 
 export interface SequenceAdvanceJobData {
+  correlationId?: string;
   tenantId: string;
   journeyId: string;
   sequenceEnrollmentId: string;
@@ -59,6 +65,8 @@ export interface EnrollmentCreateJobData {
   causationKey?: string;
   sourceEndpoint?: string;
   actorId?: string;
+  requestId?: string;
+  httpCorrelationId?: string;
 }
 
 export interface SequenceStatsJobData {
@@ -182,7 +190,13 @@ export function createSequenceSchedulerWorker(): Worker {
           const delayMs = Math.max(nextActionAt.toMillis() - Date.now(), 0);
           await advanceQueue.add(
             "advance",
-            { tenantId, journeyId, sequenceEnrollmentId, completedStep: currentStep },
+            ensureJobDataCorrelationId({
+              tenantId,
+              journeyId,
+              sequenceEnrollmentId,
+              completedStep: currentStep,
+              correlationId: job.data.correlationId,
+            }),
             { delay: delayMs, removeOnComplete: 100 },
           );
 
@@ -294,14 +308,31 @@ export function createSequenceAdvanceWorker(): Worker {
             .limit(1);
 
           if (enrollments.length === 0) {
-            console.warn(
-              `[sequence:advance] skip: enrollment ${sequenceEnrollmentId} not found (tenantId=${tenantId})`,
+            const enr = enrichError(new Error("sequence_enrollment_not_found"), {
+              sequenceEnrollmentId,
+              tenantId,
+            });
+            svcLog.warn(
+              { ...enr, sequenceEnrollmentId, tenantId, correlationId: job.data.correlationId },
+              "Sequence advance skipped because enrollment was not found",
             );
             return;
           }
           if (enrollments[0].status !== "ACTIVE") {
-            console.warn(
-              `[sequence:advance] skip: enrollment ${sequenceEnrollmentId} status=${enrollments[0].status} (tenantId=${tenantId}, journeyId=${journeyId})`,
+            const enr = enrichError(new Error("sequence_enrollment_inactive"), {
+              sequenceEnrollmentId,
+              status: enrollments[0].status,
+            });
+            svcLog.warn(
+              {
+                ...enr,
+                sequenceEnrollmentId,
+                tenantId,
+                journeyId,
+                status: enrollments[0].status,
+                correlationId: job.data.correlationId,
+              },
+              "Sequence advance skipped because enrollment is not active",
             );
             return;
           }
@@ -314,20 +345,26 @@ export function createSequenceAdvanceWorker(): Worker {
             .limit(1);
 
           if (journeys.length === 0) {
-            console.warn(
-              `[sequence:advance] skip: journey ${journeyId} not found for tenant ${tenantId}`,
+            const enr = enrichError(new Error("sequence_advance_journey_not_found"), {
+              journeyId,
+              tenantId,
+            });
+            svcLog.warn(
+              { ...enr, journeyId, tenantId, correlationId: job.data.correlationId },
+              "Sequence advance skipped because journey was not found",
             );
             return;
           }
 
           await channelSelectorQueue.add(
             "route",
-            {
+            ensureJobDataCorrelationId({
               tenantId,
               journeyId,
               leadId: journeys[0].leadId,
               isFollowup: true,
-            },
+              correlationId: job.data.correlationId,
+            }),
             { priority: 2, removeOnComplete: 100 },
           );
         },
@@ -387,14 +424,15 @@ export function createEnrollmentManagerWorker(): Worker {
           // Schedule first step immediately (step 0)
           await schedulerQueue.add(
             "schedule-first",
-            {
+            ensureJobDataCorrelationId({
               tenantId,
               leadId,
               journeyId,
               sequenceId,
               sequenceEnrollmentId: enrollmentId,
               currentStep: -1,
-            },
+              correlationId: job.data.traceId,
+            }),
             { removeOnComplete: 100 },
           );
 

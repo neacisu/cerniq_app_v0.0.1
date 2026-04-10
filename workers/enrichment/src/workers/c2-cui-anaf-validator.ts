@@ -21,16 +21,9 @@ import {
 } from "@cerniq/db";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { createJobLogger } from "../lib/job-logger.js";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 
-const logger = {
-  error(bindings: Record<string, unknown> & { err: unknown }, message: string): void {
-    const { err, ...ctx } = bindings;
-    console.error(`[c2-cui-anaf-validator] ${message}`, {
-      ...ctx,
-      err: err instanceof Error ? { message: err.message, stack: err.stack } : err,
-    });
-  },
-};
+const svcLog = createServiceLogger("c2-cui-anaf-validator", { etapa: "e1" });
 
 export type CuiAnafJobData = {
   tenantId: string;
@@ -127,10 +120,16 @@ const anafBreaker = createCircuitBreaker(
   },
 );
 anafBreaker.on("failure", (err: unknown) => {
-  console.error("[ANAF] call failed:", err instanceof Error ? err.message : String(err));
+  svcLog.error(
+    { err, ...enrichError(err, { component: "anaf-circuit-breaker", event: "failure" }) },
+    "[ANAF] circuit call failed",
+  );
 });
 anafBreaker.on("timeout", () => {
-  console.error(`[ANAF] call timed out (limit: ${ANAF_TIMEOUT_MS}ms)`);
+  svcLog.error(
+    { anafCircuit: "timeout", timeoutMs: ANAF_TIMEOUT_MS },
+    `[ANAF] call timed out (limit: ${ANAF_TIMEOUT_MS}ms)`,
+  );
 });
 
 function buildAnafPatch(cleanedCui: string, companyData: AnafCompanyResult) {
@@ -363,16 +362,77 @@ async function enqueueAnafPromotion(
       idempotencyScope: jobData.bronzeContactId,
     });
   } catch (err) {
-    logger.error(
+    svcLog.error(
       {
         err,
         tenantId: jobData.tenantId,
         bronzeContactId: jobData.bronzeContactId,
         context: "enqueueAnafPromotion",
+        ...enrichError(err),
       },
       "Failed to enqueue bronze→silver promotion after ANAF validation",
     );
   }
+}
+
+type AnafDedupReuseReturn = {
+  ok: true;
+  status: "valid";
+  source: "anaf_dedup_reuse";
+  cleanedCui: string;
+  reusedFrom: string;
+};
+
+async function tryConsumeAnafSiblingDedupReuse(
+  job: { data: CuiAnafJobData; id?: string | number },
+  contactLog: ReturnType<typeof createJobLogger>,
+  cleanedCui: string,
+  startedAt: number,
+  alreadyValidated: { id: string; metadata: unknown } | null | undefined,
+): Promise<AnafDedupReuseReturn | undefined> {
+  if (!alreadyValidated || alreadyValidated.id === job.data.bronzeContactId) {
+    return undefined;
+  }
+  const existingMeta = (alreadyValidated.metadata ?? {}) as Record<string, unknown>;
+  const existingAnaf = existingMeta.anafValidation as Record<string, unknown> | undefined;
+  if (!existingAnaf) {
+    return undefined;
+  }
+
+  contactLog.info(
+    "dedup_reuse",
+    `CUI ${cleanedCui} deja validat ANAF de un alt contact — reutilizez datele existente fără apel API`,
+    { reusedFromContactId: alreadyValidated.id },
+  );
+  const patch = { anafValidation: existingAnaf };
+  const reusedCompanyData = (existingAnaf.response ?? null) as AnafCompanyResult | null;
+  const nrRegCom = reusedCompanyData
+    ? extractNrRegCom(reusedCompanyData)
+    : { raw: null, sanitized: null };
+  await updateAnafBronzeContact(
+    job.data,
+    cleanedCui,
+    reusedCompanyData ?? ({} as AnafCompanyResult),
+    nrRegCom,
+    patch,
+  );
+  await enqueueAnafPromotion(job.data, cleanedCui, reusedCompanyData ?? ({} as AnafCompanyResult));
+  contactLog.step("done_dedup", `Contact actualizat cu date ANAF existente — promovat în silver`, {
+    cui: cleanedCui,
+  });
+  contactLog.info("cui_validation_summary", "Rezumat validare ANAF", {
+    cui: cleanedCui,
+    isValid: true,
+    method: "dedup_reuse",
+    latencyMs: Date.now() - startedAt,
+  });
+  return {
+    ok: true,
+    status: "valid",
+    source: "anaf_dedup_reuse",
+    cleanedCui,
+    reusedFrom: alreadyValidated.id,
+  };
 }
 
 async function logAnafValidation(
@@ -424,136 +484,143 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
         jobId: String(job.id ?? ""),
         startedAt,
         importExecution: job.data.importExecution ?? null,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       });
       const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
 
-      const cleanedCui = sanitizeCui(job.data.cui);
-      if (!cleanedCui) {
-        contactLog.error(
-          "invalid_cui",
-          `CUI lipsă sau complet invalid — contactul nu poate fi validat ANAF`,
-          { rawCui: job.data.cui },
-        );
-        return { ok: false, status: "invalid", reason: "missing_cui", source: "anaf" };
-      }
+      try {
+        const cleanedCui = sanitizeCui(job.data.cui);
+        if (!cleanedCui) {
+          contactLog.error(
+            "invalid_cui",
+            `CUI lipsă sau complet invalid — contactul nu poate fi validat ANAF`,
+            { rawCui: job.data.cui },
+          );
+          contactLog.info("cui_validation_summary", "Rezumat validare ANAF", {
+            cui: job.data.cui,
+            isValid: false,
+            method: "none",
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: false, status: "invalid", reason: "missing_cui", source: "anaf" };
+        }
 
-      contactLog.step("start", `Validare ANAF CUI ${cleanedCui} — apel API ANAF`, {
-        cui: cleanedCui,
-        companyId: job.data.companyId,
-      });
-
-      // CUI dedup: check if another contact with same CUI was already validated via ANAF
-      const alreadyValidated = await db.transaction(async (tx) => {
-        await tx.execute(sql`SELECT set_config('app.tenant_id', ${job.data.tenantId}, true)`);
-        return tx.query.bronzeContacts.findFirst({
-          where: (t, { and, eq }) =>
-            and(
-              eq(t.tenantId, job.data.tenantId),
-              eq(t.extractedCui, cleanedCui),
-              sql`(${t.metadata}->'anafValidation'->>'status') = 'valid'`,
-            ),
-          columns: { id: true, metadata: true },
+        contactLog.step("start", `Validare ANAF CUI ${cleanedCui} — apel API ANAF`, {
+          cui: cleanedCui,
+          companyId: job.data.companyId,
         });
-      });
 
-      if (alreadyValidated && alreadyValidated.id !== job.data.bronzeContactId) {
-        const existingMeta = (alreadyValidated.metadata ?? {}) as Record<string, unknown>;
-        const existingAnaf = existingMeta.anafValidation as Record<string, unknown> | undefined;
-        if (existingAnaf) {
-          contactLog.info(
-            "dedup_reuse",
-            `CUI ${cleanedCui} deja validat ANAF de un alt contact — reutilizez datele existente fără apel API`,
-            { reusedFromContactId: alreadyValidated.id },
-          );
-          const patch = { anafValidation: existingAnaf };
-          const reusedCompanyData = (existingAnaf.response ?? null) as AnafCompanyResult | null;
-          const nrRegCom = reusedCompanyData
-            ? extractNrRegCom(reusedCompanyData)
-            : { raw: null, sanitized: null };
-          await updateAnafBronzeContact(
-            job.data,
-            cleanedCui,
-            reusedCompanyData ?? ({} as AnafCompanyResult),
-            nrRegCom,
-            patch,
-          );
-          await enqueueAnafPromotion(
-            job.data,
-            cleanedCui,
-            reusedCompanyData ?? ({} as AnafCompanyResult),
-          );
-          contactLog.step(
-            "done_dedup",
-            `Contact actualizat cu date ANAF existente — promovat în silver`,
+        // CUI dedup: check if another contact with same CUI was already validated via ANAF
+        const alreadyValidated = await db.transaction(async (tx) => {
+          await tx.execute(sql`SELECT set_config('app.tenant_id', ${job.data.tenantId}, true)`);
+          return tx.query.bronzeContacts.findFirst({
+            where: (t, { and, eq }) =>
+              and(
+                eq(t.tenantId, job.data.tenantId),
+                eq(t.extractedCui, cleanedCui),
+                sql`(${t.metadata}->'anafValidation'->>'status') = 'valid'`,
+              ),
+            columns: { id: true, metadata: true },
+          });
+        });
+
+        const dedupReuse = await tryConsumeAnafSiblingDedupReuse(
+          job,
+          contactLog,
+          cleanedCui,
+          startedAt,
+          alreadyValidated,
+        );
+        if (dedupReuse) {
+          return dedupReuse;
+        }
+
+        const companyData = await anafBreaker.fire(cleanedCui);
+        if (!companyData) {
+          contactLog.warn(
+            "not_found",
+            `CUI ${cleanedCui} nu a fost găsit în baza de date ANAF — salvat ca not_found, contactul rămâne în bronze`,
             { cui: cleanedCui },
           );
+          await persistAnafNotFound(job.data, cleanedCui);
+          contactLog.info("cui_validation_summary", "Rezumat validare ANAF", {
+            cui: cleanedCui,
+            isValid: false,
+            method: "ANAF_POST",
+            latencyMs: Date.now() - startedAt,
+          });
           return {
             ok: true,
-            status: "valid",
-            source: "anaf_dedup_reuse",
+            status: "not_found",
+            source: "anaf",
             cleanedCui,
-            reusedFrom: alreadyValidated.id,
           };
         }
-      }
 
-      const companyData = await anafBreaker.fire(cleanedCui);
-      if (!companyData) {
-        contactLog.warn(
-          "not_found",
-          `CUI ${cleanedCui} nu a fost găsit în baza de date ANAF — salvat ca not_found, contactul rămâne în bronze`,
-          { cui: cleanedCui },
+        contactLog.info(
+          "anaf_found",
+          `CUI ${cleanedCui} confirmat ANAF: ${typeof companyData.denumire === "string" ? companyData.denumire : "—"}`,
+          {
+            cui: cleanedCui,
+            denumire: companyData.denumire,
+            nrRegCom: (companyData as Record<string, unknown>).nrRegCom,
+          },
         );
-        await persistAnafNotFound(job.data, cleanedCui);
+
+        const patch = buildAnafPatch(cleanedCui, companyData);
+        const nrRegCom = extractNrRegCom(companyData);
+        await updateAnafCompany(job.data, cleanedCui, companyData, nrRegCom, patch);
+        await updateAnafBronzeContact(job.data, cleanedCui, companyData, nrRegCom, patch);
+        // Fan-out: update all sibling bronze contacts with same CUI that haven't been validated yet
+        await fanOutAnafResultToSiblings({
+          tenantId: job.data.tenantId,
+          cleanedCui,
+          originContactId: job.data.bronzeContactId,
+          batchId: job.data.batchId,
+          companyData,
+          nrRegCom,
+          patch,
+          importExecution: job.data.importExecution ?? null,
+        });
+        await enqueueAnafPromotion(job.data, cleanedCui, companyData);
+        await logAnafValidation(job, cleanedCui, companyData, startedAt);
+
+        contactLog.step(
+          "done",
+          `Validare ANAF completă — companie salvată în silver, promovare enqueued`,
+          { cui: cleanedCui, durationMs: Date.now() - startedAt },
+        );
+        contactLog.info("cui_validation_summary", "Rezumat validare ANAF", {
+          cui: cleanedCui,
+          isValid: true,
+          method: "ANAF_POST",
+          latencyMs: Date.now() - startedAt,
+        });
+
         return {
           ok: true,
-          status: "not_found",
+          status: "valid",
           source: "anaf",
           cleanedCui,
+          companyData,
         };
+      } catch (error) {
+        const cleaned = sanitizeCui(job.data.cui);
+        contactLog.error(
+          "fatal",
+          `Validare ANAF eșuat neașteptat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              cui: cleaned ?? job.data.cui,
+              bronzeContactId: job.data.bronzeContactId,
+              companyId: job.data.companyId,
+            }),
+          },
+        );
+        throw error;
       }
-
-      contactLog.info(
-        "anaf_found",
-        `CUI ${cleanedCui} confirmat ANAF: ${typeof companyData.denumire === "string" ? companyData.denumire : "—"}`,
-        {
-          cui: cleanedCui,
-          denumire: companyData.denumire,
-          nrRegCom: (companyData as Record<string, unknown>).nrRegCom,
-        },
-      );
-
-      const patch = buildAnafPatch(cleanedCui, companyData);
-      const nrRegCom = extractNrRegCom(companyData);
-      await updateAnafCompany(job.data, cleanedCui, companyData, nrRegCom, patch);
-      await updateAnafBronzeContact(job.data, cleanedCui, companyData, nrRegCom, patch);
-      // Fan-out: update all sibling bronze contacts with same CUI that haven't been validated yet
-      await fanOutAnafResultToSiblings({
-        tenantId: job.data.tenantId,
-        cleanedCui,
-        originContactId: job.data.bronzeContactId,
-        batchId: job.data.batchId,
-        companyData,
-        nrRegCom,
-        patch,
-        importExecution: job.data.importExecution ?? null,
-      });
-      await enqueueAnafPromotion(job.data, cleanedCui, companyData);
-      await logAnafValidation(job, cleanedCui, companyData, startedAt);
-
-      contactLog.step(
-        "done",
-        `Validare ANAF completă — companie salvată în silver, promovare enqueued`,
-        { cui: cleanedCui, durationMs: Date.now() - startedAt },
-      );
-
-      return {
-        ok: true,
-        status: "valid",
-        source: "anaf",
-        cleanedCui,
-        companyData,
-      };
     },
     { tenantId: job.data.tenantId },
   );

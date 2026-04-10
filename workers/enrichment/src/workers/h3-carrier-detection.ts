@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   db,
@@ -8,6 +9,10 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
+import { createJobLogger } from "../lib/job-logger.js";
+import { phoneLast4 } from "../lib/phone-last4.js";
+
+const svcLog = createServiceLogger("h3-carrier-detection", { etapa: "e1" });
 
 export type CarrierDetectionJobData = {
   tenantId: string;
@@ -47,55 +52,96 @@ export const carrierDetectionProcessor: Processor<CarrierDetectionJobData> = asy
     "e1:enrich:phone-carrier",
     async (_span) => {
       const startedAt = Date.now();
-      await setSessionTenantId(job.data.tenantId);
-
-      const detected = detectCarrier(job.data.phone);
-      if (!detected) {
-        return { ok: true, status: "unknown_carrier", phone: job.data.phone };
-      }
-
-      const patch = {
-        carrierDetection: {
-          phone: job.data.phone,
-          carrier: detected.carrier,
-          phoneType: detected.type,
-          detectedAt: new Date().toISOString(),
-        },
-      };
-
-      if (job.data.entityType === "company") {
-        await db
-          .update(silverCompanies)
-          .set({
-            metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
-            updatedAt: new Date(),
-          })
-          .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
-      } else {
-        await db
-          .update(silverContacts)
-          .set({
-            metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
-            updatedAt: new Date(),
-          })
-          .where(sql`${silverContacts.id} = ${job.data.entityId}`);
-      }
-
-      await db.insert(silverEnrichmentLog).values({
+      const log = createJobLogger({
         tenantId: job.data.tenantId,
+        workerName: "H3:carrier-detection",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
         entityType: job.data.entityType,
         entityId: job.data.entityId,
-        source: "carrier_detection",
-        operation: "detect",
-        requestPayload: { phone: job.data.phone },
-        responsePayload: detected,
-        fieldsUpdated: ["metadata"],
-        correlationId: job.data.correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
       });
 
-      return { ok: true, status: "success", carrier: detected.carrier, phoneType: detected.type };
+      try {
+        svcLog.info(
+          { tenantId: job.data.tenantId, phoneLast4: phoneLast4(job.data.phone) },
+          "H3 carrier heuristic",
+        );
+        await setSessionTenantId(job.data.tenantId);
+
+        const detected = detectCarrier(job.data.phone);
+        if (!detected) {
+          log.info("unknown_carrier", "Prefix necunoscut", {
+            phoneLast4: phoneLast4(job.data.phone),
+          });
+          return { ok: true, status: "unknown_carrier", phone: job.data.phone };
+        }
+
+        const patch = {
+          carrierDetection: {
+            phone: job.data.phone,
+            carrier: detected.carrier,
+            phoneType: detected.type,
+            detectedAt: new Date().toISOString(),
+          },
+        };
+
+        if (job.data.entityType === "company") {
+          await db
+            .update(silverCompanies)
+            .set({
+              metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
+              updatedAt: new Date(),
+            })
+            .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
+        } else {
+          await db
+            .update(silverContacts)
+            .set({
+              metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
+              updatedAt: new Date(),
+            })
+            .where(sql`${silverContacts.id} = ${job.data.entityId}`);
+        }
+
+        await db.insert(silverEnrichmentLog).values({
+          tenantId: job.data.tenantId,
+          entityType: job.data.entityType,
+          entityId: job.data.entityId,
+          source: "carrier_detection",
+          operation: "detect",
+          requestPayload: { phone: job.data.phone },
+          responsePayload: detected,
+          fieldsUpdated: ["metadata"],
+          correlationId: job.data.correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
+
+        log.step("done", "Carrier detectat", {
+          phoneLast4: phoneLast4(job.data.phone),
+          carrier: detected.carrier,
+          phoneType: detected.type,
+          latencyMs: Date.now() - startedAt,
+        });
+
+        return { ok: true, status: "success", carrier: detected.carrier, phoneType: detected.type };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `Carrier detection eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              entityType: job.data.entityType,
+              entityId: job.data.entityId,
+              phoneLast4: phoneLast4(job.data.phone),
+            }),
+          },
+        );
+        throw error;
+      }
     },
     { tenantId: job.data.tenantId },
   );

@@ -16,6 +16,8 @@
 import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import type { Redis } from "ioredis";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import {
   QUEUES,
   createWorker,
@@ -24,6 +26,7 @@ import {
 } from "@cerniq/worker-shared";
 import type { CleanupJobData, HealthCheckJobData } from "./monitoring.js";
 import type { PriorityJobData } from "./resilience.js";
+const svcLog = createServiceLogger("outreach-webhooks", { etapa: "e2" });
 
 // =============================================================================
 // SystemEvent — ADR-0061 EXACT format
@@ -51,6 +54,7 @@ const DEDUP_TTL_SECONDS = 86400;
 // =============================================================================
 
 export interface TimelinesAIWebhookJobData {
+  correlationId?: string;
   tenantId: string;
   rawEvent: {
     message_id: string;
@@ -65,6 +69,7 @@ export interface TimelinesAIWebhookJobData {
 }
 
 export interface InstantlyWebhookJobData {
+  correlationId?: string;
   tenantId: string;
   rawEvent: {
     event_type:
@@ -82,6 +87,7 @@ export interface InstantlyWebhookJobData {
 }
 
 export interface ResendWebhookJobData {
+  correlationId?: string;
   tenantId: string;
   rawEvent: {
     type: "email.sent" | "email.delivered" | "email.bounced" | "email.opened" | "email.clicked";
@@ -126,13 +132,19 @@ export function createWebhookNormalizerWorker(): Worker {
       // Route to appropriate processor
       switch (source) {
         case "TIMELINESAI":
-          await timelinesQueue.add("ingest", { tenantId, rawEvent }, { removeOnComplete: 100 });
+          await timelinesQueue.add("ingest", ensureJobDataCorrelationId({ tenantId, rawEvent }), {
+            removeOnComplete: 100,
+          });
           break;
         case "INSTANTLY":
-          await instantlyQueue.add("ingest", { tenantId, rawEvent }, { removeOnComplete: 100 });
+          await instantlyQueue.add("ingest", ensureJobDataCorrelationId({ tenantId, rawEvent }), {
+            removeOnComplete: 100,
+          });
           break;
         case "RESEND":
-          await resendQueue.add("ingest", { tenantId, rawEvent }, { removeOnComplete: 100 });
+          await resendQueue.add("ingest", ensureJobDataCorrelationId({ tenantId, rawEvent }), {
+            removeOnComplete: 100,
+          });
           break;
       }
 
@@ -184,13 +196,14 @@ export function createTimelinesAIEventProcessorWorker(): Worker {
       if (rawEvent.status && !rawEvent.message) {
         await deliveryQueue.add(
           "delivery-update",
-          {
+          ensureJobDataCorrelationId({
             tenantId,
             externalMessageId: rawEvent.message_id,
             chatId: rawEvent.chat_id,
             status: rawEvent.status,
             timestamp: rawEvent.timestamp,
-          },
+            correlationId: job.data.correlationId,
+          }),
           { removeOnComplete: 100 },
         );
         return;
@@ -217,8 +230,13 @@ export function createTimelinesAIEventProcessorWorker(): Worker {
         .limit(1);
 
       if (logs.length === 0) {
-        console.warn(
-          `[webhook:timelinesai] no communication_log row for thread_id=${rawEvent.chat_id} tenantId=${tenantId} — inbound WA message skipped`,
+        const enr = enrichError(new Error("timelines_inbound_thread_not_found"), {
+          tenantId,
+          threadId: rawEvent.chat_id,
+        });
+        svcLog.warn(
+          { ...enr, tenantId, threadId: rawEvent.chat_id, correlationId: job.data.correlationId },
+          "Inbound TimelinesAI message skipped because communication_log row was not found",
         );
         return;
       }
@@ -262,14 +280,28 @@ export function createTimelinesAIEventProcessorWorker(): Worker {
       // Trigger state transition to WARM_REPLY
       await stateQueue.add(
         "reply",
-        { tenantId, leadId, journeyId, newState: "WARM_REPLY", trigger: "WEBHOOK_REPLY" },
+        ensureJobDataCorrelationId({
+          tenantId,
+          leadId,
+          journeyId,
+          newState: "WARM_REPLY",
+          trigger: "WEBHOOK_REPLY",
+          correlationId: job.data.correlationId,
+        }),
         { priority: 1, removeOnComplete: 100 },
       );
 
       // Trigger AI sentiment analysis
       await sentimentQueue.add(
         "analyze",
-        { tenantId, leadId, journeyId, content: rawEvent.message, channel: "WHATSAPP" },
+        ensureJobDataCorrelationId({
+          tenantId,
+          leadId,
+          journeyId,
+          content: rawEvent.message,
+          channel: "WHATSAPP",
+          correlationId: job.data.correlationId,
+        }),
         { priority: 2, removeOnComplete: 100 },
       );
 
@@ -321,22 +353,42 @@ export function createInstantlyEventProcessorWorker(): Worker {
           .limit(1);
 
         if (matched.length === 0) {
-          console.warn(
-            `[webhook:instantly] lead not found for email (case-insensitive): ${emailRaw}`,
+          const enr = enrichError(new Error("instantly_webhook_journey_not_found"), {
+            emailRaw,
+            tenantId,
+          });
+          svcLog.warn(
+            { ...enr, emailRaw, tenantId, correlationId: job.data.correlationId },
+            "Instantly webhook lead not found for email",
           );
         } else {
           journeyId = matched[0].journeyId;
           leadId = matched[0].leadId;
         }
       } else {
-        console.warn("[webhook:instantly] lead_email missing, cannot resolve lead");
+        const enr = enrichError(new Error("instantly_webhook_missing_email"), { tenantId });
+        svcLog.warn(
+          { ...enr, tenantId, correlationId: job.data.correlationId },
+          "Instantly webhook missing lead_email; cannot resolve lead",
+        );
       }
 
       const needsJourney =
         rawEvent.event_type === "reply_received" || rawEvent.event_type === "lead_unsubscribed";
       if (needsJourney && (journeyId === undefined || journeyId === "")) {
-        console.warn(
-          `[webhook:instantly] skip tracking queue: event=${rawEvent.event_type} requires journey but none resolved (email=${emailRaw || "—"})`,
+        const enr = enrichError(new Error("instantly_webhook_unresolved_journey"), {
+          tenantId,
+          eventType: rawEvent.event_type,
+        });
+        svcLog.warn(
+          {
+            ...enr,
+            tenantId,
+            eventType: rawEvent.event_type,
+            emailRaw: emailRaw || null,
+            correlationId: job.data.correlationId,
+          },
+          "Instantly webhook skipped tracking queue because journey could not be resolved",
         );
         return;
       }
@@ -344,7 +396,7 @@ export function createInstantlyEventProcessorWorker(): Worker {
       // Route to email cold tracking worker
       await trackingQueue.add(
         rawEvent.event_type,
-        {
+        ensureJobDataCorrelationId({
           tenantId,
           leadId,
           journeyId,
@@ -353,7 +405,8 @@ export function createInstantlyEventProcessorWorker(): Worker {
           campaignId: rawEvent.campaign_id,
           timestamp: rawEvent.timestamp,
           replyContent: rawEvent.reply_content,
-        },
+          correlationId: job.data.correlationId,
+        }),
         { priority: rawEvent.event_type === "reply_received" ? 1 : 3, removeOnComplete: 100 },
       );
 
@@ -405,7 +458,7 @@ export function createResendEventProcessorWorker(): Worker {
         // Treat as potential warm reply indicator
         await warmReplyQueue.add(
           "clicked",
-          {
+          ensureJobDataCorrelationId({
             tenantId,
             leadId,
             journeyId,
@@ -414,7 +467,8 @@ export function createResendEventProcessorWorker(): Worker {
             replyFrom: data.to[0] ?? "",
             timestamp: data.created_at ?? new Date().toISOString(),
             eventType: "email.clicked",
-          },
+            correlationId: job.data.correlationId,
+          }),
           { removeOnComplete: 100 },
         );
       }
@@ -422,14 +476,15 @@ export function createResendEventProcessorWorker(): Worker {
       // Always track delivery events
       await warmTrackingQueue.add(
         type,
-        {
+        ensureJobDataCorrelationId({
           tenantId,
           leadId,
           journeyId,
           emailId: data.email_id,
           eventType: type,
           timestamp: data.created_at ?? new Date().toISOString(),
-        },
+          correlationId: job.data.correlationId,
+        }),
         { removeOnComplete: 100 },
       );
     },

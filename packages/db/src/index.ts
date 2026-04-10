@@ -15,9 +15,15 @@ export {
   register_new_company,
   register_with_invite_code,
 } from "./client.js";
+export {
+  insertAuditLogRows,
+  insertJobLogRows,
+  insertErrorLogRows,
+  type ErrorLogInsertRow,
+} from "./observability-buffer-inserts.js";
 export { sql, eq, and, or, desc, asc, inArray, lt, lte, gte, isNull, isNotNull } from "drizzle-orm";
 export { alias } from "drizzle-orm/pg-core";
-export type { SQL } from "drizzle-orm";
+export type { InferInsertModel, SQL } from "drizzle-orm";
 export {
   runMigrations,
   runDrizzleMigrations,
@@ -39,6 +45,7 @@ export * from "./schemas/integrations.js";
 export * from "./schemas/consent.js";
 export * from "./schemas/invite-codes.js";
 export * from "./schemas/bronze.js";
+export * from "./schemas/observability.js";
 export * from "./schemas/silver.js";
 export * from "./schemas/gold.js";
 export * from "./schemas/pgvector.js";

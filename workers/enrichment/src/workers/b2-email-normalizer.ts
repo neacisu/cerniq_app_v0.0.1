@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   getBronzeContactForTenant,
@@ -8,7 +9,9 @@ import {
 } from "./normalization-utils.js";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { classifyAndRethrow } from "../lib/error-classification.js";
-import { createJobLogger } from "../lib/job-logger.js";
+import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("b2-email-normalizer", { etapa: "e1" });
 
 export type EmailNormalizerJobData = BronzeNormalizationJobData;
 
@@ -48,6 +51,123 @@ function normalizeEmail(email: string, stripPlusAlias = true): string {
   return `${localPart.split("+")[0]}@${domain}`;
 }
 
+type BronzeContactRow = Awaited<ReturnType<typeof getBronzeContactForTenant>>;
+
+function assessNormalizedEmailShape(normalizedEmail: string): {
+  isValid: boolean;
+  exceedsLengthLimits: boolean;
+  invalidReason: "invalid_format" | "exceeds_rfc5321_length";
+} {
+  const isValid = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(normalizedEmail);
+  const atIdx = normalizedEmail.lastIndexOf("@");
+  const localPartCheck = atIdx === -1 ? normalizedEmail : normalizedEmail.slice(0, atIdx);
+  const exceedsLengthLimits = normalizedEmail.length > 254 || localPartCheck.length > 64;
+  const invalidReason = isValid ? "exceeds_rfc5321_length" : "invalid_format";
+  return { isValid, exceedsLengthLimits, invalidReason };
+}
+
+async function persistB2InvalidEmail(
+  job: EmailNormalizerJobData,
+  log: JobLogger,
+  rawEmail: string,
+  normalizedEmail: string,
+  reason: string,
+): Promise<{ ok: true; status: "invalid"; normalizedEmail: string; isValid: false }> {
+  await markNormalizationResult(
+    job.tenantId,
+    job.bronzeContactId,
+    { extractedEmail: null },
+    {
+      emailNormalization: {
+        original: rawEmail,
+        normalized: normalizedEmail,
+        valid: false,
+        emailValid: false,
+        reason,
+      },
+    },
+  );
+  log.done("email_invalid", "Email invalid — câmpul a fost golit", {
+    original: rawEmail,
+    normalized: normalizedEmail,
+    reason,
+  });
+  return { ok: true, status: "invalid", normalizedEmail, isValid: false };
+}
+
+async function persistB2ValidEmail(
+  job: EmailNormalizerJobData,
+  log: JobLogger,
+  rawEmail: string,
+  normalizedEmail: string,
+  contact: BronzeContactRow,
+): Promise<{
+  ok: true;
+  status: "success";
+  normalizedEmail: string;
+  isValid: true;
+  emailType: "free" | "corporate";
+  isRoleBased: boolean;
+}> {
+  const domainAtIdx = normalizedEmail.lastIndexOf("@");
+  const localPart = domainAtIdx === -1 ? normalizedEmail : normalizedEmail.slice(0, domainAtIdx);
+  const domain = domainAtIdx === -1 ? "" : normalizedEmail.slice(domainAtIdx + 1);
+  const emailType = FREE_EMAIL_PROVIDERS.has(domain) ? "free" : "corporate";
+  const isRoleBased = ROLE_BASED_PREFIXES.some(
+    (prefix) =>
+      localPart === prefix ||
+      localPart.startsWith(`${prefix}.`) ||
+      localPart.startsWith(`${prefix}_`),
+  );
+  await markNormalizationResult(
+    job.tenantId,
+    job.bronzeContactId,
+    { extractedEmail: normalizedEmail },
+    {
+      emailNormalization: {
+        original: rawEmail,
+        normalized: normalizedEmail,
+        valid: true,
+        emailValid: true,
+        localPart,
+        domain,
+        emailType,
+        isRoleBased,
+      },
+    },
+  );
+  log.info("normalize_delta", "Rezumat normalizare email", {
+    inputFields: { extractedEmail: rawEmail },
+    normalizedFields: { extractedEmail: normalizedEmail, emailType, isRoleBased },
+    changesApplied: { emailChanged: rawEmail !== normalizedEmail },
+  });
+
+  const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
+  const nrRegCom = typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
+  await triggerCuiValidationIfPossible(
+    job.tenantId,
+    job.bronzeContactId,
+    cui,
+    nrRegCom,
+    job.correlationId,
+  );
+
+  log.done("done", "Normalizare email finalizată", {
+    original: rawEmail,
+    normalizedEmail,
+    emailType,
+    isRoleBased,
+  });
+  return {
+    ok: true,
+    status: "success",
+    normalizedEmail,
+    isValid: true,
+    emailType,
+    isRoleBased,
+  };
+}
+
 export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async (job) => {
   return withCognitiveSpan(
     "e1:normalize:email",
@@ -64,8 +184,18 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
         jobId: String(job.id ?? ""),
         startedAt,
         importExecution: job.data.importExecution ?? null,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       }).forContact(job.data.bronzeContactId);
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            bronzeContactId: job.data.bronzeContactId,
+          },
+          "B2 email-normalizer job",
+        );
         log.step("start", "Pornire normalizare email", {
           bronzeContactId: job.data.bronzeContactId,
         });
@@ -82,94 +212,26 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
         }
 
         const normalizedEmail = normalizeEmail(rawEmail, true);
-        const isValid = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(normalizedEmail);
-
-        const atIdx = normalizedEmail.lastIndexOf("@");
-        const localPartCheck = atIdx === -1 ? normalizedEmail : normalizedEmail.slice(0, atIdx);
-        const exceedsLengthLimits = normalizedEmail.length > 254 || localPartCheck.length > 64;
-
-        if (!isValid || exceedsLengthLimits) {
-          const reason = isValid ? "exceeds_rfc5321_length" : "invalid_format";
-          await markNormalizationResult(
-            job.data.tenantId,
-            job.data.bronzeContactId,
-            { extractedEmail: null },
-            {
-              emailNormalization: {
-                original: rawEmail,
-                normalized: normalizedEmail,
-                valid: false,
-                emailValid: false,
-                reason,
-              },
-            },
+        const shape = assessNormalizedEmailShape(normalizedEmail);
+        if (!shape.isValid || shape.exceedsLengthLimits) {
+          return await persistB2InvalidEmail(
+            job.data,
+            log,
+            rawEmail,
+            normalizedEmail,
+            shape.invalidReason,
           );
-          log.done("email_invalid", "Email invalid — câmpul a fost golit", {
-            original: rawEmail,
-            normalized: normalizedEmail,
-            reason,
-          });
-          return { ok: true, status: "invalid", normalizedEmail, isValid: false };
         }
 
-        const domainAtIdx = normalizedEmail.lastIndexOf("@");
-        const localPart =
-          domainAtIdx === -1 ? normalizedEmail : normalizedEmail.slice(0, domainAtIdx);
-        const domain = domainAtIdx === -1 ? "" : normalizedEmail.slice(domainAtIdx + 1);
-        const emailType = FREE_EMAIL_PROVIDERS.has(domain) ? "free" : "corporate";
-        const isRoleBased = ROLE_BASED_PREFIXES.some(
-          (prefix) =>
-            localPart === prefix ||
-            localPart.startsWith(`${prefix}.`) ||
-            localPart.startsWith(`${prefix}_`),
-        );
-        await markNormalizationResult(
-          job.data.tenantId,
-          job.data.bronzeContactId,
-          { extractedEmail: normalizedEmail },
-          {
-            emailNormalization: {
-              original: rawEmail,
-              normalized: normalizedEmail,
-              valid: true,
-              emailValid: true,
-              localPart,
-              domain,
-              emailType,
-              isRoleBased,
-            },
-          },
-        );
-
-        // GAP-B14: Safety net — trigger CUI validation if not yet triggered by B1
-        const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
-        const nrRegCom =
-          typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
-        await triggerCuiValidationIfPossible(
-          job.data.tenantId,
-          job.data.bronzeContactId,
-          cui,
-          nrRegCom,
-          job.data.correlationId,
-        );
-
-        log.done("done", "Normalizare email finalizată", {
-          original: rawEmail,
-          normalizedEmail,
-          emailType,
-          isRoleBased,
-        });
-        return {
-          ok: true,
-          status: "success",
-          normalizedEmail,
-          isValid,
-          emailType,
-          isRoleBased,
-        };
+        return await persistB2ValidEmail(job.data, log, rawEmail, normalizedEmail, contact);
       } catch (error) {
+        const enriched = enrichError(error, {
+          tenantId: job.data.tenantId,
+          bronzeContactId: job.data.bronzeContactId,
+        });
         const errMsg = error instanceof Error ? error.message : String(error);
         log.error("fatal", `Normalizare email eșuată: ${errMsg}`, {
+          ...enriched,
           bronzeContactId: job.data.bronzeContactId,
           errorMessage: errMsg,
           errorStack: error instanceof Error ? error.stack : undefined,

@@ -477,6 +477,20 @@
       "when": 1776555200000,
       "tag": "0066_app_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1776641600000,
+      "tag": "0067_observability_job_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1776728000000,
+      "tag": "0068_audit_api_audit_log",
+      "breakpoints": true
     }
   ]
 }

@@ -522,7 +522,9 @@ describe("cerniq_outreach_replies_received_total (Counter) — webhooks.ts", () 
     dbMock.select.mockReturnValue({
       from: vi.fn(() => ({
         innerJoin: vi.fn(() => ({
-          where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([]) })),
+          where: vi.fn(() => ({
+            limit: vi.fn().mockResolvedValue([{ journeyId: "journey-1", leadId: "lead-1" }]),
+          })),
         })),
       })),
     });

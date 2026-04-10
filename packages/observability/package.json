@@ -12,19 +12,33 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp src/http-metric-label-allowlist.json dist/",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@cerniq/db": "workspace:*",
+    "@cerniq/shared-types": "workspace:*",
+    "@fastify/otel": "^0.18.1",
     "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.72.0",
+    "@opentelemetry/core": "^2.6.1",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
+    "@opentelemetry/instrumentation-http": "^0.214.0",
+    "@opentelemetry/propagator-b3": "^2.6.1",
     "@opentelemetry/resources": "^2.6.1",
+    "@opentelemetry/sdk-metrics": "^2.6.1",
     "@opentelemetry/sdk-node": "^0.214.0",
-    "@opentelemetry/sdk-trace-base": "^2.6.1"
+    "@opentelemetry/sdk-trace-base": "^2.6.1",
+    "pino": "^10.3.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
+    "fastify": "^5.8.4",
+    "pino-pretty": "^13.1.3",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
   }

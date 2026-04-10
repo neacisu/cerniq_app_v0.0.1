@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -13,8 +14,25 @@
     "rootDir": "./src",
     "resolveJsonModule": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@opentelemetry/api": [
+        "../../packages/observability/node_modules/@opentelemetry/api/build/src/index.d.ts",
+        "../../packages/observability/node_modules/@opentelemetry/api",
+        "../../node_modules/@opentelemetry/api/build/src/index.d.ts",
+        "../../node_modules/@opentelemetry/api"
+      ],
+      "pino": [
+        "../../packages/observability/node_modules/pino/pino.d.ts",
+        "../../packages/observability/node_modules/pino",
+        "../../node_modules/pino/pino.d.ts",
+        "../../node_modules/pino"
+      ],
+      "drizzle-orm": ["../../node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["../../node_modules/drizzle-orm/*"]
+    }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }

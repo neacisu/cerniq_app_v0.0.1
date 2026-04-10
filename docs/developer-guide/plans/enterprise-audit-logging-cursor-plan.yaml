@@ -4,46 +4,46 @@ overview: "Sistem complet enterprise-grade de audit, logging structurat si traci
 todos:
   - id: f0.1
     content: "FAZA 0.1: Creare createServiceLogger(serviceName, opts) in packages/observability/src/logger.ts. Pino wrapper universal cu auto-inject service/hostname/pid/version, child logger, serializoare Error cu cause chain recursiv, redactare PII (email, phone, token, password, cookie, creditCard). FISIERE: packages/observability/src/logger.ts (NOU). AUDIT FIRST: (1) Citeste packages/observability/package.json pt dependente existente, (2) Citeste packages/observability/src/init.ts pt structura existenta, (3) Citeste apps/api/src/app.ts pt cum Pino e configurat acum in Fastify. REGULI: NU reinitializa Pino daca e deja configurat de Fastify. NU presupune ce exporta pachetul - verifica cu Read. NU adauga dependente fara a verifica package.json. Transport: stdout JSON prod, pino-pretty dev."
-    status: pending
+    status: completed
   - id: f0.2
     content: "FAZA 0.2: Creare createJobLogger(opts) universal in packages/observability/src/job-logger.ts. Muta logica din workers/enrichment/src/lib/job-logger.ts dar scrie in observability.job_logs (etapa-agnostic). batchId devine OPTIONAL. Campuri noi: correlationId, traceId, spanId, entityType, entityId, queueName, etapa, errorFingerprint. Batch insert (max 100 entries sau 2s). Fallback stdout JSON cand DB e down. Circuit breaker pe scriere DB. FISIERE: packages/observability/src/job-logger.ts (NOU). AUDIT FIRST: (1) Citeste COMPLET workers/enrichment/src/lib/job-logger.ts (toate 86 liniile), (2) Identifica API-ul existent: debug/info/warn/error/step/done/forContact, (3) Citeste packages/db/src/schemas/bronze.ts pt structura job_logs. REGULI: Pastreaza API-ul existent identic (backward compat). NU sterge functii existente. Adauga noi metode pe langa cele existente."
-    status: pending
+    status: completed
   - id: f0.3
     content: "FAZA 0.3: Creare enrichError(error, context) in packages/observability/src/error-enrichment.ts. Fingerprint SHA-256, cause chain traversal recursiv, clasificare transient/permanent/validation/infrastructure. FISIERE: packages/observability/src/error-enrichment.ts (NOU). AUDIT FIRST: Citeste COMPLET workers/enrichment/src/lib/error-classification.ts, identifica isTransientError() si classifyAndRethrow(). REGULI: EXTINDE logica existenta, NU duplica. NU modifica error-classification.ts."
-    status: pending
+    status: completed
   - id: f0.4
     content: "FAZA 0.4: Creare withSpan(name, fn, attributes) in packages/observability/src/tracing.ts. OTel span wrapper, error recording, propagare traceId/spanId in Pino. FISIERE: packages/observability/src/tracing.ts (NOU). AUDIT FIRST: Citeste COMPLET packages/observability/src/init.ts, verifica @opentelemetry/api in package.json. REGULI: NU reinitializa SDK-ul. Foloseste @opentelemetry/api.trace.getTracer() existent."
-    status: pending
+    status: completed
   - id: f0.5
     content: "FAZA 0.5: Creare CorrelationContext in packages/observability/src/correlation.ts. AsyncLocalStorage pt context per-request/per-job. FISIERE: packages/observability/src/correlation.ts (NOU). AUDIT FIRST: Verifica daca AsyncLocalStorage e deja folosit in codebase, citeste request-logging.ts. REGULI: NU confunda correlationId cu requestId - sunt concepte diferite."
-    status: pending
+    status: completed
   - id: f0.6
     content: "FAZA 0.6: Creare AuditWriter in packages/observability/src/audit-writer.ts. Scrie in audit.audit_log, async batch insert, hash chain optional. FISIERE: packages/observability/src/audit-writer.ts (NOU). AUDIT FIRST: Citeste packages/db/src/schemas/audit.ts pt structura existenta. REGULI: NU modifica tabelul approval_audit_log existent. Noul audit_log e SEPARAT."
-    status: pending
+    status: completed
   - id: f0.7
     content: "FAZA 0.7: Export index @cerniq/observability. Re-exporta toate modulele noi. FISIERE: packages/observability/src/index.ts (MODIFICAT). AUDIT FIRST: Citeste index.ts actual pt exporturi existente. REGULI: NU sterge exporturi existente."
-    status: pending
+    status: completed
   - id: f0.8
     content: "FAZA 0.8: Upgrade StructuredLogSchema cu campuri noi: traceId, spanId, workerName, queueName, jobId, entityType, entityId, errorFingerprint, errorClassification, hostname, pid, etapa. FISIERE: packages/shared-types/src/schemas/structured-logs.ts (MODIFICAT). AUDIT FIRST: Citeste fisierul COMPLET. REGULI: NU sterge campuri existente. Adauga ca OPTIONALE."
-    status: pending
+    status: completed
   - id: f1.1
     content: "FAZA 1.1: Migrare Drizzle SQL. CREATE SCHEMA observability + 3 tabele (observability.job_logs, audit.audit_log, observability.error_log) + view bronze.job_logs_v. FISIERE: packages/db/drizzle/XXXX_observability_audit_logging.sql (NOU). AUDIT FIRST: Citeste _journal.json pt ultimul nr migrare, citeste bronze.ts si audit.ts pt schema existenta. REGULI: NU modifica tabele existente."
-    status: pending
+    status: completed
   - id: f1.2
     content: "FAZA 1.2: Schema Drizzle ORM pt tabelele noi. FISIERE: packages/db/src/schemas/observability.ts (NOU), audit.ts (MODIFICAT). AUDIT FIRST: Citeste audit.ts si bronze.ts pt conventii naming. REGULI: Foloseste pgTable/pgSchema exact ca in fisierele existente."
-    status: pending
+    status: completed
   - id: f1.3
     content: "FAZA 1.3: Export din @cerniq/db. Adauga export pt noile tabele. FISIERE: packages/db/src/index.ts (MODIFICAT). AUDIT FIRST: Citeste index.ts pt pattern-ul de export existent. REGULI: Urmeaza exact pattern-ul existent."
-    status: pending
+    status: completed
   - id: f2.1
     content: "FAZA 2.1: Refactor error handler API. Elimina mesaj generic prod, adauga errorId UUID, enrichError, log complet, raspuns cu errorId. FISIERE: apps/api/src/errors/handler.ts (MODIFICAT). AUDIT FIRST: Citeste handler.ts COMPLET, identifica TOATE cazurile speciale (AppError, ZodError, JWT, DB). REGULI: Pastreaza TOATE cazurile speciale NEATINSE. Modifica DOAR cazul generic (liniile 123-131)."
-    status: pending
+    status: completed
   - id: f2.2
     content: "FAZA 2.2: Upgrade request-logging plugin. Adauga correlationId, AsyncLocalStorage, log request body hash. FISIERE: apps/api/src/plugins/request-logging.ts (MODIFICAT). AUDIT FIRST: Citeste fisierul COMPLET, identifica hook-urile onRequest si onResponse. REGULI: Pastreaza hook-urile existente. Adauga, nu inlocuieste."
-    status: pending
+    status: completed
   - id: f2.3
     content: "FAZA 2.3: Creare audit-trail plugin Fastify. Hook onResponse pt POST/PUT/PATCH/DELETE, scrie in audit.audit_log. FISIERE: apps/api/src/plugins/audit-trail.ts (NOU), plugins/index.ts (MODIFICAT). AUDIT FIRST: Citeste plugins/index.ts pt ordine, tenant-context.ts pt userId/tenantId. REGULI: Inregistreaza DUPA tenant-context."
-    status: pending
+    status: completed
   - id: f3.1
     content: "FAZA 3.1: Upgrade workers A1-A5 (ingest). Schimba import la @cerniq/observability, adauga correlationId, enrichError, withSpan. FISIERE: a1-csv-parser.ts, a2-excel-parser.ts, a3-webhook-receiver.ts, a4-api-poller.ts, a5-manual-entry.ts. AUDIT FIRST: Citeste FIECARE fisier COMPLET, identifica importul job-logger vechi. REGULI: Schimba DOAR importul. NU modifica logica de parsare/ingest."
     status: pending

@@ -216,4 +216,15 @@ describe("Dashboard routes — schemă + izolare tenant", () => {
     const stages = body.data.map((r) => r.pipelineStage);
     expect(stages).toContain("ISOL_B_1");
   });
+
+  it("GET /kpi-stream — JWT invalid → 401 (fără SSE)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/dashboard/kpi-stream",
+      headers: { authorization: "Bearer not-a-valid-jwt" },
+    });
+    expect(res.statusCode).toBe(401);
+    const body = res.json() as { success?: boolean };
+    expect(body.success).toBe(false);
+  });
 });

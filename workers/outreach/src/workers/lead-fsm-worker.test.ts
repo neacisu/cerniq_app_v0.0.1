@@ -2,22 +2,28 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const fsmInc = vi.fn();
 
+const leadJourneySelectMocks = vi.hoisted(() => {
+  const limit = vi.fn(async () => [{ currentState: "COLD", id: "j1" }]);
+  const where = vi.fn(() => ({ limit }));
+  const from = vi.fn(() => ({ where }));
+  const select = vi.fn(() => ({ from }));
+  return { select, from, where, limit };
+});
+
+const leadJourneyUpdateMocks = vi.hoisted(() => {
+  const whereAfterSet = vi.fn(async () => undefined);
+  const setFn = vi.fn(() => ({ where: whereAfterSet }));
+  const update = vi.fn(() => ({ set: setFn }));
+  return { update, setFn, whereAfterSet };
+});
+
 vi.mock("@cerniq/db", () => ({
   db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          limit: vi.fn(async () => [{ currentState: "COLD", id: "j1" }]),
-        })),
-      })),
-    })),
-    update: vi.fn(() => ({
-      set: vi.fn(() => ({
-        where: vi.fn(async () => undefined),
-      })),
-    })),
+    select: leadJourneySelectMocks.select,
+    update: leadJourneyUpdateMocks.update,
   },
   leadJourney: { id: "id", tenantId: "tenantId" },
+  goldLeadJourney: { id: "id" },
   eq: vi.fn((_l: unknown, _r: unknown) => ({ left: _l, right: _r })),
   and: vi.fn((_a: unknown, _b: unknown) => ({ and: [_a, _b] })),
   setSessionTenantId: vi.fn(async () => undefined),

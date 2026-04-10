@@ -1,10 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import type { Processor } from "bullmq";
 import { bronzeWebhooks, db, setSessionTenantId } from "@cerniq/db";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
 import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("a3-webhook-receiver", { etapa: "e1" });
 
 // GAP-B8: Max payload size (10 MB)
 const MAX_PAYLOAD_SIZE_BYTES = 10 * 1024 * 1024;
@@ -58,9 +61,20 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
         workerName: "A3:webhook-receiver",
         jobId: String(job.id ?? ""),
         startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       });
 
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            webhookSource: job.data.webhookType,
+            webhookId: job.data.webhookId,
+          },
+          "A3 webhook-receiver job",
+        );
         log.step(
           "start",
           `Webhook primit: tip=${job.data.webhookType}, IP=${job.data.sourceIp ?? "unknown"}`,
@@ -197,7 +211,13 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
         };
       } catch (error) {
         jobErrors.add(1, { worker: "a3-webhook-receiver" });
+        const enriched = enrichError(error, {
+          webhookSource: job.data.webhookType,
+          tenantId: job.data.tenantId,
+          webhookId: job.data.webhookId,
+        });
         log.error("fatal", `Eroare critică la procesare webhook`, {
+          ...enriched,
           webhookType: job.data.webhookType,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,

@@ -1,7 +1,11 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverEnrichmentLog } from "@cerniq/db";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { callExternalApi, withCognitiveSpan } from "@cerniq/worker-shared";
+import { createJobLogger } from "../lib/job-logger.js";
 import { patchCompanyMetadata } from "./pipeline-utils.js";
+
+const svcLog = createServiceLogger("i1-daj-scraper", { etapa: "e1" });
 
 export type DajScraperJobData = {
   tenantId: string;
@@ -86,47 +90,103 @@ export const dajScraperProcessor: Processor<DajScraperJobData> = async (job) => 
     "e1:scrape:legal-daj",
     async (_span) => {
       const startedAt = Date.now();
-      await setSessionTenantId(job.data.tenantId);
-
-      const endpointTemplate = process.env.DAJ_ENDPOINT_TEMPLATE;
-      if (!endpointTemplate) {
-        return { ok: true, status: "skipped", reason: "missing_daj_endpoint_template" };
-      }
-
-      const url = endpointTemplate
-        .replace("{cui}", encodeURIComponent(job.data.cui))
-        .replace("{judet}", encodeURIComponent(job.data.judet ?? ""));
-
-      const scraped = await callExternalApi("scraping", () => fetchDajUrl(url));
-      if (scraped.status === 404 || !scraped.body) {
-        return { ok: true, status: "not_found", source: "daj_scraper" };
-      }
-      const payload = scraped.body;
-
-      await patchCompanyMetadata(job.data.tenantId, job.data.companyId, {
-        dajScraper: {
-          cui: job.data.cui,
-          judet: job.data.judet ?? null,
-          payload,
-          scrapedAt: new Date().toISOString(),
-        },
-      });
-
-      await db.insert(silverEnrichmentLog).values({
+      const log = createJobLogger({
         tenantId: job.data.tenantId,
+        workerName: "I1:daj-scraper",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
         entityType: "company",
         entityId: job.data.companyId,
-        source: "daj_scraper",
-        operation: "scrape",
-        requestPayload: { url, cui: job.data.cui, judet: job.data.judet ?? null },
-        responsePayload: payload,
-        fieldsUpdated: ["metadata"],
-        correlationId: job.data.correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
       });
 
-      return { ok: true, status: "success", source: "daj_scraper" };
+      let targetUrl = "";
+      try {
+        await setSessionTenantId(job.data.tenantId);
+        svcLog.info(
+          { tenantId: job.data.tenantId, companyId: job.data.companyId, cui: job.data.cui },
+          "I1 DAJ scrape",
+        );
+
+        const endpointTemplate = process.env.DAJ_ENDPOINT_TEMPLATE;
+        if (!endpointTemplate) {
+          log.info("skip", "Lipsește DAJ_ENDPOINT_TEMPLATE", {
+            targetUrl: null,
+            scrapingResult: "skipped",
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "skipped", reason: "missing_daj_endpoint_template" };
+        }
+
+        const url = endpointTemplate
+          .replace("{cui}", encodeURIComponent(job.data.cui))
+          .replace("{judet}", encodeURIComponent(job.data.judet ?? ""));
+        targetUrl = url;
+
+        const scraped = await callExternalApi("scraping", () => fetchDajUrl(url));
+        if (scraped.status === 404 || !scraped.body) {
+          log.info("scrape", "DAJ fără date", {
+            targetUrl: url,
+            scrapingResult: "not_found",
+            httpStatus: scraped.status,
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "not_found", source: "daj_scraper" };
+        }
+        const payload = scraped.body;
+        const fieldsExtracted =
+          payload && typeof payload === "object" && !Array.isArray(payload)
+            ? { keys: Object.keys(payload as Record<string, unknown>) }
+            : { summary: "non_object" };
+
+        await patchCompanyMetadata(job.data.tenantId, job.data.companyId, {
+          dajScraper: {
+            cui: job.data.cui,
+            judet: job.data.judet ?? null,
+            payload,
+            scrapedAt: new Date().toISOString(),
+          },
+        });
+
+        await db.insert(silverEnrichmentLog).values({
+          tenantId: job.data.tenantId,
+          entityType: "company",
+          entityId: job.data.companyId,
+          source: "daj_scraper",
+          operation: "scrape",
+          requestPayload: { url, cui: job.data.cui, judet: job.data.judet ?? null },
+          responsePayload: payload,
+          fieldsUpdated: ["metadata"],
+          correlationId: job.data.correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
+
+        log.step("done", "DAJ scrape reușit", {
+          targetUrl: url,
+          scrapingResult: "ok",
+          httpStatus: scraped.status,
+          fieldsExtracted,
+          latencyMs: Date.now() - startedAt,
+        });
+
+        return { ok: true, status: "success", source: "daj_scraper" };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `DAJ scraper eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              entityType: "company",
+              entityId: job.data.companyId,
+              url: targetUrl || undefined,
+            }),
+          },
+        );
+        throw error;
+      }
     },
     { tenantId: job.data.tenantId },
   );

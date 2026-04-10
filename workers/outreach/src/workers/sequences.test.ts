@@ -45,9 +45,15 @@ vi.mock("@cerniq/db", () => {
   const makeSetWhere = () => ({
     set: vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) })),
   });
+  const fromChain = () => ({
+    where: vi.fn(() => makeLimit()),
+    innerJoin: vi.fn(() => ({
+      where: vi.fn(() => makeLimit()),
+    })),
+  });
   return {
     db: {
-      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => makeLimit()) })) })),
+      select: vi.fn(() => ({ from: vi.fn(fromChain) })),
       update: vi.fn(() => makeSetWhere()),
       insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue(undefined) })),
     },
@@ -256,11 +262,13 @@ describe("sequences.ts — withCognitiveSpan instrumentation", () => {
             })),
           })),
         })
-        // next step not found — this query uses .where(and(...)).limit(1)
+        // next step not found — lanț: .from().innerJoin().where().limit(1)
         .mockReturnValueOnce({
           from: vi.fn(() => ({
-            where: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue([]),
+            innerJoin: vi.fn(() => ({
+              where: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue([]),
+              })),
             })),
           })),
         });

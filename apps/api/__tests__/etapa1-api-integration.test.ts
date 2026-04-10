@@ -499,6 +499,7 @@ describe("Etapa 1 API Integration Tests", () => {
         await tx.insert(jobLogs).values([
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             sessionId: olderSession.id,
             workerName: "worker-older",
@@ -508,6 +509,7 @@ describe("Etapa 1 API Integration Tests", () => {
           },
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             sessionId: newerSession.id,
             workerName: "worker-newer",
@@ -561,6 +563,7 @@ describe("Etapa 1 API Integration Tests", () => {
         await tx.insert(jobLogs).values([
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             sessionId: session.id,
             workerName: "worker-session",
@@ -571,6 +574,7 @@ describe("Etapa 1 API Integration Tests", () => {
           },
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             workerName: "worker-legacy",
             level: "info",
@@ -650,6 +654,7 @@ describe("Etapa 1 API Integration Tests", () => {
         await tx.insert(jobLogs).values([
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             sessionId: firstSession.id,
             workerName: "worker-first",
@@ -659,6 +664,7 @@ describe("Etapa 1 API Integration Tests", () => {
           },
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             sessionId: firstSession.id,
             workerName: "worker-first",
@@ -668,6 +674,7 @@ describe("Etapa 1 API Integration Tests", () => {
           },
           {
             tenantId: testTenantId,
+            etapa: "e1",
             batchId: batch.id,
             sessionId: secondSession.id,
             workerName: "worker-second",

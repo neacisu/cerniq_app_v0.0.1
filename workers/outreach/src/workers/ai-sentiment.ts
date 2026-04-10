@@ -13,7 +13,7 @@
  * Override per-tenant (tabel `integration_configs`) nu face parte din MVP — vezi plan cognitiv db-integration-configs.
  */
 import type { Job, Worker } from "bullmq";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Redis } from "ioredis";
 import { z } from "zod";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
@@ -31,6 +31,9 @@ import {
   OUTREACH_NODE_RESPONSE,
   llmRegenerationAttempts,
 } from "@cerniq/worker-shared";
+import { enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
+import { createOutreachJobLogger } from "../lib/outreach-job-logger.js";
 
 // AI rate limit: 60/min from workers-overview RATE_LIMITS
 const AI_CACHE_TTL_SECONDS = 3600; // 1h cache
@@ -72,6 +75,7 @@ export interface SentimentJobData {
   journeyId: string;
   content: string;
   channel: "WHATSAPP" | "EMAIL_COLD" | "EMAIL_WARM";
+  correlationId?: string;
 }
 
 export interface SentimentResult {
@@ -104,6 +108,7 @@ export interface ResponseGenerateJobData {
   companyName?: string;
   phoneLabel?: string; // e.g. "01"
   chatId?: string;
+  correlationId?: string;
 }
 
 type OutreachLlmRoute = Awaited<ReturnType<typeof resolveOutreachLlmRouting>>;
@@ -180,6 +185,17 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
     async (job: Job<SentimentJobData>): Promise<SentimentResult> => {
       return withCognitiveSpan("e2:ai:sentiment-analyze", async () => {
         const { tenantId, leadId, journeyId, content, channel } = job.data;
+        const correlationId = job.data.correlationId?.trim() || randomUUID();
+
+        const jlog = createOutreachJobLogger(job, {
+          workerName: "outreach-ai-sentiment",
+          queueName: QUEUES.AI_SENTIMENT_ANALYZE,
+          tenantId,
+          entityType: "journey",
+          entityId: journeyId,
+          correlationId: job.data.correlationId,
+        });
+        jlog.info("ai_sentiment", "start", { channel, leadId });
 
         // Use cached wrapper — tenantId is included in the hash to prevent
         // cross-tenant cache leaks (different tenants may have different thresholds).
@@ -209,7 +225,7 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
               .where(eq(leadJourney.id, journeyId));
             await reviewQueue.add(
               "queue",
-              {
+              ensureJobDataCorrelationId({
                 tenantId,
                 leadId,
                 journeyId,
@@ -217,17 +233,32 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
                 priority: "HIGH",
                 content,
                 channel,
-              },
+                correlationId,
+              }),
               { priority: 1, removeOnComplete: 100 },
             );
-            return {
+            jlog.warn("ai_sentiment", "structured_output_exhausted", { journeyId });
+            const exhausted: SentimentResult = {
               score: 0,
               intent: "NEUTRAL",
               urgency: "HIGH",
               requiresHuman: true,
               routedTo: "HUMAN",
             };
+            jlog.done("ai_sentiment", "complete", {
+              score: exhausted.score,
+              intent: exhausted.intent,
+              routedTo: exhausted.routedTo,
+              path: "llm_structured_exhausted",
+            });
+            return exhausted;
           }
+          const enr = enrichError(e, { tenantId, journeyId, leadId, channel });
+          jlog.error("ai_sentiment", "llm_failed", {
+            fingerprint: enr.fingerprint,
+            errorType: enr.errorType,
+            errorCode: enr.errorCode,
+          });
           throw e;
         }
 
@@ -262,14 +293,21 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
         if (analysis.score >= 50 && !requiresReview) {
           await responseQueue.add(
             "generate",
-            { tenantId, leadId, journeyId, content, analysis },
+            ensureJobDataCorrelationId({
+              tenantId,
+              leadId,
+              journeyId,
+              content,
+              analysis,
+              correlationId,
+            }),
             { priority: 2, removeOnComplete: 100 },
           );
         } else if (requiresReview || analysis.score < 0) {
           routedTo = "HUMAN";
           await reviewQueue.add(
             "queue",
-            {
+            ensureJobDataCorrelationId({
               tenantId,
               leadId,
               journeyId,
@@ -277,12 +315,20 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
               priority: analysis.urgency,
               content,
               channel,
-            },
+              correlationId,
+            }),
             { priority: 1, removeOnComplete: 100 },
           );
         }
 
-        return { ...analysis, routedTo };
+        const result: SentimentResult = { ...analysis, routedTo };
+        jlog.done("ai_sentiment", "complete", {
+          score: result.score,
+          intent: result.intent,
+          routedTo: result.routedTo,
+          requiresHuman: result.requiresHuman,
+        });
+        return result;
       });
     },
     { concurrency: 60 },
@@ -402,6 +448,17 @@ export function createResponseGeneratorWorker(redis: Redis): Worker {
       return withCognitiveSpan("e2:ai:response-generate", async () => {
         const { tenantId, leadId, journeyId, content, analysis, companyName, phoneLabel, chatId } =
           job.data;
+        const correlationId = job.data.correlationId?.trim() || randomUUID();
+
+        const jlog = createOutreachJobLogger(job, {
+          workerName: "outreach-ai-response",
+          queueName: QUEUES.AI_RESPONSE_GENERATE,
+          tenantId,
+          entityType: "journey",
+          entityId: journeyId,
+          correlationId: job.data.correlationId,
+        });
+        jlog.info("ai_response", "start", { leadId });
 
         // Check cache
         const cacheKey = `ai:response:${createHash("sha256")
@@ -410,6 +467,7 @@ export function createResponseGeneratorWorker(redis: Redis): Worker {
           .slice(0, 16)}`;
         const cached = await redis.get(cacheKey);
         if (cached) {
+          jlog.done("ai_response", "cache_hit", { sent: false });
           return { response: cached, sent: false };
         }
 
@@ -427,16 +485,18 @@ IMPORTANT: Răspunde în maxim 2-3 propoziții scurte.`;
         });
 
         if (!generatedResponse) {
+          jlog.warn("ai_response", "generation_empty_fallback", { journeyId });
           await reviewQueue.add(
             "queue",
-            {
+            ensureJobDataCorrelationId({
               tenantId,
               leadId,
               journeyId,
               reason: "AI_UNCERTAIN",
               priority: "HIGH",
               content: content.slice(0, 500),
-            },
+              correlationId,
+            }),
             { priority: 1, removeOnComplete: 100 },
           );
           generatedResponse = OUTREACH_RESPONSE_GENERATION_FALLBACK_RO;
@@ -452,7 +512,7 @@ IMPORTANT: Răspunde în maxim 2-3 propoziții scurte.`;
           const followupQueue = createQueue(followupQueueName);
           await followupQueue.add(
             "ai-response",
-            {
+            ensureJobDataCorrelationId({
               tenantId,
               leadId,
               journeyId,
@@ -461,12 +521,15 @@ IMPORTANT: Răspunde în maxim 2-3 propoziții scurte.`;
               chatId,
               isFollowup: true,
               personalization: { companyName: companyName ?? "" },
-            },
+              correlationId,
+            }),
             { priority: 2, removeOnComplete: 100 },
           );
+          jlog.done("ai_response", "complete", { sent: true, followupQueued: true });
           return { response: generatedResponse, sent: true };
         }
 
+        jlog.done("ai_response", "complete", { sent: false, followupQueued: false });
         return { response: generatedResponse, sent: false };
       });
     },

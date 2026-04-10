@@ -7,6 +7,7 @@ import {
   type ImportExecutionContext,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import {
@@ -19,6 +20,8 @@ import {
   updateImportBatchCounters,
   verifyFileHash,
 } from "./ingest-utils.js";
+
+const svcLog = createServiceLogger("a2-excel-parser", { etapa: "e1" });
 
 export type ExcelParserJobData = {
   tenantId: string;
@@ -405,9 +408,19 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
         jobId: String(job.id ?? ""),
         startedAt,
         importExecution: job.data.importExecution ?? null,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       });
 
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            batchId: job.data.batchId,
+          },
+          "A2 excel-parser job",
+        );
         log.step("start", `Parsare fișier Excel: ${job.data.fileName}`, {
           filePath: job.data.filePath,
           sheetName: job.data.sheetName,
@@ -431,7 +444,9 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
           log.error("no_sheets", `Nu s-au găsit foi cu date în fișierul Excel`, {
             fileName: job.data.fileName,
           });
-          throw new Error("Excel parse failed: no sheets with data found");
+          throw new Error("Excel parse failed: no sheets with data found", {
+            cause: new Error("no_sheets"),
+          });
         }
 
         log.info(
@@ -531,7 +546,14 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
         };
       } catch (error) {
         jobErrors.add(1, { worker: "a2-excel-parser" });
+        const enriched = enrichError(error, {
+          fileName: job.data.fileName,
+          tenantId: job.data.tenantId,
+          rowCount: state.totalRowsRead,
+          batchId: job.data.batchId,
+        });
         log.error("fatal", `Eroare critică la parsare Excel — importul a eșuat`, {
+          ...enriched,
           fileName: job.data.fileName,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,

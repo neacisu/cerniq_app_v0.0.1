@@ -1,7 +1,11 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverEnrichmentLog } from "@cerniq/db";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { callExternalApi, withCognitiveSpan } from "@cerniq/worker-shared";
+import { createJobLogger } from "../lib/job-logger.js";
 import { patchCompanyMetadata } from "./pipeline-utils.js";
+
+const svcLog = createServiceLogger("i2-anif-scraper", { etapa: "e1" });
 
 export type AnifScraperJobData = {
   tenantId: string;
@@ -102,47 +106,100 @@ export const anifScraperProcessor: Processor<AnifScraperJobData> = async (job) =
     "e1:scrape:legal-anif",
     async (_span) => {
       const startedAt = Date.now();
-      await setSessionTenantId(job.data.tenantId);
-
-      const endpointTemplate = process.env.ANIF_ENDPOINT_TEMPLATE;
-      if (!endpointTemplate) {
-        return { ok: true, status: "skipped", reason: "missing_anif_endpoint_template" };
-      }
-
-      const url = endpointTemplate
-        .replace("{cui}", encodeURIComponent(job.data.cui))
-        .replace("{judet}", encodeURIComponent(job.data.judet ?? ""));
-
-      const scraped = await callExternalApi("scraping", () => fetchAnifUrl(url));
-      if (scraped.status === 404 || !scraped.body) {
-        return { ok: true, status: "not_found", source: "anif_scraper" };
-      }
-      const payload = scraped.body;
-
-      await patchCompanyMetadata(job.data.tenantId, job.data.companyId, {
-        anifScraper: {
-          cui: job.data.cui,
-          judet: job.data.judet ?? null,
-          payload,
-          scrapedAt: new Date().toISOString(),
-        },
-      });
-
-      await db.insert(silverEnrichmentLog).values({
+      const log = createJobLogger({
         tenantId: job.data.tenantId,
+        workerName: "I2:anif-scraper",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
         entityType: "company",
         entityId: job.data.companyId,
-        source: "anif_scraper",
-        operation: "scrape",
-        requestPayload: { url, cui: job.data.cui, judet: job.data.judet ?? null },
-        responsePayload: payload,
-        fieldsUpdated: ["metadata"],
-        correlationId: job.data.correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
       });
+      let targetUrl = "";
+      try {
+        await setSessionTenantId(job.data.tenantId);
+        svcLog.info(
+          { tenantId: job.data.tenantId, companyId: job.data.companyId, cui: job.data.cui },
+          "I2 ANIF scrape",
+        );
 
-      return { ok: true, status: "success", source: "anif_scraper" };
+        const endpointTemplate = process.env.ANIF_ENDPOINT_TEMPLATE;
+        if (!endpointTemplate) {
+          log.info("skip", "Lipsește ANIF_ENDPOINT_TEMPLATE", {
+            scrapingResult: "skipped",
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "skipped", reason: "missing_anif_endpoint_template" };
+        }
+
+        const url = endpointTemplate
+          .replace("{cui}", encodeURIComponent(job.data.cui))
+          .replace("{judet}", encodeURIComponent(job.data.judet ?? ""));
+        targetUrl = url;
+
+        const scraped = await callExternalApi("scraping", () => fetchAnifUrl(url));
+        if (scraped.status === 404 || !scraped.body) {
+          log.info("scrape", "ANIF fără date", {
+            targetUrl: url,
+            scrapingResult: "not_found",
+            httpStatus: scraped.status,
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "not_found", source: "anif_scraper" };
+        }
+        const payload = scraped.body;
+        const fieldsExtracted =
+          payload && typeof payload === "object" && !Array.isArray(payload)
+            ? { keys: Object.keys(payload as Record<string, unknown>) }
+            : { summary: "non_object" };
+
+        await patchCompanyMetadata(job.data.tenantId, job.data.companyId, {
+          anifScraper: {
+            cui: job.data.cui,
+            judet: job.data.judet ?? null,
+            payload,
+            scrapedAt: new Date().toISOString(),
+          },
+        });
+
+        await db.insert(silverEnrichmentLog).values({
+          tenantId: job.data.tenantId,
+          entityType: "company",
+          entityId: job.data.companyId,
+          source: "anif_scraper",
+          operation: "scrape",
+          requestPayload: { url, cui: job.data.cui, judet: job.data.judet ?? null },
+          responsePayload: payload,
+          fieldsUpdated: ["metadata"],
+          correlationId: job.data.correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
+
+        log.step("done", "ANIF scrape reușit", {
+          targetUrl: url,
+          scrapingResult: "ok",
+          httpStatus: scraped.status,
+          fieldsExtracted,
+          latencyMs: Date.now() - startedAt,
+        });
+        return { ok: true, status: "success", source: "anif_scraper" };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `ANIF scraper eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              entityType: "company",
+              entityId: job.data.companyId,
+              url: targetUrl || undefined,
+            }),
+          },
+        );
+        throw error;
+      }
     },
     { tenantId: job.data.tenantId },
   );

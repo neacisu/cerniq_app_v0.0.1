@@ -1,11 +1,15 @@
 /**
- * GET /api/v1/imports/:importId/logs/stream — SSE pentru `bronze.job_logs` (Plan §21b).
+ * GET /api/v1/imports/:importId/logs/stream — SSE pentru `observability.job_logs` (etapa e1).
  * Last-Event-ID: `ISO8601#uuid` (ultimul rând livrat). `catchup` = linii istorice la deschidere.
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import { trace } from "@opentelemetry/api";
 import { z } from "zod";
 import { db, eq, jobLogs, setSessionTenantId, sql, and, asc, desc, gte } from "@cerniq/db";
+import { sseConnectionErrorsTotal, sseEventsSentTotal } from "../plugins/metrics.js";
 import { requireTenantId } from "./utils.js";
+
+const SSE_ROUTE_IMPORT_LOGS = "/api/v1/imports/:importId/logs/stream";
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -42,6 +46,10 @@ function formatLogPayload(row: JobLogRow) {
     details,
     durationMs,
     createdAt: row.createdAt.toISOString(),
+    correlationId: row.correlationId ?? null,
+    traceId: row.traceId ?? null,
+    entityType: row.entityType ?? null,
+    entityId: row.entityId ?? null,
   };
 }
 
@@ -95,10 +103,17 @@ export async function importLogsStreamRoutes(app: FastifyInstance) {
     });
     reply.raw.write(": import logs stream\n\n");
 
+    let sseEventsSent = 0;
     const writeRow = (row: JobLogRow, setCursor: boolean) => {
       const payload = JSON.stringify(formatLogPayload(row));
       const composite = `${row.createdAt.toISOString()}#${row.id}`;
-      reply.raw.write(`id: ${composite}\ndata: ${payload}\n\n`);
+      try {
+        reply.raw.write(`id: ${composite}\ndata: ${payload}\n\n`);
+        sseEventsSent += 1;
+        sseEventsSentTotal.inc({ route: SSE_ROUTE_IMPORT_LOGS });
+      } catch {
+        sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_IMPORT_LOGS, phase: "write_row" });
+      }
       if (setCursor) {
         cursor = { createdAt: row.createdAt, id: row.id };
       }
@@ -108,7 +123,13 @@ export async function importLogsStreamRoutes(app: FastifyInstance) {
       const initial = await db
         .select()
         .from(jobLogs)
-        .where(and(eq(jobLogs.tenantId, tenantId), eq(jobLogs.batchId, batchId)))
+        .where(
+          and(
+            eq(jobLogs.tenantId, tenantId),
+            eq(jobLogs.batchId, batchId),
+            eq(jobLogs.etapa, "e1"),
+          ),
+        )
         .orderBy(desc(jobLogs.createdAt))
         .limit(q.catchup);
       const chronological = initial.toReversed();
@@ -124,7 +145,11 @@ export async function importLogsStreamRoutes(app: FastifyInstance) {
 
     const poll = async () => {
       try {
-        const base = and(eq(jobLogs.tenantId, tenantId), eq(jobLogs.batchId, batchId));
+        const base = and(
+          eq(jobLogs.tenantId, tenantId),
+          eq(jobLogs.batchId, batchId),
+          eq(jobLogs.etapa, "e1"),
+        );
         let whereClause;
         if (cursor === null) {
           whereClause = base;
@@ -151,7 +176,7 @@ export async function importLogsStreamRoutes(app: FastifyInstance) {
           liveOnly = false;
         }
       } catch {
-        // client gone
+        sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_IMPORT_LOGS, phase: "poll" });
       }
     };
 
@@ -164,12 +189,17 @@ export async function importLogsStreamRoutes(app: FastifyInstance) {
       try {
         reply.raw.write(": ping\n\n");
       } catch {
+        sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_IMPORT_LOGS, phase: "heartbeat" });
         clearInterval(interval);
         clearInterval(heartbeat);
       }
     }, 25000);
 
     const cleanup = () => {
+      trace.getActiveSpan()?.addEvent("sse.session_end", {
+        "sse.events_sent": sseEventsSent,
+        "sse.route": SSE_ROUTE_IMPORT_LOGS,
+      });
       clearInterval(interval);
       clearInterval(heartbeat);
     };

@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   getBronzeContactForTenant,
@@ -10,6 +11,8 @@ import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js"
 import { classifyAndRethrow } from "../lib/error-classification.js";
 import { stripDiacritics } from "../lib/diacritics.js";
 import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("b1-name-normalizer", { etapa: "e1" });
 
 export type NameNormalizerJobData = BronzeNormalizationJobData;
 
@@ -203,9 +206,19 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
         jobId: String(job.id ?? ""),
         startedAt,
         importExecution: job.data.importExecution ?? null,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       }).forContact(job.data.bronzeContactId);
 
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            bronzeContactId: job.data.bronzeContactId,
+          },
+          "B1 name-normalizer job",
+        );
         log.step("start", "Pornire normalizare nume", {
           bronzeContactId: job.data.bronzeContactId,
         });
@@ -230,6 +243,14 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
         }
 
         log.info("normalize", `Nume normalizat cu succes`, { rawName, normalized, formaJuridica });
+        log.info("normalize_delta", "Rezumat câmpuri normalizare nume", {
+          inputFields: { extractedName: rawName },
+          normalizedFields: { extractedName: titleCase(normalized), formaJuridica },
+          changesApplied: {
+            nameChanged: rawName !== normalized,
+            formaJuridicaDetected: Boolean(formaJuridica),
+          },
+        });
 
         const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
         const extractedNrRegCom =
@@ -281,9 +302,14 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
         });
         return { ok: true, status: "success", normalized, formaJuridica };
       } catch (error) {
+        const enriched = enrichError(error, {
+          tenantId: job.data.tenantId,
+          bronzeContactId: job.data.bronzeContactId,
+        });
         const errMsg = error instanceof Error ? error.message : String(error);
         const errStack = error instanceof Error ? error.stack : undefined;
         log.error("fatal", `Normalizare nume eșuată: ${errMsg}`, {
+          ...enriched,
           errorMessage: errMsg,
           errorStack: errStack,
           bronzeContactId: job.data.bronzeContactId,

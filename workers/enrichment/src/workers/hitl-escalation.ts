@@ -1,12 +1,15 @@
 import type { Processor } from "bullmq";
 import { dispatchNotification, withCognitiveSpan } from "@cerniq/worker-shared";
 import { approvalService, approvalTasks, db, setSessionTenantId, sql } from "@cerniq/db";
+import { createServiceLogger, enrichError, writeAuditEvent } from "@cerniq/observability";
 
 export type HitlEscalationJobData = {
   tenantId: string;
   correlationId?: string;
   dryRun?: boolean;
 };
+
+const svcLog = createServiceLogger("hitl-escalation", { etapa: "e1" });
 
 export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (job) => {
   return withCognitiveSpan(
@@ -47,8 +50,33 @@ export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (
               data: { taskId: task.id, phase: "sla_warning" },
               channels: ["IN_APP", "EMAIL"],
             });
+            writeAuditEvent({
+              tenantId: job.data.tenantId,
+              correlationId: job.data.correlationId,
+              method: "WORKER",
+              routePattern: "e1/hitl/escalate",
+              statusCode: 200,
+              action: "sla_warning_sent",
+              resource: "approval_task",
+              resourceId: task.id,
+              metadata: {
+                phase: "sla_warning",
+                dryRun: false,
+              },
+            });
           } catch (err) {
-            console.error("[hitl-escalation] SLA warning notification failed", err);
+            svcLog.error(
+              {
+                err,
+                taskId: task.id,
+                ...enrichError(err, {
+                  tenantId: job.data.tenantId,
+                  approvalTaskId: task.id,
+                  phase: "sla_warning",
+                }),
+              },
+              "SLA warning notification failed",
+            );
           }
         }
       }
@@ -70,6 +98,21 @@ export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (
             reason: "SLA breach reached 100%",
           });
           escalatedIds.push(escalated.id);
+          writeAuditEvent({
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            method: "WORKER",
+            routePattern: "e1/hitl/escalate",
+            statusCode: 200,
+            action: "task_escalated",
+            resource: "approval_task",
+            resourceId: task.id,
+            metadata: {
+              escalatedTaskId: escalated.id,
+              phase: "sla_breach",
+              dryRun: false,
+            },
+          });
           try {
             await dispatchNotification({
               tenantId: job.data.tenantId,
@@ -81,7 +124,19 @@ export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (
               channels: ["IN_APP", "EMAIL", "WEBHOOK"],
             });
           } catch (err) {
-            console.error("[hitl-escalation] breach notification failed", err);
+            svcLog.error(
+              {
+                err,
+                taskId: task.id,
+                escalatedTaskId: escalated.id,
+                ...enrichError(err, {
+                  tenantId: job.data.tenantId,
+                  approvalTaskId: task.id,
+                  phase: "sla_breach",
+                }),
+              },
+              "Breach notification failed",
+            );
           }
         }
       }

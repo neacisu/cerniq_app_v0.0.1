@@ -8,9 +8,14 @@ import {
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
 import { sanitizeNrRegCom, withCognitiveSpan, importMutationTotal } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getOnrcData } from "../lib/onrc-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
+import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("f1-onrc-data", { etapa: "e1" });
+const ONRC_ENDPOINT = "onrc/company-data";
 
 export type OnrcDataJobData = {
   tenantId: string;
@@ -57,84 +62,128 @@ export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
     async (_span) => {
       const startedAt = Date.now();
       const cleanedCui = sanitizeCui(job.data.cui);
-      await setSessionTenantId(job.data.tenantId);
-
-      const payload = await getOnrcData(cleanedCui);
-      const denumire = String(payload?.denumire ?? payload?.name ?? "").trim();
-      const formaJuridica = mapFormaJuridica(String(payload?.forma_juridica ?? ""));
-      const formaJuridicaValue = formaJuridica === "OTHER" ? undefined : formaJuridica;
-      const adresa = String(payload?.adresa ?? payload?.address ?? "").trim();
-      const nrRegCom = extractOnrcNrRegCom(payload);
-
-      await db
-        .update(silverCompanies)
-        .set({
-          cui: cleanedCui,
-          denumire: denumire || undefined,
-          formaJuridica: formaJuridicaValue,
-          adresa: adresa || undefined,
-          nrRegCom: nrRegCom.raw || undefined,
-          nrRegComOriginal: nrRegCom.raw || undefined,
-          // nrRegComCanonical: only set when ONRC provides new canonical format directly
-          nrRegComCanonical: nrRegCom.canonical || undefined,
-          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcData}', ${JSON.stringify(payload)}::jsonb)`,
-          lastEnrichedAt: new Date(),
-        })
-        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
-
-      importMutationTotal.inc({
-        operation: "update",
-        table: "silver_companies",
-        tenant_id: job.data.tenantId,
-      });
-
-      await upsertCompanyIdentityKey({
+      const log = createJobLogger({
         tenantId: job.data.tenantId,
-        companyId: job.data.companyId,
-        keyType: "cui",
-        keyValueCanonical: cleanedCui,
-        keyValueOriginal: cleanedCui,
-        sourceAuthority: "onrc",
+        workerName: "F1:onrc-data",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
+        entityType: "company",
+        entityId: job.data.companyId,
       });
-      if (nrRegCom.raw) {
+
+      try {
+        svcLog.info(
+          { tenantId: job.data.tenantId, companyId: job.data.companyId, cui: cleanedCui },
+          "F1 ONRC date firmă",
+        );
+        log.step("onrc_request", "Apel ONRC date", { cui: cleanedCui, endpoint: ONRC_ENDPOINT });
+        await setSessionTenantId(job.data.tenantId);
+
+        const payload = await getOnrcData(cleanedCui);
+        log.info("onrc_response", "Răspuns ONRC", {
+          cui: cleanedCui,
+          endpoint: ONRC_ENDPOINT,
+          found: Boolean(payload),
+          latencyMs: Date.now() - startedAt,
+        });
+        const denumire = String(payload?.denumire ?? payload?.name ?? "").trim();
+        const formaJuridica = mapFormaJuridica(String(payload?.forma_juridica ?? ""));
+        const formaJuridicaValue = formaJuridica === "OTHER" ? undefined : formaJuridica;
+        const adresa = String(payload?.adresa ?? payload?.address ?? "").trim();
+        const nrRegCom = extractOnrcNrRegCom(payload);
+
+        await db
+          .update(silverCompanies)
+          .set({
+            cui: cleanedCui,
+            denumire: denumire || undefined,
+            formaJuridica: formaJuridicaValue,
+            adresa: adresa || undefined,
+            nrRegCom: nrRegCom.raw || undefined,
+            nrRegComOriginal: nrRegCom.raw || undefined,
+            // nrRegComCanonical: only set when ONRC provides new canonical format directly
+            nrRegComCanonical: nrRegCom.canonical || undefined,
+            metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcData}', ${JSON.stringify(payload)}::jsonb)`,
+            lastEnrichedAt: new Date(),
+          })
+          .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+
+        importMutationTotal.inc({
+          operation: "update",
+          table: "silver_companies",
+          tenant_id: job.data.tenantId,
+        });
+
         await upsertCompanyIdentityKey({
           tenantId: job.data.tenantId,
           companyId: job.data.companyId,
-          keyType: "nr_reg_com",
-          // Use canonical (new format) if ONRC provided it directly; otherwise raw
-          keyValueCanonical: nrRegCom.canonical ?? nrRegCom.raw,
-          keyValueOriginal: nrRegCom.raw,
+          keyType: "cui",
+          keyValueCanonical: cleanedCui,
+          keyValueOriginal: cleanedCui,
           sourceAuthority: "onrc",
-          isAuthoritative: true,
         });
+        if (nrRegCom.raw) {
+          await upsertCompanyIdentityKey({
+            tenantId: job.data.tenantId,
+            companyId: job.data.companyId,
+            keyType: "nr_reg_com",
+            // Use canonical (new format) if ONRC provided it directly; otherwise raw
+            keyValueCanonical: nrRegCom.canonical ?? nrRegCom.raw,
+            keyValueOriginal: nrRegCom.raw,
+            sourceAuthority: "onrc",
+            isAuthoritative: true,
+          });
+        }
+
+        await db.insert(silverEnrichmentLog).values({
+          tenantId: job.data.tenantId,
+          entityType: "company",
+          entityId: job.data.companyId,
+          source: "onrc_data",
+          operation: "fetch",
+          requestPayload: { cui: cleanedCui },
+          responsePayload: payload,
+          fieldsUpdated: ["denumire", "formaJuridica", "adresa", "cui", "nrRegCom", "metadata"],
+          correlationId: job.data.correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
+        await markEnrichmentSourceComplete(
+          job.data.tenantId,
+          job.data.companyId,
+          "onrc_data",
+          job.data.correlationId,
+        );
+
+        log.step("done", "ONRC date: finalizat", {
+          cui: cleanedCui,
+          endpoint: ONRC_ENDPOINT,
+          latencyMs: Date.now() - startedAt,
+        });
+
+        return {
+          ok: true,
+          status: payload ? "success" : "not_found",
+          source: "onrc_data",
+          cleanedCui,
+        };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `ONRC date eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              companyId: job.data.companyId,
+              cui: cleanedCui,
+              endpoint: ONRC_ENDPOINT,
+            }),
+          },
+        );
+        throw error;
       }
-
-      await db.insert(silverEnrichmentLog).values({
-        tenantId: job.data.tenantId,
-        entityType: "company",
-        entityId: job.data.companyId,
-        source: "onrc_data",
-        operation: "fetch",
-        requestPayload: { cui: cleanedCui },
-        responsePayload: payload,
-        fieldsUpdated: ["denumire", "formaJuridica", "adresa", "cui", "nrRegCom", "metadata"],
-        correlationId: job.data.correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
-      });
-      await markEnrichmentSourceComplete(
-        job.data.tenantId,
-        job.data.companyId,
-        "onrc_data",
-        job.data.correlationId,
-      );
-
-      return {
-        ok: true,
-        status: payload ? "success" : "not_found",
-        source: "onrc_data",
-        cleanedCui,
-      };
     },
     { tenantId: job.data.tenantId },
   );

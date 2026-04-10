@@ -1718,7 +1718,7 @@ Fix (repo): `infra/docker/docker-compose.prod.yml` a fost corectat sa foloseasca
 
 - `./config/openbao/...` si `./secrets/...`
 - plus override explicit pentru `openbao-agent-infra`
-- plus paths pentru `vector.toml` si `otel-collector.yaml` la `./config/...`
+- plus paths pentru `vector.toml` si `otel-collector-pipeline.yaml` la `./config/...`
 
 #### Incident CT109: directoare `agent-*.hcl` in loc de fisiere (executat 2026-02-16)
 
@@ -2150,7 +2150,7 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
     - `docker compose config` include serviciul `vector` + mount-uri docker socket + containers logs
 
 - `f1-44-otel-collector-config`
-  - Repo: `infra/config/otel/otel-collector.yaml`
+  - Repo: `infra/config/otel/otel-collector-pipeline.yaml`
   - Receivers: OTLP gRPC `4317` + HTTP `4318`; processors: `resource` + `batch`; exporter: `otlphttp` spre `https://otel-cerniq.neanelu.ro`
   - Verificare: `docker compose config` include serviciul `otel-collector` + porturi host `64070:4317` si `64071:4318`
 
@@ -2158,7 +2158,7 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
   - Repo: `infra/docker/docker-compose.yml`
   - Servicii:
     - `vector` (config `../config/vector/vector.toml`, mounts `/var/run/docker.sock` + `/var/lib/docker/containers`)
-    - `otel-collector` (config `../config/otel/otel-collector.yaml`, ports `64070/64071`)
+    - `otel-collector` (config `../config/otel/otel-collector-pipeline.yaml`, ports `64070/64071`)
 
 - `f1-46-orchestrator-traefik-otlp-route`
   - Repo: `infra/config/traefik-orchestrator/cerniq.yml`

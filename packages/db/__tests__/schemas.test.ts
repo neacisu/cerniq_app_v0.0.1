@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
+import type { AuditLogInsertRow } from "../src/schemas/audit.js";
+import type { JobLogInsertRow } from "../src/schemas/observability.js";
 import { tenants } from "../src/schemas/tenants.js";
 import { users } from "../src/schemas/users.js";
 import { roles, permissions, rolePermissions, userRoles } from "../src/schemas/rbac.js";
@@ -38,6 +40,27 @@ describe("Database Schemas", () => {
 
   it("audit log table exists", () => {
     expect(approvalAuditLog).toBeDefined();
+  });
+});
+
+describe("Tipuri insert exportate (paritate @cerniq/observability)", () => {
+  it("AuditLogInsertRow și JobLogInsertRow sunt definite lângă tabele", () => {
+    expectTypeOf<AuditLogInsertRow>().toMatchTypeOf<Record<string, unknown>>();
+    expectTypeOf<JobLogInsertRow>().toMatchTypeOf<Record<string, unknown>>();
+    const sampleAudit: AuditLogInsertRow = {
+      method: "GET",
+      routePattern: "/x",
+      statusCode: 200,
+      eventHash: "a".repeat(64),
+    };
+    expect(sampleAudit.method).toBe("GET");
+    const sampleJob: JobLogInsertRow = {
+      tenantId: "00000000-0000-0000-0000-000000000001",
+      etapa: "e1",
+      workerName: "w",
+      message: "m",
+    };
+    expect(sampleJob.etapa).toBe("e1");
   });
 });
 

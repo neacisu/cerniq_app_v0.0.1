@@ -6,9 +6,12 @@ import {
   QUEUES,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { bronzeContacts, db, sql } from "@cerniq/db";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
 import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("a4-api-poller", { etapa: "e1" });
 
 export type ApiPollerJobData = {
   tenantId: string;
@@ -221,9 +224,20 @@ export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
         workerName: "A4:api-poller",
         jobId: String(job.id ?? ""),
         startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       });
 
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            endpoint: job.data.endpoint,
+            apiSource: job.data.apiSource,
+          },
+          "A4 api-poller job",
+        );
         const currentPage = job.data.pagination?.page ?? 1;
         const method = job.data.method ?? "GET";
 
@@ -292,7 +306,13 @@ export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
           deltaDetectionEnabled: job.data.enableDeltaDetection !== false,
         };
       } catch (error) {
+        const enriched = enrichError(error, {
+          endpoint: job.data.endpoint,
+          tenantId: job.data.tenantId,
+          apiSource: job.data.apiSource,
+        });
         log.error("fatal", `Eroare critică la polling API ${job.data.apiSource}`, {
+          ...enriched,
           endpoint: job.data.endpoint,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,

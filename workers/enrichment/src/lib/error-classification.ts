@@ -1,24 +1,10 @@
 import { UnrecoverableError } from "bullmq";
+import { isTransientError as isTransientErrorCheck } from "@cerniq/observability";
 
-const TRANSIENT_PATTERNS = [
-  "ECONNREFUSED",
-  "ECONNRESET",
-  "ETIMEDOUT",
-  "ENOTFOUND",
-  "serialization",
-  "deadlock",
-  "too many connections",
-  "connection terminated",
-  "could not obtain lock",
-];
-
-export function isTransientError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return TRANSIENT_PATTERNS.some((p) => message.toLowerCase().includes(p.toLowerCase()));
-}
+export { isTransientError } from "@cerniq/observability";
 
 export function classifyAndRethrow(error: unknown): never {
-  if (isTransientError(error)) {
+  if (isTransientErrorCheck(error)) {
     throw error;
   }
   const message = error instanceof Error ? error.message : String(error);

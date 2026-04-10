@@ -4,6 +4,7 @@
  * Prefix registered at: /api/v1/outreach
  */
 import { randomInt, randomUUID } from "node:crypto";
+import { trace } from "@opentelemetry/api";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z, iso } from "zod";
 import {
@@ -37,6 +38,9 @@ import {
   type SQL,
 } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
+import { sseConnectionErrorsTotal, sseEventsSentTotal } from "../plugins/metrics.js";
+
+const SSE_ROUTE_OUTREACH_JOB_LOGS = "/api/v1/outreach/jobs/:jobId/logs";
 import {
   getWaPhoneFollowupQueueName,
   getWaPhoneQueueName,
@@ -46,8 +50,27 @@ import {
 } from "@cerniq/worker-shared";
 import { requireTenantId, getActorId } from "./utils.js";
 import { requireRole } from "../middleware/authz.js";
-import { buildProvenanceContext } from "../lib/provenance.js";
+import { buildApiJobPayloadContext } from "../lib/http-job-tracing.js";
 import type { Campaign } from "@cerniq/integrations/instantly";
+
+function logOutreachMutation(
+  req: FastifyRequest,
+  tenantId: string,
+  action: string,
+  resource: string,
+  resourceId: string,
+): void {
+  req.log.info(
+    {
+      action,
+      resource,
+      resourceId,
+      actorId: getActorId(req),
+      tenantId,
+    },
+    "outreach_mutation",
+  );
+}
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
@@ -1324,8 +1347,16 @@ export async function outreachRoutes(app: FastifyInstance) {
         fromState: existing[0].currentState,
         toState: body.currentState,
         tenantId,
-        ...buildProvenanceContext(req),
+        ...buildApiJobPayloadContext(req),
       });
+    }
+
+    if (
+      body.currentState !== undefined ||
+      body.assignedToUser !== undefined ||
+      body.isHumanControlled !== undefined
+    ) {
+      logOutreachMutation(req, tenantId, "lead_patch", "lead_journey", id);
     }
 
     return reply.send({ success: true, data: updated });
@@ -1381,10 +1412,12 @@ export async function outreachRoutes(app: FastifyInstance) {
           subject: body.subject,
           templateId: body.templateId,
           scheduledAt: body.scheduledAt ?? null,
-          ...buildProvenanceContext(req),
+          ...buildApiJobPayloadContext(req),
         },
         delayMs > 0 ? { delay: delayMs } : {},
       );
+
+      logOutreachMutation(req, tenantId, "send_manual_message", "lead_journey", id);
 
       return reply.send({
         success: true,
@@ -1429,8 +1462,10 @@ export async function outreachRoutes(app: FastifyInstance) {
         tenantId,
         userId: actorId,
         reason: body.reason,
-        ...buildProvenanceContext(req),
+        ...buildApiJobPayloadContext(req),
       });
+
+      logOutreachMutation(req, tenantId, "hitl_takeover_initiate", "lead_journey", id);
 
       return reply.send({ success: true, data: { success: true } });
     },
@@ -1526,6 +1561,8 @@ export async function outreachRoutes(app: FastifyInstance) {
         });
       }
 
+      logOutreachMutation(req, tenantId, "sequence_create", "outreach_sequence", seq.id);
+
       return reply.status(201).send({ success: true, data: seq });
     },
   );
@@ -1602,6 +1639,8 @@ export async function outreachRoutes(app: FastifyInstance) {
       .where(and(eq(outreachSequences.id, id), eq(outreachSequences.tenantId, tenantId)))
       .limit(1);
 
+    logOutreachMutation(req, tenantId, "sequence_patch", "outreach_sequence", id);
+
     return reply.send({ success: true, data: updated });
   });
 
@@ -1676,11 +1715,15 @@ export async function outreachRoutes(app: FastifyInstance) {
             journeyId: row.journeyPk,
             leadId: row.leadId,
             startAt: body.scheduledStart,
-            ...buildProvenanceContext(req),
+            ...buildApiJobPayloadContext(req),
           },
           { removeOnComplete: 100 },
         );
         enrolled += 1;
+      }
+
+      if (enrolled > 0) {
+        logOutreachMutation(req, tenantId, "sequence_enroll", "outreach_sequence", sequenceId);
       }
 
       return reply.send({
@@ -1857,9 +1900,11 @@ export async function outreachRoutes(app: FastifyInstance) {
           action: body.action,
           editedContent: body.editedContent ?? null,
           notes: body.notes ?? null,
-          ...buildProvenanceContext(req),
+          ...buildApiJobPayloadContext(req),
         },
       });
+
+      logOutreachMutation(req, tenantId, "human_review_resolved", "human_review", id);
 
       return reply.send({ success: true, data: updated });
     },
@@ -1942,6 +1987,8 @@ export async function outreachRoutes(app: FastifyInstance) {
         })
         .returning();
 
+      logOutreachMutation(req, tenantId, "template_create", "outreach_template", tmpl.id);
+
       return reply.status(201).send({ success: true, data: tmpl });
     },
   );
@@ -1970,6 +2017,9 @@ export async function outreachRoutes(app: FastifyInstance) {
       .returning();
 
     if (!updated) return reply.status(404).send({ success: false, error: "Template not found" });
+
+    logOutreachMutation(req, tenantId, "template_patch", "outreach_template", id);
+
     return reply.send({ success: true, data: updated });
   });
 
@@ -2177,6 +2227,9 @@ export async function outreachRoutes(app: FastifyInstance) {
       .returning();
 
     if (!updated) return reply.status(404).send({ success: false, error: "Phone not found" });
+
+    logOutreachMutation(req, tenantId, "phone_patch", "wa_phone", id);
+
     return reply.send({
       success: true,
       data: {
@@ -2195,8 +2248,10 @@ export async function outreachRoutes(app: FastifyInstance) {
     await healthQueue.add("manual-health-check", {
       phoneId: id,
       tenantId,
-      ...buildProvenanceContext(req),
+      ...buildApiJobPayloadContext(req),
     });
+
+    logOutreachMutation(req, tenantId, "phone_health_check_enqueue", "wa_phone", id);
 
     return reply.send({ success: true, data: { queued: true } });
   });
@@ -2399,8 +2454,15 @@ export async function outreachRoutes(app: FastifyInstance) {
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
       });
+      let sseEventsSent = 0;
       const send = (payload: Record<string, unknown>) => {
-        reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
+        try {
+          reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
+          sseEventsSent += 1;
+          sseEventsSentTotal.inc({ route: SSE_ROUTE_OUTREACH_JOB_LOGS });
+        } catch {
+          sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_OUTREACH_JOB_LOGS, phase: "write" });
+        }
       };
       send({ type: "subscribed", jobId, queue: q.queue });
 
@@ -2413,6 +2475,7 @@ export async function outreachRoutes(app: FastifyInstance) {
             type: "error",
             message: err instanceof Error ? err.message : String(err),
           });
+          sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_OUTREACH_JOB_LOGS, phase: "poll" });
         }
       };
       await poll();
@@ -2421,6 +2484,10 @@ export async function outreachRoutes(app: FastifyInstance) {
       }, 2000);
 
       req.raw.on("close", () => {
+        trace.getActiveSpan()?.addEvent("sse.session_end", {
+          "sse.events_sent": sseEventsSent,
+          "sse.route": SSE_ROUTE_OUTREACH_JOB_LOGS,
+        });
         clearInterval(interval);
         void queue.close();
       });

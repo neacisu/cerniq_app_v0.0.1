@@ -16,6 +16,14 @@ import {
   watchSecretsFile,
 } from "@cerniq/worker-shared";
 import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
+import {
+  createServiceLogger,
+  enrichError,
+  flushAuditBuffer,
+  flushJobLogBuffer,
+  initTelemetry,
+  shutdownTelemetry,
+} from "@cerniq/observability";
 import type { Job } from "bullmq";
 import { csvParserProcessor } from "./workers/a1-csv-parser.js";
 import { excelParserProcessor } from "./workers/a2-excel-parser.js";
@@ -77,6 +85,8 @@ import { pipelineErrorHandlerProcessor } from "./workers/p4-error-handler.js";
 import { hitlEscalationProcessor } from "./workers/hitl-escalation.js";
 import { hitlResumeAfterApprovalProcessor } from "./workers/hitl-resume-after-approval.js";
 import { importFileCleanupProcessor } from "./workers/o3-import-file-cleanup.js";
+import { ensureExecutionCorrelationUuid } from "./lib/execution-correlation.js";
+import { classifyErrorType } from "./lib/pipeline-error-classify.js";
 
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
@@ -93,6 +103,9 @@ const EXCEL_INGEST_WORKER_OPTIONS = {
 const EXCEL_SANDBOX_PROCESSOR_FILE = import.meta.url.endsWith(".js")
   ? new URL("./workers/a2-excel-parser.processor.js", import.meta.url)
   : null;
+const svcLog = createServiceLogger("enrichment-main", { etapa: "e1" });
+
+initTelemetry({ serviceName: "cerniq-worker-enrichment" });
 
 // Processors map must be declared before queueNames to avoid TDZ
 // (queueNames filters by Object.hasOwn(processors, n) at module init time).
@@ -169,8 +182,11 @@ const queueNames = buildWorkerQueueNamesForProcessors(
 );
 const defaultTenantId = process.env.DEFAULT_TENANT_ID?.trim() ?? null;
 if (!defaultTenantId) {
-  console.warn(
-    "[enrichment] DEFAULT_TENANT_ID not set — recurring cron jobs (monitor, daily-stats) will be skipped.",
+  svcLog.warn(
+    {
+      defaultTenantId,
+    },
+    "DEFAULT_TENANT_ID not set; recurring cron jobs will be skipped when DB lookup is unavailable",
   );
 }
 
@@ -204,7 +220,7 @@ async function scheduleRecurringControlJobs() {
   }
 
   if (activeTenants.length === 0) {
-    console.warn("[enrichment] No active tenants found — cron jobs will be skipped.");
+    svcLog.warn("No active tenants found; cron jobs will be skipped");
     return;
   }
 
@@ -258,74 +274,6 @@ async function scheduleRecurringControlJobs() {
   await cleanupQueue.close();
 }
 
-function classifyErrorType(error: unknown): string {
-  const message =
-    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  const errorCode = (error as { code?: string })?.code?.toUpperCase() ?? "";
-  const statusCode =
-    (error as { status?: number; statusCode?: number })?.status ??
-    (error as { status?: number; statusCode?: number })?.statusCode ??
-    0;
-
-  if (statusCode === 429 || message.includes("too many requests")) {
-    return "RATE_LIMITED";
-  }
-  if (statusCode === 402 || message.includes("quota exceeded") || message.includes("billing")) {
-    return "QUOTA_EXCEEDED";
-  }
-  if (
-    statusCode === 401 ||
-    statusCode === 403 ||
-    message.includes("unauthorized") ||
-    message.includes("forbidden") ||
-    message.includes("api key") ||
-    message.includes("credentials")
-  ) {
-    return "AUTH_ERROR";
-  }
-  if (message.includes("circuit") && message.includes("open")) {
-    return "CIRCUIT_OPEN";
-  }
-
-  const RETRYABLE_CODES = [
-    "ECONNREFUSED",
-    "ETIMEDOUT",
-    "ENOTFOUND",
-    "ECONNRESET",
-    "EPIPE",
-    "EAI_AGAIN",
-  ];
-  if (RETRYABLE_CODES.includes(errorCode)) {
-    return "NETWORK_ERROR";
-  }
-
-  if (
-    statusCode === 408 ||
-    statusCode === 504 ||
-    message.includes("timeout") ||
-    message.includes("timed out")
-  ) {
-    return "API_TIMEOUT";
-  }
-  if (statusCode >= 500 && statusCode < 600) {
-    return "NETWORK_ERROR";
-  }
-  if (
-    message.includes("fetch failed") ||
-    message.includes("econnrefused") ||
-    message.includes("enotfound") ||
-    message.includes("etimedout") ||
-    message.includes("econnreset") ||
-    message.includes("network error")
-  ) {
-    return "NETWORK_ERROR";
-  }
-  if (statusCode === 404 || message.includes("not found")) return "DATA_NOT_FOUND";
-  if (message.includes("validation") || message.includes("invalid") || message.includes("schema"))
-    return "VALIDATION_ERROR";
-  return "PERMANENT_FAILURE";
-}
-
 async function enqueuePipelineError(args: {
   queueName: string;
   job: Job | undefined | null;
@@ -341,15 +289,17 @@ async function enqueuePipelineError(args: {
     companyId = jobData.bronzeContactId;
   }
   if (!tenantId || !companyId) {
-    console.error(
-      "[pipeline:error-handler] skipped enqueue because tenant/company context is missing",
+    svcLog.error(
       {
-        sourceWorker: args.queueName,
-        sourceJobId: String(args.job?.id ?? ""),
-        tenantId,
-        companyId,
-        jobName: args.job?.name ?? null,
+        ...enrichError(new Error("pipeline_error_handler_skipped_missing_context"), {
+          tenantId,
+          companyId,
+          sourceWorker: args.queueName,
+          sourceJobId: String(args.job?.id ?? ""),
+          jobName: args.job?.name ?? null,
+        }),
       },
+      "pipeline:error-handler enqueue skipped because tenant/company context is missing",
     );
     return;
   }
@@ -412,6 +362,7 @@ function buildWorkers() {
         : async (job: Job) => {
             const startedAt = Date.now();
             try {
+              ensureExecutionCorrelationUuid(job);
               const runtime = await beginImportRuntimeJob(queueName, job, queueName);
               if (runtime.paused) {
                 stats.processed += 1;
@@ -449,7 +400,7 @@ function buildWorkers() {
     observeDuration = createdWorker.observeDuration;
 
     worker.on("error", (err: Error) => {
-      console.error(`[worker:${queueName}]`, err);
+      svcLog.error({ err, queueName }, "Worker emitted error");
     });
     worker.on("failed", async (job, err) => {
       try {
@@ -459,12 +410,17 @@ function buildWorkers() {
           error: err,
         });
       } catch (enqueueError) {
-        console.error(`[worker:${queueName}] failed to enqueue pipeline error`, enqueueError);
+        const err = enqueueError instanceof Error ? enqueueError : new Error(String(enqueueError));
+        svcLog.error(
+          { err: enqueueError, queueName, ...enrichError(err, { queueName }) },
+          "Failed to enqueue pipeline error",
+        );
       }
     });
     worker.on("stalled", (jobId: string) => {
-      console.warn(
-        `[worker:${queueName}] job stalled: ${jobId} — BullMQ will requeue automatically on the next stalledInterval cycle`,
+      svcLog.warn(
+        { queueName, jobId },
+        "Worker job stalled; BullMQ will requeue automatically on the next stalledInterval cycle",
       );
     });
 
@@ -490,7 +446,11 @@ buildWorkers();
 try {
   await scheduleRecurringControlJobs();
 } catch (error) {
-  console.error("[cron-scheduler] failed", error);
+  const err = error instanceof Error ? error : new Error(String(error));
+  svcLog.error(
+    { err: error, ...enrichError(err, { scope: "cron-scheduler" }) },
+    "cron-scheduler failed",
+  );
 }
 
 const stopQueueMonitor = startQueueDepthMonitor({
@@ -516,6 +476,13 @@ async function shutdown() {
   server.close();
   await stopWorkers();
   await closeRedisConnections(redisConnections);
+  try {
+    await flushJobLogBuffer();
+    await flushAuditBuffer();
+    await shutdownTelemetry();
+  } catch (err) {
+    svcLog.error({ err }, "enrichment observability flush/shutdown failed");
+  }
   await closeDbConnection();
   process.exit(0);
 }
@@ -524,15 +491,23 @@ process.on("SIGHUP", async () => {
   try {
     await reloadSecretsAndConnections();
   } catch (error) {
-    console.error("[SIGHUP] reload failed", error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    svcLog.error({ err: error, ...enrichError(err, { scope: "SIGHUP" }) }, "SIGHUP reload failed");
   }
 });
 
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 process.on("unhandledRejection", (reason) => {
-  console.error("[unhandledRejection]", reason);
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  svcLog.error(
+    { reason, ...enrichError(err, { scope: "unhandledRejection" }) },
+    "unhandledRejection",
+  );
 });
 process.on("uncaughtException", (error) => {
-  console.error("[uncaughtException]", error);
+  svcLog.error(
+    { err: error, ...enrichError(error, { scope: "uncaughtException" }) },
+    "uncaughtException",
+  );
 });

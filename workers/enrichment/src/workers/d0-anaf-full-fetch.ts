@@ -14,9 +14,13 @@ import {
   getRedisConnectionOptions,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import IORedis from "ioredis";
 import { fetchAnafSingleByCui, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
+import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("d0-anaf-full-fetch", { etapa: "e1" });
 
 export type AnafFullFetchJobData = {
   tenantId: string;
@@ -32,9 +36,9 @@ let _redis: IORedis | null = null;
 function getCacheRedis(): IORedis {
   if (!_redis) {
     _redis = new IORedis(getRedisConnectionOptions());
-    _redis.on("error", (err) =>
-      console.warn("[d0-anaf-cache] Redis error (non-fatal)", err.message),
-    );
+    _redis.on("error", (err) => {
+      svcLog.warn({ err, message: err.message }, "[d0-anaf-cache] Redis error (non-fatal)");
+    });
   }
   return _redis;
 }
@@ -107,96 +111,132 @@ export const anafFullFetchProcessor: Processor<AnafFullFetchJobData> = async (jo
       const startedAt = Date.now();
       const cleanedCui = sanitizeCui(job.data.cui);
       const { tenantId, companyId, correlationId } = job.data;
-      await setSessionTenantId(tenantId);
+      const log = createJobLogger({
+        tenantId,
+        workerName: "D0:anaf-full-fetch",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId,
+        entityType: "company",
+        entityId: companyId,
+      });
 
-      // Check Redis cache first — avoids hitting ANAF rate limits when
-      // multiple sources (d1-d5) are replaced by a single d0 call.
-      const cached = await getCachedRecord(tenantId, cleanedCui);
-      let record: AnafV9CompanyRecord | null;
-      if (cached === undefined) {
-        record = await fetchAnafSingleByCui(cleanedCui);
-        await setCachedRecord(tenantId, cleanedCui, record);
-      } else {
-        record = cached;
-      }
+      try {
+        await setSessionTenantId(tenantId);
 
-      if (!record) {
-        await db.insert(silverEnrichmentLog).values({
-          tenantId,
-          entityType: "company",
-          entityId: companyId,
-          source: "anaf_full",
-          operation: "fetch",
-          requestPayload: { cui: cleanedCui },
-          responsePayload: null,
-          fieldsUpdated: [],
-          correlationId,
-          jobId: String(job.id ?? ""),
-          durationMs: Date.now() - startedAt,
-        });
-        for (const src of ANAF_SOURCES) {
-          await markEnrichmentSourceComplete(tenantId, companyId, src, correlationId);
-        }
-        return { ok: true, status: "not_found", source: "anaf_full", cleanedCui };
-      }
-
-      // ── Extract all fields ──────────────────────────────────────────────────
-      const dg = record.date_generale;
-
-      // d1 — fiscal identity
-      const denumire = dg?.denumire?.trim() || null;
-      const adresa = dg?.adresa?.trim() || null;
-      const statusFirma = mapStatus(dg?.stare_inregistrare);
-      const nrRegCom = extractNrRegCom(record);
-
-      // d2 — TVA
-      const tvaActive = record.inregistrare_scop_Tva?.scpTVA ?? null;
-      const tvaIncasare = record.inregistrare_RTVAI?.statusTvaIncasare ?? null;
-      const perioade_TVA = record.inregistrare_scop_Tva?.perioade_TVA ?? [];
-
-      // d3 — e-factură (statusRO_e_Factura on date_generale or dedicated array)
-      const efacturaStatus = dg?.statusRO_e_Factura ?? null;
-      const efacturaPeriods =
-        ((record as Record<string, unknown>).inregistrare_RO_e_Factura as unknown[] | undefined) ??
-        [];
-
-      // d4 — datorii / insolvență (stored in metadata, no dedicated column)
-      const stareInsolv = (record as Record<string, unknown>).stare_insolv ?? null;
-      const stareInactivi = (record as Record<string, unknown>).stare_inactivi ?? null;
-
-      // d5 — CAEN
-      const codCaen = dg?.cod_CAEN?.trim() ?? "";
-      const isAgricultural = codCaen ? isAgriculturalCaen(codCaen) : false;
-
-      // ── Build composite metadata patch ─────────────────────────────────────
-      const anafFiscalSummary = {
-        cui: dg?.cui,
-        denumire: dg?.denumire,
-        adresa: dg?.adresa,
-        stare_inregistrare: dg?.stare_inregistrare,
-        cod_CAEN: dg?.cod_CAEN,
-        nrRegCom: dg?.nrRegCom,
-        statusRO_e_Factura: efacturaStatus,
-      };
-      const anafTvaSummary = { scpTVA: tvaActive, statusTvaIncasare: tvaIncasare, perioade_TVA };
-      const anafEfacturaSummary = { status: efacturaStatus, periods: efacturaPeriods };
-      const anafDatoriiSummary = { stareInsolv, stareInactivi };
-      const anafCaenSummary = { codCaen, agricultural: isAgricultural };
-
-      // Single UPDATE covering all d1-d5 fields
-      await db
-        .update(silverCompanies)
-        .set({
+        svcLog.info(
+          { tenantId, companyId, cui: cleanedCui, correlationId },
+          "D0 ANAF full fetch start",
+        );
+        log.step("anaf_request", "Început fetch ANAF (cache sau API)", {
           cui: cleanedCui,
-          denumire: denumire ?? undefined,
-          adresa: adresa ?? undefined,
-          statusFirma,
-          nrRegCom: nrRegCom.sanitized ?? undefined,
-          nrRegComOriginal: nrRegCom.raw ?? undefined,
-          nrRegComCanonical: nrRegCom.isCanonicalNew ? nrRegCom.sanitized : undefined,
-          codCaenPrincipal: codCaen || undefined,
-          lastEnrichedAt: new Date(),
-          metadata: sql`
+          endpoint: "anaf_v9_platitor_single",
+        });
+
+        // Check Redis cache first — avoids hitting ANAF rate limits when
+        // multiple sources (d1-d5) are replaced by a single d0 call.
+        const cached = await getCachedRecord(tenantId, cleanedCui);
+        let record: AnafV9CompanyRecord | null;
+        let cacheHit: boolean;
+        if (cached === undefined) {
+          cacheHit = false;
+          record = await fetchAnafSingleByCui(cleanedCui);
+          await setCachedRecord(tenantId, cleanedCui, record);
+        } else {
+          cacheHit = true;
+          record = cached;
+        }
+
+        log.info("anaf_cache", cacheHit ? "Răspuns din cache Redis" : "Răspuns după apel ANAF", {
+          cui: cleanedCui,
+          cacheHit,
+          latencyMs: Date.now() - startedAt,
+        });
+
+        if (!record) {
+          await db.insert(silverEnrichmentLog).values({
+            tenantId,
+            entityType: "company",
+            entityId: companyId,
+            source: "anaf_full",
+            operation: "fetch",
+            requestPayload: { cui: cleanedCui },
+            responsePayload: null,
+            fieldsUpdated: [],
+            correlationId,
+            jobId: String(job.id ?? ""),
+            durationMs: Date.now() - startedAt,
+          });
+          for (const src of ANAF_SOURCES) {
+            await markEnrichmentSourceComplete(tenantId, companyId, src, correlationId);
+          }
+          log.step("done", "ANAF full: CUI negăsit", {
+            cui: cleanedCui,
+            cacheHit,
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "not_found", source: "anaf_full", cleanedCui };
+        }
+
+        // ── Extract all fields ──────────────────────────────────────────────────
+        const dg = record.date_generale;
+
+        // d1 — fiscal identity
+        const denumire = dg?.denumire?.trim() || null;
+        const adresa = dg?.adresa?.trim() || null;
+        const statusFirma = mapStatus(dg?.stare_inregistrare);
+        const nrRegCom = extractNrRegCom(record);
+
+        // d2 — TVA
+        const tvaActive = record.inregistrare_scop_Tva?.scpTVA ?? null;
+        const tvaIncasare = record.inregistrare_RTVAI?.statusTvaIncasare ?? null;
+        const perioade_TVA = record.inregistrare_scop_Tva?.perioade_TVA ?? [];
+
+        // d3 — e-factură (statusRO_e_Factura on date_generale or dedicated array)
+        const efacturaStatus = dg?.statusRO_e_Factura ?? null;
+        const efacturaPeriods =
+          ((record as Record<string, unknown>).inregistrare_RO_e_Factura as
+            | unknown[]
+            | undefined) ?? [];
+
+        // d4 — datorii / insolvență (stored in metadata, no dedicated column)
+        const stareInsolv = (record as Record<string, unknown>).stare_insolv ?? null;
+        const stareInactivi = (record as Record<string, unknown>).stare_inactivi ?? null;
+
+        // d5 — CAEN
+        const codCaen = dg?.cod_CAEN?.trim() ?? "";
+        const isAgricultural = codCaen ? isAgriculturalCaen(codCaen) : false;
+
+        // ── Build composite metadata patch ─────────────────────────────────────
+        const anafFiscalSummary = {
+          cui: dg?.cui,
+          denumire: dg?.denumire,
+          adresa: dg?.adresa,
+          stare_inregistrare: dg?.stare_inregistrare,
+          cod_CAEN: dg?.cod_CAEN,
+          nrRegCom: dg?.nrRegCom,
+          statusRO_e_Factura: efacturaStatus,
+        };
+        const anafTvaSummary = { scpTVA: tvaActive, statusTvaIncasare: tvaIncasare, perioade_TVA };
+        const anafEfacturaSummary = { status: efacturaStatus, periods: efacturaPeriods };
+        const anafDatoriiSummary = { stareInsolv, stareInactivi };
+        const anafCaenSummary = { codCaen, agricultural: isAgricultural };
+
+        // Single UPDATE covering all d1-d5 fields
+        await db
+          .update(silverCompanies)
+          .set({
+            cui: cleanedCui,
+            denumire: denumire ?? undefined,
+            adresa: adresa ?? undefined,
+            statusFirma,
+            nrRegCom: nrRegCom.sanitized ?? undefined,
+            nrRegComOriginal: nrRegCom.raw ?? undefined,
+            nrRegComCanonical: nrRegCom.isCanonicalNew ? nrRegCom.sanitized : undefined,
+            codCaenPrincipal: codCaen || undefined,
+            lastEnrichedAt: new Date(),
+            metadata: sql`
           COALESCE(${silverCompanies.metadata}, '{}'::jsonb)
           || jsonb_build_object(
             'anafFiscal',   ${JSON.stringify(anafFiscalSummary)}::jsonb,
@@ -206,84 +246,103 @@ export const anafFullFetchProcessor: Processor<AnafFullFetchJobData> = async (jo
             'anafCaen',     ${JSON.stringify(anafCaenSummary)}::jsonb
           )
         `,
-        })
-        .where(sql`${silverCompanies.id} = ${companyId}`);
+          })
+          .where(sql`${silverCompanies.id} = ${companyId}`);
 
-      // Identity keys (same as d1)
-      await upsertCompanyIdentityKey({
-        tenantId,
-        companyId,
-        keyType: "cui",
-        keyValueCanonical: cleanedCui,
-        keyValueOriginal: cleanedCui,
-        sourceAuthority: "anaf",
-        isAuthoritative: true,
-      });
-      if (nrRegCom.sanitized) {
+        // Identity keys (same as d1)
         await upsertCompanyIdentityKey({
           tenantId,
           companyId,
-          keyType: "nr_reg_com",
-          keyValueCanonical: nrRegCom.sanitized,
-          keyValueOriginal: nrRegCom.raw,
+          keyType: "cui",
+          keyValueCanonical: cleanedCui,
+          keyValueOriginal: cleanedCui,
           sourceAuthority: "anaf",
+          isAuthoritative: true,
         });
+        if (nrRegCom.sanitized) {
+          await upsertCompanyIdentityKey({
+            tenantId,
+            companyId,
+            keyType: "nr_reg_com",
+            keyValueCanonical: nrRegCom.sanitized,
+            keyValueOriginal: nrRegCom.raw,
+            sourceAuthority: "anaf",
+          });
+        }
+
+        // Increment mutation counter (shared metrics)
+        importMutationTotal.inc({
+          operation: "update",
+          table: "silver_companies",
+          tenant_id: tenantId,
+        });
+
+        const fieldsUpdated = [
+          "cui",
+          "denumire",
+          "adresa",
+          "statusFirma",
+          "nrRegCom",
+          "codCaenPrincipal",
+          "metadata",
+        ];
+        const responsePayload = {
+          anafFiscal: anafFiscalSummary,
+          anafTva: anafTvaSummary,
+          anafEfactura: anafEfacturaSummary,
+          anafDatorii: anafDatoriiSummary,
+          anafCaen: anafCaenSummary,
+        };
+
+        await db.insert(silverEnrichmentLog).values({
+          tenantId,
+          entityType: "company",
+          entityId: companyId,
+          source: "anaf_full",
+          operation: "fetch",
+          requestPayload: { cui: cleanedCui },
+          responsePayload,
+          fieldsUpdated,
+          correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
+
+        // Mark ALL d1-d5 sources complete so the pipeline does not re-enqueue them.
+        for (const src of ANAF_SOURCES) {
+          await markEnrichmentSourceComplete(tenantId, companyId, src, correlationId);
+        }
+
+        log.step("done", "ANAF full: actualizare silver + surse marcate complete", {
+          cui: cleanedCui,
+          cacheHit,
+          statusFirma,
+          tvaActive: tvaActive ?? undefined,
+          codCaen: codCaen || null,
+          latencyMs: Date.now() - startedAt,
+        });
+
+        return {
+          ok: true,
+          status: "success",
+          source: "anaf_full",
+          cleanedCui,
+          statusFirma,
+          tvaActive,
+          efacturaStatus,
+          codCaenPrincipal: codCaen || null,
+          isAgricultural,
+        };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `ANAF full fetch eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, { tenantId, companyId, cui: cleanedCui }),
+          },
+        );
+        throw error;
       }
-
-      // Increment mutation counter (shared metrics)
-      importMutationTotal.inc({
-        operation: "update",
-        table: "silver_companies",
-        tenant_id: tenantId,
-      });
-
-      const fieldsUpdated = [
-        "cui",
-        "denumire",
-        "adresa",
-        "statusFirma",
-        "nrRegCom",
-        "codCaenPrincipal",
-        "metadata",
-      ];
-      const responsePayload = {
-        anafFiscal: anafFiscalSummary,
-        anafTva: anafTvaSummary,
-        anafEfactura: anafEfacturaSummary,
-        anafDatorii: anafDatoriiSummary,
-        anafCaen: anafCaenSummary,
-      };
-
-      await db.insert(silverEnrichmentLog).values({
-        tenantId,
-        entityType: "company",
-        entityId: companyId,
-        source: "anaf_full",
-        operation: "fetch",
-        requestPayload: { cui: cleanedCui },
-        responsePayload,
-        fieldsUpdated,
-        correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
-      });
-
-      // Mark ALL d1-d5 sources complete so the pipeline does not re-enqueue them.
-      for (const src of ANAF_SOURCES) {
-        await markEnrichmentSourceComplete(tenantId, companyId, src, correlationId);
-      }
-
-      return {
-        ok: true,
-        status: "success",
-        source: "anaf_full",
-        cleanedCui,
-        statusFirma,
-        tvaActive,
-        efacturaStatus,
-        codCaenPrincipal: codCaen || null,
-        isAgricultural,
-      };
     },
     { tenantId: job.data.tenantId },
   );

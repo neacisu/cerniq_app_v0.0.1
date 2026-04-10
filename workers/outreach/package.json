@@ -16,6 +16,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.86.1",
     "@cerniq/db": "workspace:*",
+    "@cerniq/observability": "workspace:*",
     "@cerniq/integrations": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "bullmq": "^5.73.2",

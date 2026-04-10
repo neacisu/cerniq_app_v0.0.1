@@ -1,0 +1,1884 @@
+{
+  "generatedAt": "2026-04-10T08:33:33.008562+00:00",
+  "version": 1,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/",
+      "sourceFile": "apps/api/src/routes/index.ts",
+      "registerSymbol": "_inline_",
+      "prefix": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/live",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/prometheus/api-plugin-catalog",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/queues",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/queues/:name",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/queues/:name/drain",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/queues/:name/pause",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/queues/:name/resume",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/queues/:name/retry-failed",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/system/metrics",
+      "sourceFile": "apps/api/src/routes/admin-monitoring.ts",
+      "registerSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/llm-costs",
+      "sourceFile": "apps/api/src/routes/admin-llm-costs.ts",
+      "registerSymbol": "adminLlmCostsRoutes",
+      "prefix": "/api/v1/admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/audit-log",
+      "sourceFile": "apps/api/src/routes/ai-guardrails.ts",
+      "registerSymbol": "aiGuardrailsRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/consensus/votes",
+      "sourceFile": "apps/api/src/routes/ai-guardrails.ts",
+      "registerSymbol": "aiGuardrailsRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/decisions/:id/explanation",
+      "sourceFile": "apps/api/src/routes/compliance.ts",
+      "registerSymbol": "complianceRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/guardrails/metrics",
+      "sourceFile": "apps/api/src/routes/ai-guardrails.ts",
+      "registerSymbol": "aiGuardrailsRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/guardrails/status",
+      "sourceFile": "apps/api/src/routes/ai-guardrails.ts",
+      "registerSymbol": "aiGuardrailsRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/products/search",
+      "sourceFile": "apps/api/src/routes/ai-guardrails.ts",
+      "registerSymbol": "aiGuardrailsRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "sourceFile": "apps/api/src/routes/auth.ts",
+      "registerSymbol": "authRoutes",
+      "prefix": "/api/v1/auth"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "sourceFile": "apps/api/src/routes/auth.ts",
+      "registerSymbol": "authRoutes",
+      "prefix": "/api/v1/auth"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "sourceFile": "apps/api/src/routes/auth.ts",
+      "registerSymbol": "authRoutes",
+      "prefix": "/api/v1/auth"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "sourceFile": "apps/api/src/routes/auth.ts",
+      "registerSymbol": "authRoutes",
+      "prefix": "/api/v1/auth"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "sourceFile": "apps/api/src/routes/auth.ts",
+      "registerSymbol": "authRoutes",
+      "prefix": "/api/v1/auth"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brain/catalog",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brain/events/stream",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brain/mutations/:batchId",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/brain/nodes/:nodeKey/config",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/brain/nodes/:nodeKey/pause",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/brain/nodes/:nodeKey/resume",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brain/nodes/:nodeKey/traces",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brain/topology",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brain/traces/:traceId",
+      "sourceFile": "apps/api/src/routes/cognitive-brain.ts",
+      "registerSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/bronze/contacts",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/bronze/contacts/:id",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/bronze/contacts/:id/reprocess",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/churn/:leadId/evaluate",
+      "sourceFile": "apps/api/src/routes/churn.ts",
+      "registerSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/churn/factors",
+      "sourceFile": "apps/api/src/routes/churn.ts",
+      "registerSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/churn/factors/:leadId",
+      "sourceFile": "apps/api/src/routes/churn.ts",
+      "registerSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/churn/sentiment",
+      "sourceFile": "apps/api/src/routes/churn.ts",
+      "registerSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/churn/signals",
+      "sourceFile": "apps/api/src/routes/churn.ts",
+      "registerSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/churn/stats",
+      "sourceFile": "apps/api/src/routes/churn.ts",
+      "registerSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contracts",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contracts/:id",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/contracts/:id/send-docusign",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contracts/audit",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contracts/clauses",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/contracts/orders/:orderId/generate",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contracts/stats",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contracts/templates",
+      "sourceFile": "apps/api/src/routes/contract.ts",
+      "registerSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/credit/profiles",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/credit/profiles/:clientId",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/credit/profiles/:clientId/evaluate",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/credit/profiles/:clientId/history",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/credit/refresh-all",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/credit/reservations",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/credit/reservations/:id/release",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/credit/stats",
+      "sourceFile": "apps/api/src/routes/credit.ts",
+      "registerSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboard/activity",
+      "sourceFile": "apps/api/src/routes/dashboard.ts",
+      "registerSymbol": "dashboardRoutes",
+      "prefix": "/api/v1/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboard/daily-stats",
+      "sourceFile": "apps/api/src/routes/dashboard.ts",
+      "registerSymbol": "dashboardRoutes",
+      "prefix": "/api/v1/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboard/kpi-stream",
+      "sourceFile": "apps/api/src/routes/dashboard.ts",
+      "registerSymbol": "dashboardRoutes",
+      "prefix": "/api/v1/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboard/stats",
+      "sourceFile": "apps/api/src/routes/dashboard.ts",
+      "registerSymbol": "dashboardRoutes",
+      "prefix": "/api/v1/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/e5/alerts",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/e5/alerts/apia/trigger",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/e5/alerts/campaign/trigger",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/e5/alerts/compliance/check",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/e5/alerts/compliance/stats",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/e5/alerts/weather/status",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/e5/alerts/weather/trigger",
+      "sourceFile": "apps/api/src/routes/e5-alert.ts",
+      "registerSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/enrichment/approvals",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/enrichment/approvals/:id",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/enrichment/approvals/:id/assign",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/enrichment/approvals/:id/decide",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/enrichment/approvals/:id/escalate",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/enrichment/approvals/stats",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/enrichment/queues",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/enrichment/queues/:name",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/enrichment/queues/:name/pause",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/enrichment/queues/:name/resume",
+      "sourceFile": "apps/api/src/routes/enrichment.ts",
+      "registerSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fiscal/einvoice/submissions",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fiscal/einvoice/submissions/:id",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fiscal/oblio/documents",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fiscal/oblio/documents/:id",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/fiscal/oblio/einvoice/:id",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/fiscal/oblio/invoice",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/fiscal/oblio/proforma",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fiscal/oblio/stats",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fiscal/timeline",
+      "sourceFile": "apps/api/src/routes/fiscal.ts",
+      "registerSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/gdpr/consent-log",
+      "sourceFile": "apps/api/src/routes/gdpr.ts",
+      "registerSymbol": "gdprRoutes",
+      "prefix": "/api/v1/gdpr"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/gdpr/erasure",
+      "sourceFile": "apps/api/src/routes/gdpr.ts",
+      "registerSymbol": "gdprRoutes",
+      "prefix": "/api/v1/gdpr"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/gold/companies",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/gold/companies/:id",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/gold/companies/:id",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/gold/companies/:id/journey",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/gold/companies/:id/transition",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/clusters",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/clusters/:id",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/graph/detect",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/geo-summary",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/kol-profiles",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/proximity",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/relationships",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/graph/stats",
+      "sourceFile": "apps/api/src/routes/graph.ts",
+      "registerSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/imports/:id",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/anaf-enrich",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/cancel",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/entities",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/headers",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/job-logs",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/imports/:id/mapping",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/pause",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/pipeline-status",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/promote-job-status",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/quarantine",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/re-promote",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/reprocess-errors",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/reprocess-errors/resume",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/resume",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/resume-promote",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/retry",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/rows",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:id/runtime-topology",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/workers/:workerName/pause",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/:id/workers/:workerName/resume",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/:importId/logs/stream",
+      "sourceFile": "apps/api/src/routes/import-logs-stream.ts",
+      "registerSymbol": "importLogsStreamRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/control",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/control/pause",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/imports/control/resume",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/mapping-targets",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/template",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/template/columns",
+      "sourceFile": "apps/api/src/routes/imports-bronze.ts",
+      "registerSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negotiation",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation/:id",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/negotiation/:id",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negotiation/:id/abandon",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation/:id/guardrails",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/negotiation/:id/items",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation/:id/messages",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negotiation/:id/reminder",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation/by-lead/:leadId",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation/guardrails",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiation/stats",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negotiations",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations/:id",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/negotiations/:id",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negotiations/:id/abandon",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations/:id/guardrails",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/negotiations/:id/items",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations/:id/messages",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negotiations/:id/reminder",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations/by-lead/:leadId",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations/guardrails",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/negotiations/stats",
+      "sourceFile": "apps/api/src/routes/negotiation.ts",
+      "registerSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/notifications",
+      "sourceFile": "apps/api/src/routes/notifications.ts",
+      "registerSymbol": "notificationsRoutes",
+      "prefix": "/api/v1/notifications"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/notifications/:id/read",
+      "sourceFile": "apps/api/src/routes/notifications.ts",
+      "registerSymbol": "notificationsRoutes",
+      "prefix": "/api/v1/notifications"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/notifications/read-all",
+      "sourceFile": "apps/api/src/routes/notifications.ts",
+      "registerSymbol": "notificationsRoutes",
+      "prefix": "/api/v1/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/actions",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/churn-risks",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/drips",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/nurturing/drips",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/nurturing/drips/:id",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/nps",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/nurturing/nps/:leadId/send",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/referrals",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/states",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/states/:leadId",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/nurturing/states/:leadId/evaluate",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nurturing/stats",
+      "sourceFile": "apps/api/src/routes/nurturing.ts",
+      "registerSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/orders",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/orders/:id",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/:id",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/orders/:id",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/:id/payments",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/payments",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/payments/reconciliations",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/payments/summary",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/stats",
+      "sourceFile": "apps/api/src/routes/order.ts",
+      "registerSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/analytics/daily",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/analytics/overview",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/analytics/phones",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/campaigns",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/dashboard",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/leads",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/leads",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/leads/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/outreach/leads/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/leads/:id/activity",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/leads/:id/send-message",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/leads/:id/takeover",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/leads/export",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/leads/import",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/notifications",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/outreach/notifications/:id/read",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/notifications/mark-all-read",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/phones",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/phones/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/outreach/phones/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/phones/:id/health-check",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/reviews",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/reviews/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/reviews/:id/assign",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/reviews/:id/resolve",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/reviews/stats",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/sequences",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/sequences",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/sequences/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/outreach/sequences/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/sequences/:id/enroll",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/settings",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/outreach/settings",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/templates",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/templates",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/outreach/templates/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/outreach/templates/:id",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/outreach/templates/:id/preview",
+      "sourceFile": "apps/api/src/routes/outreach.ts",
+      "registerSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/postsale/credit-scores/:companyId",
+      "sourceFile": "apps/api/src/routes/postsale.ts",
+      "registerSymbol": "postsaleRoutes",
+      "prefix": "/api/v1/postsale"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/postsale/payments/:id",
+      "sourceFile": "apps/api/src/routes/postsale.ts",
+      "registerSymbol": "postsaleRoutes",
+      "prefix": "/api/v1/postsale"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/:id",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/products/:id",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products/:id/embed",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products/:id/ingest",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/:id/stock",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/categories",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products/categories",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products/index/rebuild",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products/search",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/stats",
+      "sourceFile": "apps/api/src/routes/product.ts",
+      "registerSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/referrals",
+      "sourceFile": "apps/api/src/routes/referral.ts",
+      "registerSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/referrals",
+      "sourceFile": "apps/api/src/routes/referral.ts",
+      "registerSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/referrals/:id",
+      "sourceFile": "apps/api/src/routes/referral.ts",
+      "registerSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/referrals/:id/consent",
+      "sourceFile": "apps/api/src/routes/referral.ts",
+      "registerSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/referrals/:id/outreach",
+      "sourceFile": "apps/api/src/routes/referral.ts",
+      "registerSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/referrals/stats",
+      "sourceFile": "apps/api/src/routes/referral.ts",
+      "registerSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/shipments",
+      "sourceFile": "apps/api/src/routes/shipment.ts",
+      "registerSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/shipments/:id",
+      "sourceFile": "apps/api/src/routes/shipment.ts",
+      "registerSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/shipments/addresses",
+      "sourceFile": "apps/api/src/routes/shipment.ts",
+      "registerSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/shipments/addresses/:clientId",
+      "sourceFile": "apps/api/src/routes/shipment.ts",
+      "registerSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/shipments/orders/:orderId/create-awb",
+      "sourceFile": "apps/api/src/routes/shipment.ts",
+      "registerSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/shipments/stats",
+      "sourceFile": "apps/api/src/routes/shipment.ts",
+      "registerSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/silver/companies",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/silver/companies/:id",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/silver/companies/:id/enrich",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/silver/companies/:id/promote",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/silver/dedup-candidates",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/silver/dedup-candidates/:id/decide",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/silver/enrichment-log",
+      "sourceFile": "apps/api/src/routes/silver-gold.ts",
+      "registerSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/system/processes",
+      "sourceFile": "apps/api/src/routes/system-processes.ts",
+      "registerSymbol": "systemProcessesRoutes",
+      "prefix": "/api/v1/system"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/webhooks/instantly",
+      "sourceFile": "apps/api/src/routes/webhooks.ts",
+      "registerSymbol": "webhooksRoutes",
+      "prefix": "/api/v1/webhooks"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/webhooks/resend",
+      "sourceFile": "apps/api/src/routes/webhooks.ts",
+      "registerSymbol": "webhooksRoutes",
+      "prefix": "/api/v1/webhooks"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/webhooks/timelinesai",
+      "sourceFile": "apps/api/src/routes/webhooks.ts",
+      "registerSymbol": "webhooksRoutes",
+      "prefix": "/api/v1/webhooks"
+    },
+    {
+      "method": "GET",
+      "path": "/health/deps",
+      "sourceFile": "apps/api/src/routes/health.ts",
+      "registerSymbol": "healthRoutes",
+      "prefix": "/health"
+    },
+    {
+      "method": "GET",
+      "path": "/health/live",
+      "sourceFile": "apps/api/src/routes/health.ts",
+      "registerSymbol": "healthRoutes",
+      "prefix": "/health"
+    },
+    {
+      "method": "GET",
+      "path": "/health/ready",
+      "sourceFile": "apps/api/src/routes/health.ts",
+      "registerSymbol": "healthRoutes",
+      "prefix": "/health"
+    }
+  ],
+  "routeCount": 259,
+  "byFile": {
+    "admin-llm-costs.ts": 1,
+    "admin-monitoring.ts": 9,
+    "ai-guardrails.ts": 5,
+    "auth.ts": 5,
+    "churn.ts": 6,
+    "cognitive-brain.ts": 9,
+    "compliance.ts": 1,
+    "contract.ts": 8,
+    "credit.ts": 8,
+    "dashboard.ts": 4,
+    "e5-alert.ts": 7,
+    "enrichment.ts": 10,
+    "fiscal.ts": 9,
+    "gdpr.ts": 2,
+    "graph.ts": 8,
+    "health.ts": 3,
+    "import-logs-stream.ts": 1,
+    "imports-bronze.ts": 33,
+    "index.ts": 1,
+    "negotiation.ts": 24,
+    "notifications.ts": 3,
+    "nurturing.ts": 12,
+    "order.ts": 10,
+    "outreach.ts": 38,
+    "postsale.ts": 2,
+    "product.ts": 12,
+    "referral.ts": 6,
+    "shipment.ts": 6,
+    "silver-gold.ts": 12,
+    "system-processes.ts": 1,
+    "webhooks.ts": 3
+  },
+  "infrastructure": [
+    {
+      "kind": "prometheus",
+      "method": "GET",
+      "path": "/metrics",
+      "note": "Plugin metrics.ts — allowlist IP"
+    },
+    {
+      "kind": "swagger-ui",
+      "method": "GET",
+      "path": "/docs",
+      "note": "@fastify/swagger-ui"
+    },
+    {
+      "kind": "openapi-json",
+      "method": "GET",
+      "path": "/docs/json",
+      "note": "@fastify/swagger"
+    },
+    {
+      "kind": "redirect",
+      "method": "GET",
+      "path": "/documentation",
+      "note": "Redirect către /docs/ (plugins/index.ts)"
+    }
+  ],
+  "limitations": [
+    "Doar path-uri string literal la app.(get|post|...); path-uri din variabile nu apar.",
+    "Fără app.route({ url }) — repo-ul folosește exclusiv app.METHOD.",
+    "Prefixele Fastify din registerRoutes trebuie să rămână în forma await app.register(..., { prefix: \"...\" })."
+  ]
+}

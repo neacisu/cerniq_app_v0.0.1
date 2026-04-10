@@ -6,10 +6,13 @@ import {
   updateImportRuntimeProgress,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { fetchAnafBatchByCuis, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { triggerCuiValidationIfPossible } from "./normalization-utils.js";
 import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("b5-anaf-bronze-enricher", { etapa: "e1" });
 
 export type AnafBronzeEnricherJobData = {
   tenantId: string;
@@ -221,10 +224,16 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
         workerName: "B5:anaf-bronze-enricher",
         jobId: String(job.id ?? ""),
         importExecution: job.data.importExecution ?? null,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       });
 
       try {
         const { tenantId, batchId, cuiList, correlationId, batchIndex, totalBatches } = job.data;
+        svcLog.info(
+          { tenantId, correlationId, batchId, batchIndex, totalBatches, cuiCount: cuiList.length },
+          "B5 anaf-bronze-enricher job",
+        );
 
         log.step(
           "anaf_request_start",
@@ -249,6 +258,14 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
             notFoundCuis: result.notFound.map(String).slice(0, 20),
           },
         );
+        log.info("enrich_delta", "Rezumat batch ANAF bronze", {
+          inputFields: { cuiCount: cuiList.length, batchIndex },
+          normalizedFields: {
+            foundCount: result.found.size,
+            notFoundCount: result.notFound.length,
+          },
+          changesApplied: { contactsToUpdate: result.found.size + result.notFound.length },
+        });
 
         if (result.notFound.length > 0) {
           log.warn(
@@ -369,12 +386,19 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
           contactsTriggered: contactsToTrigger.length,
         };
       } catch (error) {
+        const enriched = enrichError(error, {
+          tenantId: job.data.tenantId,
+          batchId: job.data.batchId,
+          batchIndex: job.data.batchIndex,
+          cuiSample: job.data.cuiList.slice(0, 5),
+        });
         const errMsg = error instanceof Error ? error.message : String(error);
         const errStack = error instanceof Error ? error.stack : undefined;
         log.error(
           "fatal",
           `Batch ANAF ${job.data.batchIndex + 1}/${job.data.totalBatches} eșuat: ${errMsg}`,
           {
+            ...enriched,
             errorMessage: errMsg,
             errorStack: errStack,
             batchIndex: job.data.batchIndex,

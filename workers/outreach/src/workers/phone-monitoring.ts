@@ -9,6 +9,8 @@
  * - Phone Reputation       — score 0-100, factors: delivery+reply-bounce-block
  */
 import type { Job, Worker } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import {
   QUEUES,
   createWorker,
@@ -22,16 +24,7 @@ import { phoneStatusEnum } from "@cerniq/db";
 
 /** Valori `phone_status_enum` din DB (sursă: `outreach-enums.ts`). */
 type WaPhoneRowStatus = (typeof phoneStatusEnum.enumValues)[number];
-
-const logger = {
-  error(bindings: Record<string, unknown> & { err: unknown }, message: string): void {
-    const { err, ...ctx } = bindings;
-    console.error(`[phone-monitoring] ${message}`, {
-      ...ctx,
-      err: err instanceof Error ? { message: err.message, stack: err.stack } : err,
-    });
-  },
-};
+const svcLog = createServiceLogger("outreach-phone-monitoring", { etapa: "e2" });
 
 /**
  * TimelinesAI raportează `DISCONNECTED`; în Postgres folosim `OFFLINE` (ADR / schema outreach).
@@ -65,12 +58,15 @@ const PHONE_OFFLINE_ALERT_AFTER_MINUTES = 30; // Alert after 30 min offline
 // =============================================================================
 
 export interface PhoneHealthCheckJobData {
+  correlationId?: string;
   tenantId: string;
   phoneId?: string;
   traceId?: string;
   causationKey?: string;
   sourceEndpoint?: string;
   actorId?: string;
+  requestId?: string;
+  httpCorrelationId?: string;
 }
 
 export interface PhoneHealthCheckResult {
@@ -79,11 +75,13 @@ export interface PhoneHealthCheckResult {
 }
 
 export interface PhoneStatusSyncJobData {
+  correlationId?: string;
   tenantId: string;
 }
 
 /** Payload strict pentru coada `alert:phone:banned` (notificare / audit). */
 export interface PhoneBannedAlertJobData {
+  correlationId?: string;
   tenantId: string;
   phoneId: string;
   phoneNumber: string;
@@ -93,6 +91,7 @@ export interface PhoneBannedAlertJobData {
 
 /** Payload pentru coada `phone:quarantine:trigger` (efect DB + realocare). */
 export interface PhoneQuarantineTriggerJobData {
+  correlationId?: string;
   tenantId: string;
   phoneId: string;
   reason: "BANNED" | "LOW_REPUTATION" | "MANUAL";
@@ -138,6 +137,7 @@ export function isPhoneQuarantineLegacyOnBannedQueue(
 }
 
 export interface PhoneReputationJobData {
+  correlationId?: string;
   tenantId: string;
   phoneId: string;
   /** Look-back window in hours for metric calculation */
@@ -214,20 +214,24 @@ export function createPhoneHealthMonitorWorker(): Worker {
             if (newStatus === "BANNED") {
               const bannedAt = new Date().toISOString();
               const bannedPayload: PhoneBannedAlertJobData = {
+                correlationId: job.data.correlationId,
                 tenantId,
                 phoneId: phone.id,
                 phoneNumber: phone.phoneNumber,
                 reason: "BANNED",
                 bannedAt,
               };
-              await bannedAlertQueue.add("banned", bannedPayload, { priority: 1 });
+              await bannedAlertQueue.add("banned", ensureJobDataCorrelationId(bannedPayload), {
+                priority: 1,
+              });
               await quarantineTriggerQueue.add(
                 "quarantine",
-                {
+                ensureJobDataCorrelationId({
+                  correlationId: job.data.correlationId,
                   tenantId,
                   phoneId: phone.id,
                   reason: "BANNED",
-                } satisfies PhoneQuarantineTriggerJobData,
+                } satisfies PhoneQuarantineTriggerJobData),
                 { priority: 1 },
               );
               alerts.push(`BANNED:${phone.id}`);
@@ -235,14 +239,15 @@ export function createPhoneHealthMonitorWorker(): Worker {
               const offlineSince = new Date().toISOString();
               await alertQueue.add(
                 "offline",
-                {
+                ensureJobDataCorrelationId({
+                  correlationId: job.data.correlationId,
                   tenantId,
                   phoneId: phone.id,
                   phoneNumber: phone.phoneNumber,
                   offlineSince,
                   status: "OFFLINE",
                   message: `WhatsApp phone ${phone.phoneNumber} (${phone.id}) reported OFFLINE; was ACTIVE until ${offlineSince}`,
-                },
+                }),
                 { delay: PHONE_OFFLINE_ALERT_AFTER_MINUTES * 60 * 1000, priority: 2 },
               );
               alerts.push(`OFFLINE:${phone.id}`);
@@ -253,8 +258,9 @@ export function createPhoneHealthMonitorWorker(): Worker {
             );
           }
         } catch (err) {
-          logger.error(
-            { err, tenantId, phoneId: phone.id, context: "monitor:phone:health" },
+          const enr = enrichError(err, { tenantId, phoneId: phone.id });
+          svcLog.error(
+            { err, ...enr, tenantId, phoneId: phone.id },
             "Health check failed for phone",
           );
           alerts.push(`ERROR:${phone.id}`);
@@ -314,8 +320,9 @@ export function createPhoneStatusSyncWorker(): Worker {
           }
           synced++;
         } catch (err) {
-          logger.error(
-            { err, tenantId, phoneId: phone.id, context: "wa:status:sync" },
+          const enr = enrichError(err, { tenantId, phoneId: phone.id });
+          svcLog.error(
+            { err, ...enr, tenantId, phoneId: phone.id },
             "Status sync failed for phone",
           );
         }
@@ -349,7 +356,10 @@ export function createPhoneQuarantineWorker(): Worker {
       if (reputationThreshold !== undefined) {
         quarantineAudit.reputationThreshold = reputationThreshold;
       }
-      console.info("[phone-quarantine] start", JSON.stringify(quarantineAudit));
+      svcLog.info(
+        { ...quarantineAudit, correlationId: job.data.correlationId },
+        "Phone quarantine start",
+      );
 
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
@@ -383,13 +393,14 @@ export function createPhoneQuarantineWorker(): Worker {
       for (const lead of affectedLeads) {
         await allocatorQueue.add(
           "reassign",
-          {
+          ensureJobDataCorrelationId({
+            correlationId: job.data.correlationId,
             tenantId,
             leadId: lead.leadId,
             journeyId: lead.id,
             currentAssignedPhoneId: undefined,
             forceReassign: true,
-          },
+          }),
           { priority: 1, removeOnComplete: 100 },
         );
       }
@@ -480,13 +491,14 @@ export async function executePhoneReputationJob(
   if (score < REPUTATION_QUARANTINE_THRESHOLD) {
     await quarantineQueue.add(
       "quarantine",
-      {
+      ensureJobDataCorrelationId({
+        correlationId: job.data.correlationId,
         tenantId,
         phoneId,
         reason: "LOW_REPUTATION",
         currentReputationScore: score,
         reputationThreshold: REPUTATION_QUARANTINE_THRESHOLD,
-      } satisfies PhoneQuarantineTriggerJobData,
+      } satisfies PhoneQuarantineTriggerJobData),
       { priority: 1 },
     );
     quarantineTriggered = true;

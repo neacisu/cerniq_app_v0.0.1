@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   getBronzeContactForTenant,
@@ -10,6 +11,8 @@ import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js"
 import { classifyAndRethrow } from "../lib/error-classification.js";
 import { stripDiacritics } from "../lib/diacritics.js";
 import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("b4-address-normalizer", { etapa: "e1" });
 
 export type AddressNormalizerJobData = BronzeNormalizationJobData;
 
@@ -97,8 +100,18 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
         jobId: String(job.id ?? ""),
         startedAt,
         importExecution: job.data.importExecution ?? null,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       }).forContact(job.data.bronzeContactId);
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            bronzeContactId: job.data.bronzeContactId,
+          },
+          "B4 address-normalizer job",
+        );
         log.step("start", "Pornire normalizare adresă", {
           bronzeContactId: job.data.bronzeContactId,
         });
@@ -153,6 +166,11 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
             },
           },
         );
+        log.info("normalize_delta", "Rezumat normalizare adresă", {
+          inputFields: { extractedAddressLen: rawAddress.length },
+          normalizedFields: { countyCode: county, postalCode: cpMatch?.[1] ?? null },
+          changesApplied: { addressChanged: rawAddress !== normalizedAddress },
+        });
 
         // GAP-B14: Safety net — trigger CUI validation if not yet triggered by B1
         const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
@@ -178,8 +196,13 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
           countyCode: county,
         };
       } catch (error) {
+        const enriched = enrichError(error, {
+          tenantId: job.data.tenantId,
+          bronzeContactId: job.data.bronzeContactId,
+        });
         const errMsg = error instanceof Error ? error.message : String(error);
         log.error("fatal", `Normalizare adresă eșuată: ${errMsg}`, {
+          ...enriched,
           bronzeContactId: job.data.bronzeContactId,
           errorMessage: errMsg,
           errorStack: error instanceof Error ? error.stack : undefined,

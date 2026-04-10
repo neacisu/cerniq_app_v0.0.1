@@ -4,7 +4,7 @@ import { approvalService, approvalTasks, db, sql } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
 import { isKnownQueueName, queueRegistry, QUEUES } from "@cerniq/worker-shared";
 import { getActorId, parseOffset, requireTenantId } from "./utils.js";
-import { buildProvenanceContext } from "../lib/provenance.js";
+import { buildApiJobPayloadContext } from "../lib/http-job-tracing.js";
 import {
   assignTaskSchema,
   decisionSchema,
@@ -293,8 +293,8 @@ export async function enrichmentRoutes(app: FastifyInstance) {
       await resumeQueue.add("resume", {
         tenantId,
         approvalTaskId: task.id,
+        ...buildApiJobPayloadContext(request),
         correlationId: `api-${task.id}`,
-        ...buildProvenanceContext(request),
       });
       await resumeQueue.close();
 

@@ -91,6 +91,8 @@ describe("Webhooks — semnătură validă, raw body, provenance (fără tenant 
     expect(call[1].causationKey).toBe("causation-timeline-001");
     expect(call[1].sourceEndpoint).toBe("/webhooks/timelinesai");
     expect(typeof call[1].traceId).toBe("string");
+    expect(typeof (call[1] as { requestId?: string }).requestId).toBe("string");
+    expect(typeof (call[1] as { httpCorrelationId?: string }).httpCorrelationId).toBe("string");
     expect(call[1].body).toMatchObject(payload);
     /** Rezolvare tenant pentru ingest: nu în provenanța HTTP; workerul folosește payload (ex. tenant_id). */
     expect((call[1].body as { tenant_id?: string }).tenant_id).toBe(payload.tenant_id);

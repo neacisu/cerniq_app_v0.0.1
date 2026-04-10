@@ -1,11 +1,20 @@
 import { loadSecretsFromFile, watchSecretsFile } from "@cerniq/worker-shared";
-import { queueMonitor } from "./queue-monitor.js";
-import { systemMetrics } from "./system-metrics.js";
-import { buildMonitoringApp } from "./create-monitoring-app.js";
+import { initTelemetry } from "@cerniq/observability";
 
 const MONITORING_SECRETS_PATH = process.env.SECRETS_PATH ?? "/secrets/api.env";
 
 loadSecretsFromFile(false, MONITORING_SECRETS_PATH, { exitOnMissing: false });
+
+const OTEL_BASE =
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim() || "https://otel-cerniq.neanelu.ro";
+initTelemetry({
+  serviceName: "cerniq-monitoring-api",
+  otlpEndpoint: OTEL_BASE,
+});
+
+const { queueMonitor } = await import("./queue-monitor.js");
+const { systemMetrics } = await import("./system-metrics.js");
+const { buildMonitoringApp } = await import("./create-monitoring-app.js");
 
 const PORT = Number(process.env.PORT ?? 64080);
 const REDIS_URL: string = process.env.REDIS_URL ?? "";

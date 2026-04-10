@@ -3,7 +3,11 @@
  * Source: etapa2-workers-F-L-remaining.md
  */
 import type { Job, Worker } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { QUEUES, createWorker } from "@cerniq/worker-shared";
+import { createOutreachJobLogger, OUTREACH_SYSTEM_TENANT } from "../lib/outreach-job-logger.js";
+
+const svcLog = createServiceLogger("outreach-templates", { etapa: "e2" });
 import { and, db, eq, outreachTemplates, setSessionTenantId } from "@cerniq/db";
 import { detectVariables, processSpintax } from "../utils/spintax.js";
 
@@ -45,7 +49,16 @@ export function createSpintaxProcessWorker(): Worker {
     QUEUES.TEMPLATE_SPINTAX_PROCESS,
     async (job: Job<SpintaxProcessJobData>) => {
       const { templateBody, variables = {} } = job.data;
-      return { processed: processSpintax(templateBody, variables) };
+      const jlog = createOutreachJobLogger(job, {
+        workerName: "outreach-template-spintax",
+        queueName: QUEUES.TEMPLATE_SPINTAX_PROCESS,
+        tenantId: OUTREACH_SYSTEM_TENANT,
+      });
+      jlog.info("template_spintax", "start", { bodyLen: templateBody.length });
+      const processed = processSpintax(templateBody, variables);
+      jlog.done("template_spintax", "complete", { outLen: processed.length });
+      svcLog.debug({ outLen: processed.length }, "template_spintax_processed");
+      return { processed };
     },
     { concurrency: 100 },
   );
@@ -57,15 +70,33 @@ export function createPersonalizeWorker(): Worker {
     QUEUES.TEMPLATE_PERSONALIZE,
     async (job: Job<PersonalizeJobData>) => {
       const { tenantId, templateId, leadData } = job.data;
+      const jlog = createOutreachJobLogger(job, {
+        workerName: "outreach-template-personalize",
+        queueName: QUEUES.TEMPLATE_PERSONALIZE,
+        tenantId,
+        entityType: "template",
+        entityId: templateId,
+      });
+      jlog.info("template_personalize", "start", { leadDataKeys: Object.keys(leadData).length });
       await setSessionTenantId(tenantId);
       const [tmpl] = await db
         .select()
         .from(outreachTemplates)
         .where(and(eq(outreachTemplates.id, templateId), eq(outreachTemplates.tenantId, tenantId)))
         .limit(1);
-      if (!tmpl) throw new Error("Template not found");
+      if (!tmpl) {
+        const err = new Error("Template not found");
+        const enr = enrichError(err, { tenantId, templateId });
+        jlog.error("template_personalize", "not_found", {
+          templateId,
+          fingerprint: enr.fingerprint,
+          errorType: enr.errorType,
+        });
+        throw err;
+      }
       const body = processSpintax(tmpl.bodyTemplate, leadData);
       const subject = tmpl.subject ? processSpintax(tmpl.subject, leadData) : null;
+      jlog.done("template_personalize", "complete", { channel: tmpl.channel });
       return { body, subject, channel: tmpl.channel };
     },
     { concurrency: 50 },
@@ -78,12 +109,20 @@ export function createValidateWorker(): Worker {
     QUEUES.TEMPLATE_VALIDATE,
     async (job: Job<ValidateJobData>) => {
       const { templateBody, maxLength = 4000 } = job.data;
+      const jlog = createOutreachJobLogger(job, {
+        workerName: "outreach-template-validate",
+        queueName: QUEUES.TEMPLATE_VALIDATE,
+        tenantId: OUTREACH_SYSTEM_TENANT,
+      });
+      jlog.info("template_validate", "start", { maxLength, bodyLen: templateBody.length });
       const vars = detectVariables(templateBody);
       const errors: string[] = [];
       if (templateBody.length > maxLength) errors.push(`length_exceeds_${maxLength}`);
       errors.push(...validateSpintaxBalance(templateBody));
+      const valid = errors.length === 0;
+      jlog.done("template_validate", "complete", { valid, errorCount: errors.length });
       return {
-        valid: errors.length === 0,
+        valid,
         variables: vars,
         errors: [...new Set(errors)],
       };

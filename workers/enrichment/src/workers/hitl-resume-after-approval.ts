@@ -19,6 +19,7 @@ import {
 } from "@cerniq/worker-shared";
 import { addQueueJob, patchCompanyMetadata } from "./pipeline-utils.js";
 import { z } from "zod";
+import { createServiceLogger, enrichError, writeAuditEvent } from "@cerniq/observability";
 
 export type HitlResumeAfterApprovalJobData = {
   tenantId: string;
@@ -28,6 +29,8 @@ export type HitlResumeAfterApprovalJobData = {
   causationKey?: string;
   sourceEndpoint?: string;
   actorId?: string;
+  requestId?: string;
+  httpCorrelationId?: string;
 };
 
 const hitlResumeAfterApprovalJobDataSchema = z.object({
@@ -38,6 +41,8 @@ const hitlResumeAfterApprovalJobDataSchema = z.object({
   causationKey: z.string().optional(),
   sourceEndpoint: z.string().optional(),
   actorId: z.string().optional(),
+  requestId: z.string().optional(),
+  httpCorrelationId: z.string().optional(),
 });
 
 function readMetadataObject(input: unknown): Record<string, unknown> {
@@ -65,6 +70,8 @@ type ApprovalContext = {
   resolvedApprovalType: string;
   correlationId?: string;
 };
+
+const svcLog = createServiceLogger("hitl-resume-after-approval", { etapa: "e1" });
 
 function getResolvedApprovalType(task: ApprovalTaskRecord) {
   const taskRecord = task as Record<string, unknown>;
@@ -204,9 +211,19 @@ async function handleErrorReview(context: ApprovalContext): Promise<ResumeProces
         await queue.close();
       } catch (error) {
         // If resume fails, fall back to replay pattern
-        console.warn(
-          `[hitl-resume] Failed to resume blocked job ${blockedJobId}, falling back to replay:`,
-          error,
+        svcLog.warn(
+          {
+            blockedJobId,
+            blockedQueueName,
+            approvalTaskId: context.task.id,
+            ...enrichError(error, {
+              tenantId: context.task.tenantId,
+              approvalTaskId: context.task.id,
+              blockedJobId,
+              blockedQueueName,
+            }),
+          },
+          "Failed to resume blocked job; falling back to replay",
         );
         const sourcePayload = readMetadataObject(context.taskMetadata.sourcePayload);
         await addQueueJob(blockedQueueName, {
@@ -453,9 +470,31 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
       ).catch(() => undefined);
 
       if (context.resolvedApprovalType === "dedup_review") {
+        writeAuditEvent({
+          tenantId: job.data.tenantId,
+          correlationId: job.data.correlationId,
+          method: "WORKER",
+          routePattern: "e1/hitl/approve",
+          statusCode: 200,
+          action: "resume_dedup_review",
+          resource: "approval_task",
+          resourceId: job.data.approvalTaskId,
+          metadata: { decision: context.decision, approvalType: context.resolvedApprovalType },
+        });
         return handleDedupReview(context);
       }
       if (context.resolvedApprovalType === "quality_review") {
+        writeAuditEvent({
+          tenantId: job.data.tenantId,
+          correlationId: job.data.correlationId,
+          method: "WORKER",
+          routePattern: "e1/hitl/approve",
+          statusCode: 200,
+          action: "resume_quality_review",
+          resource: "approval_task",
+          resourceId: job.data.approvalTaskId,
+          metadata: { decision: context.decision, approvalType: context.resolvedApprovalType },
+        });
         return handleQualityReview(context);
       }
       if (
@@ -465,12 +504,45 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
         context.resolvedApprovalType === "manual_verification" ||
         context.resolvedApprovalType === "data_anomaly"
       ) {
+        writeAuditEvent({
+          tenantId: job.data.tenantId,
+          correlationId: job.data.correlationId,
+          method: "WORKER",
+          routePattern: "e1/hitl/approve",
+          statusCode: 200,
+          action: "resume_ai_review",
+          resource: "approval_task",
+          resourceId: job.data.approvalTaskId,
+          metadata: { decision: context.decision, approvalType: context.resolvedApprovalType },
+        });
         return handleAiReview(context);
       }
       if (context.resolvedApprovalType === "error_review") {
+        writeAuditEvent({
+          tenantId: job.data.tenantId,
+          correlationId: job.data.correlationId,
+          method: "WORKER",
+          routePattern: "e1/hitl/approve",
+          statusCode: 200,
+          action: "resume_error_review",
+          resource: "approval_task",
+          resourceId: job.data.approvalTaskId,
+          metadata: { decision: context.decision, approvalType: context.resolvedApprovalType },
+        });
         return handleErrorReview(context);
       }
       if (context.resolvedApprovalType === "identity_conflict") {
+        writeAuditEvent({
+          tenantId: job.data.tenantId,
+          correlationId: job.data.correlationId,
+          method: "WORKER",
+          routePattern: "e1/hitl/approve",
+          statusCode: 200,
+          action: "resume_identity_conflict",
+          resource: "approval_task",
+          resourceId: job.data.approvalTaskId,
+          metadata: { decision: context.decision, approvalType: context.resolvedApprovalType },
+        });
         return handleIdentityConflict(context);
       }
 
@@ -479,3 +551,5 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
     { tenantId: job.data.tenantId },
   );
 };
+
+export { hitlResumeAfterApprovalJobDataSchema };

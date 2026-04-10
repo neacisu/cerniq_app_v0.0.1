@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { createQueue } from "../lib/queue-factory.js";
 import { QUEUES } from "@cerniq/worker-shared";
 import { buildWebhookProvenanceContext } from "../lib/provenance.js";
+import { buildHttpJobTracingFields } from "../lib/http-job-tracing.js";
 import { verifyTimelinesAIWebhookSignature } from "@cerniq/integrations/timelinesai";
 import { verifyInstantlyWebhookSignature } from "@cerniq/integrations/instantly";
 import { verifyResendWebhook } from "@cerniq/integrations/resend";
@@ -34,6 +35,24 @@ function getHeader(req: FastifyRequest, name: string): string | undefined {
     return v[0];
   }
   return undefined;
+}
+
+function safeWebhookEventType(
+  body: unknown,
+  source: "timelinesai" | "instantly" | "resend",
+): string {
+  if (body === null || body === undefined || typeof body !== "object") return "unknown";
+  const b = body as Record<string, unknown>;
+  if (source === "timelinesai") {
+    const ev = b.event ?? b.event_type;
+    return typeof ev === "string" && ev.length > 0 ? ev : "unknown";
+  }
+  if (source === "instantly") {
+    const ev = b.event_type;
+    return typeof ev === "string" && ev.length > 0 ? ev : "unknown";
+  }
+  const ev = b.type;
+  return typeof ev === "string" && ev.length > 0 ? ev : "unknown";
 }
 
 /** Fastify `parseAs: "buffer"` poate livra `Buffer` sau alte reprezentări în funcție de versiune/plugin. */
@@ -85,15 +104,38 @@ export async function webhooksRoutes(app: FastifyInstance) {
       getHeader(request, "x-signature") ??
       getHeader(request, "x-timelines-signature") ??
       getHeader(request, "X-Timelines-Signature");
+    const httpTrace = buildHttpJobTracingFields(request);
     if (!verifyTimelinesAIWebhookSignature(raw, sig, secret)) {
-      request.log.warn("TimelinesAI webhook: invalid signature");
+      request.log.warn(
+        {
+          webhookSource: "timelinesai",
+          eventType: safeWebhookEventType(request.body, "timelinesai"),
+          signatureValid: false,
+          correlationId: httpTrace.httpCorrelationId,
+          requestId: httpTrace.requestId,
+        },
+        "TimelinesAI webhook: invalid signature",
+      );
       return reply.status(401).send({ success: false, error: "Invalid signature" });
     }
+    request.log.info(
+      {
+        webhookSource: "timelinesai",
+        eventType: safeWebhookEventType(request.body, "timelinesai"),
+        signatureValid: true,
+        correlationId: httpTrace.httpCorrelationId,
+        requestId: httpTrace.requestId,
+      },
+      "webhook accepted",
+    );
+    const timelinesProv = buildWebhookProvenanceContext(request.body, "timelinesai");
     await timelinesQueue.add("ingest", {
       source: "timelinesai",
       body: request.body,
       receivedAt: new Date().toISOString(),
-      ...buildWebhookProvenanceContext(request.body, "timelinesai"),
+      ...timelinesProv,
+      ...httpTrace,
+      sourceEndpoint: timelinesProv.sourceEndpoint,
     });
     return reply.status(200).send({ success: true, accepted: true });
   });
@@ -107,6 +149,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
     if (!raw) {
       return reply.status(500).send({ success: false, error: "raw body missing" });
     }
+    const httpTrace = buildHttpJobTracingFields(request);
     if (
       !verifyInstantlyWebhookSignature(
         raw,
@@ -114,14 +157,36 @@ export async function webhooksRoutes(app: FastifyInstance) {
         secret,
       )
     ) {
-      request.log.warn("Instantly webhook: invalid signature");
+      request.log.warn(
+        {
+          webhookSource: "instantly",
+          eventType: safeWebhookEventType(request.body, "instantly"),
+          signatureValid: false,
+          correlationId: httpTrace.httpCorrelationId,
+          requestId: httpTrace.requestId,
+        },
+        "Instantly webhook: invalid signature",
+      );
       return reply.status(401).send({ success: false, error: "Invalid signature" });
     }
+    request.log.info(
+      {
+        webhookSource: "instantly",
+        eventType: safeWebhookEventType(request.body, "instantly"),
+        signatureValid: true,
+        correlationId: httpTrace.httpCorrelationId,
+        requestId: httpTrace.requestId,
+      },
+      "webhook accepted",
+    );
+    const instantlyProv = buildWebhookProvenanceContext(request.body, "instantly");
     await instantlyQueue.add("ingest", {
       source: "instantly",
       body: request.body,
       receivedAt: new Date().toISOString(),
-      ...buildWebhookProvenanceContext(request.body, "instantly"),
+      ...instantlyProv,
+      ...httpTrace,
+      sourceEndpoint: instantlyProv.sourceEndpoint,
     });
     return reply.status(200).send({ success: true, accepted: true });
   });
@@ -136,17 +201,40 @@ export async function webhooksRoutes(app: FastifyInstance) {
       return reply.status(500).send({ success: false, error: "raw body missing" });
     }
     const hdrs = headersToRecord(request);
+    const httpTrace = buildHttpJobTracingFields(request);
     try {
       await verifyResendWebhook(raw.toString("utf8"), hdrs, secret);
     } catch {
-      request.log.warn("Resend webhook: invalid signature (Svix verification failed)");
+      request.log.warn(
+        {
+          webhookSource: "resend",
+          eventType: safeWebhookEventType(request.body, "resend"),
+          signatureValid: false,
+          correlationId: httpTrace.httpCorrelationId,
+          requestId: httpTrace.requestId,
+        },
+        "Resend webhook: invalid signature (Svix verification failed)",
+      );
       return reply.status(401).send({ success: false, error: "Invalid signature" });
     }
+    request.log.info(
+      {
+        webhookSource: "resend",
+        eventType: safeWebhookEventType(request.body, "resend"),
+        signatureValid: true,
+        correlationId: httpTrace.httpCorrelationId,
+        requestId: httpTrace.requestId,
+      },
+      "webhook accepted",
+    );
+    const resendProv = buildWebhookProvenanceContext(request.body, "resend");
     await resendQueue.add("ingest", {
       source: "resend",
       body: request.body,
       receivedAt: new Date().toISOString(),
-      ...buildWebhookProvenanceContext(request.body, "resend"),
+      ...resendProv,
+      ...httpTrace,
+      sourceEndpoint: resendProv.sourceEndpoint,
     });
     return reply.status(200).send({ success: true, accepted: true });
   });

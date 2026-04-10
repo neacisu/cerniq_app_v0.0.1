@@ -1,6 +1,10 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { createCircuitBreaker, withCognitiveSpan } from "@cerniq/worker-shared";
+import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("i4-contact-page-scraper", { etapa: "e1" });
 
 export type ContactPageScraperJobData = {
   tenantId: string;
@@ -57,83 +61,134 @@ export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> =
     "e1:scrape:website-contact",
     async (_span) => {
       const startedAt = Date.now();
-      await setSessionTenantId(job.data.tenantId);
-
-      const base = job.data.websiteUrl.replace(/\/+$/, "");
-      const paths = ["/contact", "/contacte", "/contact-us", "/despre-noi", "/about", "/"];
-
-      let found: {
-        emails: string[];
-        phones: string[];
-        address: string | null;
-        sourceUrl: string;
-      } | null = null;
-      for (const path of paths) {
-        const url = `${base}${path}`;
-        try {
-          const extracted = await contactPageBreaker.fire(url);
-          if (
-            extracted &&
-            (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address)
-          ) {
-            found = { ...extracted, sourceUrl: url };
-            break;
-          }
-        } catch {
-          // try next path
-        }
-      }
-
-      if (!found) return { ok: true, status: "no_contact_info", source: "contact_scraper" };
-
-      const mainEmail =
-        found.emails.find(
-          (e) => !e.toLowerCase().startsWith("info@") && !e.toLowerCase().startsWith("contact@"),
-        ) ??
-        found.emails[0] ??
-        null;
-      const mainPhone = found.phones[0] ?? null;
-
-      await db
-        .update(silverCompanies)
-        .set({
-          email: mainEmail ?? undefined,
-          telefon: mainPhone ?? undefined,
-          adresa: found.address ?? undefined,
-          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{contactScraper}', ${JSON.stringify(
-            {
-              sourceUrl: found.sourceUrl,
-              emails: found.emails,
-              phones: found.phones,
-              address: found.address,
-              scrapedAt: new Date().toISOString(),
-            },
-          )}::jsonb)`,
-          lastEnrichedAt: new Date(),
-        })
-        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
-
-      await db.insert(silverEnrichmentLog).values({
+      const log = createJobLogger({
         tenantId: job.data.tenantId,
+        workerName: "I4:contact-page-scraper",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
         entityType: "company",
         entityId: job.data.companyId,
-        source: "contact_scraper",
-        operation: "scrape",
-        requestPayload: { websiteUrl: job.data.websiteUrl },
-        responsePayload: found,
-        fieldsUpdated: ["email", "telefon", "adresa", "metadata"],
-        correlationId: job.data.correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
       });
+      let lastFetchUrl = job.data.websiteUrl;
+      try {
+        await setSessionTenantId(job.data.tenantId);
+        svcLog.info(
+          { tenantId: job.data.tenantId, companyId: job.data.companyId },
+          "I4 contact page scrape",
+        );
 
-      return {
-        ok: true,
-        status: "success",
-        source: "contact_scraper",
-        emailsFound: found.emails.length,
-        phonesFound: found.phones.length,
-      };
+        const base = job.data.websiteUrl.replace(/\/+$/, "");
+        const paths = ["/contact", "/contacte", "/contact-us", "/despre-noi", "/about", "/"];
+
+        let found: {
+          emails: string[];
+          phones: string[];
+          address: string | null;
+          sourceUrl: string;
+        } | null = null;
+        for (const path of paths) {
+          const url = `${base}${path}`;
+          lastFetchUrl = url;
+          try {
+            const extracted = await contactPageBreaker.fire(url);
+            if (
+              extracted &&
+              (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address)
+            ) {
+              found = { ...extracted, sourceUrl: url };
+              break;
+            }
+          } catch {
+            // try next path
+          }
+        }
+
+        if (!found) {
+          log.info("scrape", "Fără date contact", {
+            targetUrl: job.data.websiteUrl,
+            lastAttemptUrl: lastFetchUrl,
+            scrapingResult: "not_found",
+            fieldsExtracted: { emails: 0, phones: 0, hasAddress: false },
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "no_contact_info", source: "contact_scraper" };
+        }
+
+        const mainEmail =
+          found.emails.find(
+            (e) => !e.toLowerCase().startsWith("info@") && !e.toLowerCase().startsWith("contact@"),
+          ) ??
+          found.emails[0] ??
+          null;
+        const mainPhone = found.phones[0] ?? null;
+
+        await db
+          .update(silverCompanies)
+          .set({
+            email: mainEmail ?? undefined,
+            telefon: mainPhone ?? undefined,
+            adresa: found.address ?? undefined,
+            metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{contactScraper}', ${JSON.stringify(
+              {
+                sourceUrl: found.sourceUrl,
+                emails: found.emails,
+                phones: found.phones,
+                address: found.address,
+                scrapedAt: new Date().toISOString(),
+              },
+            )}::jsonb)`,
+            lastEnrichedAt: new Date(),
+          })
+          .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+
+        await db.insert(silverEnrichmentLog).values({
+          tenantId: job.data.tenantId,
+          entityType: "company",
+          entityId: job.data.companyId,
+          source: "contact_scraper",
+          operation: "scrape",
+          requestPayload: { websiteUrl: job.data.websiteUrl },
+          responsePayload: found,
+          fieldsUpdated: ["email", "telefon", "adresa", "metadata"],
+          correlationId: job.data.correlationId,
+          jobId: String(job.id ?? ""),
+          durationMs: Date.now() - startedAt,
+        });
+
+        log.step("done", "Contact extras", {
+          targetUrl: found.sourceUrl,
+          scrapingResult: "ok",
+          fieldsExtracted: {
+            emails: found.emails.length,
+            phones: found.phones.length,
+            hasAddress: Boolean(found.address),
+          },
+          latencyMs: Date.now() - startedAt,
+        });
+        return {
+          ok: true,
+          status: "success",
+          source: "contact_scraper",
+          emailsFound: found.emails.length,
+          phonesFound: found.phones.length,
+        };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `Contact page scraper eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              entityType: "company",
+              entityId: job.data.companyId,
+              url: lastFetchUrl,
+            }),
+          },
+        );
+        throw error;
+      }
     },
     { tenantId: job.data.tenantId },
   );

@@ -10,6 +10,8 @@
 import type { Job, Queue, Worker } from "bullmq";
 import type { Redis } from "../utils/bullmq-connection.js";
 import type * as CerniqDb from "@cerniq/db";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import {
   QUEUES,
   getWaPhoneQueueName,
@@ -26,6 +28,7 @@ import { pickNextWaPhoneForTenantSkipLocked } from "./wa-phone-skip-locked-pick.
 type DbClient = typeof CerniqDb.db;
 type EqFn = typeof CerniqDb.eq;
 type AndFn = typeof CerniqDb.and;
+const svcLog = createServiceLogger("outreach-orchestration", { etapa: "e2" });
 
 // =============================================================================
 // Types
@@ -48,6 +51,7 @@ export interface DispatchResult {
 }
 
 export interface PhoneAllocatorJobData {
+  correlationId?: string;
   tenantId: string;
   leadId: string;
   journeyId: string;
@@ -64,6 +68,7 @@ export interface PhoneAllocatorResult {
 }
 
 export interface ChannelSelectorJobData {
+  correlationId?: string;
   tenantId: string;
   leadId: string;
   journeyId: string;
@@ -149,12 +154,13 @@ export function createDispatchWorker(): Worker {
           }
           const allocJob = await phoneAllocatorQueue.add(
             "allocate",
-            {
+            ensureJobDataCorrelationId({
+              correlationId: job.data.correlationId,
               tenantId,
               leadId: lead.leadId,
               journeyId: lead.id,
               currentAssignedPhoneId: lead.assignedPhoneId ?? undefined,
-            } satisfies PhoneAllocatorJobData,
+            } satisfies PhoneAllocatorJobData),
             { removeOnComplete: 100 },
           );
 
@@ -191,8 +197,11 @@ async function fetchJourneyCurrentStateForPhoneAllocator(
     .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
     .limit(1);
   if (!journeyStateRow) {
-    console.warn(
-      `[outreach:phone-allocator] journey ${journeyId} not found for tenant ${tenantId} (no COLD fallback)`,
+    const err = new Error("Journey not found for phone allocator");
+    const enr = enrichError(err, { journeyId, tenantId });
+    svcLog.warn(
+      { err, ...enr, journeyId, tenantId },
+      "Journey not found for tenant in phone allocator; no COLD fallback",
     );
     return undefined;
   }
@@ -204,6 +213,7 @@ async function tryReuseStickyWaPhoneAssignment(params: {
   leadId: string;
   journeyId: string;
   journeyCurrentState: string;
+  correlationId?: string;
   currentAssignedPhoneId: string | undefined;
   redis: Redis;
   channelSelectorQueue: Queue;
@@ -254,14 +264,15 @@ async function tryReuseStickyWaPhoneAssignment(params: {
 
   await channelSelectorQueue.add(
     "select",
-    {
+    ensureJobDataCorrelationId({
       tenantId,
       leadId,
       journeyId,
       currentState: journeyCurrentState,
       hasPhone: true,
       phoneId: currentAssignedPhoneId,
-    } satisfies ChannelSelectorJobData,
+      correlationId: params.correlationId,
+    } satisfies ChannelSelectorJobData),
     { removeOnComplete: 100 },
   );
 
@@ -277,6 +288,7 @@ async function allocateNewWaPhoneWithMinimumQuota(params: {
   leadId: string;
   journeyId: string;
   journeyCurrentState: string;
+  correlationId?: string;
   channelSelectorQueue: Queue;
   db: DbClient;
   leadJourney: typeof CerniqDb.leadJourney;
@@ -318,21 +330,24 @@ async function allocateNewWaPhoneWithMinimumQuota(params: {
 
   if (!selectedId || !phoneNumber) {
     phoneAllocatorContentionTotal.inc({ outcome: "exhausted" });
-    throw new Error(`No assignable active phone (SKIP LOCKED) for tenant ${tenantId}`);
+    const err = new Error(`No assignable active phone (SKIP LOCKED) for tenant ${tenantId}`);
+    svcLog.error({ err, ...enrichError(err, { tenantId, journeyId }) }, "WA phone pool exhausted");
+    throw err;
   }
 
   phoneAllocatorContentionTotal.inc({ outcome: "acquired" });
 
   await channelSelectorQueue.add(
     "select",
-    {
+    ensureJobDataCorrelationId({
       tenantId,
       leadId,
       journeyId,
       currentState: journeyCurrentState,
       hasPhone: true,
       phoneId: selectedId,
-    } satisfies ChannelSelectorJobData,
+      correlationId: params.correlationId,
+    } satisfies ChannelSelectorJobData),
     { removeOnComplete: 100 },
   );
 
@@ -373,9 +388,14 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
         );
 
         if (journeyCurrentState === undefined) {
-          throw new Error(
+          const err = new Error(
             `[outreach:phone-allocator] Lead journey not found: ${journeyId} (tenant ${tenantId})`,
           );
+          svcLog.error(
+            { err, ...enrichError(err, { journeyId, tenantId, leadId }) },
+            "allocator journey missing",
+          );
+          throw err;
         }
 
         const sticky =
@@ -386,6 +406,7 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
                 leadId,
                 journeyId,
                 journeyCurrentState,
+                correlationId: job.data.correlationId,
                 currentAssignedPhoneId,
                 redis,
                 channelSelectorQueue,
@@ -403,6 +424,7 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
           leadId,
           journeyId,
           journeyCurrentState,
+          correlationId: job.data.correlationId,
           channelSelectorQueue,
           db,
           leadJourney,
@@ -473,10 +495,15 @@ export function createChannelSelectorWorker(): Worker {
           dncFlags?.consentEmailMarketing === false;
 
         if (waBlocked && emailBlocked) {
-          throw new Error(
+          const err = new Error(
             `All channels blocked by DNC/consent for lead ${leadId} (journey ${journeyId}). ` +
               `WA blocked=${waBlocked}, Email blocked=${emailBlocked}`,
           );
+          svcLog.error(
+            { err, ...enrichError(err, { leadId, journeyId, tenantId }) },
+            "channel selector: all channels blocked",
+          );
+          throw err;
         }
 
         // ── Phone index for WA queue routing ──
@@ -532,9 +559,14 @@ export function createChannelSelectorWorker(): Worker {
           };
         }
 
-        throw new Error(
+        const err = new Error(
           `No available channel for state=${routingState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
         );
+        svcLog.error(
+          { err, ...enrichError(err, { leadId, journeyId, tenantId, routingState }) },
+          "channel selector: no route",
+        );
+        throw err;
       });
     },
     { concurrency: 20 },

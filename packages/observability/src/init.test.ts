@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 const startMock = vi.fn();
 const shutdownMock = vi.fn(async () => undefined);
@@ -9,11 +9,35 @@ const sdkInstance = {
 
 const NodeSDKMock = vi.fn(function NodeSDK() {
   return sdkInstance;
-});
+}) as Mock;
 const OTLPTraceExporterMock = vi.fn(function OTLPTraceExporter(options: Record<string, unknown>) {
   return options;
 });
+const OTLPMetricExporterMock = vi.fn(function OTLPMetricExporter(options: Record<string, unknown>) {
+  return options;
+});
+const PeriodicExportingMetricReaderMock = vi.fn(function PeriodicExportingMetricReader(
+  options: Record<string, unknown>,
+) {
+  return options;
+});
 const resourceFromAttributesMock = vi.fn((attributes: Record<string, unknown>) => attributes);
+
+vi.mock("@fastify/otel", () => ({
+  default: class FastifyOtelInstrumentation {
+    readonly __testMock = true;
+  },
+}));
+
+vi.mock("@opentelemetry/auto-instrumentations-node", () => ({
+  getNodeAutoInstrumentations: vi.fn(() => []),
+}));
+
+vi.mock("@opentelemetry/instrumentation-http", () => ({
+  HttpInstrumentation: class HttpInstrumentation {
+    readonly __testMock = true;
+  },
+}));
 
 vi.mock("@opentelemetry/sdk-node", () => ({
   NodeSDK: NodeSDKMock,
@@ -21,6 +45,14 @@ vi.mock("@opentelemetry/sdk-node", () => ({
 
 vi.mock("@opentelemetry/exporter-trace-otlp-http", () => ({
   OTLPTraceExporter: OTLPTraceExporterMock,
+}));
+
+vi.mock("@opentelemetry/exporter-metrics-otlp-http", () => ({
+  OTLPMetricExporter: OTLPMetricExporterMock,
+}));
+
+vi.mock("@opentelemetry/sdk-metrics", () => ({
+  PeriodicExportingMetricReader: PeriodicExportingMetricReaderMock,
 }));
 
 vi.mock("@opentelemetry/resources", () => ({
@@ -31,11 +63,17 @@ describe("initTelemetry", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    delete process.env.HOSTNAME;
+    delete process.env.OTEL_SEMCONV_HTTP_SERVER_ADDRESS;
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
     delete process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+    delete process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT;
     delete process.env.OTEL_SDK_DISABLED;
     delete process.env.APP_VERSION;
     delete process.env.NODE_ENV;
+    delete process.env.OTEL_PROPAGATORS;
+    delete process.env.OTEL_TRACES_SAMPLER;
+    delete process.env.CERNIQ_OTEL_TRACE_SAMPLING_RATIO;
   });
 
   it("is a no-op when no OTLP endpoint is configured", async () => {
@@ -59,7 +97,7 @@ describe("initTelemetry", () => {
     expect(NodeSDKMock).not.toHaveBeenCalled();
   });
 
-  it("initializes SDK with normalized OTLP endpoint and env fallbacks", async () => {
+  it("initializes SDK with traces, metrics, instrumentations, sampler, propagator", async () => {
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://collector:4318";
     process.env.APP_VERSION = "1.2.3";
     process.env.NODE_ENV = "production";
@@ -67,31 +105,45 @@ describe("initTelemetry", () => {
     const { initTelemetry, shutdownTelemetry } = await import("./init.js");
     initTelemetry({ serviceName: "cerniq-api" });
 
-    expect(resourceFromAttributesMock).toHaveBeenCalledWith({
-      "service.name": "cerniq-api",
-      "service.version": "1.2.3",
-      "deployment.environment": "production",
-    });
-    expect(OTLPTraceExporterMock).toHaveBeenCalledWith({
-      url: "http://collector:4318/v1/traces",
-    });
-    expect(NodeSDKMock).toHaveBeenCalledWith({
-      resource: {
+    expect(resourceFromAttributesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
         "service.name": "cerniq-api",
         "service.version": "1.2.3",
         "deployment.environment": "production",
-      },
-      traceExporter: {
-        url: "http://collector:4318/v1/traces",
-      },
+        "host.name": expect.any(String),
+      }),
+    );
+    expect(OTLPTraceExporterMock).toHaveBeenCalledWith({
+      url: "http://collector:4318/v1/traces",
     });
+    expect(OTLPMetricExporterMock).toHaveBeenCalledWith({
+      url: "http://collector:4318/v1/metrics",
+    });
+    expect(PeriodicExportingMetricReaderMock).toHaveBeenCalled();
+
+    expect(NodeSDKMock).toHaveBeenCalledTimes(1);
+    const firstSdkArg = NodeSDKMock.mock.calls[0][0];
+    expect(firstSdkArg).toBeDefined();
+    const cfg = firstSdkArg as unknown as {
+      instrumentations: unknown[];
+      metricReaders: unknown[];
+      sampler: unknown;
+      textMapPropagator: unknown;
+    };
+    expect(cfg.instrumentations.length).toBeGreaterThanOrEqual(3);
+    expect(cfg.metricReaders).toHaveLength(1);
+    expect(cfg.sampler).toBeDefined();
+    /** Producție fără OTEL_TRACES_SAMPLER: implicit ratio (nu AlwaysOn). */
+    expect(String(cfg.sampler)).toMatch(/TraceIdRatioBased/i);
+    expect(cfg.textMapPropagator).toBeDefined();
+
     expect(startMock).toHaveBeenCalledTimes(1);
 
     await shutdownTelemetry();
     expect(shutdownMock).toHaveBeenCalledTimes(1);
   });
 
-  it("supports explicit trace endpoint overrides with trailing slash", async () => {
+  it("normalizes OTLP trace endpoint when only OTLP_TRACES_ENDPOINT is set with trailing slash", async () => {
     process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "http://collector:4318/";
 
     const { initTelemetry } = await import("./init.js");
@@ -101,11 +153,14 @@ describe("initTelemetry", () => {
       deploymentEnvironment: "staging",
     });
 
-    expect(resourceFromAttributesMock).toHaveBeenCalledWith({
-      "service.name": "cerniq-worker-enrichment",
-      "service.version": "2.0.0",
-      "deployment.environment": "staging",
-    });
+    expect(resourceFromAttributesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        "service.name": "cerniq-worker-enrichment",
+        "service.version": "2.0.0",
+        "deployment.environment": "staging",
+        "host.name": expect.any(String),
+      }),
+    );
     expect(OTLPTraceExporterMock).toHaveBeenCalledWith({
       url: "http://collector:4318/v1/traces",
     });

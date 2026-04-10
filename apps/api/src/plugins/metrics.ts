@@ -1,6 +1,14 @@
 import type { FastifyPluginCallback, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
-import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from "prom-client";
+import { trace } from "@opentelemetry/api";
+import {
+  Registry,
+  Counter,
+  Histogram,
+  Gauge,
+  collectDefaultMetrics,
+  type OpenMetricsContentType,
+} from "prom-client";
 
 /** CIDR-style allowlist for /metrics (internal network + localhost). Comma-separated, e.g. "10.0.0.0/16,127.0.0.1,::1". */
 const METRICS_ALLOW_CIDR = (process.env.METRICS_ALLOW_CIDR ?? "10.0.0.0/16,127.0.0.1,::1")
@@ -22,6 +30,10 @@ function isIpAllowed(ip: string): boolean {
 }
 
 const register = new Registry();
+/** OpenMetrics permite exemplare pe histograme (`enableExemplars`); înainte de instanțierea acestor histograme. */
+(register as unknown as Registry<OpenMetricsContentType>).setContentType(
+  Registry.OPENMETRICS_CONTENT_TYPE,
+);
 collectDefaultMetrics({ register, prefix: "cerniq_" });
 
 /** Intrări read-only pentru catalog UI admin — sursa unică este acest fișier + `register`. */
@@ -52,7 +64,51 @@ export const httpRequestDuration = new Histogram({
   labelNames: ["method", "route", "status"],
   buckets: [0.01, 0.05, 0.1, 0.5, 1, 5],
   registers: [register],
+  enableExemplars: true,
 });
+
+/** In-flight HTTP requests (use route template label only via paired metrics). */
+export const httpActiveRequests = new Gauge({
+  name: "cerniq_http_active_requests",
+  help: "Number of HTTP requests currently being processed",
+  registers: [register],
+});
+
+/** Fastify route pattern (e.g. /api/v1/imports/:id) — never the raw URL (avoids high cardinality). */
+export function httpRouteLabel(request: {
+  url?: string;
+  routeOptions?: { url?: string };
+  routerPath?: string;
+}): string {
+  const pattern = request.routeOptions?.url;
+  if (typeof pattern === "string" && pattern.length > 0) {
+    return pattern;
+  }
+  const legacy = request.routerPath;
+  if (typeof legacy === "string" && legacy.length > 0) {
+    return legacy;
+  }
+  return "unknown";
+}
+
+/** Suprafață trafic pentru agregări fără PII — `webhook` = prefix canonic `/api/v1/webhooks`. */
+export type HttpRequestSurface = "api" | "webhook";
+
+export function httpRequestSurface(request: {
+  url?: string;
+  routeOptions?: { url?: string };
+  routerPath?: string;
+}): HttpRequestSurface {
+  const route = httpRouteLabel(request);
+  if (route.startsWith("/api/v1/webhooks")) {
+    return "webhook";
+  }
+  const rawPath = (request.url ?? "").split("?")[0] ?? "";
+  if (rawPath.startsWith("/api/v1/webhooks")) {
+    return "webhook";
+  }
+  return "api";
+}
 
 export const healthCheckStatus = new Gauge({
   name: "cerniq_health_check_status",
@@ -89,6 +145,84 @@ export const secretsFileAgeSeconds = new Gauge({
   labelNames: ["service"],
   registers: [register],
 });
+
+/** Depășiri rate-limit global sau per-rută (@fastify/rate-limit). Label `route` = șablon Fastify (nu URL brut). */
+export const rateLimitExceededTotal = new Counter({
+  name: "cerniq_rate_limit_exceeded_total",
+  help: "Requests rejected by rate limiter",
+  labelNames: ["route", "surface"],
+  registers: [register],
+});
+
+/**
+ * Eșecuri de autorizare HTTP agregate pe șablon rută (complementar `cerniq_http_requests_total{status}`).
+ * Nu include403 pe `/metrics` (interdicție IP, nu JWT/RBAC).
+ */
+export const httpAuthFailuresTotal = new Counter({
+  name: "cerniq_http_auth_failures_total",
+  help: "HTTP 401/403 responses by route template (no user identifiers)",
+  labelNames: ["route", "reason", "surface"],
+  registers: [register],
+});
+
+/** Încercări login (POST /api/v1/auth/login) — fără PII în label-uri. */
+export const authLoginAttemptsTotal = new Counter({
+  name: "cerniq_auth_login_attempts_total",
+  help: "Login attempts by result",
+  labelNames: ["result"],
+  registers: [register],
+});
+
+/** Sesiuni SSE încheiate (răspuns text/event-stream închis). */
+export const sseStreamsCompletedTotal = new Counter({
+  name: "cerniq_sse_streams_completed_total",
+  help: "Completed Server-Sent Events response streams",
+  labelNames: ["route"],
+  registers: [register],
+});
+
+export const sseStreamDurationSeconds = new Histogram({
+  name: "cerniq_sse_stream_duration_seconds",
+  help: "Duration of completed SSE responses in seconds",
+  labelNames: ["route"],
+  buckets: [1, 5, 15, 30, 60, 120, 300, 600, 1800],
+  registers: [register],
+});
+
+/** Evenimente `data:` (sau echivalent) trimise pe SSE — separat de histograma HTTP scurtă. */
+export const sseEventsSentTotal = new Counter({
+  name: "cerniq_sse_events_sent_total",
+  help: "SSE data events written to clients",
+  labelNames: ["route"],
+  registers: [register],
+});
+
+/** Erori la scriere/pe polling SSE (client închis, excepții). */
+export const sseConnectionErrorsTotal = new Counter({
+  name: "cerniq_sse_connection_errors_total",
+  help: "SSE stream write or poll errors",
+  labelNames: ["route", "phase"],
+  registers: [register],
+});
+
+/**
+ * Durată apeluri HTTP outbound din API (fără URL complet în label — doar peer logic).
+ * Populat explicit unde avem clienți cunoscuți (ex. `monitoringInternalFetch`).
+ */
+export const httpClientRequestDurationSeconds = new Histogram({
+  name: "cerniq_http_client_request_duration_seconds",
+  help: "Outbound HTTP client request duration in seconds",
+  labelNames: ["method", "peer_service"],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 15],
+  registers: [register],
+  enableExemplars: true,
+});
+
+function activeTraceIdForExemplar(): string | undefined {
+  const sc = trace.getActiveSpan()?.spanContext();
+  const id = sc?.traceId;
+  return id && id !== "00000000000000000000000000000000" ? id : undefined;
+}
 
 // ── E3 AI Sales metrics ────────────────────────────────────────────────────
 export const e3NegotiationsTotal = new Counter({
@@ -185,15 +319,50 @@ export const e4ShipmentsRequestedTotal = new Counter({
 });
 
 const metricsPluginFn: FastifyPluginCallback = (app, _opts, done) => {
+  app.addHook("onRequest", (_request, _reply, hookDone) => {
+    httpActiveRequests.inc();
+    hookDone();
+  });
+
   app.addHook("onResponse", (request, reply, hookDone) => {
-    const route = request.routeOptions?.url ?? request.url;
+    httpActiveRequests.dec();
+    const route = httpRouteLabel(request);
+    const statusCode = reply.statusCode;
+    if (statusCode === 401 || statusCode === 403) {
+      if (route !== "/metrics") {
+        httpAuthFailuresTotal.inc({
+          route,
+          reason: statusCode === 401 ? "unauthenticated" : "forbidden",
+          surface: httpRequestSurface(request),
+        });
+      }
+    }
     const labels = {
       method: request.method,
       route,
-      status: String(reply.statusCode),
+      status: String(statusCode),
     };
     httpRequestsTotal.inc(labels);
-    httpRequestDuration.observe(labels, reply.elapsedTime / 1000);
+    const ct = reply.getHeader("content-type");
+    let ctStr = "";
+    if (typeof ct === "string") ctStr = ct;
+    else if (Array.isArray(ct) && ct.length > 0) ctStr = String(ct[0]);
+    const isSse = ctStr.includes("text/event-stream");
+    const durationSec = reply.elapsedTime / 1000;
+    const traceId = activeTraceIdForExemplar();
+    if (isSse) {
+      sseStreamsCompletedTotal.inc({ route });
+      sseStreamDurationSeconds.observe({ route }, durationSec);
+    } else if (traceId) {
+      /** OpenMetrics: exemplar cu `trace_id` — tipurile prom-client 15 limitează greșit exemplarLabels la label-urile histogramei. */
+      httpRequestDuration.observe({
+        value: durationSec,
+        labels,
+        exemplarLabels: { trace_id: traceId },
+      } as never);
+    } else {
+      httpRequestDuration.observe(labels, durationSec);
+    }
     hookDone();
   });
 

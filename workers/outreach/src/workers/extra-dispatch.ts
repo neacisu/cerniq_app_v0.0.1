@@ -7,6 +7,8 @@
  */
 import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import { QUEUES, createWorker, createQueue, dispatchNotification } from "@cerniq/worker-shared";
 import { getInstantlyClient, getTimelinesAIClient } from "@cerniq/integrations";
 import {
@@ -14,6 +16,8 @@ import {
   isPhoneQuarantineLegacyOnBannedQueue,
   type PhoneQuarantineTriggerJobData,
 } from "./phone-monitoring.js";
+
+const svcLog = createServiceLogger("outreach-extra-dispatch", { etapa: "e2" });
 
 export function createWaMediaSendWorker(): Worker {
   const { worker } = createWorker(
@@ -63,6 +67,7 @@ export function createEmailColdCampaignPauseWorker(): Worker {
 }
 
 export type AlertPhoneOfflineJobData = {
+  correlationId?: string;
   tenantId: string;
   phoneId: string;
   phoneNumber?: string;
@@ -75,7 +80,7 @@ export function createAlertPhoneOfflineWorker(): Worker {
   const { worker } = createWorker(
     QUEUES.ALERT_PHONE_OFFLINE,
     async (job: Job<AlertPhoneOfflineJobData>) => {
-      console.warn("[alert:phone:offline]", JSON.stringify(job.data));
+      svcLog.warn({ ...job.data }, "Phone offline alert received");
       const { tenantId, phoneId, phoneNumber, offlineSince, status, message } = job.data;
 
       const { db, setSessionTenantId } = await import("@cerniq/db");
@@ -118,7 +123,13 @@ export function createAlertPhoneOfflineWorker(): Worker {
           channels: ["IN_APP", "EMAIL", "WEBHOOK"],
         });
       } catch (err) {
-        console.error("[alert:phone:offline] notification dispatch failed", err);
+        svcLog.error(
+          {
+            err,
+            ...enrichError(err, { tenantId, phoneId, correlationId: job.data.correlationId }),
+          },
+          "Phone offline notification dispatch failed",
+        );
       }
       return { logged: true };
     },
@@ -137,9 +148,9 @@ export function createAlertPhoneBannedWorker(): Worker {
     async (job: Job<unknown>) => {
       const data = job.data;
       if (isPhoneQuarantineLegacyOnBannedQueue(data)) {
-        console.warn(
-          "[alert:phone:banned] legacy quarantine shape → forwarding to PHONE_QUARANTINE",
-          JSON.stringify(data),
+        svcLog.warn(
+          { data },
+          "Legacy quarantine payload received on alert:phone:banned; forwarding to PHONE_QUARANTINE",
         );
         const q = createQueue(QUEUES.PHONE_QUARANTINE);
         try {
@@ -151,17 +162,27 @@ export function createAlertPhoneBannedWorker(): Worker {
             currentReputationScore: d.currentReputationScore ?? d.score,
             reputationThreshold: d.reputationThreshold ?? d.threshold,
           };
-          await q.add("quarantine", payload, { priority: 1 });
+          await q.add(
+            "quarantine",
+            ensureJobDataCorrelationId({
+              ...payload,
+              correlationId: (data as { correlationId?: string }).correlationId,
+            }),
+            { priority: 1 },
+          );
         } finally {
           await q.close();
         }
         return { forwarded: true, target: QUEUES.PHONE_QUARANTINE };
       }
       if (!isPhoneBannedAlertPayload(data)) {
-        console.error("[alert:phone:banned] invalid payload", JSON.stringify(data));
-        throw new Error("Invalid alert:phone:banned payload (expected PhoneBannedAlertJobData)");
+        const err = new Error(
+          "Invalid alert:phone:banned payload (expected PhoneBannedAlertJobData)",
+        );
+        svcLog.error({ err, ...enrichError(err, {}) }, "Invalid alert:phone:banned payload");
+        throw err;
       }
-      console.warn("[alert:phone:banned]", JSON.stringify(data));
+      svcLog.warn({ data }, "Phone banned alert received");
       return { logged: true };
     },
     { concurrency: 5 },
@@ -182,7 +203,16 @@ export function createOutreachOrchestratorRouterWorker(): Worker {
       const { targetQueue, jobName = "dispatch", payload } = job.data;
       const q = createQueue(targetQueue);
       try {
-        await q.add(jobName, payload);
+        await q.add(
+          jobName,
+          ensureJobDataCorrelationId({
+            ...payload,
+            correlationId:
+              typeof payload.correlationId === "string"
+                ? payload.correlationId
+                : job.data.payload.correlationId,
+          }),
+        );
       } finally {
         await q.close();
       }

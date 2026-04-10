@@ -12,8 +12,12 @@ import {
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
 import { sanitizeNrRegCom, sanitizeCui, withCognitiveSpan } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { fetchAnafSingleByCui, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
+import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("d1-anaf-fiscal", { etapa: "e1" });
 
 export type AnafFiscalJobData = {
   tenantId: string;
@@ -53,10 +57,117 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
     async (_span) => {
       const startedAt = Date.now();
       const cleanedCui = sanitizeCui(job.data.cui);
-      await setSessionTenantId(job.data.tenantId);
+      const log = createJobLogger({
+        tenantId: job.data.tenantId,
+        workerName: "D1:anaf-fiscal",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
+        entityType: "company",
+        entityId: job.data.companyId,
+      });
 
-      const record = await fetchAnafSingleByCui(cleanedCui);
-      if (!record) {
+      try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            companyId: job.data.companyId,
+            cui: cleanedCui,
+            correlationId: job.data.correlationId,
+          },
+          "D1 ANAF fiscal (deprecated path)",
+        );
+        log.step("anaf_request", "Fetch ANAF fiscal", {
+          cui: cleanedCui,
+          endpoint: "anaf_v9_platitor_single",
+        });
+        await setSessionTenantId(job.data.tenantId);
+
+        const record = await fetchAnafSingleByCui(cleanedCui);
+        log.info("anaf_response", "Răspuns ANAF", {
+          cui: cleanedCui,
+          found: Boolean(record),
+          latencyMs: Date.now() - startedAt,
+        });
+        if (!record) {
+          await db.insert(silverEnrichmentLog).values({
+            tenantId: job.data.tenantId,
+            entityType: "company",
+            entityId: job.data.companyId,
+            source: "anaf_fiscal",
+            operation: "fetch",
+            requestPayload: { cui: cleanedCui },
+            responsePayload: null,
+            fieldsUpdated: [],
+            correlationId: job.data.correlationId,
+            jobId: String(job.id ?? ""),
+            durationMs: Date.now() - startedAt,
+          });
+          await markEnrichmentSourceComplete(
+            job.data.tenantId,
+            job.data.companyId,
+            "anaf_fiscal",
+            job.data.correlationId,
+          );
+          log.step("done", "ANAF fiscal: negăsit", {
+            cui: cleanedCui,
+            latencyMs: Date.now() - startedAt,
+          });
+          return { ok: true, status: "not_found", source: "anaf_fiscal", cleanedCui };
+        }
+
+        const dg = record.date_generale;
+        const denumire = dg.denumire?.trim() || null;
+        const adresa = dg.adresa?.trim() || null;
+        const statusFirma = mapStatus(dg.stare_inregistrare);
+        const nrRegCom = extractNrRegCom(record);
+
+        const anafSummary = {
+          cui: dg.cui,
+          denumire: dg.denumire,
+          adresa: dg.adresa,
+          stare_inregistrare: dg.stare_inregistrare,
+          cod_CAEN: dg.cod_CAEN,
+          nrRegCom: dg.nrRegCom,
+          statusRO_e_Factura: dg.statusRO_e_Factura,
+        };
+
+        await db
+          .update(silverCompanies)
+          .set({
+            cui: cleanedCui,
+            denumire: denumire ?? undefined,
+            adresa: adresa ?? undefined,
+            statusFirma,
+            nrRegCom: nrRegCom.sanitized ?? undefined,
+            nrRegComOriginal: nrRegCom.raw ?? undefined,
+            nrRegComCanonical: nrRegCom.isCanonicalNew ? nrRegCom.sanitized : undefined,
+            lastEnrichedAt: new Date(),
+            metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafFiscal}', ${JSON.stringify(anafSummary)}::jsonb)`,
+          })
+          .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+
+        await upsertCompanyIdentityKey({
+          tenantId: job.data.tenantId,
+          companyId: job.data.companyId,
+          keyType: "cui",
+          keyValueCanonical: cleanedCui,
+          keyValueOriginal: cleanedCui,
+          sourceAuthority: "anaf",
+          isAuthoritative: true,
+        });
+        if (nrRegCom.sanitized) {
+          await upsertCompanyIdentityKey({
+            tenantId: job.data.tenantId,
+            companyId: job.data.companyId,
+            keyType: "nr_reg_com",
+            keyValueCanonical: nrRegCom.sanitized,
+            keyValueOriginal: nrRegCom.raw,
+            sourceAuthority: "anaf",
+          });
+        }
+
         await db.insert(silverEnrichmentLog).values({
           tenantId: job.data.tenantId,
           entityType: "company",
@@ -64,8 +175,8 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
           source: "anaf_fiscal",
           operation: "fetch",
           requestPayload: { cui: cleanedCui },
-          responsePayload: null,
-          fieldsUpdated: [],
+          responsePayload: anafSummary,
+          fieldsUpdated: ["denumire", "adresa", "statusFirma", "cui", "nrRegCom"],
           correlationId: job.data.correlationId,
           jobId: String(job.id ?? ""),
           durationMs: Date.now() - startedAt,
@@ -76,86 +187,33 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
           "anaf_fiscal",
           job.data.correlationId,
         );
-        return { ok: true, status: "not_found", source: "anaf_fiscal", cleanedCui };
-      }
 
-      const dg = record.date_generale;
-      const denumire = dg.denumire?.trim() || null;
-      const adresa = dg.adresa?.trim() || null;
-      const statusFirma = mapStatus(dg.stare_inregistrare);
-      const nrRegCom = extractNrRegCom(record);
-
-      const anafSummary = {
-        cui: dg.cui,
-        denumire: dg.denumire,
-        adresa: dg.adresa,
-        stare_inregistrare: dg.stare_inregistrare,
-        cod_CAEN: dg.cod_CAEN,
-        nrRegCom: dg.nrRegCom,
-        statusRO_e_Factura: dg.statusRO_e_Factura,
-      };
-
-      await db
-        .update(silverCompanies)
-        .set({
+        log.step("done", "ANAF fiscal: succes", {
           cui: cleanedCui,
-          denumire: denumire ?? undefined,
-          adresa: adresa ?? undefined,
           statusFirma,
-          nrRegCom: nrRegCom.sanitized ?? undefined,
-          nrRegComOriginal: nrRegCom.raw ?? undefined,
-          nrRegComCanonical: nrRegCom.isCanonicalNew ? nrRegCom.sanitized : undefined,
-          lastEnrichedAt: new Date(),
-          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafFiscal}', ${JSON.stringify(anafSummary)}::jsonb)`,
-        })
-        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
-
-      await upsertCompanyIdentityKey({
-        tenantId: job.data.tenantId,
-        companyId: job.data.companyId,
-        keyType: "cui",
-        keyValueCanonical: cleanedCui,
-        keyValueOriginal: cleanedCui,
-        sourceAuthority: "anaf",
-        isAuthoritative: true,
-      });
-      if (nrRegCom.sanitized) {
-        await upsertCompanyIdentityKey({
-          tenantId: job.data.tenantId,
-          companyId: job.data.companyId,
-          keyType: "nr_reg_com",
-          keyValueCanonical: nrRegCom.sanitized,
-          keyValueOriginal: nrRegCom.raw,
-          sourceAuthority: "anaf",
+          latencyMs: Date.now() - startedAt,
         });
+
+        return {
+          ok: true,
+          status: "success",
+          source: "anaf_fiscal",
+          cleanedCui,
+        };
+      } catch (error) {
+        log.error(
+          "fatal",
+          `ANAF fiscal eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              companyId: job.data.companyId,
+              cui: cleanedCui,
+            }),
+          },
+        );
+        throw error;
       }
-
-      await db.insert(silverEnrichmentLog).values({
-        tenantId: job.data.tenantId,
-        entityType: "company",
-        entityId: job.data.companyId,
-        source: "anaf_fiscal",
-        operation: "fetch",
-        requestPayload: { cui: cleanedCui },
-        responsePayload: anafSummary,
-        fieldsUpdated: ["denumire", "adresa", "statusFirma", "cui", "nrRegCom"],
-        correlationId: job.data.correlationId,
-        jobId: String(job.id ?? ""),
-        durationMs: Date.now() - startedAt,
-      });
-      await markEnrichmentSourceComplete(
-        job.data.tenantId,
-        job.data.companyId,
-        "anaf_fiscal",
-        job.data.correlationId,
-      );
-
-      return {
-        ok: true,
-        status: "success",
-        source: "anaf_fiscal",
-        cleanedCui,
-      };
     },
     { tenantId: job.data.tenantId },
   );

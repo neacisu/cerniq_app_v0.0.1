@@ -3,7 +3,11 @@
  * Coada era înregistrată în registry fără consumator; job-urile rămâneau blocate.
  */
 import type { Job, Worker } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { QUEUES, createWorker, withCognitiveSpan } from "@cerniq/worker-shared";
+import { createOutreachJobLogger } from "../lib/outreach-job-logger.js";
+
+const svcLog = createServiceLogger("outreach-lead-assign-user", { etapa: "e2" });
 
 export interface LeadAssignUserJobData {
   tenantId: string;
@@ -12,6 +16,7 @@ export interface LeadAssignUserJobData {
   /** Dacă true, oprește automatizarea pentru lead (comportament explicit față de simpla atribuire). */
   setHumanControlled?: boolean;
   reason?: string;
+  correlationId?: string;
   traceId?: string;
   causationKey?: string;
   sourceEndpoint?: string;
@@ -25,6 +30,20 @@ export function createLeadAssignUserWorker(): Worker {
       return withCognitiveSpan("e2:lead:assign-user", async () => {
         const { tenantId, journeyId, assignedToUserId, setHumanControlled } = job.data;
 
+        const jlog = createOutreachJobLogger(job, {
+          workerName: "outreach-lead-assign-user",
+          queueName: QUEUES.LEAD_ASSIGN_USER,
+          tenantId,
+          entityType: "journey",
+          entityId: journeyId,
+          correlationId: job.data.correlationId,
+          traceId: job.data.traceId,
+        });
+        jlog.info("lead_assign", "start", {
+          assignedToUserId,
+          setHumanControlled: setHumanControlled === true,
+        });
+
         const { db, setSessionTenantId } = await import("@cerniq/db");
         await setSessionTenantId(tenantId);
         const { leadJourney } = await import("@cerniq/db");
@@ -37,7 +56,26 @@ export function createLeadAssignUserWorker(): Worker {
           .limit(1);
 
         if (rows.length === 0) {
-          throw new Error(`lead_journey not found: journeyId=${journeyId} tenantId=${tenantId}`);
+          const err = new Error(
+            `lead_journey not found: journeyId=${journeyId} tenantId=${tenantId}`,
+          );
+          const enr = enrichError(err, { tenantId, journeyId, assignedToUserId });
+          jlog.error("lead_assign", "journey_not_found", {
+            journeyId,
+            fingerprint: enr.fingerprint,
+            errorType: enr.errorType,
+            errorCode: enr.errorCode,
+          });
+          svcLog.warn(
+            {
+              tenantId,
+              journeyId,
+              fingerprint: enr.fingerprint,
+              errorType: enr.errorType,
+            },
+            "lead_assign_journey_missing",
+          );
+          throw err;
         }
 
         await db
@@ -51,6 +89,8 @@ export function createLeadAssignUserWorker(): Worker {
           })
           .where(eq(leadJourney.id, journeyId));
 
+        jlog.done("lead_assign", "complete", { assignedToUserId });
+        svcLog.info({ tenantId, journeyId, assignedToUserId }, "lead_assign_user_updated");
         return { ok: true };
       });
     },

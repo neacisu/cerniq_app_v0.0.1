@@ -28,6 +28,7 @@ Prometheus ruleaza pe orchestrator si face scrape pentru:
 
 ## 4. Traces (OTEL)
 
+- Ghid aplicație (instrumentare Fastify/HTTP, env vars, bootstrap): [`docs/developer-guide/http-server-opentelemetry-enterprise.md`](../developer-guide/http-server-opentelemetry-enterprise.md)
 - `otel-collector` local pe CT109/CT110 expune:
   - OTLP gRPC: `4317` (mapat host `64070`)
   - OTLP HTTP: `4318` (mapat host `64071`)

@@ -1,4 +1,5 @@
 import { type Processor } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
 import {
   validateJobData,
@@ -6,8 +7,11 @@ import {
   silverEnrichmentErrorsTotal,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
+import { createJobLogger } from "../lib/job-logger.js";
 import { z } from "zod";
 import { addQueueJob } from "./pipeline-utils.js";
+
+const svcLog = createServiceLogger("p1-orchestrate", { etapa: "e1" });
 
 export type OrchestratorJobData = {
   tenantId: string;
@@ -18,6 +22,8 @@ export type OrchestratorJobData = {
   causationKey?: string;
   sourceEndpoint?: string;
   actorId?: string;
+  requestId?: string;
+  httpCorrelationId?: string;
 };
 
 const orchestratorJobDataSchema = z.object({
@@ -29,6 +35,8 @@ const orchestratorJobDataSchema = z.object({
   causationKey: z.string().optional(),
   sourceEndpoint: z.string().optional(),
   actorId: z.string().optional(),
+  requestId: z.string().optional(),
+  httpCorrelationId: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -202,45 +210,90 @@ export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = asy
   return withCognitiveSpan(
     "e1:pipeline:orchestrate",
     async (_span) => {
-      validateJobData(orchestratorJobDataSchema, job.data, {
-        queueName: "pipeline:orchestrate",
-        jobId: job.id,
-      });
-
-      await setSessionTenantId(job.data.tenantId);
-
-      const company = await db.query.silverCompanies.findFirst({
-        where: (t, { and, eq }) =>
-          and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
-      });
-
-      if (!company) {
-        silverEnrichmentErrorsTotal.inc({
-          source: job.data.stage,
-          tenant_id: job.data.tenantId,
-        });
-        return { ok: false, status: "not_found" };
-      }
-
-      const ctx: StageContext = {
+      const startedAt = Date.now();
+      const log = createJobLogger({
         tenantId: job.data.tenantId,
-        companyId: job.data.companyId,
+        workerName: "P1:orchestrate",
+        jobId: String(job.id ?? ""),
+        startedAt,
+        etapa: "e1",
         correlationId: job.data.correlationId,
-        company,
-      };
-
+        entityType: "company",
+        entityId: job.data.companyId,
+      });
+      let handlerEntered = false;
       try {
+        validateJobData(orchestratorJobDataSchema, job.data, {
+          queueName: "pipeline:orchestrate",
+          jobId: job.id,
+        });
+
+        await setSessionTenantId(job.data.tenantId);
+        svcLog.info(
+          { tenantId: job.data.tenantId, companyId: job.data.companyId, stage: job.data.stage },
+          "P1 orchestrate",
+        );
+
+        const company = await db.query.silverCompanies.findFirst({
+          where: (t, { and, eq }) =>
+            and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
+        });
+
+        if (!company) {
+          silverEnrichmentErrorsTotal.inc({
+            source: job.data.stage,
+            tenant_id: job.data.tenantId,
+          });
+          return { ok: false, status: "not_found" };
+        }
+
+        const ctx: StageContext = {
+          tenantId: job.data.tenantId,
+          companyId: job.data.companyId,
+          correlationId: job.data.correlationId,
+          company,
+        };
+
+        handlerEntered = true;
         const handler = stageHandlers[job.data.stage];
         const jobsTriggered = await handler(ctx);
+        log.step("done", "Orchestrare reușită", {
+          latencyMs: Date.now() - startedAt,
+          pipelineContext: {
+            companyId: job.data.companyId,
+            batchId: job.data.correlationId,
+            stage: job.data.stage,
+          },
+        });
         return { ok: true, status: "success", stage: job.data.stage, jobsTriggered };
       } catch (error) {
-        silverEnrichmentErrorsTotal.inc({
-          source: job.data.stage,
-          tenant_id: job.data.tenantId,
-        });
+        if (handlerEntered) {
+          silverEnrichmentErrorsTotal.inc({
+            source: job.data.stage,
+            tenant_id: job.data.tenantId,
+          });
+        }
+        log.error(
+          "fatal",
+          `Orchestrator eșuat: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            ...enrichError(error, {
+              tenantId: job.data.tenantId,
+              entityType: "company",
+              entityId: job.data.companyId,
+              pipelineContext: {
+                companyId: job.data.companyId,
+                batchId: job.data.correlationId,
+                stage: job.data.stage,
+              },
+            }),
+          },
+        );
         throw error;
       }
     },
     { tenantId: job.data.tenantId },
   );
 };
+
+export { orchestratorJobDataSchema };

@@ -6,6 +6,7 @@ import {
   type ImportExecutionContext,
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import { type JobLogger } from "../lib/job-logger.js";
@@ -23,6 +24,8 @@ import {
   updateImportBatchCounters,
   verifyFileHash,
 } from "./ingest-utils.js";
+
+const svcLog = createServiceLogger("a1-csv-parser", { etapa: "e1" });
 
 export type CsvParserJobData = {
   tenantId: string;
@@ -93,6 +96,8 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
     workerName: "A1:csv-parser",
     jobId: String((job as unknown as { id?: string }).id ?? ""),
     importExecution: job.data.importExecution ?? null,
+    etapa: "e1",
+    correlationId: job.data.correlationId,
   });
   const resumeFrom = job.data.resumeFrom ?? {};
   let processedRows = Number(resumeFrom.processedRows ?? 0);
@@ -131,7 +136,9 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
           .slice(0, 10)
           .map((e) => ({ code: e.code, message: e.message, row: e.row })),
       });
-      throw new Error(`CSV parse failed: ${firstErr?.message ?? "unknown error"}`);
+      throw new Error(`CSV parse failed: ${firstErr?.message ?? "unknown error"}`, {
+        cause: firstErr,
+      });
     }
     log.info("csv_parse", `Fișier CSV parsat cu succes`, {
       totalRows: parsed.data.length,
@@ -282,9 +289,16 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       errorRows,
     };
   } catch (error) {
+    const enriched = enrichError(error, {
+      fileName: job.data.fileName,
+      tenantId: job.data.tenantId,
+      rowCount: processedRows,
+      batchId: job.data.batchId,
+    });
     const errMsg = error instanceof Error ? error.message : String(error);
     const errStack = error instanceof Error ? error.stack : undefined;
     log.error("fatal", `Parsare CSV eșuată: ${errMsg}`, {
+      ...enriched,
       errorMessage: errMsg,
       errorStack: errStack,
       processedRows,
@@ -307,6 +321,15 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
 }
 
 async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
+  const log = createJobLogger({
+    batchId: job.data.batchId,
+    tenantId: job.data.tenantId,
+    workerName: "A1:csv-parser",
+    jobId: String((job as unknown as { id?: string }).id ?? ""),
+    importExecution: job.data.importExecution ?? null,
+    etapa: "e1",
+    correlationId: job.data.correlationId,
+  });
   let autoMapping: Record<string, string> | undefined = job.data.columnMapping;
   const resumeFrom = job.data.resumeFrom ?? {};
   let totalRowsRead = Number(resumeFrom.processedRows ?? 0);
@@ -319,6 +342,14 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
   let allInsertedIds: string[] = [];
   let rowIndex = 0;
   try {
+    log.step("start", `Începe parsarea CSV (streaming): ${job.data.fileName ?? "(necunoscut)"}`, {
+      fileSize: job.data.fileSize,
+      filePath: job.data.filePath,
+      encoding: job.data.encoding,
+      hasHeader: job.data.hasHeader,
+      resumeFrom,
+    });
+    await ensureFileIntegrity(job.data, log);
     const encoding = job.data.encoding ?? (await detectFileEncoding(job.data.filePath));
     const readable = createFileReadStream(job.data.filePath, encoding);
 
@@ -504,6 +535,13 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
         );
     }
 
+    log.step("done", `Parsare CSV streaming finalizată cu succes`, {
+      rowsRead: totalRowsRead,
+      rowsInserted: totalRowsInserted,
+      duplicateRows: totalDuplicateRows,
+      errorRows: totalErrorRows,
+    });
+
     return {
       ok: true as const,
       rowsRead: totalRowsRead,
@@ -513,6 +551,20 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
     };
   } catch (error) {
     jobErrors.add(1, { worker: "a1-csv-parser" });
+    const enriched = enrichError(error, {
+      fileName: job.data.fileName,
+      tenantId: job.data.tenantId,
+      rowCount: totalRowsRead,
+      batchId: job.data.batchId,
+    });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    log.error("fatal", `Parsare CSV streaming eșuată: ${errMsg}`, {
+      ...enriched,
+      totalRowsRead,
+      totalRowsInserted,
+      totalErrorRows,
+      totalDuplicateRows,
+    });
     await markImportBatchFailed({
       tenantId: job.data.tenantId,
       batchId: job.data.batchId,
@@ -523,7 +575,7 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
       totalRows: totalRowsRead || undefined,
       errorMessage: error instanceof Error ? error.message : String(error),
     });
-    throw error;
+    throw error instanceof Error ? error : new Error(String(error), { cause: error });
   }
 }
 
@@ -554,6 +606,16 @@ export const csvParserProcessor: Processor<CsvParserJobData> = async (job) => {
     async (_span) => {
       const startedAt = Date.now();
       const useStreaming = await shouldUseStreaming(job.data);
+      svcLog.info(
+        {
+          tenantId: job.data.tenantId,
+          correlationId: job.data.correlationId,
+          batchId: job.data.batchId,
+          fileName: job.data.fileName,
+          useStreaming,
+        },
+        "A1 csv-parser job",
+      );
 
       const result = useStreaming ? await parseLargeFileStreaming(job) : await parseSmallFile(job);
       jobsProcessed.add(1, { worker: "a1-csv-parser", status: "success" });

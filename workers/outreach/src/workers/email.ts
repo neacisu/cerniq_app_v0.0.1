@@ -16,6 +16,8 @@
  */
 import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
+import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
 import {
   QUEUES,
   createWorker,
@@ -25,6 +27,7 @@ import {
 import { messageStatusEnum } from "@cerniq/db";
 
 type CommunicationLogStatus = (typeof messageStatusEnum.enumValues)[number];
+const svcLog = createServiceLogger("outreach-email", { etapa: "e2" });
 
 // =============================================================================
 // ADR-0059 Channel Segregation constants
@@ -62,6 +65,7 @@ export interface EmailColdSendJobData {
 }
 
 export interface EmailColdTrackingJobData {
+  correlationId?: string;
   tenantId: string;
   leadId: string;
   journeyId: string;
@@ -80,6 +84,7 @@ export interface EmailColdTrackingJobData {
 }
 
 export interface BounceMonitorJobData {
+  correlationId?: string;
   tenantId: string;
   campaignId: string;
 }
@@ -101,6 +106,7 @@ export interface EmailWarmSendJobData {
 }
 
 export interface EmailWarmReplyJobData {
+  correlationId?: string;
   tenantId: string;
   leadId: string;
   journeyId: string;
@@ -188,14 +194,15 @@ export function createEmailColdSenderWorker(): Worker {
       if (currentState === "COLD") {
         await stateTransitionQueue.add(
           "transition",
-          {
+          ensureJobDataCorrelationId({
             tenantId,
             leadId,
             journeyId,
             newState: "CONTACTED_EMAIL",
             trigger: "SYSTEM",
             reason: "Cold email sent via Instantly",
-          },
+            correlationId: job.data.correlationId,
+          }),
           { removeOnComplete: 100 },
         );
       }
@@ -225,8 +232,13 @@ export function createEmailColdTrackingWorker(): Worker {
         job.data;
 
       if (journeyId === undefined || journeyId === null || journeyId === "") {
-        console.warn(
-          `[email:cold:lead:status] skip: missing journeyId for eventType=${String(eventType)} tenantId=${tenantId}`,
+        const enr = enrichError(new Error("email_cold_tracking_missing_journey"), {
+          tenantId,
+          eventType,
+        });
+        svcLog.warn(
+          { ...enr, tenantId, eventType, correlationId: job.data.correlationId },
+          "Skipping email cold tracking because journeyId is missing",
         );
         return;
       }
@@ -293,17 +305,36 @@ export function createEmailColdTrackingWorker(): Worker {
           // Trigger: lead state transition + sentiment analysis + sequence stop
           await stateTransitionQueue.add(
             "reply-received",
-            { tenantId, leadId, journeyId, newState: "WARM_REPLY", trigger: "WEBHOOK_REPLY" },
+            ensureJobDataCorrelationId({
+              tenantId,
+              leadId,
+              journeyId,
+              newState: "WARM_REPLY",
+              trigger: "WEBHOOK_REPLY",
+              correlationId: job.data.correlationId,
+            }),
             { priority: 1, removeOnComplete: 100 },
           );
           await sentimentQueue.add(
             "analyze",
-            { tenantId, leadId, journeyId, content: replyContent, channel: "EMAIL_COLD" },
+            ensureJobDataCorrelationId({
+              tenantId,
+              leadId,
+              journeyId,
+              content: replyContent,
+              channel: "EMAIL_COLD",
+              correlationId: job.data.correlationId,
+            }),
             { priority: 2, removeOnComplete: 100 },
           );
           await sequenceStopQueue.add(
             "stop",
-            { tenantId, journeyId, reason: "LEAD_REPLIED_EMAIL" },
+            ensureJobDataCorrelationId({
+              tenantId,
+              journeyId,
+              reason: "LEAD_REPLIED_EMAIL",
+              correlationId: job.data.correlationId,
+            }),
             { removeOnComplete: 100 },
           );
           break;
@@ -327,7 +358,11 @@ export function createEmailColdTrackingWorker(): Worker {
           // Trigger bounce rate monitor check
           await bounceMonitorQueue.add(
             "check",
-            { tenantId, campaignId },
+            ensureJobDataCorrelationId({
+              tenantId,
+              campaignId,
+              correlationId: job.data.correlationId,
+            }),
             { removeOnComplete: 100 },
           );
           break;
@@ -336,14 +371,15 @@ export function createEmailColdTrackingWorker(): Worker {
           // State -> DEAD
           await stateTransitionQueue.add(
             "unsubscribed",
-            {
+            ensureJobDataCorrelationId({
               tenantId,
               leadId,
               journeyId,
               newState: "DEAD",
               trigger: "WEBHOOK_REPLY",
               reason: "Email unsubscribe",
-            },
+              correlationId: job.data.correlationId,
+            }),
             { priority: 1, removeOnComplete: 100 },
           );
           // Mark email opted out
@@ -404,12 +440,25 @@ export function createBounceRateMonitorWorker(): Worker {
       if (bounceRate > BOUNCE_THRESHOLD) {
         await campaignPauseQueue.add(
           "pause",
-          { tenantId, campaignId, bounceRate, bounced: s.bounced, total: s.total },
+          ensureJobDataCorrelationId({
+            tenantId,
+            campaignId,
+            bounceRate,
+            bounced: s.bounced,
+            total: s.total,
+            correlationId: job.data.correlationId,
+          }),
           { priority: 1 },
         );
         await bounceAlertQueue.add(
           "alert",
-          { tenantId, campaignId, bounceRate, threshold: BOUNCE_THRESHOLD },
+          ensureJobDataCorrelationId({
+            tenantId,
+            campaignId,
+            bounceRate,
+            threshold: BOUNCE_THRESHOLD,
+            correlationId: job.data.correlationId,
+          }),
           { priority: 1 },
         );
       }
@@ -447,9 +496,14 @@ export function createEmailWarmSenderWorker(): Worker {
           currentState as (typeof WARM_EMAIL_ALLOWED_STATES)[number],
         )
       ) {
-        throw new Error(
+        const err = new Error(
           `LEAD_NOT_WARM: ADR-0059 violation. Lead state ${currentState} is not allowed in warm email channel. Only WARM_REPLY/NEGOTIATION.`,
         );
+        svcLog.error(
+          { err, ...enrichError(err, { tenantId, journeyId, currentState }) },
+          "warm email ADR-0059 guard failed",
+        );
+        throw err;
       }
 
       const { createResendTransactionalEmailProvider } = await import("@cerniq/integrations");
@@ -532,24 +586,37 @@ export function createEmailWarmReplyWorker(): Worker {
       // Trigger: state transition + sentiment + sequence stop
       await stateTransitionQueue.add(
         "reply",
-        {
+        ensureJobDataCorrelationId({
           tenantId,
           leadId,
           journeyId,
           newState: "NEGOTIATION",
           trigger: "WEBHOOK_REPLY",
           reason: "Warm email reply",
-        },
+          correlationId: job.data.correlationId,
+        }),
         { priority: 1, removeOnComplete: 100 },
       );
       await sentimentQueue.add(
         "analyze",
-        { tenantId, leadId, journeyId, content: replyContent, channel: "EMAIL_WARM" },
+        ensureJobDataCorrelationId({
+          tenantId,
+          leadId,
+          journeyId,
+          content: replyContent,
+          channel: "EMAIL_WARM",
+          correlationId: job.data.correlationId,
+        }),
         { priority: 2, removeOnComplete: 100 },
       );
       await sequenceStopQueue.add(
         "stop",
-        { tenantId, journeyId, reason: "WARM_REPLY_RECEIVED" },
+        ensureJobDataCorrelationId({
+          tenantId,
+          journeyId,
+          reason: "WARM_REPLY_RECEIVED",
+          correlationId: job.data.correlationId,
+        }),
         { removeOnComplete: 100 },
       );
     },
@@ -563,6 +630,7 @@ export function createEmailWarmReplyWorker(): Worker {
 // =============================================================================
 
 export interface EmailWarmTrackingJobData {
+  correlationId?: string;
   tenantId: string;
   leadId: string;
   journeyId: string;

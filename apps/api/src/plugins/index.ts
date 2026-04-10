@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import Redis from "ioredis";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -9,12 +9,22 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import multipart from "@fastify/multipart";
 import { envConfig } from "../config.js";
-import { metricsPlugin } from "./metrics.js";
+import {
+  metricsPlugin,
+  rateLimitExceededTotal,
+  httpRouteLabel,
+  httpRequestSurface,
+} from "./metrics.js";
 import { requestLoggingPlugin } from "./request-logging.js";
 import { tenantContext } from "./tenant-context.js";
+import { auditTrailPlugin } from "./audit-trail.js";
 
 function getRateLimitScope(request: { routeOptions?: { url?: string }; url: string }) {
   return request.routeOptions?.url ?? request.url.split("?")[0] ?? "unknown";
+}
+
+function rateLimitMetricLabels(request: FastifyRequest) {
+  return { route: httpRouteLabel(request), surface: httpRequestSurface(request) };
 }
 
 function createRateLimitRedis() {
@@ -84,6 +94,8 @@ export async function registerPlugins(app: FastifyInstance) {
   await app.register(cors, {
     origin: corsOrigins,
     credentials: true,
+    /** Browser cross-origin poate citi headerul pentru corelare cu loguri / suport. */
+    exposedHeaders: ["x-correlation-id", "x-request-id"],
   });
 
   const connectSrcExtra =
@@ -150,6 +162,9 @@ export async function registerPlugins(app: FastifyInstance) {
     timeWindow: envConfig.RATE_LIMIT_WINDOW,
     redis: rateLimitRedis,
     skipOnError: true,
+    onExceeded: (request) => {
+      rateLimitExceededTotal.inc(rateLimitMetricLabels(request));
+    },
     keyGenerator: (request) => {
       const scope = getRateLimitScope(request);
       const tenantId =
@@ -163,4 +178,5 @@ export async function registerPlugins(app: FastifyInstance) {
   await app.register(tenantContext);
   await app.register(requestLoggingPlugin);
   await app.register(metricsPlugin);
+  await app.register(auditTrailPlugin);
 }

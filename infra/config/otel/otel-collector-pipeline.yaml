@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=./otel-collector-pipeline.schema.json
+# Pipeline „clasică” (receivers/processors/exporters/service). NU este Declarative Configuration — fără file_format.
+# Numele fișierului este `otel-collector-pipeline.yaml` (nu `otel-collector.yaml`) ca IDE-urile care asociază automat schema Declarative după nume să nu valideze greșit acest fișier.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  resource:
+    attributes:
+      - action: upsert
+        key: project
+        value: cerniq
+      - action: upsert
+        key: environment
+        value: ${env:CERNIQ_ENV}
+
+exporters:
+  otlphttp:
+    endpoint: https://otel-cerniq.neanelu.ro
+
+# Traces + metrics + logs OTLP → același gateway (orchestratorul trebuie să accepte /v1/metrics și /v1/logs).
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - resource
+        - batch
+      exporters:
+        - otlphttp
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - resource
+        - batch
+      exporters:
+        - otlphttp
+    logs:
+      receivers:
+        - otlp
+      processors:
+        - resource
+        - batch
+      exporters:
+        - otlphttp

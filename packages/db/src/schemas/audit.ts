@@ -74,3 +74,38 @@ export const gdprErasureLog = auditSchema.table(
   },
   (t) => [index("idx_gdpr_erasure_log_tenant").on(t.tenantId, t.createdAt)],
 );
+
+/**
+ * Audit HTTP API (mutații) — sursa SQL: 0068_audit_api_audit_log.sql.
+ * Separat de `approval_audit_log` (workflow aprobări).
+ */
+export const auditLog = auditSchema.table(
+  "audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    correlationId: uuid("correlation_id"),
+    traceId: text("trace_id"),
+    spanId: text("span_id"),
+    method: varchar("method", { length: 16 }).notNull(),
+    routePattern: text("route_pattern").notNull(),
+    statusCode: integer("status_code").notNull(),
+    ipHash: varchar("ip_hash", { length: 64 }),
+    userAgent: text("user_agent"),
+    requestBodyHash: varchar("request_body_hash", { length: 64 }),
+    metadata: jsonb("metadata").notNull().default({}),
+    eventHash: varchar("event_hash", { length: 64 }).notNull(),
+    previousHash: varchar("previous_hash", { length: 64 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_audit_log_tenant_created").on(t.tenantId, t.createdAt),
+    index("idx_audit_log_user_created").on(t.userId, t.createdAt),
+    index("idx_audit_log_correlation").on(t.correlationId),
+    index("idx_audit_log_created").on(t.createdAt),
+  ],
+);
+
+/** Rând insert Drizzle — același modul ca `auditLog` (`$inferInsert` evită TS2344 la consumatori când IDE amestecă instanțe de tipuri). */
+export type AuditLogInsertRow = typeof auditLog.$inferInsert;

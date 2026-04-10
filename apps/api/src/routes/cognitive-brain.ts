@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import { trace } from "@opentelemetry/api";
 import { z } from "zod";
 import Redis from "ioredis";
 import {
@@ -19,7 +20,10 @@ import type { CognitiveBrain, CognitiveEdge, CognitiveNode } from "@cerniq/share
 import { propagatePause } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
 import { requireRole } from "../middleware/authz.js";
+import { sseConnectionErrorsTotal, sseEventsSentTotal } from "../plugins/metrics.js";
 import { requireTenantId, parseLimit, ensureRequestTenantIdFromJwtIfMissing } from "./utils.js";
+
+const SSE_ROUTE_COGNITIVE_EVENTS = "/api/v1/brain/events/stream";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -163,6 +167,7 @@ async function replayFromLastEventId(
   rawResponse: import("node:http").ServerResponse,
   tenantId: string,
   rawLastId: string,
+  onEventSent: () => void,
 ): Promise<boolean> {
   const lastId = Number(rawLastId);
   if (!Number.isFinite(lastId) || lastId <= 0) return true;
@@ -177,7 +182,9 @@ async function replayFromLastEventId(
       try {
         rawResponse.write(`id: ${row.id}\n`);
         rawResponse.write(formatSseData(JSON.stringify(mapEventRow(row))));
+        onEventSent();
       } catch {
+        sseConnectionErrorsTotal.inc({ route: SSE_ROUTE_COGNITIVE_EVENTS, phase: "replay" });
         return false; // Client gone during replay
       }
     }
@@ -479,11 +486,22 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
       });
       reply.raw.write(": connected\n\n");
 
+      let sseEventsSent = 0;
+      const recordSseEvent = () => {
+        sseEventsSent += 1;
+        sseEventsSentTotal.inc({ route: SSE_ROUTE_COGNITIVE_EVENTS });
+      };
+
       // ── Last-Event-ID replay din DB ──────────────────────────────────────────
       const rawLastIdHeader = request.headers["last-event-id"];
       const rawLastId = Array.isArray(rawLastIdHeader) ? rawLastIdHeader[0] : rawLastIdHeader;
       if (rawLastId && tenantId) {
-        const clientAlive = await replayFromLastEventId(reply.raw, tenantId, rawLastId);
+        const clientAlive = await replayFromLastEventId(
+          reply.raw,
+          tenantId,
+          rawLastId,
+          recordSseEvent,
+        );
         if (!clientAlive) {
           await subscriber.quit().catch(() => undefined);
           return;
@@ -501,13 +519,22 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
       const onMessage = (_channel: string, message: string) => {
         try {
           reply.raw.write(formatSseData(message));
+          recordSseEvent();
         } catch {
-          // Client gone
+          sseConnectionErrorsTotal.inc({
+            route: SSE_ROUTE_COGNITIVE_EVENTS,
+            phase: "redis_message",
+          });
         }
       };
       subscriber.on("message", onMessage);
 
       await closePromise;
+
+      trace.getActiveSpan()?.addEvent("sse.session_end", {
+        "sse.events_sent": sseEventsSent,
+        "sse.route": SSE_ROUTE_COGNITIVE_EVENTS,
+      });
 
       subscriber.off("message", onMessage);
       await subscriber.unsubscribe("cognitive:events").catch(() => undefined);

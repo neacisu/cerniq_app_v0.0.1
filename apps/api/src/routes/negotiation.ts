@@ -26,7 +26,7 @@ import { createQueue } from "../lib/queue-factory.js";
 import { QUEUES } from "@cerniq/worker-shared";
 import { requireRole } from "../middleware/authz.js";
 import { requireTenantId, getActorId } from "./utils.js";
-import { buildProvenanceContext } from "../lib/provenance.js";
+import { buildApiJobPayloadContext } from "../lib/http-job-tracing.js";
 import { e3NegotiationsTotal } from "../plugins/metrics.js";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ export async function negotiationRoutes(app: FastifyInstance) {
     await queue.add("context-build", {
       negotiationId: neg.id,
       tenantId,
-      ...buildProvenanceContext(req),
+      ...buildApiJobPayloadContext(req),
     });
 
     e3NegotiationsTotal.inc();
@@ -398,8 +398,8 @@ export async function negotiationRoutes(app: FastifyInstance) {
         fromState: existing.currentState,
         toState: body.toState,
         tenantId,
+        ...buildApiJobPayloadContext(req),
         actorId,
-        ...buildProvenanceContext(req),
       });
     }
 
@@ -455,7 +455,7 @@ export async function negotiationRoutes(app: FastifyInstance) {
     await updateQueue.add("items-updated", {
       negotiationId: id,
       tenantId,
-      ...buildProvenanceContext(req),
+      ...buildApiJobPayloadContext(req),
     });
 
     const items = await db
@@ -578,7 +578,7 @@ export async function negotiationRoutes(app: FastifyInstance) {
     await reminderQueue.add("reminder", {
       negotiationId: id,
       tenantId,
-      ...buildProvenanceContext(req),
+      ...buildApiJobPayloadContext(req),
     });
 
     return reply.send({ success: true, data: { queued: true } });
@@ -606,7 +606,7 @@ export async function negotiationRoutes(app: FastifyInstance) {
       negotiationId: id,
       tenantId,
       reason: body.reason,
-      ...buildProvenanceContext(req),
+      ...buildApiJobPayloadContext(req),
     });
 
     return reply.send({ success: true, data: { queued: true } });

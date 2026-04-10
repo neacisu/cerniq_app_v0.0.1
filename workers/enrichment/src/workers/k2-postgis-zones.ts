@@ -1,16 +1,9 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 import { createQueue, withCognitiveSpan } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 
-const logger = {
-  error(bindings: Record<string, unknown> & { err: unknown }, message: string): void {
-    const { err, ...ctx } = bindings;
-    console.error(`[k2-postgis-zones] ${message}`, {
-      ...ctx,
-      err: err instanceof Error ? { message: err.message, stack: err.stack } : err,
-    });
-  },
-};
+const svcLog = createServiceLogger("k2-postgis-zones", { etapa: "e1" });
 
 export type PostgisZonesJobData = {
   tenantId: string;
@@ -135,14 +128,22 @@ export const postgisZonesProcessor: Processor<PostgisZonesJobData> = async (job)
           nearestCityDistanceKm = Math.round(Number(cityArr[0].distance_km) * 100) / 100;
         }
       } catch (err) {
-        logger.error(
+        const enr = enrichError(err, {
+          tenantId,
+          companyId,
+          query: "nearest_city_postgis",
+        });
+        svcLog.error(
           {
             err,
+            ...enr,
             tenantId,
             companyId,
             latitude,
             longitude,
-            context: "nearestCityPostgisQuery",
+            query: "nearest_city_postgis",
+            postgisVersion: process.env.POSTGIS_VERSION ?? "unknown",
+            errorMessage: err instanceof Error ? err.message : String(err),
           },
           "Nearest-city PostGIS query failed; continuing with partial zone data",
         );

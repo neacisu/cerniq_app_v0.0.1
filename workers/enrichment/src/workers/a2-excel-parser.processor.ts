@@ -5,9 +5,11 @@ import {
   failImportRuntimeJob,
   QUEUES,
 } from "@cerniq/worker-shared";
+import { ensureExecutionCorrelationUuid } from "../lib/execution-correlation.js";
 import { excelParserProcessor, type ExcelParserJobData } from "./a2-excel-parser.js";
 
 export default async function sandboxedExcelParserProcessor(job: Job<ExcelParserJobData>) {
+  ensureExecutionCorrelationUuid(job);
   const runtime = await beginImportRuntimeJob(QUEUES.INGEST_EXCEL, job, QUEUES.INGEST_EXCEL);
   if (runtime.paused) {
     return { ok: true, status: "paused" };

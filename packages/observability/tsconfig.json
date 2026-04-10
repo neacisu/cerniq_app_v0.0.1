@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -14,7 +15,80 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@opentelemetry/api": [
+        "./node_modules/@opentelemetry/api/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/api",
+        "../../node_modules/@opentelemetry/api/build/src/index.d.ts",
+        "../../node_modules/@opentelemetry/api"
+      ],
+      "@opentelemetry/instrumentation": [
+        "./node_modules/@opentelemetry/instrumentation/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/instrumentation",
+        "../../node_modules/@opentelemetry/instrumentation/build/src/index.d.ts",
+        "../../node_modules/@opentelemetry/instrumentation"
+      ],
+      "@opentelemetry/auto-instrumentations-node": [
+        "./node_modules/@opentelemetry/auto-instrumentations-node/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/auto-instrumentations-node",
+        "../../node_modules/@opentelemetry/auto-instrumentations-node/build/src/index.d.ts",
+        "../../node_modules/@opentelemetry/auto-instrumentations-node"
+      ],
+      "@opentelemetry/instrumentation-http": [
+        "./node_modules/@opentelemetry/instrumentation-http/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/instrumentation-http",
+        "../../node_modules/@opentelemetry/instrumentation-http/build/src/index.d.ts",
+        "../../node_modules/@opentelemetry/instrumentation-http"
+      ],
+      "@opentelemetry/core": [
+        "./node_modules/@opentelemetry/core/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/core"
+      ],
+      "@opentelemetry/exporter-metrics-otlp-http": [
+        "./node_modules/@opentelemetry/exporter-metrics-otlp-http/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/exporter-metrics-otlp-http"
+      ],
+      "@opentelemetry/exporter-trace-otlp-http": [
+        "./node_modules/@opentelemetry/exporter-trace-otlp-http/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/exporter-trace-otlp-http"
+      ],
+      "@opentelemetry/propagator-b3": [
+        "./node_modules/@opentelemetry/propagator-b3/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/propagator-b3"
+      ],
+      "@opentelemetry/resources": [
+        "./node_modules/@opentelemetry/resources/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/resources"
+      ],
+      "@opentelemetry/sdk-node": [
+        "./node_modules/@opentelemetry/sdk-node/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/sdk-node"
+      ],
+      "@opentelemetry/sdk-trace-base": [
+        "./node_modules/@opentelemetry/sdk-trace-base/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/sdk-trace-base"
+      ],
+      "@opentelemetry/sdk-metrics": [
+        "./node_modules/@opentelemetry/sdk-metrics/build/src/index.d.ts",
+        "./node_modules/@opentelemetry/sdk-metrics"
+      ],
+      "@fastify/otel": [
+        "./node_modules/@fastify/otel/types/index.d.ts",
+        "./node_modules/@fastify/otel",
+        "../../node_modules/@fastify/otel/types/index.d.ts",
+        "../../node_modules/@fastify/otel"
+      ],
+      "pino": [
+        "./node_modules/pino/pino.d.ts",
+        "./node_modules/pino",
+        "../../node_modules/pino/pino.d.ts",
+        "../../node_modules/pino"
+      ],
+      "drizzle-orm": ["../../node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["../../node_modules/drizzle-orm/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

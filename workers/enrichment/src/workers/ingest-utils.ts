@@ -7,6 +7,7 @@ import {
   bronzeImportBatches,
   computeStableSourcePayloadHash,
   db,
+  eq,
   importRowQuarantine,
   resolveBronzeContactIdentity,
   setSessionTenantId,
@@ -20,13 +21,15 @@ import {
   bronzeContactsIngestedTotal,
   type ImportExecutionContext,
 } from "@cerniq/worker-shared";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { buildColumnAliasToTargetMap } from "@cerniq/shared-types";
 import { sanitizeCui } from "../lib/cui-validation.js";
-import { createHitlApprovalTask } from "./pipeline-utils.js";
+import { createHitlApprovalTask, logEnrichmentAudit } from "./pipeline-utils.js";
 
 const STREAMING_THRESHOLD_BYTES = 50 * 1024 * 1024; // 50 MB
 const INSERT_BATCH_SIZE = 1000;
 const LOOKUP_KEY_RE = /[^a-z0-9]/g;
+const svcLog = createServiceLogger("ingest-utils", { etapa: "e1" });
 
 const COLUMN_ALIAS_TO_TARGET = buildColumnAliasToTargetMap(normalizeLookupKey);
 
@@ -188,8 +191,13 @@ export function detectColumnMapping(headers: string[]): Record<string, string> {
 
   for (const [target, sources] of targetToSources) {
     if (sources.length > 1) {
-      console.warn(
-        `[ingest-utils] Column mapping collision: multiple headers (${sources.join(", ")}) map to "${target}". First match will be used.`,
+      svcLog.warn(
+        {
+          target,
+          sources,
+          sourcesCount: sources.length,
+        },
+        "Column mapping collision detected; first matching header will be used",
       );
     }
   }
@@ -681,6 +689,15 @@ async function resolveInsertedBronzeRow(
         };
     }
   } catch (error) {
+    const enr = enrichError(error, {
+      insertedId,
+      tenantId: String(sourceRow.tenantId),
+      rowNumber,
+    });
+    svcLog.error(
+      { err: error, fingerprint: enr.fingerprint, errorType: enr.errorType, insertedId },
+      "resolveInsertedBronzeRow identity resolution failed",
+    );
     const message = truncateErrorMessage(getErrorMessage(error));
     await db
       .update(bronzeContacts)
@@ -933,11 +950,20 @@ async function insertBronzePayloadSafely(
     const insertedResult = await insertAndResolveBronzePayload(rowsToInsert);
     return mergeBronzeInsertResults(prehandledResult, insertedResult);
   } catch (error) {
+    const splitCtx = {
+      rowsToInsert: rowsToInsert.length,
+      batchId: context.batchId,
+      sourceType: context.sourceType,
+    };
     if (!shouldSplitInsertBatch(error, rowsToInsert.length)) {
+      const enr = enrichError(error, splitCtx);
+      svcLog.error({ err: error, ...enr }, "insertBronzePayloadSafely failed (non-splittable)");
       throw error;
     }
 
     if (rowsToInsert.length === 1) {
+      const enr = enrichError(error, splitCtx);
+      svcLog.warn({ err: error, ...enr }, "insertBronzePayloadSafely single-row insert failed");
       return mergeBronzeInsertResults(
         prehandledResult,
         createSingleRowInsertFailure(rowsToInsert, error),
@@ -1252,6 +1278,38 @@ export async function updateImportBatchCounters(args: {
     .update(bronzeImportBatches)
     .set(values)
     .where(sql`${bronzeImportBatches.id} = ${args.batchId}`);
+
+  if (args.status === "completed") {
+    const [batchRow] = await db
+      .select({ metadata: bronzeImportBatches.metadata })
+      .from(bronzeImportBatches)
+      .where(eq(bronzeImportBatches.id, args.batchId))
+      .limit(1);
+    const meta = (batchRow?.metadata as Record<string, unknown> | null) ?? {};
+    const correlationRaw = meta.correlationId;
+    const correlationId =
+      typeof correlationRaw === "string" && correlationRaw.trim().length > 0
+        ? correlationRaw.trim()
+        : undefined;
+    await logEnrichmentAudit({
+      tenantId: args.tenantId,
+      entityType: "bronze_import_batch",
+      entityId: args.batchId,
+      source: "ingest-utils",
+      operation: "import_batch_completed",
+      status: "success",
+      newValues: {
+        processedRows: args.processedRows,
+        successRows: args.successRows,
+        errorRows: args.errorRows,
+        duplicateRows: args.duplicateRows,
+        totalRows: args.totalRows ?? null,
+        fileName: meta.fileName ?? null,
+        sourceType: meta.sourceType ?? null,
+      },
+      correlationId,
+    });
+  }
 }
 
 export async function markImportBatchFailed(args: {
@@ -1285,6 +1343,40 @@ export async function markImportBatchFailed(args: {
     .update(bronzeImportBatches)
     .set(values)
     .where(sql`${bronzeImportBatches.id} = ${args.batchId}`);
+
+  const [batchRow] = await db
+    .select({ metadata: bronzeImportBatches.metadata })
+    .from(bronzeImportBatches)
+    .where(eq(bronzeImportBatches.id, args.batchId))
+    .limit(1);
+  const meta = (batchRow?.metadata as Record<string, unknown> | null) ?? {};
+  const correlationRaw = meta.correlationId;
+  const correlationId =
+    typeof correlationRaw === "string" && correlationRaw.trim().length > 0
+      ? correlationRaw.trim()
+      : undefined;
+  const enr = enrichError(new Error(args.errorMessage), {
+    batchId: args.batchId,
+    processedRows: args.processedRows,
+  });
+  await logEnrichmentAudit({
+    tenantId: args.tenantId,
+    entityType: "bronze_import_batch",
+    entityId: args.batchId,
+    source: "ingest-utils",
+    operation: "import_batch_failed",
+    status: "failed",
+    newValues: {
+      processedRows: args.processedRows,
+      successRows: args.successRows,
+      errorRows: args.errorRows,
+      duplicateRows: args.duplicateRows,
+      totalRows: args.totalRows ?? null,
+    },
+    correlationId,
+    errorMessage: truncateErrorMessage(args.errorMessage, 4000),
+    errorCode: enr.errorCode,
+  });
 }
 
 // ── ANAF Bronze Enrichment Trigger ──────────────────────────────────
@@ -1376,8 +1468,13 @@ export async function triggerAnafBronzeEnrichment(
   const allCuis = [...cuiToBronzeIds.keys()];
   const duplicateCuiCount = contactsWithCui.length - allCuis.length;
   if (duplicateCuiCount > 0) {
-    console.log(
-      `[triggerAnafBronzeEnrichment] Deduped ${contactsWithCui.length} contacts → ${allCuis.length} unique CUIs (${duplicateCuiCount} duplicates skipped for ANAF batch)`,
+    svcLog.info(
+      {
+        contactsWithCui: contactsWithCui.length,
+        uniqueCuis: allCuis.length,
+        duplicateCuiCount,
+      },
+      "Deduped duplicate CUIs before ANAF bronze enrichment batch enqueue",
     );
   }
 

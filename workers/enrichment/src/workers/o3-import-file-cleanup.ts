@@ -3,6 +3,7 @@ import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { join } from "node:path";
 import type { Processor } from "bullmq";
 import { bronzeImportBatches, db, eq, sql, asc } from "@cerniq/db";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 
 export type ImportFileCleanupJobData = {
   tenantId?: string;
@@ -12,6 +13,7 @@ export type ImportFileCleanupJobData = {
 
 const DEFAULT_RETENTION_DAYS = Number(process.env.IMPORT_FILE_RETENTION_DAYS ?? "90");
 const IMPORT_DIR = process.env.IMPORT_UPLOAD_DIR || "/app/data/imports";
+const svcLog = createServiceLogger("o3-import-file-cleanup", { etapa: "e1" });
 
 /** Path-uri absolute non-goale — evită `unlink("")` și căi relative periculoase. */
 export function isSafeImportStoredPath(p: unknown): p is string {
@@ -58,7 +60,7 @@ async function cleanupTrackedFiles(tenantId: string | undefined, cutoff: Date) {
 
     try {
       await unlink(storedPath);
-      console.log(`[import-cleanup] deleted tracked file: ${storedPath}`);
+      svcLog.info({ storedPath, batchId: batch.id }, "Deleted tracked import file");
       await db
         .update(bronzeImportBatches)
         .set({
@@ -68,6 +70,7 @@ async function cleanupTrackedFiles(tenantId: string | undefined, cutoff: Date) {
         .where(eq(bronzeImportBatches.id, batch.id));
       deleted++;
     } catch (err: unknown) {
+      const enr = enrichError(err, { batchId: batch.id, storedPath });
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("ENOENT")) {
         await db
@@ -80,6 +83,10 @@ async function cleanupTrackedFiles(tenantId: string | undefined, cutoff: Date) {
         deleted++;
       } else {
         failed++;
+        svcLog.error(
+          { err, ...enr, batchId: batch.id, storedPath },
+          "import file cleanup unlink failed",
+        );
         errors.push(`${batch.id}: ${msg}`);
       }
     }
@@ -100,8 +107,12 @@ async function tryDeleteOldFile(
   if (!fileStat.isFile()) return "skipped";
   if (fileStat.mtimeMs >= cutoffMs) return "skipped";
   await unlink(filePath);
-  console.log(
-    `[import-cleanup] deleted orphaned file: ${filePath} (mtime: ${fileStat.mtime.toISOString()})`,
+  svcLog.info(
+    {
+      filePath,
+      mtime: fileStat.mtime.toISOString(),
+    },
+    "Deleted orphaned import file",
   );
   return "deleted";
 }
@@ -116,8 +127,12 @@ async function cleanupOrphanedFiles(cutoffMs: number) {
   try {
     entries = await readdir(IMPORT_DIR);
   } catch (err: unknown) {
+    const enr = enrichError(err, { op: "import_cleanup_readdir", importDir: IMPORT_DIR });
     const msg = errMsg(err);
-    if (!msg.includes("ENOENT")) errors.push(`fs:readdir: ${msg}`);
+    if (!msg.includes("ENOENT")) {
+      svcLog.error({ err, ...enr }, "import cleanup readdir failed");
+      errors.push(`fs:readdir: ${msg}`);
+    }
     return { fsScanned, fsDeleted, fsFailed, errors };
   }
 
@@ -128,8 +143,12 @@ async function cleanupOrphanedFiles(cutoffMs: number) {
       fsScanned++;
     } catch (err: unknown) {
       fsFailed++;
+      const enr = enrichError(err, { op: "import_cleanup_orphan", entry });
       const msg = errMsg(err);
-      if (!msg.includes("ENOENT")) errors.push(`fs:${entry}: ${msg}`);
+      if (!msg.includes("ENOENT")) {
+        svcLog.warn({ err, ...enr, entry }, "import cleanup orphan file failed");
+        errors.push(`fs:${entry}: ${msg}`);
+      }
     }
   }
 
@@ -149,8 +168,17 @@ export const importFileCleanupProcessor: Processor<ImportFileCleanupJobData> = a
 
       const allErrors = [...dbResult.errors, ...fsResult.errors];
 
-      console.log(
-        `[import-cleanup] done: db=${dbResult.deleted} deleted/${dbResult.scanned} scanned, fs=${fsResult.fsDeleted} deleted/${fsResult.fsScanned} scanned, retention=${retentionDays}d`,
+      svcLog.info(
+        {
+          tenantId: job.data.tenantId,
+          retentionDays,
+          dbDeleted: dbResult.deleted,
+          dbScanned: dbResult.scanned,
+          fsDeleted: fsResult.fsDeleted,
+          fsScanned: fsResult.fsScanned,
+          errorsCount: allErrors.length,
+        },
+        "Import cleanup completed",
       );
 
       return {

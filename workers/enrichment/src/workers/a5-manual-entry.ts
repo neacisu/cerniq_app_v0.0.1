@@ -1,8 +1,11 @@
 import type { Processor } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
 import { createJobLogger } from "../lib/job-logger.js";
+
+const svcLog = createServiceLogger("a5-manual-entry", { etapa: "e1" });
 
 export type ManualEntryJobData = {
   tenantId: string;
@@ -22,9 +25,19 @@ export const manualEntryProcessor: Processor<ManualEntryJobData> = async (job) =
         workerName: "A5:manual-entry",
         jobId: String(job.id ?? ""),
         startedAt,
+        etapa: "e1",
+        correlationId: job.data.correlationId,
       });
 
       try {
+        svcLog.info(
+          {
+            tenantId: job.data.tenantId,
+            correlationId: job.data.correlationId,
+            formId: job.data.formId,
+          },
+          "A5 manual-entry job",
+        );
         log.step(
           "start",
           `Intrare manuală: formular ${job.data.formId}, utilizator ${job.data.userId}`,
@@ -44,7 +57,7 @@ export const manualEntryProcessor: Processor<ManualEntryJobData> = async (job) =
               userId: job.data.userId,
             },
           );
-          throw new Error("Manual entry cannot be empty");
+          throw new Error("Manual entry cannot be empty", { cause: new Error("empty_form") });
         }
 
         const { rowsInserted, insertedIds } = await insertBronzeRows(
@@ -81,7 +94,13 @@ export const manualEntryProcessor: Processor<ManualEntryJobData> = async (job) =
         return { ok: true, status, rowsInserted };
       } catch (error) {
         jobErrors.add(1, { worker: "a5-manual-entry" });
+        const enriched = enrichError(error, {
+          tenantId: job.data.tenantId,
+          formId: job.data.formId,
+          userId: job.data.userId,
+        });
         log.error("fatal", `Eroare la salvare intrare manuală`, {
+          ...enriched,
           formId: job.data.formId,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,

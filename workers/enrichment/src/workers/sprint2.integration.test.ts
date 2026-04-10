@@ -231,6 +231,7 @@ describe("S2.PR8 integration - CSV -> Bronze -> Silver promotion", () => {
       },
       silverCompanies: { id: "id", metadata: "metadata" },
       silverEnrichmentLog: {},
+      jobLogs: {},
       and: vi.fn((...args: unknown[]) => args),
       eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
       sql: (parts: TemplateStringsArray) => parts.join(""),

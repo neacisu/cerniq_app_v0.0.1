@@ -285,6 +285,51 @@ scrape_configs:
         target_label: instance
         replacement: ollama-embeddings
 
+  # ── Cerniq API (prom-client /metrics) — HAProxy 10.0.1.10 → CT109/CT110 :64010
+  - job_name: cerniq-api
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 10.0.1.10:29010
+          - 10.0.1.10:19010
+        labels:
+          project: cerniq
+          service: cerniq-api
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:29010
+        replacement: ct109-prod:64010
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:19010
+        replacement: ct110-staging:64010
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:29010
+        replacement: production
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:19010
+        replacement: staging
+
+  # ── Monitoring API (prom-client /metrics) — rețea Docker backend
+  - job_name: cerniq-monitoring-api
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cerniq-monitoring-api:64080
+        labels:
+          project: cerniq
+          service: cerniq-monitoring-api
+          environment: production
+
   # ── E3 AI Sales Worker — FAZA 12 / Plan §XII (familii metrici E3 AI + negociere; vezi e3-metrics.ts)
   # Scrape: workers/e3-ai-sales createHealthServer — PORT implicit 3002 (vezi main.ts)
   # Nume serviciu țintă Docker: cerniq-worker-e3-ai-sales (aliniat E4/E5)

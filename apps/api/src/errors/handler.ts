@@ -1,7 +1,11 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { enrichError } from "@cerniq/observability";
 import { AppError } from "./app-error.js";
 import { envConfig } from "../config.js";
+import { scheduleApiErrorLogPersist } from "./error-log-persist.js";
 
 // @fastify/jwt emits 400 (not 401) for missing/malformed Authorization headers:
 // FST_JWT_BAD_REQUEST    — header present but malformed (e.g. not "Bearer <token>")
@@ -56,7 +60,31 @@ function isMigrationMissingError(err: unknown): boolean {
 }
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
-  request.log.error(error);
+  const enriched = enrichError(error);
+  const errorId = randomUUID();
+  const span = trace.getActiveSpan();
+  const spanCtx = span?.spanContext();
+  if (span) {
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: enriched.enrichedMessage.slice(0, 512),
+    });
+    span.recordException(error instanceof Error ? error : new Error(enriched.enrichedMessage));
+  }
+  request.log.error(
+    {
+      err: error,
+      errorId,
+      errorFingerprint: enriched.fingerprint,
+      errorType: enriched.errorType,
+      causeChain: enriched.causeChain,
+      traceId: spanCtx?.traceId,
+      spanId: spanCtx?.spanId,
+      trace_id: spanCtx?.traceId,
+      span_id: spanCtx?.spanId,
+    },
+    "request error",
+  );
 
   if (error instanceof AppError) {
     return reply.status(error.statusCode).send({
@@ -121,12 +149,23 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   }
 
   const statusCode = error.statusCode ?? 500;
+  if (statusCode >= 500) {
+    scheduleApiErrorLogPersist({
+      tenantId: request.tenantId,
+      correlationHeader: request.headers["x-correlation-id"],
+      traceId: spanCtx?.traceId,
+      spanId: spanCtx?.spanId,
+      errorId,
+      enriched,
+    });
+  }
   return reply.status(statusCode).send({
     success: false,
     error: envConfig.NODE_ENV === "production" ? "Internal Server Error" : error.message,
     details: {
       statusCode,
       code: error.code ?? "INTERNAL_ERROR",
+      errorId,
     },
   });
 }
