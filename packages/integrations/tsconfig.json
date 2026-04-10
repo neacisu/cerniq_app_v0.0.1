@@ -5,27 +5,26 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ESNext"],
-    "types": ["node"],
-    "baseUrl": "../..",
+       "types": ["node"],
+    "baseUrl": ".",
     "paths": {
       "@cerniq/observability": [
-        "packages/observability/src/index.ts",
-        "packages/observability/dist/index.d.ts",
-        "node_modules/@cerniq/observability",
-        "node_modules/@cerniq/observability/src/index.ts"
+        "../observability/src/index.ts",
+        "../observability/dist/index.d.ts",
+        "../../node_modules/@cerniq/observability/src/index.ts"
       ],
       "@cerniq/observability/*": [
-        "packages/observability/src/*",
-        "packages/observability/dist/*",
-        "node_modules/@cerniq/observability/src/*"
+        "../observability/src/*",
+        "../observability/dist/*",
+        "../../node_modules/@cerniq/observability/src/*"
       ],
       "@cerniq/worker-shared": [
-        "workers/shared/src/index.ts",
-        "node_modules/@cerniq/worker-shared/src/index.ts"
+        "../../workers/shared/src/index.ts",
+        "../../node_modules/@cerniq/worker-shared/src/index.ts"
       ],
       "@cerniq/worker-shared/*": [
-        "workers/shared/src/*",
-        "node_modules/@cerniq/worker-shared/src/*"
+        "../../workers/shared/src/*",
+        "../../node_modules/@cerniq/worker-shared/src/*"
       ]
     },
     "declaration": true,

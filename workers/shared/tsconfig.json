@@ -12,42 +12,45 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "types": ["node"],
-    "baseUrl": "../..",
+    "baseUrl": ".",
     "paths": {
       "@cerniq/observability": [
-        "packages/observability/src/index.ts",
-        "packages/observability/dist/index.d.ts",
-        "node_modules/@cerniq/observability",
-        "node_modules/@cerniq/observability/src/index.ts"
+        "../../packages/observability/src/index.ts",
+        "../../packages/observability/dist/index.d.ts",
+        "../../node_modules/@cerniq/observability/src/index.ts"
       ],
       "@cerniq/observability/*": [
-        "packages/observability/src/*",
-        "packages/observability/dist/*",
-        "node_modules/@cerniq/observability/src/*"
+        "../../packages/observability/src/*",
+        "../../packages/observability/dist/*",
+        "../../node_modules/@cerniq/observability/src/*"
+      ],
+      "@opentelemetry/api": [
+        "../../node_modules/@opentelemetry/api",
+        "../../packages/observability/node_modules/@opentelemetry/api"
       ],
       "@cerniq/db": [
-        "packages/db/src/index.ts",
-        "node_modules/@cerniq/db/src/index.ts"
+        "../../packages/db/src/index.ts",
+        "../../node_modules/@cerniq/db/src/index.ts"
       ],
       "@cerniq/db/*": [
-        "packages/db/src/*",
-        "node_modules/@cerniq/db/src/*"
+        "../../packages/db/src/*",
+        "../../node_modules/@cerniq/db/src/*"
       ],
       "@cerniq/shared": [
-        "packages/shared/src/index.ts",
-        "node_modules/@cerniq/shared/src/index.ts"
+        "../../packages/shared/src/index.ts",
+        "../../node_modules/@cerniq/shared/src/index.ts"
       ],
       "@cerniq/shared/*": [
-        "packages/shared/src/*",
-        "node_modules/@cerniq/shared/src/*"
+        "../../packages/shared/src/*",
+        "../../node_modules/@cerniq/shared/src/*"
       ],
       "@cerniq/shared-types": [
-        "packages/shared-types/src/index.ts",
-        "node_modules/@cerniq/shared-types/src/index.ts"
+        "../../packages/shared-types/src/index.ts",
+        "../../node_modules/@cerniq/shared-types/src/index.ts"
       ],
       "@cerniq/shared-types/*": [
-        "packages/shared-types/src/*",
-        "node_modules/@cerniq/shared-types/src/*"
+        "../../packages/shared-types/src/*",
+        "../../node_modules/@cerniq/shared-types/src/*"
       ]
     }
   },
