@@ -5,7 +5,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { isKnownQueueName } from "@cerniq/worker-shared";
 import { auditWriter } from "@cerniq/observability";
-import { envConfig } from "../config.js";
 import { monitoringInternalFetch } from "../lib/monitoring-internal-fetch.js";
 import { getRegisteredPrometheusMetricsCatalog } from "../plugins/metrics.js";
 
@@ -16,13 +15,17 @@ async function proxyRequest(
   init: RequestInit = {},
 ) {
   try {
-    const res = await monitoringInternalFetch(path, {
-      headers: {
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
-        ...(init.headers as Record<string, string> | undefined),
+    const res = await monitoringInternalFetch(
+      path,
+      {
+        headers: {
+          ...(init.body ? { "Content-Type": "application/json" } : {}),
+          ...(init.headers as Record<string, string> | undefined),
+        },
+        ...init,
       },
-      ...init,
-    });
+      { incomingAuthorization: request.headers.authorization },
+    );
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       return reply.status(res.status).send(data);
@@ -103,9 +106,10 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
 
   app.get("/live", authOpts, async (request, reply) => {
     try {
+      const authOptsFetch = { incomingAuthorization: request.headers.authorization };
       const [queuesRes, metricsRes] = await Promise.all([
-        monitoringInternalFetch("/api/queues"),
-        monitoringInternalFetch("/api/system/metrics"),
+        monitoringInternalFetch("/api/queues", {}, authOptsFetch),
+        monitoringInternalFetch("/api/system/metrics", {}, authOptsFetch),
       ]);
       const [queuesBody, metricsBody] = await Promise.all([
         queuesRes.json().catch(() => ({})),
@@ -150,12 +154,13 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
       if (!isKnownQueueName(name)) {
         return reply.status(400).send({ success: false, error: "Invalid queue name" });
       }
-      if (!envConfig.ADMIN_KEY) {
-        return reply.status(503).send({ success: false, error: "Admin control unavailable" });
-      }
       const path = `/api/queues/${encodeURIComponent(name)}/${action}`;
       try {
-        const res = await monitoringInternalFetch(path, { method: "POST" });
+        const res = await monitoringInternalFetch(
+          path,
+          { method: "POST" },
+          { incomingAuthorization: request.headers.authorization },
+        );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           return reply.status(res.status).send(data);
@@ -200,12 +205,13 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
     if (action !== "pause" && action !== "resume") {
       return reply.status(400).send({ success: false, error: "Invalid action" });
     }
-    if (!envConfig.ADMIN_KEY) {
-      return reply.status(503).send({ success: false, error: "Admin control unavailable" });
-    }
     const path = `/api/queues/${encodeURIComponent(queue)}/${action}`;
     try {
-      const res = await monitoringInternalFetch(path, { method: "POST" });
+      const res = await monitoringInternalFetch(
+        path,
+        { method: "POST" },
+        { incomingAuthorization: request.headers.authorization },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         return reply.status(res.status).send(data);

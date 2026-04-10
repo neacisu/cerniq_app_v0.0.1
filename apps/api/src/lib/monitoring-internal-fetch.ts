@@ -10,20 +10,33 @@ function baseUrl(): string {
   return envConfig.MONITORING_API_INTERNAL_URL.replace(/\/$/, "");
 }
 
+export type MonitoringInternalFetchOptions = {
+  /**
+   * Bearer JWT al utilizatorului autentificat (același `JWT_SECRET` ca monitoring-api).
+   * Folosit când `ADMIN_KEY` lipsește în env — altfel Monitoring API răspunde 401 la apelurile interne.
+   */
+  incomingAuthorization?: string;
+};
+
 /**
- * `fetch` intern cu header-e implicite (ADMIN_KEY pentru proxy către monitoring-api).
+ * `fetch` intern: `x-admin-key` din `ADMIN_KEY` dacă e setat; altfel `Authorization` din apelul API (viewer+ pentru GET, admin pentru control cozi).
  */
 export async function monitoringInternalFetch(
   path: string,
   init: RequestInit = {},
+  options?: MonitoringInternalFetchOptions,
 ): Promise<Response> {
   const breaker = getProviderBreaker("monitoring-internal");
   const headers = new Headers(init.headers);
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
   }
-  if (envConfig.ADMIN_KEY && !headers.has("x-admin-key")) {
+  if (!headers.has("x-admin-key") && envConfig.ADMIN_KEY) {
     headers.set("x-admin-key", envConfig.ADMIN_KEY);
+  }
+  const incoming = options?.incomingAuthorization?.trim();
+  if (!headers.has("Authorization") && incoming?.startsWith("Bearer ") && !envConfig.ADMIN_KEY) {
+    headers.set("Authorization", incoming);
   }
   const correlationId = getCorrelationStore()?.correlationId;
   if (correlationId && !headers.has("x-correlation-id")) {

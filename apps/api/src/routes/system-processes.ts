@@ -1,6 +1,6 @@
 /**
  * GET /api/v1/system/processes — agregare cozi (Monitoring API) + importuri active (tenant).
- * Autentificare JWT standard; cozi prin `monitoringInternalFetch` (circuit breaker + ADMIN_KEY).
+ * Autentificare JWT standard; cozi prin `monitoringInternalFetch` (`ADMIN_KEY` sau același Bearer JWT).
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { and, bronzeImportBatches, db, desc, eq, inArray, setSessionTenantId } from "@cerniq/db";
@@ -89,9 +89,11 @@ function queueStatus(q: QueueSnapshot): SystemProcessRow["status"] {
   return "queued";
 }
 
-async function fetchMonitoringQueues(): Promise<{ queues: QueueSnapshot[]; ok: boolean }> {
+async function fetchMonitoringQueues(
+  incomingAuthorization?: string,
+): Promise<{ queues: QueueSnapshot[]; ok: boolean }> {
   try {
-    const res = await monitoringInternalFetch("/api/queues");
+    const res = await monitoringInternalFetch("/api/queues", {}, { incomingAuthorization });
     if (!res.ok) return { queues: [], ok: false };
     const body = (await res.json()) as { data?: QueueSnapshot[] };
     return { queues: Array.isArray(body.data) ? body.data : [], ok: true };
@@ -111,7 +113,7 @@ export async function systemProcessesRoutes(app: FastifyInstance) {
     await setSessionTenantId(tenantId);
 
     const [{ queues: queueSnapshots, ok: queuesOk }, batchRows] = await Promise.all([
-      fetchMonitoringQueues(),
+      fetchMonitoringQueues(request.headers.authorization),
       db
         .select({
           id: bronzeImportBatches.id,

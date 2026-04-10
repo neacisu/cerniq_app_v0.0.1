@@ -50,6 +50,15 @@ JWT_ISSUER=cerniq.app
 JWT_AUDIENCE=cerniq-api
 
 # =============================================================================
+# Monitoring API (server-to-server). În OpenBao: `secret/cerniq/api/config` → câmp `admin_key`.
+# Dacă lipsește, API-ul propagă Bearer-ul utilizatorului către monitoring (același JWT_SECRET).
+# =============================================================================
+{{- $adminKey := index .Data "admin_key" -}}
+{{- if $adminKey }}
+ADMIN_KEY={{ $adminKey }}
+{{- end }}
+
+# =============================================================================
 # CORS (restrict in production; * only for dev)
 # =============================================================================
 {{- if eq $env "staging" }}
