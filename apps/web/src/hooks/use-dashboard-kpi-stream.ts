@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getStoredToken } from "@/lib/api.js";
 import { getApiBase } from "@/lib/api-url.js";
+import { getSessionCorrelationId } from "@/lib/report-client-error.js";
 import type { ApiDataEnvelope, DashboardStatsPayload } from "@/types/api.js";
 
 const STATS_QUERY_KEY = ["etapa1", "dashboard", "stats"] as const;
@@ -9,8 +10,13 @@ const STATS_QUERY_KEY = ["etapa1", "dashboard", "stats"] as const;
 function buildKpiStreamUrl(): string {
   const base = getApiBase().replace(/\/$/, "");
   const token = getStoredToken();
+  const cid = getSessionCorrelationId();
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  if (cid) params.set("correlationId", cid);
+  const q = params.toString();
   let url = `${base}/api/v1/dashboard/kpi-stream`;
-  if (token) url += `?token=${encodeURIComponent(token)}`;
+  if (q) url += `?${q}`;
   return url;
 }
 

@@ -11,11 +11,13 @@
  * ADR-0056/0057 (retry, DLQ, business hours RO), nu bootstrap generic BullMQ.
  */
 import type { Job, Worker } from "bullmq";
-import { randomUUID } from "node:crypto";
 import { DateTime } from "luxon";
 import { createServiceLogger, enrichError } from "@cerniq/observability";
 import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
-import { ensureJobDataCorrelationId } from "../lib/ensure-job-data-correlation.js";
+import {
+  correlationIdForDlqEnvelope,
+  ensureJobDataCorrelationId,
+} from "../lib/ensure-job-data-correlation.js";
 import { createOutreachJobLogger, tenantIdFromUnknownPayload } from "../lib/outreach-job-logger.js";
 
 const svcLog = createServiceLogger("outreach-resilience", { etapa: "e2" });
@@ -196,14 +198,15 @@ export function createRetryOrchestratorWorker(): Worker {
           { ...enr, tenantId, originalQueue, errorType, statusCode, attemptsMade },
           "retry_orchestrator_dlq_immediate_client_error",
         );
+        const ensuredOriginal = ensureJobDataCorrelationId(originalJobData);
         await dlqQueue.add(
           "failed",
           {
             originalQueue,
-            originalJobData: ensureJobDataCorrelationId(originalJobData),
+            originalJobData: ensuredOriginal,
             errorMessage,
             statusCode,
-            correlationId: randomUUID(),
+            correlationId: correlationIdForDlqEnvelope(ensuredOriginal),
           },
           {
             removeOnComplete: false,
@@ -224,14 +227,15 @@ export function createRetryOrchestratorWorker(): Worker {
           "retry_orchestrator_dlq_retries_exhausted",
         );
         // Exhausted retries → DLQ
+        const ensuredExhausted = ensureJobDataCorrelationId(originalJobData);
         await dlqQueue.add(
           "exhausted",
           {
             originalQueue,
-            originalJobData: ensureJobDataCorrelationId(originalJobData),
+            originalJobData: ensuredExhausted,
             errorMessage,
             attemptsMade,
-            correlationId: randomUUID(),
+            correlationId: correlationIdForDlqEnvelope(ensuredExhausted),
           },
           { removeOnFail: { age: DLQ_CONFIG.retentionDays * 86400 } },
         );

@@ -678,6 +678,11 @@ export function buildWaPhoneQueues(): QueueConfig[] {
   }).flat();
 }
 
+/**
+ * Registru canonic al cozilor BullMQ din monorepo (E1–E5 + outreach + per-phone WA, …).
+ * Criteriu F9.2: orice coadă folosită de un worker trebuie enumerată aici ca `assertQueueRegistryComplete()`
+ * să poată detecta omisiuni; subset-urile ad-hoc fără ADR sunt interzise.
+ */
 export const queueRegistry: QueueConfig[] = [
   // A (5)
   { name: QUEUES.INGEST_CSV, concurrency: 5 },
@@ -1340,6 +1345,18 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.E5_HITL_WINBACK_REVIEW, concurrency: 5 },
   { name: QUEUES.E5_HITL_COMPLAINT_REVIEW, concurrency: 5 },
 ];
+
+/**
+ * F9.2 — Metadate registru cozi: sursa canonică pentru numele BullMQ folosite de workeri
+ * în monorepo (pipeline E1–E5 + outreach). Orice coadă nouă: intrare în `QUEUES` +
+ * `queueRegistry`; fără ADR nu folosi nume în afara `queueNameSet`.
+ */
+export const QUEUE_METADATA = {
+  canonicalExport: "queueRegistry",
+  nameConstants: "QUEUES",
+  /** Aliniat la `assertQueueRegistryComplete` — actualizare sincronă la fiecare add. */
+  expectedQueueCount: 358,
+} as const;
 
 export const queueNameSet = new Set(queueRegistry.map((queue) => queue.name));
 

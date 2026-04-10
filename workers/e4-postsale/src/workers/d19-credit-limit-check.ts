@@ -14,11 +14,14 @@
  * Anti-halucinare: NU blocare comandă la REJECTED (business decision — nu arhitectural).
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { QUEUES, createQueue, withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, setSessionTenantId, eq, and } from "@cerniq/db";
 import { e4CreditLimitChecksTotal } from "../e4-metrics.js";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
+
+const d19Log = createServiceLogger("e4-d19-credit-limit-check", { etapa: "e4" });
 
 export type CreditLimitCheckJobData = {
   tenantId: string;
@@ -51,9 +54,7 @@ export const creditLimitCheckProcessor: Processor<CreditLimitCheckJobData> = asy
 
       // ── Edge case: client fără profil credit (creat async de C13) ─────────
       if (profiles.length === 0) {
-        console.warn(
-          `[D19] No credit profile for clientId=${clientId} — approving (C13 creates async)`,
-        );
+        d19Log.warn({ clientId }, "credit_limit_check_no_profile_approve_async");
         e4CreditLimitChecksTotal.inc({ result: "approved_no_profile", tenant_id: tenantId });
         return { ok: true, result: "approved_no_profile", orderId, clientId };
       }
@@ -70,8 +71,9 @@ export const creditLimitCheckProcessor: Processor<CreditLimitCheckJobData> = asy
 
       // ── 2. Verifică dacă există credit suficient ───────────────────────────
       if (orderAmount > available) {
-        console.warn(
-          `[D19] Credit REJECTED: clientId=${clientId}, orderAmount=${orderAmount}, available=${available} (limit=${creditLimit}, used=${creditUsed})`,
+        d19Log.warn(
+          { clientId, orderAmount, available, creditLimit, creditUsed },
+          "credit_limit_check_rejected",
         );
         e4CreditLimitChecksTotal.inc({ result: "rejected", tenant_id: tenantId });
 
@@ -106,9 +108,7 @@ export const creditLimitCheckProcessor: Processor<CreditLimitCheckJobData> = asy
 
       e4CreditLimitChecksTotal.inc({ result: "approved", tenant_id: tenantId });
 
-      console.info(
-        `[D19] Credit APPROVED: clientId=${clientId}, orderAmount=${orderAmount}, available=${available}, enqueued D20`,
-      );
+      d19Log.info({ clientId, orderAmount, available }, "credit_limit_check_approved_enqueued_d20");
 
       return {
         ok: true,

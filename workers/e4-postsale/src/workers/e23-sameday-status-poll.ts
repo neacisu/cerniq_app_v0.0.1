@@ -9,6 +9,7 @@
  * Plan FAZA 8e §IX L2072-2087 — E23
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import {
   db,
   goldShipmentTracking,
@@ -30,6 +31,8 @@ import { e4SamedayPollBatchSize } from "../e4-metrics.js";
 import type { SamedayStatusProcessJobData } from "./e24-sameday-status-process.js";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
+
+const e23Log = createServiceLogger("e4-e23-sameday-status-poll", { etapa: "e4" });
 
 type ShipmentStatusActive =
   | "CREATED"
@@ -148,6 +151,11 @@ export const samedayStatusPollProcessor: Processor = async (job) => {
 
         processed++;
       } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err));
+        e23Log.warn(
+          { err: e, awbNumber, shipmentId: shipment.id, tenantId: shipment.tenantId },
+          "sameday_status_poll_awb_failed",
+        );
         job.log(`[E23] Error polling AWB ${awbNumber}: ${String(err)}`);
       }
 

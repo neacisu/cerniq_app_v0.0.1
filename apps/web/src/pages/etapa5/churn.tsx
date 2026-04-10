@@ -16,6 +16,7 @@ import {
   postChurnEvaluate,
   type ChurnFactorRow,
 } from "@/lib/etapa5-api.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 type Severity = "high" | "medium" | "low";
 
@@ -52,7 +53,7 @@ function ChurnDetailDrawer({
     mutationFn: () => postChurnEvaluate(profile.leadId, { force: false }),
     onSuccess: (res) => {
       toast.success(`Job churn în coadă: ${res.data.jobId}`);
-      qc.invalidateQueries({ queryKey: ["e5", "churn"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["e5", "churn"] }).catch(voidAsyncHandler);
       onClose();
     },
     onError: (e: unknown) => {

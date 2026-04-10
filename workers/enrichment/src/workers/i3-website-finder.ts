@@ -165,6 +165,9 @@ export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (jo
           companyId: job.data.companyId,
           websiteUrl: selected,
           correlationId: job.data.correlationId,
+          ...(typeof job.data.correlationId === "string" && job.data.correlationId.length > 0
+            ? { httpCorrelationId: job.data.correlationId }
+            : {}),
         });
         await queue.close();
 

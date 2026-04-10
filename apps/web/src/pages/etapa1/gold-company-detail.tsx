@@ -22,6 +22,7 @@ import {
 import { DataQualityScorecard } from "@/components/etapa1/DataQualityScorecard.js";
 import { toast } from "@/components/ui/toast-api.js";
 import { fetchOutreachLeads } from "@/lib/etapa2-api.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 type GoldState =
   | "COLD"
@@ -92,9 +93,9 @@ export function GoldCompanyDetail() {
       .mutateAsync({ id, payload: { doNotContact: !doNotContact } })
       .then(() => {
         toast.success(doNotContact ? "DoNotContact dezactivat" : "DoNotContact activat");
-        detailQuery.refetch().catch(() => undefined);
+        detailQuery.refetch().catch(voidAsyncHandler);
       })
-      .catch(() => undefined);
+      .catch(voidAsyncHandler);
   }
 
   function handleTransitionState(toState: GoldState) {
@@ -103,9 +104,9 @@ export function GoldCompanyDetail() {
       .mutateAsync({ id, payload: { toState } })
       .then(() => {
         toast.success(`Tranzitie aplicata: ${toState}`);
-        detailQuery.refetch().catch(() => undefined);
+        detailQuery.refetch().catch(voidAsyncHandler);
       })
-      .catch(() => undefined);
+      .catch(voidAsyncHandler);
   }
 
   if (detailQuery.isPending) {

@@ -1,5 +1,7 @@
 import type { FastifyRequest } from "fastify";
+import { httpRouteLabel } from "../plugins/metrics.js";
 import { AppError, UnauthorizedError } from "../errors/app-error.js";
+import { hashClientIp } from "../lib/http-job-tracing.js";
 
 type JwtUserShape = {
   tenantId?: string;
@@ -42,6 +44,14 @@ export function ensureRequestTenantIdFromJwtIfMissing(request: FastifyRequest): 
 export function requireTenantId(request: FastifyRequest): string {
   const tenantId = request.tenantId;
   if (!tenantId) {
+    request.log.warn(
+      {
+        event: "TENANT_MISSING",
+        endpoint: httpRouteLabel(request),
+        ipHash: hashClientIp(request) || null,
+      },
+      "tenant missing in request context",
+    );
     throw new AppError("Tenant missing in request context", 401, "TENANT_MISSING");
   }
   return tenantId;
@@ -51,6 +61,14 @@ export function getActorId(request: FastifyRequest): string {
   const user = request.user as { id?: string; sub?: string } | undefined;
   const actorId = user?.id ?? user?.sub;
   if (!actorId) {
+    request.log.warn(
+      {
+        event: "ACTOR_MISSING",
+        endpoint: httpRouteLabel(request),
+        ipHash: hashClientIp(request) || null,
+      },
+      "authenticated user id missing",
+    );
     throw new UnauthorizedError("Authenticated user id missing", "ACTOR_MISSING");
   }
   return actorId;

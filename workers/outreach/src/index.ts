@@ -5,6 +5,7 @@ import Redis from "ioredis";
 import type { Worker } from "bullmq";
 import {
   createServiceLogger,
+  enrichError,
   flushAuditBuffer,
   flushJobLogBuffer,
   initTelemetry,
@@ -271,6 +272,20 @@ async function bootstrap(): Promise<void> {
   });
   process.on("SIGINT", () => {
     void shutdown();
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    const err = reason instanceof Error ? reason : new Error(String(reason));
+    svcLog.error(
+      { reason, ...enrichError(err, { scope: "unhandledRejection" }) },
+      "unhandledRejection",
+    );
+  });
+  process.on("uncaughtException", (error) => {
+    svcLog.error(
+      { err: error, ...enrichError(error, { scope: "uncaughtException" }) },
+      "uncaughtException",
+    );
   });
 
   svcLog.info(

@@ -14,6 +14,7 @@
  */
 import type { Processor } from "bullmq";
 import type { Redis } from "ioredis";
+import { createServiceLogger } from "@cerniq/observability";
 import { getRevolutAccounts } from "../lib/revolut-client.js";
 import { e4RevolutBalanceGauge } from "../e4-metrics.js";
 
@@ -28,6 +29,8 @@ export type BalanceSyncResult = {
 
 const SNAPSHOT_TTL_SECONDS = 2100; // 35 minute
 const BALANCE_ALERT_THRESHOLD_PCT = 20; // alertă la diferență >20%
+
+const a5Log = createServiceLogger("e4-a5-revolut-balance-sync", { etapa: "e4" });
 
 /**
  * Cheie Redis pentru snapshot sold.
@@ -64,7 +67,16 @@ export function createA5Processor(redis: Redis): Processor<BalanceSyncJobData> {
 
         if (diffPct > BALANCE_ALERT_THRESHOLD_PCT) {
           const alertMsg = `[A5] ALERT: Revolut account ${account.id} (${account.currency}) balance changed by ${diffPct.toFixed(1)}%: ${prevBalance} → ${currBalance}`;
-          console.warn(alertMsg);
+          a5Log.warn(
+            {
+              accountId: account.id,
+              currency: account.currency,
+              diffPct: Number(diffPct.toFixed(1)),
+              prevBalance,
+              currBalance,
+            },
+            "revolut_balance_snapshot_delta_above_threshold",
+          );
           job.log(alertMsg);
           alerts.push({
             accountId: account.id,

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 import type {
   AnalyticsParams,
   ApiListResponse,
@@ -79,7 +80,7 @@ export function usePatchOutreachSettings() {
   return useMutation({
     mutationFn: patchOutreachSettings,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["etapa2", "settings"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["etapa2", "settings"] }).catch(voidAsyncHandler);
     },
   });
 }
@@ -111,7 +112,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: markOutreachNotificationRead,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["etapa2", "notifications"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["etapa2", "notifications"] }).catch(voidAsyncHandler);
     },
   });
 }
@@ -121,7 +122,7 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: markAllOutreachNotificationsRead,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["etapa2", "notifications"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["etapa2", "notifications"] }).catch(voidAsyncHandler);
     },
   });
 }

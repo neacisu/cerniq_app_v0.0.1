@@ -1,4 +1,5 @@
 export * from "./factory.js";
+export * from "./worker-auto-obs-env.js";
 export * from "./rate-limiter.js";
 export * from "./circuit-breaker.js";
 export * from "./external-api-wrapper.js";

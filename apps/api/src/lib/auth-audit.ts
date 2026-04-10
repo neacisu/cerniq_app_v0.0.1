@@ -232,3 +232,45 @@ export function logAndAuditLogoutValidationFailure(request: FastifyRequest): voi
     },
   });
 }
+
+/** RBAC: 401/403 din middleware authz — fără PII; corelat cu F8.32 / SIEM. */
+export function writeRbacDeniedAudit(
+  request: FastifyRequest,
+  input: {
+    statusCode: 401 | 403;
+    reason: "missing_role" | "insufficient_rank";
+    currentRole?: string;
+    requiredRoles?: readonly string[];
+  },
+): void {
+  request.log.warn(
+    {
+      authEvent: "rbac_denied",
+      statusCode: input.statusCode,
+      reason: input.reason,
+      currentRole: input.currentRole ?? null,
+      requiredRoles: input.requiredRoles ?? null,
+      route: httpRouteLabel(request),
+      ipHash: hashClientIp(request) || null,
+    },
+    "rbac denied",
+  );
+  auditWriter.write({
+    method: request.method.toUpperCase(),
+    routePattern: httpRouteLabel(request),
+    statusCode: input.statusCode,
+    tenantId: null,
+    userId: null,
+    correlationId: parseOptionalUuidCorrelation(request),
+    ipHash: hashClientIp(request) || null,
+    userAgent: userAgent(request),
+    action: input.statusCode === 401 ? "authz_unauthorized" : "authz_forbidden",
+    resource: "rbac",
+    metadata: {
+      reason: input.reason,
+      ...(input.currentRole ? { currentRole: input.currentRole } : {}),
+      ...(input.requiredRoles?.length ? { requiredRoles: [...input.requiredRoles] } : {}),
+      ...authHeaderCorrelationMeta(request),
+    },
+  });
+}

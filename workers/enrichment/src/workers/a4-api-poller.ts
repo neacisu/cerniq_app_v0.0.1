@@ -202,6 +202,7 @@ async function scheduleNextPageIfNeeded(
   await queue.add("poll-next-page", {
     ...jobData,
     pagination: { ...jobData.pagination, page: currentPage + 1 },
+    httpCorrelationId: jobData.correlationId,
   });
   await queue.close();
   log.info("paginate", `Mai există date — pagina ${currentPage + 1} enqueued`, {

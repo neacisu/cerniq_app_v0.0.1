@@ -13,6 +13,7 @@ import {
 } from "@/hooks/use-app-notifications.js";
 import type { OutreachNotificationRow } from "@/lib/etapa2-api.js";
 import type { AppNotificationRow } from "@/lib/notifications-api.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 function AppNotificationLine({
   n,
@@ -121,7 +122,7 @@ export function NotificationBell() {
                     void Promise.all([
                       appUnread > 0 ? markAllApp.mutateAsync() : Promise.resolve(),
                       outUnread > 0 ? markAllOut.mutateAsync() : Promise.resolve(),
-                    ]).catch(() => undefined);
+                    ]).catch(voidAsyncHandler);
                   }}
                 >
                   Marchează tot citit

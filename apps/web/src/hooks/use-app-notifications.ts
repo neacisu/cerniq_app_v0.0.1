@@ -4,6 +4,7 @@ import {
   markAllAppNotificationsRead,
   markAppNotificationRead,
 } from "@/lib/notifications-api.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 export function useAppNotifications(unread?: boolean, options?: { enabled?: boolean }) {
   return useQuery({
@@ -20,7 +21,7 @@ export function useMarkAppNotificationRead() {
   return useMutation({
     mutationFn: markAppNotificationRead,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["app-notifications"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["app-notifications"] }).catch(voidAsyncHandler);
     },
   });
 }
@@ -30,7 +31,7 @@ export function useMarkAllAppNotificationsRead() {
   return useMutation({
     mutationFn: markAllAppNotificationsRead,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["app-notifications"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["app-notifications"] }).catch(voidAsyncHandler);
     },
   });
 }

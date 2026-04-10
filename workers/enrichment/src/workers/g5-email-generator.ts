@@ -161,6 +161,9 @@ export const emailGeneratorProcessor: Processor<EmailGeneratorJobData> = async (
           contactId: job.data.contactId,
           email: generatedEmail,
           correlationId: job.data.correlationId,
+          ...(typeof job.data.correlationId === "string" && job.data.correlationId.length > 0
+            ? { httpCorrelationId: job.data.correlationId }
+            : {}),
         });
         log.info("queue_enqueue", "Job ZeroBounce enqueued", {
           queue: "discover:email:zerobounce",

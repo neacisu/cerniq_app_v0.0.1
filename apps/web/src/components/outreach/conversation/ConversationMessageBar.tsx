@@ -4,6 +4,7 @@ import { useOutreachTemplates, useSendMessage } from "@/hooks/use-etapa2.js";
 import type { OutreachLead, TemplateChannel } from "@/lib/etapa2-api.js";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 const MAX_WA = 4096;
 
@@ -89,7 +90,7 @@ function ConversationMessageBarInner({ leadId, lead }: Readonly<ConversationMess
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      handleSend().catch(() => undefined);
+      handleSend().catch(voidAsyncHandler);
     }
   };
 
@@ -192,7 +193,7 @@ function ConversationMessageBarInner({ leadId, lead }: Readonly<ConversationMess
         <Button
           size="sm"
           onClick={() => {
-            handleSend().catch(() => undefined);
+            handleSend().catch(voidAsyncHandler);
           }}
           disabled={isPending || !lead || !content.trim()}
         >

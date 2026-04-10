@@ -304,6 +304,8 @@ async function enqueuePipelineError(args: {
     return;
   }
 
+  const correlationId =
+    typeof jobData.correlationId === "string" ? jobData.correlationId : undefined;
   const queue = createQueue("pipeline:error-handler");
   await queue.add("handle-error", {
     tenantId,
@@ -316,7 +318,8 @@ async function enqueuePipelineError(args: {
     retryCount: Number(args.job?.attemptsMade ?? 0),
     maxRetries: Number(args.job?.opts?.attempts ?? 3),
     stackTrace: args.error instanceof Error ? args.error.stack : undefined,
-    correlationId: typeof jobData.correlationId === "string" ? jobData.correlationId : undefined,
+    correlationId,
+    ...(correlationId && correlationId.length > 0 ? { httpCorrelationId: correlationId } : {}),
   });
   await queue.close();
 }

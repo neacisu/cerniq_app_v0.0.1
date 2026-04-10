@@ -49,7 +49,10 @@ function loadPersistedAuth(): AuthState {
     if (token) {
       return { user: null, token, loading: true };
     }
-  } catch {
+  } catch (err) {
+    console.warn("[auth] loadPersistedAuth: invalid stored auth", {
+      err: err instanceof Error ? err.message : String(err),
+    });
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USER_KEY);
   }
@@ -95,7 +98,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           localStorage.setItem(USER_KEY, JSON.stringify(user));
           return { user, token: prev.token, loading: false };
         });
-      } catch {
+      } catch (err) {
+        console.warn("[auth] /me sync failed; clearing session", {
+          err: err instanceof Error ? err.message : String(err),
+        });
         if (!cancelled) {
           localStorage.removeItem(STORAGE_KEY);
           localStorage.removeItem(USER_KEY);
@@ -165,7 +171,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const logout = useCallback(() => {
-    void api.post("/api/v1/auth/logout").catch(() => undefined);
+    void api.post("/api/v1/auth/logout").catch((err) => {
+      console.warn("[auth] logout request failed (session cleared locally)", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USER_KEY);
     setState({ user: null, token: null, loading: false });

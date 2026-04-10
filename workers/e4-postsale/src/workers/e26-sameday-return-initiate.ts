@@ -7,10 +7,11 @@
  *   2. Dacă count < 3 → skip (prea devreme pentru return)
  *   3. Dacă count >= 3 → UPDATE goldShipments.status = RETURNED
  *   4. UPDATE goldOrders.status = RETURN_PROCESSING
- *   5. Log alert logistică (console.warn → monitorizat de alerting)
+ *   5. Log alert logistică (structurat → monitorizat de alerting)
  * Plan FAZA 8e §IX L2072-2087 — E26, threshold 3×DELIVERY_FAILED
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import {
   db,
   goldOrders,
@@ -32,6 +33,8 @@ export type SamedayReturnInitiateJobData = {
 
 const DELIVERY_FAILED_CODES: string[] = ["DELIVERY_FAILED", "NOT_DELIVERED", "UNDELIVERED"];
 const RETURN_THRESHOLD = 3;
+
+const e26Log = createServiceLogger("e4-e26-sameday-return-initiate", { etapa: "e4" });
 
 export const samedayReturnInitiateProcessor: Processor<SamedayReturnInitiateJobData> = async (
   job,
@@ -90,10 +93,9 @@ export const samedayReturnInitiateProcessor: Processor<SamedayReturnInitiateJobD
     .where(eq(goldOrders.id, orderId));
 
   // 5. Alert echipă logistică (monitorizat via CloudWatch / alertmanager)
-  console.warn(
-    `[E26] RETURN_INITIATED: shipmentId=${shipmentId}, orderId=${orderId}, ` +
-      `tenantId=${tenantId}, failCount=${failCount}. ` +
-      `Echipă logistică: verificați expediere returnată.`,
+  e26Log.warn(
+    { shipmentId, orderId, tenantId, failCount },
+    "sameday_return_initiated_logistics_alert",
   );
 
   // 6. Metrici

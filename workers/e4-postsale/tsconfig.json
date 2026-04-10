@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -9,7 +10,18 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@cerniq/db": ["./node_modules/@cerniq/db/src/index.ts"],
+      "@cerniq/db/*": ["./node_modules/@cerniq/db/src/*"],
+      "@cerniq/shared-types": ["./node_modules/@cerniq/shared-types/src/index.ts"],
+      "@cerniq/shared-types/*": ["./node_modules/@cerniq/shared-types/src/*"],
+      "@cerniq/observability": ["./node_modules/@cerniq/observability/src/index.ts"],
+      "@cerniq/observability/*": ["./node_modules/@cerniq/observability/src/*"],
+      "@cerniq/worker-shared": ["./node_modules/@cerniq/worker-shared/src/index.ts"],
+      "@cerniq/worker-shared/*": ["./node_modules/@cerniq/worker-shared/src/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

@@ -20,6 +20,7 @@
  * Pattern: createWorker din factory.ts (@cerniq/worker-shared).
  */
 import type { Job } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import {
   assertQueueRegistryComplete,
   createHealthServer,
@@ -137,6 +138,8 @@ import { guardrailFiscalValidateProcessor } from "./workers/m75-guardrail-fiscal
 import { humanEscalateProcessor } from "./workers/n76-human-escalate.js";
 import { humanTakeoverProcessor } from "./workers/n77-human-takeover.js";
 import { humanApproveProcessor } from "./workers/n78-human-approve.js";
+
+const svcLog = createServiceLogger("e3-ai-sales");
 
 const PORT = Number(process.env.PORT ?? "3002");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() ?? "/secrets/workers.env";
@@ -334,10 +337,13 @@ function buildWorkers(queueNames: string[]): void {
     );
 
     worker.on("error", (err: Error) => {
-      console.error(`[e3-worker:${queueName}]`, err.message);
+      svcLog.error(
+        { queue: queueName, err, ...enrichError(err, { scope: "worker:error" }) },
+        "e3 worker error",
+      );
     });
     worker.on("stalled", (jobId: string) => {
-      console.warn(`[e3-worker:${queueName}] stalled: ${jobId}`);
+      svcLog.warn({ queue: queueName, jobId }, "e3 worker stalled");
     });
 
     return worker;
@@ -402,7 +408,10 @@ export async function bootstrap(): Promise<void> {
   }
 
   process.on("SIGHUP", () => {
-    reloadSecretsAndConnections().catch((err) => console.error("[e3] SIGHUP reload failed", err));
+    reloadSecretsAndConnections().catch((reason) => {
+      const err = reason instanceof Error ? reason : new Error(String(reason));
+      svcLog.error({ reason, ...enrichError(err, { scope: "SIGHUP" }) }, "SIGHUP reload failed");
+    });
   });
   process.on("SIGTERM", () => {
     void shutdown();
@@ -411,13 +420,21 @@ export async function bootstrap(): Promise<void> {
     void shutdown();
   });
   process.on("unhandledRejection", (reason) => {
-    console.error("[e3] unhandledRejection", reason);
+    const err = reason instanceof Error ? reason : new Error(String(reason));
+    svcLog.error(
+      { reason, ...enrichError(err, { scope: "unhandledRejection" }) },
+      "unhandledRejection",
+    );
   });
   process.on("uncaughtException", (error) => {
-    console.error("[e3] uncaughtException", error);
+    svcLog.error(
+      { err: error, ...enrichError(error, { scope: "uncaughtException" }) },
+      "uncaughtException",
+    );
   });
 
-  console.info(
-    `[e3-ai-sales] started: health :${PORT}, queues=${activeE3QueueNames.length} (${activeE3QueueNames.join(", ")})`,
+  svcLog.info(
+    { port: PORT, queueCount: activeE3QueueNames.length, queues: activeE3QueueNames },
+    "e3-ai-sales started",
   );
 }

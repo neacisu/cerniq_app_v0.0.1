@@ -18,6 +18,8 @@ import type {
 } from "@cerniq/shared";
 import { getStoredToken, ApiError, api } from "@/lib/api.js";
 import { getApiBase } from "@/lib/api-url.js";
+import { getSessionCorrelationId } from "@/lib/report-client-error.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 // ─── Response types ───────────────────────────────────────────────────────────
 
@@ -91,8 +93,13 @@ export function buildBrainStreamUrl(): string {
   // EventSource nativ nu poate trimite Authorization header.
   // Token-ul JWT din localStorage este pasat ca ?token= pentru autentificare SSE.
   const token = getStoredToken();
-  if (!token) return base_url;
-  return `${base_url}?token=${encodeURIComponent(token)}`;
+  const cid = getSessionCorrelationId();
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  if (cid) params.set("correlationId", cid);
+  const q = params.toString();
+  if (!q) return base_url;
+  return `${base_url}?${q}`;
 }
 
 function parseCognitiveEventPayload(raw: string): CognitiveEvent | null {
@@ -360,7 +367,7 @@ export function useNeuronControl(nodeKey: string | null) {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ["cognitive-brain", "topology"] })
-        .catch(() => undefined);
+        .catch(voidAsyncHandler);
       setOptimisticPaused(null);
     },
     onError: () => {
@@ -382,7 +389,7 @@ export function useNeuronControl(nodeKey: string | null) {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ["cognitive-brain", "topology"] })
-        .catch(() => undefined);
+        .catch(voidAsyncHandler);
       setOptimisticPaused(null);
     },
     onError: () => {
@@ -401,7 +408,7 @@ export function useNeuronControl(nodeKey: string | null) {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ["cognitive-brain", "topology"] })
-        .catch(() => undefined);
+        .catch(voidAsyncHandler);
     },
   });
 

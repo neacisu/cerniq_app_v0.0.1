@@ -11,6 +11,7 @@
  * Anti-halucinare: endpoint /firme/{cui}/bilant confirmat în E1 termene-api-client.ts
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan, sanitizeCui } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, setSessionTenantId, sql, eq } from "@cerniq/db";
 import { getTermeneBilant, parseBilant, type TermeneBilantParsed } from "../lib/termene-client.js";
@@ -29,6 +30,8 @@ export type CreditDataFetchBilantResult = {
   bilantData: TermeneBilantParsed;
 };
 
+const c15Log = createServiceLogger("e4-c15-credit-data-fetch-bilant", { etapa: "e4" });
+
 export const creditDataFetchBilantProcessor: Processor<
   CreditDataFetchBilantJobData,
   CreditDataFetchBilantResult
@@ -45,7 +48,7 @@ export const creditDataFetchBilantProcessor: Processor<
       const bilantData: TermeneBilantParsed = raw ? parseBilant(raw) : { years: [] };
 
       if (!raw || bilantData.years.length === 0) {
-        console.warn(`[C15] Bilanț not found/empty for CUI=${cleanCui}, profileId=${profileId}`);
+        c15Log.warn({ cui: cleanCui, profileId }, "termene_bilant_not_found_or_empty");
       }
 
       await db
@@ -60,9 +63,7 @@ export const creditDataFetchBilantProcessor: Processor<
         })
         .where(eq(goldCreditProfiles.id, profileId));
 
-      console.info(
-        `[C15] Bilanț fetched for CUI=${cleanCui}: ${bilantData.years.length} ani disponibili`,
-      );
+      c15Log.info({ cui: cleanCui, yearCount: bilantData.years.length }, "termene_bilant_fetched");
 
       return {
         ok: true,

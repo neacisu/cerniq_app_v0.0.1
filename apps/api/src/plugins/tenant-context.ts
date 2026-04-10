@@ -17,6 +17,8 @@ const PUBLIC_PREFIXES = [
   "/api/v1/auth/register",
   "/api/v1/auth/refresh",
   "/api/v1/auth/logout",
+  /** Raportare erori browser — fără JWT; rate-limit per IP în rută. */
+  "/api/v1/errors/client",
 ];
 
 function isPublicRoute(url: string): boolean {

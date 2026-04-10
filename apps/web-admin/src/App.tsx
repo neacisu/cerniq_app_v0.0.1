@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
 import { AdminAuthProvider } from "./providers/admin-auth-provider.js";
 import { useAdminAuth } from "./hooks/use-admin-auth.js";
 import { Dashboard } from "./pages/Dashboard.js";
@@ -7,6 +8,7 @@ import { Health } from "./pages/Health.js";
 import { Logs } from "./pages/Logs.js";
 import { Login } from "./pages/Login.js";
 import { LayoutDashboard, ListTodo, HeartPulse, ScrollText } from "lucide-react";
+import { ErrorBoundary } from "./components/ErrorBoundary.js";
 
 function AdminLayout() {
   const links = [
@@ -96,7 +98,7 @@ function AdminLayout() {
   );
 }
 
-function AdminGate({ children }: { children: React.ReactNode }) {
+function AdminGate({ children }: Readonly<{ children: React.ReactNode }>) {
   const { isAuthenticated } = useAdminAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -127,20 +129,23 @@ function AdminSession() {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AdminAuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              <AdminGate>
-                <AdminLayout />
-              </AdminGate>
-            }
-          />
-        </Routes>
-      </AdminAuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Toaster richColors position="top-right" />
+        <AdminAuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <AdminGate>
+                  <AdminLayout />
+                </AdminGate>
+              }
+            />
+          </Routes>
+        </AdminAuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

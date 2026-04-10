@@ -1,3 +1,8 @@
+/**
+ * Stocare Redis pentru refresh token (hash SHA-256, fără token în clar).
+ * Audit DB pentru emitere/consum/revoke: `writeAuthAuditEvent` / `logAndAuditRefreshFailure`
+ * în `routes/auth.ts` (F8.31 — nu duplicăm audit aici).
+ */
 import { randomUUID, createHash } from "node:crypto";
 import Redis from "ioredis";
 import { envConfig } from "../config.js";

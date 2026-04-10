@@ -2,8 +2,8 @@
 
 ## Centralized Architecture Decision Records
 
-**Total ADR-uri:** 109  
-**Actualizat:** 20 Martie 2026  
+**Total ADR-uri:** 110  
+**Actualizat:** 10 Aprilie 2026  
 **Etapa 2 Sprint 4:** 🔄 **ÎN CURS — remediere defecte / aliniere plan audit** (20 Martie 2026)
 
 **Ghid PR:** la epics, folosiți checklist-ul din [`docs/developer-guide/pr-adr-traceability.md`](../developer-guide/pr-adr-traceability.md).
@@ -25,43 +25,44 @@
 
 ## ETAPA 0: INFRASTRUCTURE, DEVOPS, SECURITY
 
-| ID                                                                                           | Titlu                                          | Status                       | Data                                 |
-| -------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------- | ------------------------------------ |
-| [ADR-E0-0035](./ADR%20Etapa%200/ADR-E0-0035-Node-js-v25-Current-Line.md)                     | Node.js v25 Current Line pentru workspace      | Accepted                     | 2026-03-12                           |
-| [ADR-E0-0033](./ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)                      | **OpenBao Secrets Management** 🆕              | **Accepted**                 | **2026-02-05**                       |
-| [ADR-0032](./ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)                            | CI/CD Pipeline Strategy                        | Accepted                     | 2026-02-01                           |
-| [ADR-0031](./ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md)                         | Provider Abstraction Layer                     | Accepted                     | 2026-02-01                           |
-| [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)                   | PNPM ca Package Manager Exclusiv               | Accepted                     | 2026-01-15                           |
-| [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)                            | Node.js v24 LTS "Krypton"                      | Superseded (ADR-E0-0035)     | 2026-01-15                           |
-| [ADR-0003](./ADR%20Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)          | Python 3.14 Free-Threading pentru Workers      | Accepted                     | 2026-01-15                           |
-| [ADR-0004](./ADR%20Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)                         | PostgreSQL 18.2 cu PostGIS                     | Accepted                     | 2026-01-15                           |
-| [ADR-0005](./ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)            | Row-Level Security pentru Multi-Tenancy        | Accepted                     | 2026-01-15                           |
-| [ADR-0006](./ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md)                           | Redis 8.4.0 cu BullMQ v5.66.5                  | Accepted (Updated)           | 2026-01-15 (Updated: 2026-02-01)     |
-| [ADR-0007](./ADR%20Etapa%200/ADR-0007-Drizzle-ORM-pentru-Database-Access.md)                 | Drizzle ORM pentru Database Access             | Accepted                     | 2026-01-15                           |
-| [ADR-0008](./ADR%20Etapa%200/ADR-0008-Fastify-v5-6-2-ca-API-Framework.md)                    | Fastify v5.6.2 ca API Framework                | Accepted                     | 2026-01-15                           |
-| [ADR-0009](./ADR%20Etapa%200/ADR-0009-Zod-pentru-Validation-Strategy.md)                     | Zod pentru Validation Strategy                 | Accepted                     | 2026-01-15                           |
-| [ADR-0010](./ADR%20Etapa%200/ADR-0010-Error-Handling-Pattern-Standardizat.md)                | Error Handling Pattern Standardizat            | Accepted                     | 2026-01-15                           |
-| [ADR-0011](./ADR%20Etapa%200/ADR-0011-API-Versioning-Strategy.md)                            | API Versioning Strategy                        | Accepted                     | 2026-01-15                           |
-| [ADR-0012](./ADR%20Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)                              | React 19 cu Refine v5                          | Accepted                     | 2026-01-15                           |
-| [ADR-0013](./ADR%20Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md)                    | Tailwind CSS v4 cu Oxide Engine                | Accepted                     | 2026-01-15                           |
-| [ADR-0014](./ADR%20Etapa%200/ADR-0014-Traefik-v3-6-6-ca-Reverse-Proxy.md)                    | Traefik v3.6.6 ca Reverse Proxy                | Accepted                     | 2026-01-15                           |
-| [ADR-0015](./ADR%20Etapa%200/ADR-0015-Docker-Containerization-Strategy.md)                   | Docker Containerization Strategy               | Accepted                     | 2026-01-15                           |
-| [ADR-0016](./ADR%20Etapa%200/ADR-0016-SigNoz-pentru-Observability.md)                        | SigNoz pentru Observability                    | **Superseded (ADR-E0-0034)** | 2026-01-15                           |
-| [ADR-0017](./ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md)                        | Secrets Management Strategy                    | ⚠️ **SUPERSEDED**            | 2026-01-15                           |
-| [ADR-0018](./ADR%20Etapa%200/ADR-0018-Authentication-Flow-JWT-Refresh-Tokens.md)             | Authentication Flow (JWT + Refresh Tokens)     | Accepted                     | 2026-01-15                           |
-| [ADR-0019](./ADR%20Etapa%200/ADR-0019-CORS-Policy.md)                                        | CORS Policy                                    | Accepted                     | 2026-01-15                           |
-| [ADR-0020](./ADR%20Etapa%200/ADR-0020-BorgBackup-cu-Hetzner-Storage-Box.md)                  | BorgBackup cu Hetzner Storage Box              | Accepted                     | 2026-01-15                           |
-| [ADR-0021](./ADR%20Etapa%200/ADR-0021-Naming-Conventions.md)                                 | Naming Conventions (snake_case/camelCase)      | Accepted                     | 2026-01-15                           |
-| [ADR-0022](./ADR%20Etapa%200/ADR-0022-Port-Allocation-Strategy.md)                           | Port Allocation Strategy                       | Accepted                     | 2026-01-14 (Updated from 2026-01-15) |
-| [ADR-0023](./ADR%20Etapa%200/ADR-0023-Logging-Standards-cu-Pino.md)                          | Logging Standards cu Pino                      | Accepted                     | 2026-01-15                           |
-| [ADR-0024](./ADR%20Etapa%200/ADR-0024-Directory-Structure-Standard.md)                       | Directory Structure Standard                   | Accepted                     | 2026-01-15                           |
-| [ADR-0025](./ADR%20Etapa%200/ADR-0025-Health-Check-Patterns.md)                              | Health Check Patterns                          | Accepted                     | 2026-01-15                           |
-| [ADR-0026](./ADR%20Etapa%200/ADR-0026-Graceful-Shutdown-Strategy.md)                         | Graceful Shutdown Strategy                     | Accepted                     | 2026-01-15                           |
-| [ADR-0027](./ADR%20Etapa%200/ADR-0027-Container-Resource-Limits.md)                          | Container Resource Limits                      | Accepted                     | 2026-01-15                           |
-| [ADR-0028](./ADR%20Etapa%200/ADR-0028-Git-Branching-Strategy.md)                             | Git Branching Strategy                         | Accepted                     | 2026-01-15                           |
-| [ADR-0029](./ADR%20Etapa%200/ADR-0029-Testing-Strategy.md)                                   | Testing Strategy                               | Accepted                     | 2026-01-15                           |
-| [ADR-0030](./ADR%20Etapa%200/ADR-0030-Environment-Management.md)                             | Environment Management (dev/staging/prod)      | Accepted                     | 2026-01-15                           |
-| [ADR-E0-0034](./ADR%20Etapa%200/ADR-E0-0034-Centralized-Observability-Stack-Orchestrator.md) | Centralized Observability Stack (Orchestrator) | Accepted                     | 2026-02-15                           |
+| ID                                                                                                   | Titlu                                                     | Status                       | Data                                 |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------- | ------------------------------------ |
+| [ADR-E0-0035](./ADR%20Etapa%200/ADR-E0-0035-Node-js-v25-Current-Line.md)                             | Node.js v25 Current Line pentru workspace                 | Accepted                     | 2026-03-12                           |
+| [ADR-E0-0033](./ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)                              | **OpenBao Secrets Management** (Nou)                      | **Accepted**                 | **2026-02-05**                       |
+| [ADR-0032](./ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)                                    | CI/CD Pipeline Strategy                                   | Accepted                     | 2026-02-01                           |
+| [ADR-0031](./ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md)                                 | Provider Abstraction Layer                                | Accepted                     | 2026-02-01                           |
+| [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)                           | PNPM ca Package Manager Exclusiv                          | Accepted                     | 2026-01-15                           |
+| [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)                                    | Node.js v24 LTS "Krypton"                                 | Superseded (ADR-E0-0035)     | 2026-01-15                           |
+| [ADR-0003](./ADR%20Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)                  | Python 3.14 Free-Threading pentru Workers                 | Accepted                     | 2026-01-15                           |
+| [ADR-0004](./ADR%20Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)                                 | PostgreSQL 18.2 cu PostGIS                                | Accepted                     | 2026-01-15                           |
+| [ADR-0005](./ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)                    | Row-Level Security pentru Multi-Tenancy                   | Accepted                     | 2026-01-15                           |
+| [ADR-0006](./ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md)                                   | Redis 8.4.0 cu BullMQ v5.66.5                             | Accepted (Updated)           | 2026-01-15 (Updated: 2026-02-01)     |
+| [ADR-0007](./ADR%20Etapa%200/ADR-0007-Drizzle-ORM-pentru-Database-Access.md)                         | Drizzle ORM pentru Database Access                        | Accepted                     | 2026-01-15                           |
+| [ADR-0008](./ADR%20Etapa%200/ADR-0008-Fastify-v5-6-2-ca-API-Framework.md)                            | Fastify v5.6.2 ca API Framework                           | Accepted                     | 2026-01-15                           |
+| [ADR-0009](./ADR%20Etapa%200/ADR-0009-Zod-pentru-Validation-Strategy.md)                             | Zod pentru Validation Strategy                            | Accepted                     | 2026-01-15                           |
+| [ADR-0010](./ADR%20Etapa%200/ADR-0010-Error-Handling-Pattern-Standardizat.md)                        | Error Handling Pattern Standardizat                       | Accepted                     | 2026-01-15                           |
+| [ADR-0011](./ADR%20Etapa%200/ADR-0011-API-Versioning-Strategy.md)                                    | API Versioning Strategy                                   | Accepted                     | 2026-01-15                           |
+| [ADR-0012](./ADR%20Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)                                      | React 19 cu Refine v5                                     | Accepted                     | 2026-01-15                           |
+| [ADR-0013](./ADR%20Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md)                            | Tailwind CSS v4 cu Oxide Engine                           | Accepted                     | 2026-01-15                           |
+| [ADR-0014](./ADR%20Etapa%200/ADR-0014-Traefik-v3-6-6-ca-Reverse-Proxy.md)                            | Traefik v3.6.6 ca Reverse Proxy                           | Accepted                     | 2026-01-15                           |
+| [ADR-0015](./ADR%20Etapa%200/ADR-0015-Docker-Containerization-Strategy.md)                           | Docker Containerization Strategy                          | Accepted                     | 2026-01-15                           |
+| [ADR-0016](./ADR%20Etapa%200/ADR-0016-SigNoz-pentru-Observability.md)                                | SigNoz pentru Observability                               | **Superseded (ADR-E0-0034)** | 2026-01-15                           |
+| [ADR-0017](./ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md)                                | Secrets Management Strategy                               | ⚠️ **SUPERSEDED**            | 2026-01-15                           |
+| [ADR-0018](./ADR%20Etapa%200/ADR-0018-Authentication-Flow-JWT-Refresh-Tokens.md)                     | Authentication Flow (JWT + Refresh Tokens)                | Accepted                     | 2026-01-15                           |
+| [ADR-0019](./ADR%20Etapa%200/ADR-0019-CORS-Policy.md)                                                | CORS Policy                                               | Accepted                     | 2026-01-15                           |
+| [ADR-0020](./ADR%20Etapa%200/ADR-0020-BorgBackup-cu-Hetzner-Storage-Box.md)                          | BorgBackup cu Hetzner Storage Box                         | Accepted                     | 2026-01-15                           |
+| [ADR-0021](./ADR%20Etapa%200/ADR-0021-Naming-Conventions.md)                                         | Naming Conventions (snake_case/camelCase)                 | Accepted                     | 2026-01-15                           |
+| [ADR-0022](./ADR%20Etapa%200/ADR-0022-Port-Allocation-Strategy.md)                                   | Port Allocation Strategy                                  | Accepted                     | 2026-01-14 (Updated from 2026-01-15) |
+| [ADR-0023](./ADR%20Etapa%200/ADR-0023-Logging-Standards-cu-Pino.md)                                  | Logging Standards cu Pino                                 | Accepted                     | 2026-01-15                           |
+| [ADR-0024](./ADR%20Etapa%200/ADR-0024-Directory-Structure-Standard.md)                               | Directory Structure Standard                              | Accepted                     | 2026-01-15                           |
+| [ADR-0025](./ADR%20Etapa%200/ADR-0025-Health-Check-Patterns.md)                                      | Health Check Patterns                                     | Accepted                     | 2026-01-15                           |
+| [ADR-0026](./ADR%20Etapa%200/ADR-0026-Graceful-Shutdown-Strategy.md)                                 | Graceful Shutdown Strategy                                | Accepted                     | 2026-01-15                           |
+| [ADR-0027](./ADR%20Etapa%200/ADR-0027-Container-Resource-Limits.md)                                  | Container Resource Limits                                 | Accepted                     | 2026-01-15                           |
+| [ADR-0028](./ADR%20Etapa%200/ADR-0028-Git-Branching-Strategy.md)                                     | Git Branching Strategy                                    | Accepted                     | 2026-01-15                           |
+| [ADR-0029](./ADR%20Etapa%200/ADR-0029-Testing-Strategy.md)                                           | Testing Strategy                                          | Accepted                     | 2026-01-15                           |
+| [ADR-0030](./ADR%20Etapa%200/ADR-0030-Environment-Management.md)                                     | Environment Management (dev/staging/prod)                 | Accepted                     | 2026-01-15                           |
+| [ADR-E0-0034](./ADR%20Etapa%200/ADR-E0-0034-Centralized-Observability-Stack-Orchestrator.md)         | Centralized Observability Stack (Orchestrator)            | Accepted                     | 2026-02-15                           |
+| [ADR-0108](./ADR%20Etapa%200/ADR-0108-Browser-Client-Error-Ingestion-and-Worker-Observability-F8.md) | Ingestie erori browser + observabilitate workeri (F8–F10) | Accepted                     | 2026-04-10                           |
 
 > **Note:** ADR-0017 (Docker Secrets) este acum SUPERSEDED de ADR-E0-0033 (OpenBao). Numerotarea "E0-0033" indică că acest ADR este specific pentru Etapa 0, distinct de ADR-0033 din Etapa 1.
 

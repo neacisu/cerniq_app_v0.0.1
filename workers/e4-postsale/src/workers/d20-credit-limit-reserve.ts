@@ -12,6 +12,7 @@
  * NU TTL Redis — persistent în DB (anti-halucinare Plan F).
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   db,
@@ -25,6 +26,8 @@ import {
 import { e4CreditReservationsTotal } from "../e4-metrics.js";
 
 const RESERVATION_TTL_HOURS = Number(process.env.CREDIT_RESERVATION_TTL_HOURS ?? "72");
+
+const d20Log = createServiceLogger("e4-d20-credit-limit-reserve", { etapa: "e4" });
 
 export type CreditLimitReserveJobData = {
   tenantId: string;
@@ -55,8 +58,9 @@ export const creditLimitReserveProcessor: Processor<CreditLimitReserveJobData> =
         .limit(1);
 
       if (existing.length > 0 && existing[0]) {
-        console.info(
-          `[D20] Reservation already exists: reservationId=${existing[0].id}, orderId=${orderId}`,
+        d20Log.info(
+          { reservationId: existing[0].id, orderId },
+          "credit_reservation_already_exists",
         );
         return { ok: true, status: "already_reserved", reservationId: existing[0].id };
       }
@@ -91,8 +95,14 @@ export const creditLimitReserveProcessor: Processor<CreditLimitReserveJobData> =
 
       e4CreditReservationsTotal.inc({ action: "reserve", tenant_id: tenantId });
 
-      console.info(
-        `[D20] Reservation created: reservationId=${reservation.id}, orderId=${orderId}, amount=${orderAmount}, expiresAt=${expiresAt.toISOString()}`,
+      d20Log.info(
+        {
+          reservationId: reservation.id,
+          orderId,
+          orderAmount,
+          expiresAt: expiresAt.toISOString(),
+        },
+        "credit_reservation_created",
       );
 
       return {

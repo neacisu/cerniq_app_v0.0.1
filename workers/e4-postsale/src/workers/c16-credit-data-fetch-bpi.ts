@@ -13,6 +13,7 @@
  * Un singur apel returnează atât proceduri insolvență cât și dosare litigii (câmpuri separate).
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan, sanitizeCui } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, setSessionTenantId, sql, eq } from "@cerniq/db";
 import { getTermeneDosare, parseDosare, type TermeneDosareParsed } from "../lib/termene-client.js";
@@ -30,6 +31,8 @@ export type CreditDataFetchBpiResult = {
   status: "fetched" | "not_found";
   bpiData: TermeneDosareParsed;
 };
+
+const c16Log = createServiceLogger("e4-c16-credit-data-fetch-bpi", { etapa: "e4" });
 
 const EMPTY_DOSARE: TermeneDosareParsed = {
   proceduri_insolventa_active: 0,
@@ -60,9 +63,7 @@ export const creditDataFetchBpiProcessor: Processor<
       const bpiData: TermeneDosareParsed = raw ? parseDosare(raw) : EMPTY_DOSARE;
 
       if (!raw) {
-        console.warn(
-          `[C16] Dosare/BPI not found for CUI=${cleanCui}, profileId=${profileId} — using ZERO default`,
-        );
+        c16Log.warn({ cui: cleanCui, profileId }, "termene_dosare_bpi_not_found_default_zero");
       }
 
       await db
@@ -78,8 +79,13 @@ export const creditDataFetchBpiProcessor: Processor<
         })
         .where(eq(goldCreditProfiles.id, profileId));
 
-      console.info(
-        `[C16] BPI/Dosare fetched for CUI=${cleanCui}: insolventa_active=${bpiData.proceduri_insolventa_active}, dosare_parat_active=${bpiData.dosare_parat_active}`,
+      c16Log.info(
+        {
+          cui: cleanCui,
+          insolventaActive: bpiData.proceduri_insolventa_active,
+          dosareParatActive: bpiData.dosare_parat_active,
+        },
+        "bpi_dosare_fetched",
       );
 
       return {

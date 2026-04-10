@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { toBullMqQueueName } from "./factory.js";
+import { parseWorkerAutoObservabilityEnv } from "./worker-auto-obs-env.js";
+
+describe("parseWorkerAutoObservabilityEnv", () => {
+  it("acceptă 1, true, yes (case-insensitive)", () => {
+    expect(parseWorkerAutoObservabilityEnv("1")).toBe(true);
+    expect(parseWorkerAutoObservabilityEnv("true")).toBe(true);
+    expect(parseWorkerAutoObservabilityEnv("YES")).toBe(true);
+  });
+
+  it("respinge gol sau alte valori", () => {
+    expect(parseWorkerAutoObservabilityEnv(undefined)).toBe(false);
+    expect(parseWorkerAutoObservabilityEnv("")).toBe(false);
+    expect(parseWorkerAutoObservabilityEnv("0")).toBe(false);
+  });
+});
 
 describe("queue factory", () => {
   it("maps canonical logical queue names to BullMQ-safe physical names", () => {

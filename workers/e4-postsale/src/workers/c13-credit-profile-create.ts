@@ -16,16 +16,20 @@
  */
 import type { Processor } from "bullmq";
 import { FlowProducer } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { QUEUES, getRedisConnectionOptions, withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, setSessionTenantId, eq, and } from "@cerniq/db";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
+const c13Log = createServiceLogger("e4-c13-credit-profile-create", { etapa: "e4" });
 
 export type CreditProfileCreateJobData = {
   tenantId: string;
   clientId: string;
   cui: string;
   correlationId?: string;
+  httpCorrelationId?: string;
+  causationJobId?: string;
 };
 
 export const creditProfileCreateProcessor: Processor<CreditProfileCreateJobData> = async (job) => {
@@ -48,7 +52,7 @@ export const creditProfileCreateProcessor: Processor<CreditProfileCreateJobData>
 
       if (existing.length > 0 && existing[0]) {
         profileId = existing[0].id;
-        console.info(`[C13] Profile exists, re-triggering scoring for clientId=${clientId}`);
+        c13Log.info({ clientId, tenantId }, "profile_exists_retrigger_scoring");
       } else {
         const inserted = await db
           .insert(goldCreditProfiles)
@@ -89,9 +93,7 @@ export const creditProfileCreateProcessor: Processor<CreditProfileCreateJobData>
           profileId = row.id;
         }
 
-        console.info(
-          `[C13] Created credit profile profileId=${profileId} for clientId=${clientId}`,
-        );
+        c13Log.info({ profileId, clientId, tenantId }, "credit_profile_created");
       }
 
       // ── 2. FlowProducer: parent=C17, children=C14+C15+C16 ─────────────────
@@ -100,12 +102,15 @@ export const creditProfileCreateProcessor: Processor<CreditProfileCreateJobData>
       });
 
       try {
+        const cid = job.data.correlationId;
         const childJobData = {
           tenantId,
           clientId,
           cui,
           profileId,
-          correlationId: job.data.correlationId,
+          correlationId: cid,
+          httpCorrelationId: job.data.httpCorrelationId ?? cid,
+          causationJobId: job.id,
         };
 
         await flowProducer.add({
@@ -138,7 +143,7 @@ export const creditProfileCreateProcessor: Processor<CreditProfileCreateJobData>
           ],
         });
 
-        console.info(`[C13] FlowProducer dispatched: C14+C15+C16 → C17 for profileId=${profileId}`);
+        c13Log.info({ profileId, tenantId }, "flowproducer_dispatched_c14_c15_c16_to_c17");
       } finally {
         await flowProducer.close();
       }

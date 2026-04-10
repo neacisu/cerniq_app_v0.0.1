@@ -17,3 +17,4 @@ export const UserCreateSchema = UserSchema.omit({
     createdAt: true,
     updatedAt: true,
 });
+//# sourceMappingURL=user.js.map

@@ -14,6 +14,7 @@
  */
 import Redis from "ioredis";
 import type { Worker } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import {
   assertQueueRegistryComplete,
   createHealthServer,
@@ -91,6 +92,8 @@ import {
   hitlTaskResolveProcessor,
   hitlEscalationOverdueProcessor,
 } from "./workers/k-hitl-workers.js";
+
+const svcLog = createServiceLogger("worker-e4-postsale");
 
 const PORT = Number(process.env.PORT ?? "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() ?? "/secrets/workers.env";
@@ -747,7 +750,7 @@ async function bootstrap(): Promise<void> {
 
   // ── 8. Graceful shutdown ─────────────────────────────────────────────────
   const shutdown = async () => {
-    console.info("[worker-e4-postsale] shutdown...");
+    svcLog.info("shutdown starting");
     await stopQueueMonitor();
     await Promise.allSettled(workers.map((w) => w.close()));
     await balanceSyncQueue.close();
@@ -765,17 +768,37 @@ async function bootstrap(): Promise<void> {
     process.exit(0);
   };
 
+  process.on("unhandledRejection", (reason) => {
+    const err = reason instanceof Error ? reason : new Error(String(reason));
+    svcLog.error(
+      { reason, ...enrichError(err, { scope: "unhandledRejection" }) },
+      "unhandledRejection",
+    );
+  });
+  process.on("uncaughtException", (error) => {
+    svcLog.error(
+      { err: error, ...enrichError(error, { scope: "uncaughtException" }) },
+      "uncaughtException",
+    );
+  });
+
   process.on("SIGTERM", () => void shutdown());
   process.on("SIGINT", () => void shutdown());
 
-  console.info(
-    `[worker-e4-postsale] started: ${workers.length} workers (A1-A6 + B7-B12 + C13-D21 + E22-E27 + G32-G36 + F28-F31 + H37-H38 + I39-I44 + J45-J47 + K48-K53), health :${PORT}, Redis DB ${REDIS_DB_E4}`,
+  svcLog.info(
+    {
+      workers: workers.length,
+      port: PORT,
+      redisDb: REDIS_DB_E4,
+    },
+    "worker-e4-postsale started",
   );
 }
 
 try {
   await bootstrap();
 } catch (err) {
-  console.error("[worker-e4-postsale] fatal", err);
+  const e = err instanceof Error ? err : new Error(String(err));
+  svcLog.error({ err: e, ...enrichError(e, { scope: "bootstrap" }) }, "worker-e4-postsale fatal");
   process.exit(1);
 }

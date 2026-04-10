@@ -16,10 +16,13 @@
  * - NU inventăm tabel dedicat stock_inventory E4
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { db, goldProducts, setSessionTenantId, sql, eq, isNotNull, and } from "@cerniq/db";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { e4StockSyncTotal } from "../e4-metrics.js";
 import { oblioClient } from "../lib/oblio-client-e4.js";
+
+const f28Log = createServiceLogger("e4-f28-stock-sync-oblio", { etapa: "e4" });
 
 export type StockSyncOblioJobData = {
   tenantId: string;
@@ -102,6 +105,11 @@ export const stockSyncOblioProcessor: Processor<StockSyncOblioJobData> = async (
           syncedCount++;
         } catch (err) {
           errorCount++;
+          const e = err instanceof Error ? err : new Error(String(err));
+          f28Log.warn(
+            { err: e, tenantId, productId: product.id, sku: oblioItem.sku },
+            "stock_sync_oblio_product_update_failed",
+          );
           job.log(
             `[F28] Eroare update stoc produs ${product.id} (sku=${oblioItem.sku}): ${String(err)}`,
           );

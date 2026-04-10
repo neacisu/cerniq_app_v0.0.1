@@ -8,6 +8,7 @@ import { decideApproval, type ApprovalListParams, type ApprovalTask } from "@/li
 import { useApprovals } from "@/hooks/use-etapa1.js";
 import { ApprovalCard } from "@/components/data/ApprovalCard.js";
 import { SLACountdown } from "@/components/data/SLACountdown.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 type TabKey = "pending" | "completed";
 
@@ -44,7 +45,7 @@ export function Approvals() {
       decision: "approve" | "reject" | "merge" | "skip";
     }) => decideApproval(id, decision),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["etapa1", "approvals"] }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["etapa1", "approvals"] }).catch(voidAsyncHandler);
     },
   });
 

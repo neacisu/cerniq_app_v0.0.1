@@ -10,6 +10,7 @@
  * Idempotency: dacă rezervarea nu mai e ACTIVE → return early.
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   db,
@@ -21,6 +22,8 @@ import {
   and,
 } from "@cerniq/db";
 import { e4CreditReservationsTotal } from "../e4-metrics.js";
+
+const d21Log = createServiceLogger("e4-d21-credit-limit-release", { etapa: "e4" });
 
 export type CreditLimitReleaseJobData = {
   tenantId: string;
@@ -54,9 +57,7 @@ export const creditLimitReleaseProcessor: Processor<CreditLimitReleaseJobData> =
         .limit(1);
 
       if (reservations.length === 0) {
-        console.warn(
-          `[D21] No reservation found for orderId=${orderId}, profileId=${profileId} — skip`,
-        );
+        d21Log.warn({ orderId, profileId }, "credit_reservation_release_no_row");
         return { ok: true, status: "no_reservation", orderId };
       }
 
@@ -66,8 +67,9 @@ export const creditLimitReleaseProcessor: Processor<CreditLimitReleaseJobData> =
       }
 
       if (reservation.status !== "ACTIVE") {
-        console.info(
-          `[D21] Reservation already ${reservation.status}, skipping: reservationId=${reservation.id}`,
+        d21Log.info(
+          { reservationId: reservation.id, status: reservation.status },
+          "credit_reservation_release_already_processed",
         );
         return { ok: true, status: "already_processed", reservationId: reservation.id };
       }
@@ -96,13 +98,11 @@ export const creditLimitReleaseProcessor: Processor<CreditLimitReleaseJobData> =
 
         e4CreditReservationsTotal.inc({ action: "release", tenant_id: tenantId });
 
-        console.info(
-          `[D21] Reservation RELEASED: reservationId=${reservation.id}, amount=${amount} RON recovered`,
-        );
+        d21Log.info({ reservationId: reservation.id, amount }, "credit_reservation_released");
       } else {
         e4CreditReservationsTotal.inc({ action: "used", tenant_id: tenantId });
 
-        console.info(`[D21] Reservation marked USED: reservationId=${reservation.id} (order paid)`);
+        d21Log.info({ reservationId: reservation.id }, "credit_reservation_marked_used");
       }
 
       return {

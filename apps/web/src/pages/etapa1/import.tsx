@@ -40,6 +40,7 @@ import {
   useResumePromoteJob,
 } from "@/hooks/use-etapa1.js";
 import { ApiError } from "@/lib/api.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 import { cn } from "@/lib/utils.js";
 
 const ACCEPT =
@@ -1244,17 +1245,11 @@ function PipelineProgressPanel({
     promotionQueue.failed > 0;
 
   const handleResume = () => {
-    resumeMutation
-      .mutateAsync(batchId)
-      .then(onResumed)
-      .catch(() => undefined);
+    resumeMutation.mutateAsync(batchId).then(onResumed).catch(voidAsyncHandler);
   };
 
   const handleResumeErrors = () => {
-    resumeErrorsMutation
-      .mutateAsync(batchId)
-      .then(onResumed)
-      .catch(() => undefined);
+    resumeErrorsMutation.mutateAsync(batchId).then(onResumed).catch(voidAsyncHandler);
   };
 
   return (
@@ -2510,7 +2505,7 @@ export function Import() {
     ...mappingTargets.map((t) => ({ value: t.key, label: t.label })),
   ];
   const handleImportRefetch = useCallback(() => {
-    importsQuery.refetch().catch(() => undefined);
+    importsQuery.refetch().catch(voidAsyncHandler);
   }, [importsQuery]);
   const closeMappingDialog = useCallback(() => {
     setMappingDialogId(null);

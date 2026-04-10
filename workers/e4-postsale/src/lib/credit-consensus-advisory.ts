@@ -10,9 +10,11 @@ import {
   DEFAULT_JOB_OPTIONS,
   shouldTriggerLlmConsensusVote,
 } from "@cerniq/worker-shared";
+import { createServiceLogger } from "@cerniq/observability";
 import { z } from "zod";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
+const c17ConsensusLog = createServiceLogger("e4-c17-credit-consensus-advisory", { etapa: "e4" });
 
 export async function runCreditBorderlineConsensusIfNeeded(ctx: {
   readonly tenantId: string;
@@ -61,6 +63,9 @@ export async function runCreditBorderlineConsensusIfNeeded(ctx: {
   });
 
   if (vote.ok) {
-    console.info(`[C17-consensus] advisory ok models=${vote.agreeingModelIds.join(",")}`);
+    c17ConsensusLog.info(
+      { agreeingModelIds: vote.agreeingModelIds.join(",") },
+      "credit_borderline_consensus_advisory_ok",
+    );
   }
 }

@@ -318,6 +318,14 @@ export const e4ShipmentsRequestedTotal = new Counter({
   registers: [register],
 });
 
+/** OPS: volum ingestie erori browser (fără label high-cardinality — doar outcome). */
+export const clientErrorsFrontendIngestTotal = new Counter({
+  name: "cerniq_api_client_errors_frontend_ingest_total",
+  help: "POST /api/v1/errors/client — inserări sau replay idempotent",
+  labelNames: ["outcome"],
+  registers: [register],
+});
+
 const metricsPluginFn: FastifyPluginCallback = (app, _opts, done) => {
   app.addHook("onRequest", (_request, _reply, hookDone) => {
     httpActiveRequests.inc();
@@ -373,9 +381,15 @@ const metricsPluginFn: FastifyPluginCallback = (app, _opts, done) => {
       request.log.warn({ ip: clientIp }, "Metrics access denied");
       return reply.status(403).send({ error: "Forbidden" });
     }
-    const metrics = await register.metrics();
-    reply.header("Content-Type", register.contentType);
-    return metrics;
+    try {
+      const metrics = await register.metrics();
+      reply.header("Content-Type", register.contentType);
+      return metrics;
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      request.log.error({ err: e }, "prometheus_metrics_collection_failed");
+      return reply.status(500).type("text/plain").send("metrics_unavailable");
+    }
   });
 
   done();

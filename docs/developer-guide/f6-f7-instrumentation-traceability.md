@@ -108,4 +108,16 @@ pnpm --filter @cerniq/api typecheck
 
 ---
 
+## F8–F10 (browser → API → error_log + workeri)
+
+| Subiect | Probă / document |
+| -------- | ----------------- |
+| POST client-errors, idempotență, VAL (GDPR, CSP, WebSocket N/A, SW N/A) | [ADR-0108](../../adr/ADR%20Etapa%200/ADR-0108-Browser-Client-Error-Ingestion-and-Worker-Observability-F8.md) |
+| Rută API | `apps/api/src/routes/client-errors.ts` |
+| Raport browser + fingerprint `Idempotency-Key` | `apps/web/src/lib/report-client-error.ts` |
+| Header sesiune + toast5xx | `apps/web/src/lib/api.ts` |
+| Pattern worker / flag `WORKER_AUTO_OBSERVABILITY` | `docs/developer-guide/patterns/worker-logging-pattern.md`, `workers/shared/src/factory.ts` |
+| Evenimente Redis | `workers/shared/src/redis.ts` |
+| SSE (`EventSource`) + `correlationId` query | `apps/web/src/hooks/use-dashboard-kpi-stream.ts`, `use-cognitive-brain.ts`; API `dashboard.ts`, `cognitive-brain.ts` |
+
 **Status global:** implementat; reverificare = comenzile din secțiunea de sus.

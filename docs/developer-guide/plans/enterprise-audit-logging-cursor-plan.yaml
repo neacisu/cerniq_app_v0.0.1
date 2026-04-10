@@ -1,5 +1,7 @@
 ---
 name: Enterprise Audit Logging Complete
+# F8–F10 (client-errors, corelare browser, worker auto-observability): sursă canonică ADR-0108
+# + docs/developer-guide/f6-f7-instrumentation-traceability.md — evită drift față de acest YAML istoric.
 overview: "Sistem complet enterprise-grade de audit, logging structurat si tracing pentru 100% din componentele aplicatiei. 126 todo-uri granulare cu instructiuni anti-halucinare detaliate la FIECARE, acoperind ~160+ fisiere. Verificat prin 3 runde de audit."
 todos:
   - id: f0.1

@@ -62,6 +62,9 @@ export async function markEnrichmentSourceComplete(
         companyId,
         stage: "post_enrichment",
         correlationId,
+        ...(typeof correlationId === "string" && correlationId.length > 0
+          ? { httpCorrelationId: correlationId }
+          : {}),
       },
       {
         jobId: `post-enrich-${companyId}`,

@@ -18,3 +18,4 @@ export const ContactCreateSchema = ContactSchema.omit({
     createdAt: true,
     updatedAt: true,
 });
+//# sourceMappingURL=contact.js.map

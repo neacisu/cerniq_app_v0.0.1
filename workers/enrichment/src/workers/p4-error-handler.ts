@@ -92,11 +92,14 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
             if (retryCount < maxRetries) {
               const delayMs = Math.min(600_000, baseDelay * 2 ** retryCount);
               const sourcePayload = job.data.sourcePayload ?? {};
+              const cid =
+                typeof job.data.correlationId === "string" ? job.data.correlationId : undefined;
               const replayPayload = {
                 ...sourcePayload,
                 tenantId: job.data.tenantId,
                 companyId: job.data.companyId,
-                correlationId: job.data.correlationId,
+                correlationId: cid,
+                ...(cid && cid.length > 0 ? { httpCorrelationId: cid } : {}),
               };
               const queue = createQueue(job.data.sourceWorker);
               await queue.add("replay", replayPayload, {

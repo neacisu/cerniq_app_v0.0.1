@@ -12,10 +12,12 @@
  */
 import type { Processor } from "bullmq";
 import { FlowProducer } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { QUEUES, getRedisConnectionOptions, withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, goldCompanies, eq, and, lte, isNotNull } from "@cerniq/db";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
+const cronCreditRefreshLog = createServiceLogger("e4-cron-credit-refresh-all", { etapa: "e4" });
 
 export const creditRefreshAllProcessor: Processor = async (_job) => {
   return withCognitiveSpan(
@@ -42,7 +44,10 @@ export const creditRefreshAllProcessor: Processor = async (_job) => {
         .limit(500);
 
       if (rows.length === 0) {
-        console.info("[CRON credit:refresh-all] No profiles need refresh");
+        cronCreditRefreshLog.info(
+          { event: "cron_credit_refresh_skip" },
+          "no_profiles_need_refresh",
+        );
         return { ok: true, refreshed: 0 };
       }
 
@@ -57,13 +62,17 @@ export const creditRefreshAllProcessor: Processor = async (_job) => {
           if (!cui || !row.tenantId) continue;
 
           const profileId = row.id;
+          const ts = Date.now();
+          const flowCorrelationId = `e4:credit-refresh:${profileId}:${ts}`;
           const childJobData = {
             tenantId: row.tenantId,
             clientId: row.clientId,
             cui,
             profileId,
+            correlationId: flowCorrelationId,
+            httpCorrelationId: flowCorrelationId,
+            causationJobId: String(_job.id),
           };
-          const ts = Date.now();
 
           await flowProducer.add({
             name: "credit:score:calculate",
@@ -97,8 +106,9 @@ export const creditRefreshAllProcessor: Processor = async (_job) => {
         await flowProducer.close();
       }
 
-      console.info(
-        `[CRON credit:refresh-all] Dispatched ${dispatched}/${rows.length} profiles for refresh`,
+      cronCreditRefreshLog.info(
+        { dispatched, candidateCount: rows.length, event: "cron_credit_refresh_dispatched" },
+        "credit_refresh_flows_dispatched",
       );
 
       return { ok: true, refreshed: dispatched };

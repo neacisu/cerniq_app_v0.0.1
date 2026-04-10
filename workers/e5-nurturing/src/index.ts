@@ -5,6 +5,7 @@
  */
 import Redis from "ioredis";
 import type { Worker } from "bullmq";
+import { createServiceLogger, enrichError } from "@cerniq/observability";
 import {
   assertQueueRegistryComplete,
   createHealthServer,
@@ -34,6 +35,8 @@ import { createGeoNeighborIdentifyWorker } from "./workers/c16-geo-neighbor-iden
 import { createGeoTerritoryCalculateWorker } from "./workers/c17-geo-territory-calculate.js";
 import { createGeoCoverageAnalyzeWorker } from "./workers/c18-geo-coverage-analyze.js";
 import { createGeoCatchmentBuildWorker } from "./workers/c19-geo-catchment-build.js";
+
+const svcLog = createServiceLogger("worker-e5-nurturing");
 
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
@@ -115,7 +118,7 @@ async function bootstrap(): Promise<void> {
   }));
 
   const shutdown = async () => {
-    console.info("[worker-e5-nurturing] shutdown...");
+    svcLog.info("shutdown starting");
     await stopQueueMonitor();
     await Promise.allSettled(workers.map((w) => w.close()));
     await stateEvaluateQueue.close();
@@ -124,6 +127,20 @@ async function bootstrap(): Promise<void> {
     process.exit(0);
   };
 
+  process.on("unhandledRejection", (reason) => {
+    const err = reason instanceof Error ? reason : new Error(String(reason));
+    svcLog.error(
+      { reason, ...enrichError(err, { scope: "unhandledRejection" }) },
+      "unhandledRejection",
+    );
+  });
+  process.on("uncaughtException", (error) => {
+    svcLog.error(
+      { err: error, ...enrichError(error, { scope: "uncaughtException" }) },
+      "uncaughtException",
+    );
+  });
+
   process.on("SIGTERM", () => {
     void shutdown();
   });
@@ -131,14 +148,16 @@ async function bootstrap(): Promise<void> {
     void shutdown();
   });
 
-  console.info(
-    `[worker-e5-nurturing] started: ${workers.length} workers, health :${PORT}, redisDb=${E5_REDIS_DB}`,
+  svcLog.info(
+    { workers: workers.length, port: PORT, redisDb: E5_REDIS_DB },
+    "worker-e5-nurturing started",
   );
 }
 
 try {
   await bootstrap();
 } catch (err) {
-  console.error("[worker-e5-nurturing] fatal", err);
+  const e = err instanceof Error ? err : new Error(String(err));
+  svcLog.error({ err: e, ...enrichError(e, { scope: "bootstrap" }) }, "worker-e5-nurturing fatal");
   process.exit(1);
 }

@@ -37,8 +37,10 @@ import {
   e4CreditScoreDistribution,
 } from "../e4-metrics.js";
 import { runCreditBorderlineConsensusIfNeeded } from "../lib/credit-consensus-advisory.js";
+import { createServiceLogger } from "@cerniq/observability";
 
 const REDIS_DB_E4 = Number(process.env.REDIS_DB_E4 ?? process.env.REDIS_DB ?? "4");
+const c17Log = createServiceLogger("e4-c17-credit-score-calculate", { etapa: "e4" });
 
 export type CreditScoreCalculateJobData = {
   tenantId: string;
@@ -145,8 +147,14 @@ export const creditScoreCalculateProcessor: Processor<CreditScoreCalculateJobDat
       e4CreditScoreCalculatedTotal.inc({ risk_tier: result.riskTier, tenant_id: tenantId });
       e4CreditScoreDistribution.inc({ tenant_id: tenantId, risk_tier: result.riskTier });
 
-      console.info(
-        `[C17] Score calculated: profileId=${profileId}, score=${result.score}, tier=${result.riskTier}, limit=${result.creditLimit} RON`,
+      c17Log.info(
+        {
+          profileId,
+          score: result.score,
+          riskTier: result.riskTier,
+          creditLimit: result.creditLimit,
+        },
+        "credit_score_calculated",
       );
 
       void runCreditBorderlineConsensusIfNeeded({
@@ -154,7 +162,10 @@ export const creditScoreCalculateProcessor: Processor<CreditScoreCalculateJobDat
         clientId,
         profileId,
         creditScore: result.score,
-      }).catch((err) => console.warn("[C17] credit consensus advisory failed", err));
+      }).catch((err) => {
+        const e = err instanceof Error ? err : new Error(String(err));
+        c17Log.warn({ err: e }, "credit_consensus_advisory_failed");
+      });
 
       return {
         ok: true,

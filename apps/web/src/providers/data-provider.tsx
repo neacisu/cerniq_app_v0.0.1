@@ -1,7 +1,28 @@
 import type { DataProvider, BaseRecord } from "@refinedev/core";
-import { api } from "@/lib/api.js";
+import { ApiError, api } from "@/lib/api.js";
 import { getApiBase } from "@/lib/api-url.js";
 import { resourceToApiPath } from "@/lib/api-path.js";
+import { reportClientError } from "@/lib/report-client-error.js";
+
+async function withDataProviderReport<T>(
+  op: string,
+  resource: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (!(err instanceof ApiError)) {
+      void reportClientError({
+        message: err instanceof Error ? err.message : String(err),
+        name: "DataProviderError",
+        source: `data-provider:${op}:${resource}`,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
+    throw err;
+  }
+}
 
 function extractList<T extends BaseRecord>(raw: unknown): { data: T[]; total: number } {
   if (Array.isArray(raw)) {
@@ -24,7 +45,7 @@ function extractOneRecord(raw: unknown, fallbackId: string): BaseRecord {
     const o = raw as Record<string, unknown>;
     if ("data" in o && o.data !== null && typeof o.data === "object") {
       const inner = o.data as BaseRecord;
-      return inner.id != null ? inner : { ...inner, id: fallbackId };
+      return inner.id == null ? { ...inner, id: fallbackId } : inner;
     }
     if ("id" in o || Object.keys(o).length > 0) {
       return o as BaseRecord;
@@ -41,40 +62,49 @@ export const cerniqDataProvider = {
   }: {
     resource: string;
     pagination?: { currentPage?: number; pageSize?: number };
-  }) => {
-    const currentPage = pagination?.currentPage ?? 1;
-    const pageSize = pagination?.pageSize ?? 10;
-    const params = new URLSearchParams();
-    params.set("page", String(currentPage));
-    params.set("limit", String(pageSize));
-    const path = `${resourceToApiPath(resource)}?${params}`;
-    const raw = await api.get<unknown>(path);
-    const { data, total } = extractList<BaseRecord>(raw);
-    return { data, total };
-  },
-  getOne: async ({ resource, id }: { resource: string; id: string }) => {
-    const raw = await api.get<unknown>(`${resourceToApiPath(resource)}/${encodeURIComponent(id)}`);
-    return { data: extractOneRecord(raw, id) };
-  },
-  getMany: async ({ resource, ids }: { resource: string; ids: (string | number)[] }) => {
-    const params = new URLSearchParams();
-    params.set("ids", ids.join(","));
-    const raw = await api.get<unknown>(`${resourceToApiPath(resource)}?${params}`);
-    const { data } = extractList<BaseRecord>(raw);
-    return { data };
-  },
+  }) =>
+    withDataProviderReport("getList", resource, async () => {
+      const currentPage = pagination?.currentPage ?? 1;
+      const pageSize = pagination?.pageSize ?? 10;
+      const params = new URLSearchParams();
+      params.set("page", String(currentPage));
+      params.set("limit", String(pageSize));
+      const path = `${resourceToApiPath(resource)}?${params}`;
+      const raw = await api.get<unknown>(path);
+      const { data, total } = extractList<BaseRecord>(raw);
+      return { data, total };
+    }),
+  getOne: async ({ resource, id }: { resource: string; id: string }) =>
+    withDataProviderReport("getOne", resource, async () => {
+      const raw = await api.get<unknown>(
+        `${resourceToApiPath(resource)}/${encodeURIComponent(id)}`,
+      );
+      return { data: extractOneRecord(raw, id) };
+    }),
+  getMany: async ({ resource, ids }: { resource: string; ids: (string | number)[] }) =>
+    withDataProviderReport("getMany", resource, async () => {
+      const params = new URLSearchParams();
+      params.set("ids", ids.join(","));
+      const raw = await api.get<unknown>(`${resourceToApiPath(resource)}?${params}`);
+      const { data } = extractList<BaseRecord>(raw);
+      return { data };
+    }),
   create: async ({
     resource,
     variables,
   }: {
     resource: string;
     variables: Record<string, unknown>;
-  }) => {
-    const raw = await api.post<unknown>(resourceToApiPath(resource), variables);
-    const o = raw as { data?: BaseRecord };
-    const created = o?.data ?? extractOneRecord(raw, "");
-    return { data: (created.id != null ? created : { ...created, id: "" }) as BaseRecord };
-  },
+  }) =>
+    withDataProviderReport("create", resource, async () => {
+      const raw = await api.post<unknown>(resourceToApiPath(resource), variables);
+      const o = raw as { data?: BaseRecord };
+      const created = o?.data ?? extractOneRecord(raw, "");
+      if (created.id !== undefined && created.id !== null) {
+        return { data: created };
+      }
+      return { data: { ...created, id: "" } };
+    }),
   update: async ({
     resource,
     id,
@@ -83,22 +113,25 @@ export const cerniqDataProvider = {
     resource: string;
     id: string;
     variables: Record<string, unknown>;
-  }) => {
-    const raw = await api.patch<unknown>(
-      `${resourceToApiPath(resource)}/${encodeURIComponent(id)}`,
-      variables,
-    );
-    const o = raw as { data?: BaseRecord };
-    const updated = o?.data ?? extractOneRecord(raw, id);
-    return { data: updated };
-  },
-  deleteOne: async ({ resource, id }: { resource: string; id: string }) => {
-    await api.delete(`${resourceToApiPath(resource)}/${encodeURIComponent(id)}`);
-    return { data: { id } as BaseRecord };
-  },
-  getManyReference: async ({ resource }: { resource: string }) => {
-    const raw = await api.get<unknown>(resourceToApiPath(resource));
-    const { data, total } = extractList<BaseRecord>(raw);
-    return { data, total };
-  },
+  }) =>
+    withDataProviderReport("update", resource, async () => {
+      const raw = await api.patch<unknown>(
+        `${resourceToApiPath(resource)}/${encodeURIComponent(id)}`,
+        variables,
+      );
+      const o = raw as { data?: BaseRecord };
+      const updated = o?.data ?? extractOneRecord(raw, id);
+      return { data: updated };
+    }),
+  deleteOne: async ({ resource, id }: { resource: string; id: string }) =>
+    withDataProviderReport("deleteOne", resource, async () => {
+      await api.delete(`${resourceToApiPath(resource)}/${encodeURIComponent(id)}`);
+      return { data: { id } as BaseRecord };
+    }),
+  getManyReference: async ({ resource }: { resource: string }) =>
+    withDataProviderReport("getManyReference", resource, async () => {
+      const raw = await api.get<unknown>(resourceToApiPath(resource));
+      const { data, total } = extractList<BaseRecord>(raw);
+      return { data, total };
+    }),
 } as DataProvider;

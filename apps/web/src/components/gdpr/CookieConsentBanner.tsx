@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getApiBase } from "@/lib/api-url.js";
+import { getSessionCorrelationId } from "@/lib/report-client-error.js";
 import {
   writeCookieConsentToStorage,
   readCookieConsentFromStorage,
@@ -18,7 +19,10 @@ function readOptionalAuthContext(): { tenantId: string | null; userId: string | 
       userId: typeof u.id === "string" ? u.id : null,
       tenantId: typeof u.tenantId === "string" ? u.tenantId : null,
     };
-  } catch {
+  } catch (err) {
+    console.warn("[gdpr] readOptionalAuthContext: invalid user JSON", {
+      err: err instanceof Error ? err.message : String(err),
+    });
     return { tenantId: null, userId: null };
   }
 }
@@ -29,12 +33,14 @@ async function postConsentAudit(consent: CookieConsent): Promise<void> {
   const { tenantId, userId } = readOptionalAuthContext();
   const token =
     globalThis.window === undefined ? null : globalThis.window.localStorage.getItem("cerniq_token");
+  const cid = getSessionCorrelationId();
   try {
     await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(cid ? { "x-correlation-id": cid } : {}),
       },
       body: JSON.stringify({
         tenantId,
@@ -47,8 +53,10 @@ async function postConsentAudit(consent: CookieConsent): Promise<void> {
         timestamp: consent.updatedAt,
       }),
     });
-  } catch {
-    // Audit best-effort — consimțământul rămâne salvat local
+  } catch (err) {
+    console.warn("[gdpr] consent-log audit fetch failed (best-effort)", {
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 

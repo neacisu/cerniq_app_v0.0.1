@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { trace } from "@opentelemetry/api";
+import { enterCorrelationContext } from "@cerniq/observability";
 import { z } from "zod";
 import Redis from "ioredis";
 import {
@@ -48,6 +49,8 @@ const topologyQuerySchema = z.object({
 const sseQuerySchema = z.object({
   /** Token JWT ca fallback pentru EventSource care nu poate trimite Authorization header. */
   token: z.string().min(1).optional(),
+  /** Paritate cu `x-correlation-id` sesiune din SPA (EventSource fără headere custom). */
+  correlationId: z.string().min(1).max(128).optional(),
 });
 const pauseBodySchema = z
   .object({
@@ -441,6 +444,18 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
       // Token-ul JWT din localStorage este pasat ca query param.
       const queryParsed = sseQuerySchema.safeParse(request.query);
       const queryToken = queryParsed.success ? queryParsed.data.token : undefined;
+      const queryCid =
+        queryParsed.success && queryParsed.data.correlationId
+          ? queryParsed.data.correlationId.trim()
+          : "";
+      if (queryCid) {
+        (request.headers as Record<string, string>)["x-correlation-id"] = queryCid;
+        reply.header("x-correlation-id", queryCid);
+        enterCorrelationContext({
+          correlationId: queryCid,
+          requestId: String(request.headers["x-request-id"] ?? ""),
+        });
+      }
 
       try {
         if (queryToken) {

@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 type AdminUser = {
   id?: string;
   email?: string;
@@ -8,6 +10,7 @@ type AdminUser = {
 
 const TOKEN_KEY = "cerniq_admin_token";
 const USER_KEY = "cerniq_admin_user";
+const SESSION_CORR_KEY = "cerniq_admin_x_correlation_id";
 const AUTH_PREFIX = "/api/v1/auth";
 const ADMIN_ROLES = new Set(["admin", "owner", "superadmin"]);
 
@@ -95,12 +98,31 @@ function buildAdminUrl(path: string): string {
   return `${apiBase}${normalizedPath}`;
 }
 
+export function getAdminSessionCorrelationId(): string {
+  if (!hasBrowserWindow()) return "";
+  try {
+    let id = globalThis.sessionStorage.getItem(SESSION_CORR_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      globalThis.sessionStorage.setItem(SESSION_CORR_KEY, id);
+    }
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
 function createAdminHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
   const token = getStoredAdminToken();
 
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const cid = getAdminSessionCorrelationId();
+  if (cid && !headers.has("x-correlation-id")) {
+    headers.set("x-correlation-id", cid);
   }
 
   if (!(init.body instanceof FormData) && !headers.has("Content-Type")) {
@@ -116,21 +138,28 @@ function createRetryHeaders(init: RequestInit, token: string): Headers {
   return headers;
 }
 
-async function parseAdminFetchError(res: Response): Promise<Error> {
-  const text = await res.text();
-  let errorBody: unknown = text;
-
-  try {
-    errorBody = JSON.parse(text);
-  } catch {
-    // Keep raw text when response body is not JSON.
+function maybeToastAdminServerError(res: Response, data: unknown): void {
+  if (globalThis.window === undefined || res.status < 500) return;
+  if (data && typeof data === "object") {
+    const details = (data as { details?: unknown }).details;
+    if (details && typeof details === "object" && "errorId" in details) {
+      const errorId = (details as { errorId?: unknown }).errorId;
+      if (typeof errorId === "string" && errorId.length > 0) {
+        toast.error(`Eroare server (ID: ${errorId})`);
+        return;
+      }
+    }
   }
+  if (res.status === 503) {
+    toast.error("Serviciu indisponibil. Încearcă din nou.");
+  }
+}
 
+function errorFromAdminResponseBody(res: Response, errorBody: unknown): Error {
   const message =
     typeof errorBody === "object" && errorBody !== null && "error" in errorBody
       ? String((errorBody as { error: unknown }).error)
       : `HTTP ${res.status}`;
-
   return new Error(message);
 }
 
@@ -154,15 +183,19 @@ async function retryUnauthorizedRequest<T>(
 }
 
 async function refreshAdminToken(): Promise<string | null> {
-  if (refreshPromise) return refreshPromise;
+  if (refreshPromise !== null) {
+    return refreshPromise;
+  }
   refreshPromise = (async () => {
     try {
+      const cid = getAdminSessionCorrelationId();
       const res = await fetch(`${apiBase}${AUTH_PREFIX}/refresh`, {
         method: "POST",
         credentials: "include",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          ...(cid ? { "x-correlation-id": cid } : {}),
         },
         body: JSON.stringify({}),
       });
@@ -205,7 +238,15 @@ async function adminFetch<T>(path: string, init: RequestInit = {}, allowRetry = 
   }
 
   if (!res.ok) {
-    throw await parseAdminFetchError(res);
+    const text = await res.text();
+    let errorBody: unknown = text;
+    try {
+      errorBody = JSON.parse(text);
+    } catch {
+      /* non-JSON */
+    }
+    maybeToastAdminServerError(res, errorBody);
+    throw errorFromAdminResponseBody(res, errorBody);
   }
 
   return res.json() as Promise<T>;

@@ -136,7 +136,7 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     return reply.status(503).send({
       success: false,
       error: "Service temporarily unavailable. Database unreachable.",
-      details: { statusCode: 503, code: "DB_UNAVAILABLE" },
+      details: { statusCode: 503, code: "DB_UNAVAILABLE", errorId },
     });
   }
 
@@ -144,7 +144,7 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     return reply.status(503).send({
       success: false,
       error: "Service temporarily unavailable. Database migrations pending.",
-      details: { statusCode: 503, code: "DB_MIGRATION_PENDING" },
+      details: { statusCode: 503, code: "DB_MIGRATION_PENDING", errorId },
     });
   }
 

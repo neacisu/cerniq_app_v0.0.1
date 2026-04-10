@@ -13,6 +13,7 @@ import { makeSilverCompaniesColumns } from "@/lib/table-columns.js";
 import { useSilverCompanies } from "@/hooks/use-etapa1.js";
 import { SilverCompanyDrawer } from "@/components/drawers/SilverCompanyDrawer.js";
 import type { SilverCompanyRow } from "@/lib/etapa1-types.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
@@ -89,13 +90,13 @@ export function Silver() {
   const enrichMutation = useMutation({
     mutationFn: (id: string) => triggerSilverEnrich(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["etapa1", "silver"] }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["etapa1", "silver"] }).catch(voidAsyncHandler);
     },
   });
   const promoteMutation = useMutation({
     mutationFn: (id: string) => triggerSilverPromote(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["etapa1", "silver"] }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["etapa1", "silver"] }).catch(voidAsyncHandler);
     },
   });
 
@@ -103,10 +104,10 @@ export function Silver() {
     () =>
       createActionsColumn({
         onEnrich: (id) => {
-          enrichMutation.mutateAsync(id).catch(() => undefined);
+          enrichMutation.mutateAsync(id).catch(voidAsyncHandler);
         },
         onPromote: (id) => {
-          promoteMutation.mutateAsync(id).catch(() => undefined);
+          promoteMutation.mutateAsync(id).catch(voidAsyncHandler);
         },
       }),
     [enrichMutation, promoteMutation],

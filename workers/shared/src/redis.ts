@@ -1,4 +1,7 @@
 import IORedis from "ioredis";
+import { createServiceLogger } from "@cerniq/observability";
+
+const redisConnLog = createServiceLogger("worker-shared-redis");
 
 export type RedisConnections = {
   worker: IORedis;
@@ -113,12 +116,31 @@ export function getRedisConnectionOptions(opts?: { db?: number }) {
   };
 }
 
+function attachRedisLifecycle(client: IORedis, role: "worker" | "producer"): void {
+  client.on("connect", () => {
+    redisConnLog.debug({ role }, "redis connect");
+  });
+  client.on("ready", () => {
+    redisConnLog.debug({ role }, "redis ready");
+  });
+  client.on("error", (err: Error) => {
+    redisConnLog.warn({ role, err }, "redis error");
+  });
+  client.on("close", () => {
+    redisConnLog.debug({ role }, "redis close");
+  });
+  client.on("reconnecting", (delay: number) => {
+    redisConnLog.debug({ role, delayMs: delay }, "redis reconnecting");
+  });
+}
+
 export function createRedisConnections(): RedisConnections {
   const options = getRedisConnectionOptions();
-  return {
-    worker: new IORedis(options),
-    producer: new IORedis(options),
-  };
+  const worker = new IORedis(options);
+  const producer = new IORedis(options);
+  attachRedisLifecycle(worker, "worker");
+  attachRedisLifecycle(producer, "producer");
+  return { worker, producer };
 }
 
 export async function closeRedisConnections(connections: RedisConnections): Promise<void> {

@@ -13,6 +13,7 @@
  * Anti-halucinare: refolosește logica din E1 d1-anaf-fiscal.ts
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan, sanitizeCui } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, setSessionTenantId, sql, eq } from "@cerniq/db";
 import { fetchAnafByCui, parseAnafForCredit, type AnafCreditData } from "../lib/anaf-client.js";
@@ -31,6 +32,8 @@ export type CreditDataFetchAnafResult = {
   anafData: AnafCreditData | null;
 };
 
+const c14Log = createServiceLogger("e4-c14-credit-data-fetch-anaf", { etapa: "e4" });
+
 export const creditDataFetchAnafProcessor: Processor<
   CreditDataFetchAnafJobData,
   CreditDataFetchAnafResult
@@ -45,7 +48,7 @@ export const creditDataFetchAnafProcessor: Processor<
       const record = await fetchAnafByCui(cleanCui);
 
       if (!record) {
-        console.warn(`[C14] ANAF record not found for CUI=${cleanCui}, profileId=${profileId}`);
+        c14Log.warn({ cui: cleanCui, profileId }, "anaf_record_not_found");
 
         await db
           .update(goldCreditProfiles)
@@ -76,8 +79,9 @@ export const creditDataFetchAnafProcessor: Processor<
         })
         .where(eq(goldCreditProfiles.id, profileId));
 
-      console.info(
-        `[C14] ANAF fetched for CUI=${cleanCui}: activFiscal=${anafData.isActivFiscal}, TVA=${anafData.isTvaActiv}`,
+      c14Log.info(
+        { cui: cleanCui, activFiscal: anafData.isActivFiscal, tva: anafData.isTvaActiv },
+        "anaf_fetched",
       );
 
       return { ok: true, status: "fetched", anafData };

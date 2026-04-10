@@ -22,3 +22,4 @@ export const CompanyCreateSchema = CompanySchema.omit({
     createdAt: true,
     updatedAt: true,
 });
+//# sourceMappingURL=company.js.map

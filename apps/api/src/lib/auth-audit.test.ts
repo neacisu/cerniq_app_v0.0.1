@@ -3,6 +3,7 @@ import type { FastifyRequest } from "fastify";
 import {
   writeAuthAuditEvent,
   writeAuthCsrfDeniedAudit,
+  writeRbacDeniedAudit,
   logAndAuditLoginFailure,
   logAndAuditRefreshFailure,
   logAndAuditRegisterFailure,
@@ -217,6 +218,35 @@ describe("auth-audit", () => {
       action: "login_failed",
       statusCode: 401,
       metadata: expect.objectContaining({ reason: "invalid_credentials" }),
+    });
+  });
+
+  it("writeRbacDeniedAudit scrie authz_forbidden cu roluri", () => {
+    const warn = vi.fn();
+    writeRbacDeniedAudit(
+      req({
+        method: "PATCH",
+        routeOptions: mockRouteOptions("/api/v1/x"),
+        log: mockRequestLog(warn),
+        ip: "10.0.0.4",
+        headers: {},
+      }),
+      {
+        statusCode: 403,
+        reason: "insufficient_rank",
+        currentRole: "viewer",
+        requiredRoles: ["admin", "owner"],
+      },
+    );
+    expect(warn).toHaveBeenCalled();
+    expect(writeMock.mock.calls[0][0]).toMatchObject({
+      action: "authz_forbidden",
+      statusCode: 403,
+      resource: "rbac",
+      metadata: expect.objectContaining({
+        reason: "insufficient_rank",
+        currentRole: "viewer",
+      }),
     });
   });
 });

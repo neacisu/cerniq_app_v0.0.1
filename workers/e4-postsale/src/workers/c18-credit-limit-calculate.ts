@@ -17,6 +17,7 @@
  * HITL la >50K RON: SLA 4h, approver=CFO (Plan L2057, L2113)
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, approvalService, setSessionTenantId, eq } from "@cerniq/db";
 import {
@@ -24,6 +25,8 @@ import {
   HITL_THRESHOLD_RON,
   type RiskTier,
 } from "../lib/credit-scoring-engine.js";
+
+const c18Log = createServiceLogger("e4-c18-credit-limit-calculate", { etapa: "e4" });
 
 export type CreditLimitCalculateJobData = {
   tenantId: string;
@@ -55,9 +58,7 @@ export const creditLimitCalculateProcessor: Processor<CreditLimitCalculateJobDat
         })
         .where(eq(goldCreditProfiles.id, profileId));
 
-      console.info(
-        `[C18] Credit limit set: profileId=${profileId}, tier=${riskTier}, limit=${creditLimit} RON`,
-      );
+      c18Log.info({ profileId, riskTier, creditLimit }, "credit_limit_set");
 
       // ── 2. HITL dacă creditLimit > 50.000 RON (Plan L2057, SLA 4h CFO) ───
       if (creditLimit > HITL_THRESHOLD_RON) {
@@ -90,8 +91,9 @@ export const creditLimitCalculateProcessor: Processor<CreditLimitCalculateJobDat
           createdBy: null,
         });
 
-        console.info(
-          `[C18] HITL task created: taskId=${task.id}, creditLimit=${creditLimit} RON > threshold ${HITL_THRESHOLD_RON} RON`,
+        c18Log.info(
+          { taskId: task.id, creditLimit, hitlThresholdRon: HITL_THRESHOLD_RON },
+          "credit_limit_hitl_task_created",
         );
 
         return {

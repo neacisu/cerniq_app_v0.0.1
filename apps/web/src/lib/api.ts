@@ -3,6 +3,8 @@
  * Use for all authenticated requests to the API.
  */
 import { getApiBase, requestRedirectToLogin } from "./api-url.js";
+import { getSessionCorrelationId } from "./report-client-error.js";
+import { toast } from "../components/ui/toast-api.js";
 
 const STORAGE_KEY = "cerniq_token";
 const USER_KEY = "cerniq_user";
@@ -143,6 +145,23 @@ function extractErrorMessage(data: unknown, statusText: string): string {
   return statusText;
 }
 
+function maybeToastServerError(res: Response, data: unknown): void {
+  if (globalThis.window === undefined || res.status < 500) return;
+  if (data && typeof data === "object") {
+    const details = (data as { details?: unknown }).details;
+    if (details && typeof details === "object" && "errorId" in details) {
+      const errorId = (details as { errorId?: unknown }).errorId;
+      if (typeof errorId === "string" && errorId.length > 0) {
+        toast.error(`Eroare server (ID: ${errorId})`);
+        return;
+      }
+    }
+  }
+  if (res.status === 503) {
+    toast.error("Serviciu indisponibil. Încearcă din nou.");
+  }
+}
+
 async function throwApiError(res: Response): Promise<never> {
   const text = await res.text();
   let data: unknown = text;
@@ -151,6 +170,7 @@ async function throwApiError(res: Response): Promise<never> {
   } catch {
     // keep as text
   }
+  maybeToastServerError(res, data);
   const message = extractErrorMessage(data, res.statusText);
   throw new ApiError(message || `API ${res.status}`, res.status, data);
 }
@@ -190,6 +210,10 @@ export async function apiFetch<T>(
   const authHeaders = getAuthHeaders();
   for (const [k, v] of Object.entries(authHeaders)) {
     if (!headers.has(k)) headers.set(k, v);
+  }
+  const cid = getSessionCorrelationId();
+  if (cid && !headers.has("x-correlation-id")) {
+    headers.set("x-correlation-id", cid);
   }
   if (shouldSetJsonContentType(options?.body) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");

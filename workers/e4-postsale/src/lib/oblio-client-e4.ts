@@ -1,3 +1,5 @@
+import { createServiceLogger } from "@cerniq/observability";
+
 /**
  * oblio-client-e4.ts — Adapter Oblio Client pentru E4 Post-Sale
  *
@@ -11,7 +13,7 @@
  * Motivul: pachetele worker sunt independente și nu se importă cross-package.
  */
 
-const LOG = "[oblio-client-e4]";
+const oblioE4Log = createServiceLogger("e4-oblio-client-e4", { etapa: "e4" });
 
 export interface OblioStockItem {
   sku: string;
@@ -35,7 +37,7 @@ export const oblioClient = {
    * STUB — returnează date simulate cu quantity=0 per item.
    */
   async syncStock(tenantId: string, items: OblioStockItem[]): Promise<OblioStockSyncResult> {
-    console.info(`${LOG} STUB syncStock tenantId=${tenantId} items=${items.length}`);
+    oblioE4Log.info({ tenantId, itemCount: items.length }, "oblio_sync_stock_stub");
     return {
       synced: items.length,
       errors: 0,

@@ -2,6 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { healthCheckStatus, healthCheckLatency } from "../plugins/metrics.js";
 import { envConfig } from "../config.js";
 
+/** F8.34: evită setări inutile pe gauge la fiecare poll — doar la schimbare stare. */
+let lastDatabaseHealthy: boolean | null = null;
+let lastRedisHealthy: boolean | null = null;
+
 let redisSingleton: import("ioredis").default | null = null;
 
 async function getRedisClient(): Promise<import("ioredis").default> {
@@ -32,12 +36,18 @@ async function checkDatabase(): Promise<{ status: string; latencyMs: number }> {
     const { db, sql } = await import("@cerniq/db");
     await db.execute(sql`SELECT 1`);
     const latencyMs = performance.now() - start;
-    healthCheckStatus.set({ component: "database" }, 1);
+    if (lastDatabaseHealthy !== true) {
+      healthCheckStatus.set({ component: "database" }, 1);
+      lastDatabaseHealthy = true;
+    }
     healthCheckLatency.observe({ component: "database" }, latencyMs);
     return { status: "healthy", latencyMs: Math.round(latencyMs) };
   } catch {
     const latencyMs = performance.now() - start;
-    healthCheckStatus.set({ component: "database" }, 0);
+    if (lastDatabaseHealthy !== false) {
+      healthCheckStatus.set({ component: "database" }, 0);
+      lastDatabaseHealthy = false;
+    }
     healthCheckLatency.observe({ component: "database" }, latencyMs);
     return { status: "unhealthy", latencyMs: Math.round(latencyMs) };
   }
@@ -49,12 +59,18 @@ async function checkRedis(): Promise<{ status: string; latencyMs: number }> {
     const redis = await getRedisClient();
     await redis.ping();
     const latencyMs = performance.now() - start;
-    healthCheckStatus.set({ component: "redis" }, 1);
+    if (lastRedisHealthy !== true) {
+      healthCheckStatus.set({ component: "redis" }, 1);
+      lastRedisHealthy = true;
+    }
     healthCheckLatency.observe({ component: "redis" }, latencyMs);
     return { status: "healthy", latencyMs: Math.round(latencyMs) };
   } catch {
     const latencyMs = performance.now() - start;
-    healthCheckStatus.set({ component: "redis" }, 0);
+    if (lastRedisHealthy !== false) {
+      healthCheckStatus.set({ component: "redis" }, 0);
+      lastRedisHealthy = false;
+    }
     healthCheckLatency.observe({ component: "redis" }, latencyMs);
     return { status: "unhealthy", latencyMs: Math.round(latencyMs) };
   }

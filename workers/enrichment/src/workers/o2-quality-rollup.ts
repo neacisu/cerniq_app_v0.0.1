@@ -115,6 +115,9 @@ export const qualityRollupProcessor: Processor<QualityRollupJobData> = async (jo
             tenantId: job.data.tenantId,
             companyId: job.data.companyId,
             correlationId: job.data.correlationId,
+            ...(typeof job.data.correlationId === "string" && job.data.correlationId.length > 0
+              ? { httpCorrelationId: job.data.correlationId }
+              : {}),
           });
           await queue.close();
         }

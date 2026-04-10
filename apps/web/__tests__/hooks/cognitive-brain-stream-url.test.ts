@@ -17,11 +17,19 @@ vi.mock("@/lib/api.js", async (importOriginal) => {
   };
 });
 
+const getSessionCorrelationId = vi.fn<() => string>();
+
+vi.mock("@/lib/report-client-error.js", () => ({
+  getSessionCorrelationId: () => getSessionCorrelationId(),
+}));
+
 import { buildBrainStreamUrl } from "@/hooks/use-cognitive-brain.js";
 
 describe("buildBrainStreamUrl", () => {
   beforeEach(() => {
     getStoredToken.mockReset();
+    getSessionCorrelationId.mockReset();
+    getSessionCorrelationId.mockReturnValue("");
   });
 
   it("fără token → URL fără query", () => {
@@ -34,5 +42,22 @@ describe("buildBrainStreamUrl", () => {
     expect(buildBrainStreamUrl()).toBe(
       "https://api.example.com/api/v1/brain/events/stream?token=a%2Bb%2Fc",
     );
+  });
+
+  it("cu correlationId sesiune → include correlationId în query", () => {
+    getStoredToken.mockReturnValue(null);
+    getSessionCorrelationId.mockReturnValue("sess-abc");
+    expect(buildBrainStreamUrl()).toBe(
+      "https://api.example.com/api/v1/brain/events/stream?correlationId=sess-abc",
+    );
+  });
+
+  it("cu token și correlationId → ambele în query (URLSearchParams)", () => {
+    getStoredToken.mockReturnValue("tok");
+    getSessionCorrelationId.mockReturnValue("cid-1");
+    const u = buildBrainStreamUrl();
+    expect(u.startsWith("https://api.example.com/api/v1/brain/events/stream?")).toBe(true);
+    expect(u).toContain("token=tok");
+    expect(u).toContain("correlationId=cid-1");
   });
 });

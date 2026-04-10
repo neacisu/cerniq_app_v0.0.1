@@ -8,9 +8,12 @@
  * Cron pattern: "each-15-min" adică fiecare 15 minute (Plan L2126)
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, goldCreditProfiles, goldCreditReservations, sql, eq, and, lt } from "@cerniq/db";
 import { e4CreditReservationsTotal } from "../e4-metrics.js";
+
+const reservationExpireLog = createServiceLogger("e4-cron-reservation-expire", { etapa: "e4" });
 
 export const reservationExpireProcessor: Processor = async (_job) => {
   return withCognitiveSpan(
@@ -59,7 +62,7 @@ export const reservationExpireProcessor: Processor = async (_job) => {
 
       e4CreditReservationsTotal.inc({ action: "expire", tenant_id: "cron" });
 
-      console.info(`[CRON reservation:expire] Expired ${expiredCount} stale reservations (batch)`);
+      reservationExpireLog.info({ expiredCount }, "credit_reservations_expired_batch");
 
       return { ok: true, expired: expiredCount };
     },

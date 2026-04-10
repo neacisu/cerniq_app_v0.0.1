@@ -1173,7 +1173,12 @@ export async function enqueueImportJob<TPayload extends JsonRecord>(
 
   try {
     if (!importExecution) {
-      const job = await queue.add(args.jobName, args.payload, args.opts);
+      importExecLog.warn(
+        { queueName: args.queueName, jobName: args.jobName },
+        "enqueueImportJob: no import runtime context; enqueue with merged correlation fields only",
+      );
+      const data = mergeJobTracingIntoPayload(args.payload, args.correlationId);
+      const job = await queue.add(args.jobName, data, args.opts);
       return {
         queued: true,
         sessionId: null,
@@ -1355,15 +1360,49 @@ function buildBulkJobEntry<TPayload extends JsonRecord>(
   return { runtimeRow, queueItem };
 }
 
+/** Aliniază job.data la câmpurile citite de factory (correlationId / httpCorrelationId). */
+function mergeJobTracingIntoPayload<TPayload extends JsonRecord>(
+  payload: TPayload,
+  explicitCorrelationId?: string | null,
+): TPayload {
+  const p = payload;
+  const topC = typeof p.correlationId === "string" ? p.correlationId : undefined;
+  const topH = typeof p.httpCorrelationId === "string" ? p.httpCorrelationId : undefined;
+  const fromArg = explicitCorrelationId ?? undefined;
+  const correlationId = fromArg ?? topC ?? topH;
+  const httpCorrelationId = topH ?? topC ?? fromArg;
+  if (correlationId === undefined && httpCorrelationId === undefined) {
+    return payload;
+  }
+  return {
+    ...p,
+    ...(correlationId === undefined ? {} : { correlationId }),
+    ...(httpCorrelationId === undefined ? {} : { httpCorrelationId }),
+  };
+}
+
+function bulkPayloadWithJobTracing<TPayload extends JsonRecord>(
+  item: EnqueueBulkItem<TPayload>,
+): TPayload {
+  return mergeJobTracingIntoPayload(item.payload, item.correlationId);
+}
+
 async function enqueueBulkWithoutRuntimeContext<TPayload extends JsonRecord>(
   args: EnqueueBulkArgs<TPayload>,
 ) {
+  importExecLog.warn(
+    {
+      queueName: args.queueName,
+      itemCount: args.items.length,
+    },
+    "enqueueImportJobBulk: no import runtime context (missing tenant/batch); Bull payloads merged with correlation fields only",
+  );
   const queue = createQueue(args.queueName);
   try {
     await queue.addBulk(
       args.items.map((item) => ({
         name: item.jobName,
-        data: item.payload,
+        data: bulkPayloadWithJobTracing(item),
         opts: item.opts,
       })),
     );

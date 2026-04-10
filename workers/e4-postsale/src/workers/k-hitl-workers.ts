@@ -22,6 +22,7 @@
  *   → 8h nu există ca priority → folosim "high" (4h) cu override în metadata
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import {
   db,
   goldAuditLogsEtapa4,
@@ -35,6 +36,8 @@ import {
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { v4 as uuidv4 } from "uuid";
 import { e4HitlTasksCreatedTotal } from "../e4-metrics.js";
+
+const kHitlLog = createServiceLogger("e4-k-hitl-workers", { etapa: "e4" });
 
 // ────────────────────────────────────────────────────────────────────────────
 // K48 — hitl:approval:credit-override
@@ -535,6 +538,8 @@ export const hitlEscalationOverdueProcessor: Processor<HitlEscalationOverdueJobD
             createdAt: new Date(),
           });
         } catch (err) {
+          const e = err instanceof Error ? err : new Error(String(err));
+          kHitlLog.warn({ err: e, taskId: task.id, tenantId }, "k53_hitl_escalation_task_failed");
           job.log(`[K53] Eroare escalare task ${task.id}: ${String(err)}`);
         }
       }

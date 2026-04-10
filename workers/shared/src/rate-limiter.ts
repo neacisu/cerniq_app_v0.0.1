@@ -1,7 +1,11 @@
+import { createServiceLogger } from "@cerniq/observability";
+
 export type RateLimitConfig = {
   max: number;
   duration: number;
 };
+
+const rateLimitLog = createServiceLogger("provider-rate-limit");
 
 const providerRateLimits: Record<string, RateLimitConfig> = {
   anaf: { max: 1, duration: 1000 },
@@ -50,9 +54,17 @@ export async function acquireProviderRateLimit(provider: string): Promise<void> 
     }
     if (state.count < cfg.max) {
       state.count += 1;
+      rateLimitLog.debug(
+        { provider, outcome: "HIT", count: state.count, max: cfg.max, windowMs: cfg.duration },
+        "provider rate limit slot acquired",
+      );
       return;
     }
     const waitMs = Math.max(0, cfg.duration - (now - state.windowStart));
+    rateLimitLog.debug(
+      { provider, outcome: "MISS", waitMs, max: cfg.max, windowMs: cfg.duration },
+      "provider rate limit window full; waiting",
+    );
     await new Promise((r) => setTimeout(r, waitMs));
     await tick();
   }

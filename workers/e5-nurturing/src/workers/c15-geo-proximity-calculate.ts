@@ -36,6 +36,7 @@ export interface GeoProximityCalculateJobData {
   anchorClientId: string;
   radiusMeters?: number;
   correlationId?: string;
+  httpCorrelationId?: string;
 }
 
 export interface GeoProximityCalculateResult {
@@ -160,6 +161,7 @@ export function createGeoProximityCalculateWorker(): Worker {
 
         // Batch enqueue C16
         if (neighborCandidates.length > 0) {
+          const cid = job.data.correlationId;
           await neighborQueue.addBulk(
             neighborCandidates.map((prospectId) => ({
               name: "neighbor",
@@ -167,7 +169,9 @@ export function createGeoProximityCalculateWorker(): Worker {
                 tenantId,
                 anchorClientId,
                 prospectClientId: prospectId,
-                correlationId: job.data.correlationId,
+                correlationId: cid,
+                httpCorrelationId: job.data.httpCorrelationId ?? cid,
+                causationJobId: job.id,
               },
             })),
           );

@@ -15,8 +15,11 @@
  */
 import crypto from "node:crypto";
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { db, setSessionTenantId, revolutWebhooksRaw, eq } from "@cerniq/db";
 import { e4RevolutHmacValidationsTotal } from "../e4-metrics.js";
+
+const a6Log = createServiceLogger("e4-a6-revolut-webhook-validate", { etapa: "e4" });
 
 export type WebhookValidateJobData = {
   webhookId: string;
@@ -61,9 +64,7 @@ export const revolutWebhookValidateProcessor: Processor<WebhookValidateJobData> 
 
   if (!webhookSecret) {
     // Secret lipsă → logăm și marcăm ca neverificat (nu aruncăm — nu e o eroare retryabilă)
-    console.error(
-      `[A6] REVOLUT_WEBHOOK_SECRET not configured. webhookId=${webhookId} — cannot verify.`,
-    );
+    a6Log.error({ webhookId }, "revolut_webhook_secret_missing");
     await db
       .update(revolutWebhooksRaw)
       .set({ verified: false })
@@ -101,9 +102,7 @@ export const revolutWebhookValidateProcessor: Processor<WebhookValidateJobData> 
   // when E4 alert queue definitions are finalized in queue-registry.ts.
   // Current observability: e4RevolutHmacValidationsTotal{status='invalid'} metric is incremented
   // and the event is logged at ERROR level for SIEM/log-based alerting.
-  console.error(
-    `[A6] SECURITY_EVENT: Invalid HMAC for webhookId=${webhookId} tenantId=${tenantId}. Webhook marked unverified.`,
-  );
+  a6Log.error({ webhookId, tenantId }, "revolut_webhook_hmac_invalid_security_event");
 
   job.log(`[A6] HMAC INVALID: webhookId=${webhookId} — marked verified=false`);
 

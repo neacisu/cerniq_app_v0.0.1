@@ -13,6 +13,7 @@ import { NpsGauge } from "@/components/etapa5/NpsGauge.js";
 import { NurturingStatesTableBody } from "@/components/etapa5/NurturingStatesTableBody.js";
 import { deriveNpsIndexFromAvg10 } from "@/components/etapa5/nps-gauge-utils.js";
 import { formatMoneyEur } from "@/components/etapa5/nurturing-display-utils.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 import {
   fetchGraphKolProfiles,
   fetchGraphRelationships,
@@ -50,7 +51,7 @@ export function Nurturing() {
     mutationFn: (leadId: string) => postNurturingEvaluate(leadId),
     onSuccess: (res) => {
       toast.success(`Evaluare lifecycle în coadă: ${res.data.jobId}`);
-      qc.invalidateQueries({ queryKey: ["e5", "nurturing"] }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["e5", "nurturing"] }).catch(voidAsyncHandler);
     },
     onError: (e: unknown) => {
       toast.error(messageFromUnknown(e));

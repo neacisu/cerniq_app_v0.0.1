@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { trace } from "@opentelemetry/api";
+import { enterCorrelationContext } from "@cerniq/observability";
 import { dailyStats, db, sql } from "@cerniq/db";
 import { z } from "zod";
 import { loadDashboardStatsPayload } from "../lib/dashboard-stats-payload.js";
@@ -38,6 +39,8 @@ function isSchemaPermissionError(err: unknown): boolean {
 
 const kpiStreamQuerySchema = z.object({
   token: z.string().min(1).optional(),
+  /** Paritate cu `x-correlation-id` din fetch — EventSource nu poate trimite headere custom. */
+  correlationId: z.string().min(1).max(128).optional(),
 });
 
 function formatSsePayload(payload: string): string {
@@ -64,6 +67,18 @@ export async function dashboardRoutes(app: FastifyInstance) {
   app.get("/kpi-stream", async (request, reply) => {
     const queryParsed = kpiStreamQuerySchema.safeParse(request.query);
     const queryToken = queryParsed.success ? queryParsed.data.token : undefined;
+    const queryCid =
+      queryParsed.success && queryParsed.data.correlationId
+        ? queryParsed.data.correlationId.trim()
+        : "";
+    if (queryCid) {
+      (request.headers as Record<string, string>)["x-correlation-id"] = queryCid;
+      reply.header("x-correlation-id", queryCid);
+      enterCorrelationContext({
+        correlationId: queryCid,
+        requestId: String(request.headers["x-request-id"] ?? ""),
+      });
+    }
     try {
       if (queryToken) {
         (request.headers as Record<string, string>).authorization = `Bearer ${queryToken}`;

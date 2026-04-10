@@ -32,10 +32,12 @@ import { aiGuardrailsRoutes } from "./ai-guardrails.js";
 import { postsaleRoutes } from "./postsale.js";
 import { notificationsRoutes } from "./notifications.js";
 import { systemProcessesRoutes } from "./system-processes.js";
+import { clientErrorsRoutes } from "./client-errors.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes, { prefix: "/health" });
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
+  await app.register(clientErrorsRoutes, { prefix: "/api/v1" });
   await app.register(notificationsRoutes, { prefix: "/api/v1/notifications" });
   await app.register(systemProcessesRoutes, { prefix: "/api/v1/system" });
   await app.register(adminMonitoringRoutes, { prefix: "/api/admin" });

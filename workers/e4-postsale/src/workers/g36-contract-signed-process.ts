@@ -9,11 +9,14 @@
  * 5. Log: notificare internă contract semnat
  */
 import type { Processor } from "bullmq";
+import { createServiceLogger } from "@cerniq/observability";
 import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, goldContracts, goldAuditLogsEtapa4, setSessionTenantId, eq, and } from "@cerniq/db";
 import { downloadDocuSignDocument } from "../lib/docusign-client.js";
 import { storeSignedContractPdf } from "../lib/contract-generator.js";
 import { e4ContractsSignedTotal } from "../e4-metrics.js";
+
+const g36Log = createServiceLogger("e4-g36-contract-signed-process", { etapa: "e4" });
 
 export type ContractSignedProcessJobData = {
   tenantId: string;
@@ -91,9 +94,7 @@ export const contractSignedProcessProcessor: Processor<ContractSignedProcessJobD
       e4ContractsSignedTotal.inc({ tenant_id: tenantId });
 
       // ── 6. Notificare internă ─────────────────────────────────────────────
-      console.info(
-        `[G36] Contract SIGNED: contractId=${contractId}, tenantId=${tenantId}, envelopeId=${envelopeId}, signedPdfUrl=${signedPdfUrl}`,
-      );
+      g36Log.info({ contractId, tenantId, envelopeId, signedPdfUrl }, "contract_signed_processed");
 
       return {
         ok: true,
