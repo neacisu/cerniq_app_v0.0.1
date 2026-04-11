@@ -498,6 +498,13 @@
       "when": 1776814400000,
       "tag": "0069_audit_retention_llm_audit_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1776900800000,
+      "tag": "0070_catalog_bloat_rebuild_silver_and_assert",
+      "breakpoints": true
     }
   ]
 }

@@ -34,6 +34,7 @@ import { loadMigrationCredentials } from "./migrate-openbao.js";
 import { migrateCliLog } from "./migrate-cli-log.js";
 import { auditAllDrizzleFiles } from "./migration-sql-audit.js";
 import { runAllMigrations, closeMigrationDb } from "./migrate.js";
+import { getPostgresErrorFields } from "./pg-error-fields.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -156,9 +157,12 @@ async function main() {
 try {
   await main();
 } catch (err) {
+  const { code: pgCode, message: pgMessage } = getPostgresErrorFields(err);
   migrateCliLog({
     level: "error",
     event: "migrate_cli_failed",
+    pgCode: pgCode || undefined,
+    pgMessage: pgMessage || undefined,
     err: err instanceof Error ? err.message : String(err),
   });
   const sys = findNodeConnectError(err);

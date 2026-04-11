@@ -93,11 +93,24 @@ ALTER TABLE silver.silver_companies ADD COLUMN IF NOT EXISTS in_insolventa boole
 --> statement-breakpoint
 
 -- Fix naming: risk_category -> categorie_risc
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='silver' AND table_name='silver_companies' AND column_name='risk_category')
-     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='silver' AND table_name='silver_companies' AND column_name='categorie_risc') THEN
+DO $$
+DECLARE
+  v_schema text := 'silver';
+  v_table  text := 'silver_companies';
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = v_schema AND table_name = v_table AND column_name = 'risk_category'
+  )
+    AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = v_schema AND table_name = v_table AND column_name = 'categorie_risc'
+    ) THEN
     ALTER TABLE silver.silver_companies RENAME COLUMN risk_category TO categorie_risc;
-  ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='silver' AND table_name='silver_companies' AND column_name='categorie_risc') THEN
+  ELSIF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = v_schema AND table_name = v_table AND column_name = 'categorie_risc'
+  ) THEN
     ALTER TABLE silver.silver_companies ADD COLUMN categorie_risc varchar(20);
   END IF;
 END $$;
@@ -223,6 +236,198 @@ ALTER TABLE silver.silver_dedup_candidates ADD COLUMN IF NOT EXISTS merged_at ti
 -- GOLD.GOLD_COMPANIES — 114 missing columns
 -- ============================================================
 
+-- Dacă catalogul pg_attribute a atins plafonul PostgreSQL (1600 atribute fizice,
+-- inclusiv coloane „dropped”), ADD COLUMN eșuează cu 54011. VACUUM FULL nu eliberează
+-- aceste sloturi — singura cale sigură este rescrierea tabelului (LIKE … INCLUDING ALL),
+-- păstrând doar coloanele „vii”, apoi refacerea FK-urilor, triggerelor, RLS și funcției
+-- gold_compute_fit_score (semnătura folosește tipul rând gold.gold_companies).
+DO $gold_companies_catalog_rebuild$
+DECLARE
+  r RECORD;
+  attr_count integer;
+  ins_cols text;
+BEGIN
+  SELECT count(*) INTO attr_count
+  FROM pg_catalog.pg_attribute
+  WHERE attrelid = 'gold.gold_companies'::regclass
+    AND attnum > 0;
+
+  IF attr_count < 1600 THEN
+    RAISE NOTICE 'gold.gold_companies: % pg_attribute slots — skip catalog rebuild (threshold 1600)', attr_count;
+    RETURN;
+  END IF;
+
+  IF to_regclass('gold.gold_companies__catbloat_0013') IS NOT NULL THEN
+    RAISE EXCEPTION 'gold.gold_companies rebuild: orphan table gold.gold_companies__catbloat_0013 exists; resolve manually';
+  END IF;
+
+  FOR r IN
+    SELECT c.conname, c.conrelid::regclass::text AS tbl
+    FROM pg_constraint c
+    WHERE c.contype = 'f'
+      AND c.confrelid = 'gold.gold_companies'::regclass
+  LOOP
+    EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', r.tbl, r.conname);
+  END LOOP;
+
+  DROP FUNCTION IF EXISTS gold.gold_compute_fit_score(gold.gold_companies);
+
+  ALTER TABLE gold.gold_companies RENAME TO gold_companies__catbloat_0013;
+
+  CREATE TABLE gold.gold_companies (LIKE gold.gold_companies__catbloat_0013 INCLUDING ALL);
+
+  SELECT string_agg(format('%I', c.column_name), ', ' ORDER BY c.ordinal_position)
+  INTO ins_cols
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'gold'
+    AND c.table_name = 'gold_companies__catbloat_0013'
+    AND c.is_generated = 'NEVER';
+
+  EXECUTE format(
+    'INSERT INTO gold.gold_companies (%s) SELECT %s FROM gold.gold_companies__catbloat_0013',
+    ins_cols,
+    ins_cols
+  );
+
+  ALTER TABLE gold.gold_companies
+    ADD CONSTRAINT gold_companies_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL;
+  ALTER TABLE gold.gold_companies
+    ADD CONSTRAINT gold_companies_silver_id_fkey FOREIGN KEY (silver_id) REFERENCES silver.silver_companies(id) ON DELETE RESTRICT;
+  ALTER TABLE gold.gold_companies
+    ADD CONSTRAINT gold_companies_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE;
+
+  DROP TABLE gold.gold_companies__catbloat_0013;
+
+  ALTER TABLE gold.gold_companies RENAME CONSTRAINT gold_companies_pkey1 TO gold_companies_pkey;
+
+  ALTER INDEX gold.gold_companies_ai_embedding_idx RENAME TO idx_gold_companies_embedding;
+  ALTER INDEX gold.gold_companies_assigned_to_current_state_idx RENAME TO idx_gold_companies_owner;
+  ALTER INDEX gold.gold_companies_assigned_to_idx RENAME TO idx_gold_companies_assigned;
+  ALTER INDEX gold.gold_companies_location_geography_idx RENAME TO idx_gold_companies_location_geography;
+  ALTER INDEX gold.gold_companies_tenant_id_categorie_risc_scor_risc_intern_idx RENAME TO idx_gold_companies_risk;
+  ALTER INDEX gold.gold_companies_tenant_id_cui_idx RENAME TO idx_gold_companies_cui_tenant;
+  ALTER INDEX gold.gold_companies_tenant_id_current_state_state_changed_at_idx RENAME TO idx_gold_companies_state;
+  ALTER INDEX gold.gold_companies_tenant_id_customer_status_current_state_lead_idx RENAME TO idx_gold_companies_dashboard;
+  ALTER INDEX gold.gold_companies_tenant_id_judet_cod_idx RENAME TO idx_gold_companies_judet;
+  ALTER INDEX gold.gold_companies_tenant_id_lead_score_current_state_idx RENAME TO idx_gold_companies_lead_score;
+
+  ALTER TABLE gold.ai_conversations    ADD CONSTRAINT ai_conversations_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE SET NULL;
+  ALTER TABLE silver.silver_companies
+    ADD CONSTRAINT fk_silver_companies_promoted_to_gold FOREIGN KEY (promoted_to_gold_id) REFERENCES gold.gold_companies(id) ON DELETE SET NULL;
+  ALTER TABLE gold.gold_addresses
+    ADD CONSTRAINT gold_addresses_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_affiliations
+    ADD CONSTRAINT gold_affiliations_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_churn_factors
+    ADD CONSTRAINT gold_churn_factors_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_churn_signals
+    ADD CONSTRAINT gold_churn_signals_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_cluster_members
+    ADD CONSTRAINT gold_cluster_members_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_clusters
+    ADD CONSTRAINT gold_clusters_kol_client_id_fkey FOREIGN KEY (kol_client_id) REFERENCES gold.gold_companies(id) ON DELETE SET NULL;
+  ALTER TABLE gold.gold_contacts
+    ADD CONSTRAINT gold_contacts_company_id_fkey FOREIGN KEY (company_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_contracts
+    ADD CONSTRAINT gold_contracts_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE RESTRICT;
+  ALTER TABLE gold.gold_credit_profiles
+    ADD CONSTRAINT gold_credit_profiles_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_entity_relationships
+    ADD CONSTRAINT gold_entity_relationships_entity_a_id_fkey FOREIGN KEY (entity_a_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_entity_relationships
+    ADD CONSTRAINT gold_entity_relationships_entity_b_id_fkey FOREIGN KEY (entity_b_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_kol_profiles
+    ADD CONSTRAINT gold_kol_profiles_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_lead_journey
+    ADD CONSTRAINT gold_lead_journey_company_id_fkey FOREIGN KEY (company_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_negotiations
+    ADD CONSTRAINT gold_negotiations_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_nps_surveys
+    ADD CONSTRAINT gold_nps_surveys_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_nurturing_state
+    ADD CONSTRAINT gold_nurturing_state_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_orders
+    ADD CONSTRAINT gold_orders_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE RESTRICT;
+  ALTER TABLE gold.gold_proximity_scores
+    ADD CONSTRAINT gold_proximity_scores_anchor_id_fkey FOREIGN KEY (anchor_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_proximity_scores
+    ADD CONSTRAINT gold_proximity_scores_prospect_id_fkey FOREIGN KEY (prospect_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_referrals
+    ADD CONSTRAINT gold_referrals_referred_id_fkey FOREIGN KEY (referred_id) REFERENCES gold.gold_companies(id) ON DELETE SET NULL;
+  ALTER TABLE gold.gold_referrals
+    ADD CONSTRAINT gold_referrals_referrer_id_fkey FOREIGN KEY (referrer_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_sentiment_analysis
+    ADD CONSTRAINT gold_sentiment_analysis_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE gold.gold_winback_campaigns
+    ADD CONSTRAINT gold_winback_campaigns_client_id_fkey FOREIGN KEY (client_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE outreach.lead_journey
+    ADD CONSTRAINT lead_journey_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+  ALTER TABLE outreach.sms_messages
+    ADD CONSTRAINT sms_messages_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES gold.gold_companies(id) ON DELETE CASCADE;
+
+  CREATE OR REPLACE FUNCTION gold.gold_compute_fit_score(company gold.gold_companies)
+ RETURNS integer
+  LANGUAGE plpgsql
+  IMMUTABLE
+ AS $function$
+  DECLARE
+    score integer := 0;
+  BEGIN
+    IF company.categoria_dimensiune = 'MARE' THEN score := score + 30;
+    ELSIF company.categoria_dimensiune = 'MEDIE' THEN score := score + 25;
+    ELSIF company.categoria_dimensiune = 'MICA' THEN score := score + 15;
+    ELSE score := score + 5;
+    END IF;
+
+    IF COALESCE(company.is_agricultural, FALSE) THEN
+      score := score + 25;
+    ELSIF company.cod_caen_principal LIKE '46%' THEN
+      score := score + 15;
+    END IF;
+
+    IF company.categorie_risc = 'LOW' THEN score := score + 25;
+    ELSIF company.categorie_risc = 'MEDIUM' THEN score := score + 15;
+    ELSE score := score + 5;
+    END IF;
+
+    IF company.judet_cod IN ('BV', 'CJ', 'TM', 'B', 'IS', 'CT') THEN
+      score := score + 10;
+    ELSE
+      score := score + 5;
+    END IF;
+
+    IF COALESCE(company.inregistrat_e_factura, FALSE) THEN
+      score := score + 10;
+    END IF;
+
+    RETURN LEAST(100, score);
+  END;
+  $function$;
+
+  ALTER TABLE gold.gold_companies ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE gold.gold_companies FORCE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS tenant_isolation_gold_companies ON gold.gold_companies;
+  CREATE POLICY tenant_isolation_gold_companies ON gold.gold_companies AS PERMISSIVE FOR ALL TO public
+    USING (tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)
+    WITH CHECK (tenant_id = (current_setting('app.tenant_id'::text, true))::uuid);
+
+  CREATE TRIGGER trg_gold_companies_state_transition
+    BEFORE UPDATE OF current_state ON gold.gold_companies
+    FOR EACH ROW EXECUTE FUNCTION gold.gold_log_state_transition();
+  CREATE TRIGGER trg_gold_companies_lead_score
+    BEFORE INSERT OR UPDATE OF fit_score, engagement_score, intent_score ON gold.gold_companies
+    FOR EACH ROW EXECUTE FUNCTION gold.gold_compute_lead_score();
+  CREATE TRIGGER trg_gold_companies_geo
+    BEFORE INSERT OR UPDATE OF latitude, longitude ON gold.gold_companies
+    FOR EACH ROW EXECUTE FUNCTION gold.gold_compute_geography();
+
+  ANALYZE gold.gold_companies;
+
+  RAISE NOTICE 'gold.gold_companies: catalog rebuild complete (slots before: %)', attr_count;
+END;
+$gold_companies_catalog_rebuild$;
+--> statement-breakpoint
+
 -- Identificatori
 ALTER TABLE gold.gold_companies ADD COLUMN IF NOT EXISTS nr_reg_com varchar(20);
 --> statement-breakpoint
@@ -262,7 +467,26 @@ ALTER TABLE gold.gold_companies ADD COLUMN IF NOT EXISTS denumire_caen varchar(2
 --> statement-breakpoint
 ALTER TABLE gold.gold_companies ADD COLUMN IF NOT EXISTS coduri_caen_secundare jsonb NOT NULL DEFAULT '[]'::jsonb;
 --> statement-breakpoint
-ALTER TABLE gold.gold_companies ADD COLUMN IF NOT EXISTS is_agricultural boolean;
+-- cod_caen_principal din 0010; IF NOT EXISTS acoperă drift. is_agricultural aici ca boolean simplu —
+-- GENERATED (Drizzle / 0022) cere PG≥12; 0022 face DROP + ADD STORED GENERATED după această etapă.
+ALTER TABLE gold.gold_companies ADD COLUMN IF NOT EXISTS cod_caen_principal varchar(8);
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_attribute a
+    JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'gold'
+      AND c.relname = 'gold_companies'
+      AND a.attnum > 0
+      AND NOT a.attisdropped
+      AND a.attname = 'is_agricultural'
+  ) THEN
+    ALTER TABLE gold.gold_companies ADD COLUMN is_agricultural boolean;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE gold.gold_companies ADD COLUMN IF NOT EXISTS capital_social numeric(15,2);
 --> statement-breakpoint

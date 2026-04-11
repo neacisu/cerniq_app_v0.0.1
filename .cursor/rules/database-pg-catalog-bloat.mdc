@@ -1,0 +1,46 @@
+---
+description: PostgreSQL — limită atribute/tabel, coloane „dropped” în catalog, rebuild la migrare
+globs: packages/db/**/*.sql,packages/db/src/migrate*.ts
+---
+
+# Catalog `pg_attribute` și migrări Cerniq
+
+## Fapte
+
+- PostgreSQL are **cel mult ~1600 de atribute fizice per tabel** (`attnum > 0` în `pg_catalog.pg_attribute`), inclusiv intrările rămase pentru coloane **șterse** (`attisdropped = true`).
+- **`VACUUM FULL` nu eliberează** aceste sloturi. Rămân până la **rescrierea fizică a tabelului**.
+
+## Reguli pentru autori de migrări
+
+1. **Evită churn-ul** repetat `ADD COLUMN` / `DROP COLUMN` pe tabele foarte late; preferă extensii rare sau câmpuri `jsonb` unde modelul permite.
+2. După ce un tabel a acumulat multe coloane dropped, **singura curățare reală** este un **rebuild**:
+   - `ALTER TABLE … RENAME TO …_old`
+   - `CREATE TABLE … (LIKE …_old INCLUDING ALL)`
+   - `INSERT INTO … SELECT … FROM …_old` — doar coloane **non-generated** (vezi punctul 4).
+   - refacere **FK intrare/ieșire**, **index** (redenumire la numele canonice), **RLS + policy**, **trigger**, funcții cu semnătură `func(rowtype_tabel)`.
+3. **`CREATE TABLE … LIKE … INCLUDING ALL` nu copiază** FK-urile utilizator; trebuie re-adăugate explicit.
+4. **Coloane generate**: exclude din listă `INSERT` (`information_schema.columns.is_generated = 'NEVER'`).
+5. Migrarea rulează cu **`SET ROLE c3rn1q`** (rol cu **BYPASSRLS**). Fără acest rol, `SELECT` pe tabele cu RLS poate părea „gol” în `psql`.
+6. Fișierul **`0070_catalog_bloat_rebuild_silver_and_assert.sql`** rulează la sfârșitul lanțului drizzle:
+   - rebuild condiționat pentru **`silver.silver_companies`**;
+   - **asert**: eșuează migrarea dacă în schemele aplicației există un tabel cu **`total ≥ 1200`** sau **`dropped ≥ 300`** (ajustare centralizată în acel fișier).
+
+## Verificare manuală
+
+```sql
+SELECT n.nspname, c.relname,
+       count(*) FILTER (WHERE NOT a.attisdropped) AS live,
+       count(*) FILTER (WHERE a.attisdropped) AS dropped,
+       count(*) AS total
+FROM pg_attribute a
+JOIN pg_class c ON c.oid = a.attrelid AND c.relkind = 'r'
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname IN ('bronze','silver','gold','public')
+GROUP BY 1, 2
+HAVING count(*) >= 500 OR count(*) FILTER (WHERE a.attisdropped) > 50
+ORDER BY total DESC;
+```
+
+## Excluderi
+
+- Nu aplica asertul pe scheme sistem sau extensii (ex. `tiger`, `topology`) — nu sunt în whitelist-ul din `0070`.

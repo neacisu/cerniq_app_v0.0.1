@@ -33,6 +33,7 @@
     "lint:md": "markdownlint-cli2 \":.github/PULL_REQUEST_TEMPLATE.md\" \":README.md\" \":apps/monitoring-api/README.md\" \":docs/adr/ADR Etapa 0/ADR-0022-Port-Allocation-Strategy.md\" \":docs/infrastructure/ci-cd-pipeline.md\" \":docs/developer-guide/openapi-swagger-parity.md\" \":docs/developer-guide/supply-chain-dependabot.md\" \":docs/developer-guide/refine-auth-data-provider.md\" \":docs/developer-guide/security-sse-brain-token.md\" \":docs/infrastructure/infra-scripts-inventory.md\" \":docs/workers/e5-nurturing-python-contract.md\" \":docs/services/python-sidecars-contract.md\" \":docs/ui-ux/README.md\"",
     "lint:fix": "eslint . --fix",
     "typecheck": "turbo run typecheck",
+    "typecheck:watch": "pnpm -r --parallel --filter \"./apps/*\" --filter \"./packages/*\" --filter \"./workers/*\" exec tsc --noEmit --watch --preserveWatchOutput false",
     "test": "turbo run test",
     "test:watch": "vitest",
     "test:coverage": "turbo run test -- --coverage",
