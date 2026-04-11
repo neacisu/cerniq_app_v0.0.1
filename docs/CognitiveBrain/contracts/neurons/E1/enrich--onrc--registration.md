@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `enrich:onrc:registration`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Coloana «În cod (dovadă)» completată din v2 §6 + fișiere citate; markerul blochează regenerarea accidentală.
 
 ## Metadata
 
@@ -14,56 +16,61 @@
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron de enrichment extern care adaugă date fiscale, juridice, contact sau geo. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** definește coada canonică `enrich:onrc:registration` (ToolNeuron, Non-AI). **La audit în repo (2026-04-11)** nu există coadă BullMQ, procesor sau `nodeKey` de catalog pentru **`enrich:onrc:registration`**. **În schimb**, workerul **`enrich:onrc:data`** (`onrcDataProcessor`, `f1-onrc-data.ts`) extrage din răspunsul ONRC **numărul de înregistrare la registrul comerțului** (`extractOnrcNrRegCom`), actualizează `silverCompanies.nrRegCom`, `nrRegComOriginal`, `nrRegComCanonical` (doar dacă ONRC furnizează direct format canonic fără «/») și face `upsertCompanyIdentityKey` cu `keyType: "nr_reg_com"` (`sourceAuthority: "onrc"`). Deci **o parte semantică** din «înregistrare ONRC» este acoperită de **același** job ca «date generale firmă», nu de o coadă separată conform v2. **ADR familie** listează doar `enrich:onrc:data`, `administratori`, `sedii` — fără `registration`/`capital` ca nume de coadă.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~2280 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`enrich:onrc:registration\`` (~L2281–2300).
+- `docs/CognitiveBrain/adr/families/e1/enrichment.md` — enumerare ONRC (~L26).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e1:enrich:onrc-data` (~L562–570); **fără** `enrich:onrc:registration`.
+- `workers/shared/src/queue-registry.ts` — `ENRICH_ONRC_DATA` etc. (~L48–50); **fără** `registration`.
+- `workers/enrichment/src/workers/f1-onrc-data.ts` — `extractOnrcNrRegCom` (~L27–41); update `nrRegCom*` (~L104–107); `upsertCompanyIdentityKey` nr_reg_com (~L127–137); `withCognitiveSpan("e1:enrich:onrc-data", …)` (~L59–61).
+- `workers/enrichment/src/workers/p1-orchestrate.ts` — `enrich:onrc:data` în lista CUI (~L115).
+- `rg` repo: `enrich:onrc:registration` — doar docs v2 + matrice + acest contract.
 
 ## Instanțe v2
 
-### Instanță 1 — `enrichment` (linia v2 ~2280)
+### Instanță 1 — `enrichment` (linia v2 ~2281)
 
 - **Stage:** E1
 - **Family:** enrichment
 - **Inferred neuron type:** ToolNeuron
 - **Inferred criticality:** MEDIUM
 - **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+- **OTel span name (v2):** `cognitive.enrich.onrc.registration`
+- **Contract evidence status:** graph-export-grounded; reconciliere registry nefinalizată (v2).
 
 ### Extras câmpuri v2 (prima instanță)
 
-- **OODA micro-cycle:** OBSERVE: read enrichment request. ORIENT: check rate limits + cache. DECIDE: API call vs cache. ACT: merge external data.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ToolNeuron",stage="E1",swimlane="enrichment"}
-- **OTel span name:** cognitive.enrich.onrc.registration
+- **OODA / Non-AI / HITL:** ca în blocul v2 (enrichment generic).
+
+## N/A pe criterii
+
+- **Rând 8:** **N/A** — v2 Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `enrich:onrc:registration`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E1`, familie `enrichment`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron de enrichment extern care adaugă date fiscale, juridice, contact sau geo.; analogie: Cortex premotor — interfațare cu instrumente externe | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ToolNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `ToolNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.enrich.onrc.registration`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read enrichment request. ORIENT: check rate limits + cache. DECIDE: API call vs cache. ACT: merge external data. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** pentru `enrich:onrc:registration`. Runtime: `e1:enrich:onrc-data` / `enrich:onrc:data` pentru **porțiunea** nr. reg. com. | v2 `enrich:onrc:registration`. | Fără mapare 1:1 coadă v2 ↔ `nodeKey` dedicat. |
+| 2 | Etapă, familie, swimlane | v2: E1 enrichment. Cod înrudit: swimlane catalog `enrichment-external` la `enrich:onrc:data`. | v2. | — |
+| 3 | Rol declarat | v2: enrichment extern (generic). Cod F1: «date firmă ONRC» + identitate nr. reg. com. | v2. | Alte câmpuri «registration» în sens larg pot fi doar în JSON brut (`metadata.onrcData`). |
+| 4 | NeuronType + SOFAI | v2: `ToolNeuron`. Catalog pentru `enrich:onrc:data`: `ToolNeuron`. | v2 §2.1. | — |
+| 5 | Criticitate | v2: `MEDIUM`. Catalog (`enrich:onrc:data`): `HIGH`. | v2. | Divergență criticitate vs catalog pentru coada runtime. |
+| 6 | Înveliș telemetrie | Span operațional: `e1:enrich:onrc-data` (F1), **nu** `cognitive.enrich.onrc.registration` din v2. | ADR-0003. | Nealinat nume span v2 vs `nodeKey`. |
+| 7 | Înveliș politică | F1: fără HITL în handler; logging + `silverEnrichmentLog`. | v2 tier 4. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | Reguli deterministe pe nr. reg. com. (sanitizare, canonical doar dacă ONRC dă format nou). | ADR-0007. | — |
+| 10 | Escaladare HITL | F1: fără cozi `human:*` în fișierul citat. | ADR-0008. | — |
+| 11 | Micro-OODA | Flux apel ONRC + scriere DB + log; fără etichetă OODA în cod. | v2 OODA. | — |
+| 12 | Tier + de-escaladare | F1: fără praguri încredere explicite. | v2 §2.2. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ, Postgres, HTTP ONRC (`onrc-api-client.ts`). | v2. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.enrich.onrc.registration`.
+- **Cod (împărțit cu date generale ONRC):** `e1:enrich:onrc-data`.
+- **Stare:** **nealinat** — o singură coadă runtime acoperă mai multe intenții v2 (inclusiv «registration» parțial).
 
 ---
 *Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `enrich:phone:type-detect`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**.
 
 ## Metadata
 
@@ -14,56 +16,49 @@
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron de enrichment extern care adaugă date fiscale, juridice, contact sau geo. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** definește coada canonică `enrich:phone:type-detect` (ToolNeuron, Non-AI). **La audit (2026-04-11)** nu există **`enrich:phone:type-detect`** în `queue-registry.ts`, `main.ts` (enrichment), nici intrare dedicată în `cognitive-node-catalog.ts`. **Tipul de linie (MOBILE vs FIXED)** apare însă ca **câmp în aceeași bucată de metadata** produsă de **`enrich:phone:carrier`**: `metadata.carrierDetection.phoneType` în `h3-carrier-detection.ts` (`detectCarrier` → `ROMANIAN_PREFIXES[].type`). Separat, **HLR** poate popula `metadata.hlrLookup.carrierType` din răspunsul API (`carrier_type` în `h2-hlr-lookup.ts` / `hlr-api-client.ts`). Concluzie: **nu există neuron/coadă E1 izolat** pentru «type-detect»; comportamentul este **împărțit / secundar** față de cozile `enrich:phone:carrier` și `enrich:phone:hlr`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~2346 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`enrich:phone:type-detect\`` (~L2347–2367).
+- `packages/shared/src/cognitive-node-catalog.ts` — căutare `type-detect`: **lipsă**.
+- `workers/shared/src/queue-registry.ts` — căutare `type-detect`: **lipsă**; există doar `enrich:phone:normalize` / `hlr` / `carrier` (~L57–59).
+- `workers/enrichment/src/workers/h3-carrier-detection.ts` — `phoneType: detected.type` în `carrierDetection` (~L82–87, ~L94–95).
+- `workers/enrichment/src/workers/h2-hlr-lookup.ts` — `carrierType: result?.carrier_type` în `hlrLookup` (~L63–73).
+- `rg` repo — `enrich:phone:type-detect`: doar docs v2 + matrice + acest contract.
 
 ## Instanțe v2
 
-### Instanță 1 — `enrichment` (linia v2 ~2346)
+- **OTel v2:** `cognitive.enrich.phone.type-detect`.
+- **Handler dedicat:** lipsă.
 
-- **Stage:** E1
-- **Family:** enrichment
-- **Inferred neuron type:** ToolNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read enrichment request. ORIENT: check rate limits + cache. DECIDE: API call vs cache. ACT: merge external data.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ToolNeuron",stage="E1",swimlane="enrichment"}
-- **OTel span name:** cognitive.enrich.phone.type-detect
+- **Rând 8:** **N/A** — v2 Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `enrich:phone:type-detect`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E1`, familie `enrichment`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron de enrichment extern care adaugă date fiscale, juridice, contact sau geo.; analogie: Cortex premotor — interfațare cu instrumente externe | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ToolNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `ToolNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.enrich.phone.type-detect`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read enrichment request. ORIENT: check rate limits + cache. DECIDE: API call vs cache. ACT: merge external data. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** pentru `enrich:phone:type-detect`. Semnale: `e1:enrich:phone-carrier`, `e1:enrich:phone-hlr` (câmpuri `phoneType` / `carrierType`). | v2 coadă dedicată. | Fără `nodeKey` 1:1. |
+| 2 | Etapă, familie, swimlane | Piese: E1, aceleași swimlane-uri ca phone carrier / HLR în catalog. | v2 E1 enrichment. | — |
+| 3 | Rol declarat | Detectare tip linie ca sub-rezultat al carrier heuristic sau HLR. | v2 neuron distinct «type-detect». | Nu există scop izolat în cod. |
+| 4 | NeuronType + SOFAI | Neuron v2: `ToolNeuron`; piese runtime: Tool/Procedural mix (HLR Tool, carrier Tool). | v2. | — |
+| 5 | Criticitate | v2: `MEDIUM`. Catalog carrier: `LOW`; HLR: `MEDIUM`. | v2. | Criticitate amestecată pe căi parțiale. |
+| 6 | Înveliș telemetrie | Fără span pentru `enrich:phone:type-detect`. Span-uri operaționale: `e1:enrich:phone-carrier`, `e1:enrich:phone-hlr`. | v2 span dedicat. | Gap telemetrie pentru numele v2. |
+| 7 | Înveliș politică | Moștenit din H3/H2 (fără extensie dedicată). | v2 tier 4. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | Aceleași ca H3/H2; fără strat suplimentar «type-detect». | ADR-0007. | — |
+| 10 | Escaladare HITL | Fără neuron dedicat. | ADR-0008. | — |
+| 11 | Micro-OODA | Nu există ciclu OODA separat; tipul e derivat în pașii carrier/HLR. | v2 OODA pentru coadă dedicată. | — |
+| 12 | Tier + de-escaladare | Fără invariant dedicat. | v2 §2.2. | — |
+| 13 | Stack | Aceleași straturi ca phone carrier + HLR. | v2. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.enrich.phone.type-detect` — **fără** implementare directă.
+- **Cod:** telemetrie doar prin `e1:enrich:phone-carrier` și `e1:enrich:phone-hlr`.
+- **Stare:** **gap** canonic v2 vs runtime; eventuală **fuziune documentată** la migrare registry.
 
 ---
 *Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`

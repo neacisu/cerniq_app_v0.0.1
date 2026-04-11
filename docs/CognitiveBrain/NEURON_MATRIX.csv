@@ -22,11 +22,11 @@ v2_line,v2_queue,stage,family,v2_dup2,contract_path,group_key,catalog_nodekey_v2
 2192,enrich:geo:siruta-lookup,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--geo--siruta-lookup.md,E1|enrich--geo--siruta-lookup,,,no
 2214,enrich:madr:cooperative,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--cooperative.md,E1|enrich--madr--cooperative,,e1:agri:cooperative,no
 2236,enrich:madr:producer-groups,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--producer-groups.md,E1|enrich--madr--producer-groups,,e1:agri:cooperative;e5:association:madr-scrape,no
-2258,enrich:onrc:capital,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--onrc--capital.md,E1|enrich--onrc--capital,,,no
-2280,enrich:onrc:registration,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--onrc--registration.md,E1|enrich--onrc--registration,,,no
-2302,enrich:phone:carrier-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--carrier-detect.md,E1|enrich--phone--carrier-detect,,,no
-2324,enrich:phone:hlr-lookup,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--hlr-lookup.md,E1|enrich--phone--hlr-lookup,,,no
-2346,enrich:phone:type-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--type-detect.md,E1|enrich--phone--type-detect,,,no
+2258,enrich:onrc:capital,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--onrc--capital.md,E1|enrich--onrc--capital,,e1:enrich:onrc-data,no
+2280,enrich:onrc:registration,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--onrc--registration.md,E1|enrich--onrc--registration,,e1:enrich:onrc-data,no
+2302,enrich:phone:carrier-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--carrier-detect.md,E1|enrich--phone--carrier-detect,,e1:enrich:phone-carrier,no
+2324,enrich:phone:hlr-lookup,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--hlr-lookup.md,E1|enrich--phone--hlr-lookup,,e1:enrich:phone-hlr,no
+2346,enrich:phone:type-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--type-detect.md,E1|enrich--phone--type-detect,,e1:enrich:phone-carrier;e1:enrich:phone-hlr,no
 2368,enrich:phone:whatsapp-check,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--whatsapp-check.md,E1|enrich--phone--whatsapp-check,,,no
 2390,enrich:termene:anaf-debts,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--termene--anaf-debts.md,E1|enrich--termene--anaf-debts,,,no
 2412,enrich:termene:balance-sheet,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--termene--balance-sheet.md,E1|enrich--termene--balance-sheet,,,no
