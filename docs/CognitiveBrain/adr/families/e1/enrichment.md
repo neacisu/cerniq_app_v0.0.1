@@ -9,6 +9,7 @@
 | Familie | `enrichment` |
 | Plan master | [cerniq_cognitive_brain_master_implementation_plan.md](../../cerniq_cognitive_brain_master_implementation_plan.md) — `### ADR-FAMILY-e1-enrichment` |
 | Autoritate runtime | [workers/shared/src/queue-registry.ts](../../../../workers/shared/src/queue-registry.ts) |
+| Hartă docs | [README Cognitive Brain](../../README.md) |
 
 ## Context
 
@@ -50,7 +51,7 @@ Comentariul din antetul catalogului menționează **252** intrări statice catal
 
 1. **Proprietar:** Data Enrichment E1 + integrări externe.
 2. **Capabilitate:** îmbogățire cu rate limiting per provider, trasabilitate sursă și respectarea limitelor API.
-3. **Telemetrie:** span `cognitive:{nodeKey}`; pentru apeluri model/LLM acolo unde apar, aliniere treptată la convențiile OTel GenAI (`https://opentelemetry.io/docs/specs/semconv/gen-ai/`, verificat2026-04-11).
+3. **Telemetrie:** span `cognitive:{nodeKey}`; pentru apeluri model/LLM acolo unde apar, aliniere treptată la convențiile OTel GenAI (`https://opentelemetry.io/docs/specs/semconv/gen-ai/`, verificat 2026-04-11).
 4. **Anomalii:** 429/5xx de la furnizori, degradare calitate, costuri API.
 5. **Guardrail / HITL:** îmbogățiri cu impact legal (fiscal, litigii) pot declanșa revizie umană conform politicii globale.
 

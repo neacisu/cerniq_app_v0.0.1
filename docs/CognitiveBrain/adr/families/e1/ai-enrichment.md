@@ -9,6 +9,7 @@
 | Familie | `ai-enrichment` (graf planificare) |
 | Plan master | [cerniq_cognitive_brain_master_implementation_plan.md](../../cerniq_cognitive_brain_master_implementation_plan.md) — `### ADR-FAMILY-e1-ai-enrichment` |
 | Autoritate runtime | [workers/shared/src/queue-registry.ts](../../../../workers/shared/src/queue-registry.ts) |
+| Hartă docs | [README Cognitive Brain](../../README.md) |
 
 ## Context
 

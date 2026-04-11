@@ -9,6 +9,7 @@
 | Familie | `monitor` |
 | Plan master | [cerniq_cognitive_brain_master_implementation_plan.md](../../cerniq_cognitive_brain_master_implementation_plan.md) — `### ADR-FAMILY-e1-monitor` |
 | Autoritate runtime | [workers/shared/src/queue-registry.ts](../../../../workers/shared/src/queue-registry.ts) |
+| Hartă docs | [README Cognitive Brain](../../README.md) |
 
 ## Context
 

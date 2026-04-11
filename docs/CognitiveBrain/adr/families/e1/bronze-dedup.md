@@ -9,6 +9,7 @@
 | Familie | `bronze-dedup` |
 | Plan master | [cerniq_cognitive_brain_master_implementation_plan.md](../../cerniq_cognitive_brain_master_implementation_plan.md) — secțiunea `### ADR-FAMILY-e1-bronze-dedup` |
 | Autoritate runtime | ADR-0001: [workers/shared/src/queue-registry.ts](../../../../workers/shared/src/queue-registry.ts) |
+| Hartă docs | [README Cognitive Brain](../../README.md) |
 
 ## Context
 

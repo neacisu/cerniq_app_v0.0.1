@@ -6,7 +6,10 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-MASTER = ROOT.parent / "cerniq_cognitive_brain_master_implementation_plan.md"
+# Plan canonic v2 (CognitiveBrain/); fallback la numele vechi dacă lipsește.
+_V2 = ROOT / "v2_cerniq_cognitive_brain_master_implementation_plan.md"
+_LEGACY = ROOT / "cerniq_cognitive_brain_master_implementation_plan.md"
+MASTER = _V2 if _V2.is_file() else _LEGACY
 
 
 def slug_queue(name: str) -> str:
