@@ -14,11 +14,11 @@ v2_line,v2_queue,stage,family,v2_dup2,contract_path,group_key,catalog_nodekey_v2
 2016,enrich:apia:farmer-lookup,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--apia--farmer-lookup.md,E1|enrich--apia--farmer-lookup,,e1:agri:apia,no
 2038,enrich:apia:subsidies,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--apia--subsidies.md,E1|enrich--apia--subsidies,,e1:agri:apia,no
 2060,enrich:email:discovery,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--discovery.md,E1|enrich--email--discovery,,e1:discover:email-hunter,no
-2082,enrich:email:mx-check,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--mx-check.md,E1|enrich--email--mx-check,,,no
-2104,enrich:email:provider-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--provider-detect.md,E1|enrich--email--provider-detect,,,no
-2126,enrich:email:role-check,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--role-check.md,E1|enrich--email--role-check,,,no
-2148,enrich:email:smtp-verify,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--smtp-verify.md,E1|enrich--email--smtp-verify,,,no
-2170,enrich:geo:geocode,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--geo--geocode.md,E1|enrich--geo--geocode,,,no
+2082,enrich:email:mx-check,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--mx-check.md,E1|enrich--email--mx-check,,e1:discover:email-hunter-verify;e1:discover:email-zerobounce,no
+2104,enrich:email:provider-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--provider-detect.md,E1|enrich--email--provider-detect,,e1:discover:email-hunter-verify;e1:discover:email-zerobounce,no
+2126,enrich:email:role-check,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--role-check.md,E1|enrich--email--role-check,,e1:discover:email-hunter-verify,no
+2148,enrich:email:smtp-verify,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--smtp-verify.md,E1|enrich--email--smtp-verify,,e1:discover:email-hunter-verify,no
+2170,enrich:geo:geocode,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--geo--geocode.md,E1|enrich--geo--geocode,,e1:geo:geocode-nominatim,no
 2192,enrich:geo:siruta-lookup,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--geo--siruta-lookup.md,E1|enrich--geo--siruta-lookup,,,no
 2214,enrich:madr:cooperative,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--cooperative.md,E1|enrich--madr--cooperative,,,no
 2236,enrich:madr:producer-groups,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--producer-groups.md,E1|enrich--madr--producer-groups,,,no
