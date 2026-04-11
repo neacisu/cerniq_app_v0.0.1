@@ -1,0 +1,51 @@
+---
+description: Standarde enterprise pentru documentație și research (docs/); fără presupuneri; documente gândite și interconectate.
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Documentație și research — reguli obligatorii
+
+Aceste reguli se aplică la **orice** fișier din `docs/` (inclusiv `docs/CognitiveBrain/**`): creare, editare, sumarizare sau generare de conținut.
+
+## Principii definitorii (niciodată încălcate)
+
+1. **Fără livrabile „minim/minimal”.** Nu producem schițe care pretind că sunt suficiente. Documentația trebuie să fie **foarte detaliată și foarte descriptivă**, la standarde **enterprise-grade** (structură clară, decisii explicite, criterii de acceptanță, operaționalizare, trasabilitate până la sursă sau cod).
+
+2. **Fără presupuneri.** Orice afirmație factuală sau tehnică trebuie **fundamentată**: research verificabil (inclusiv surse online citate când e cazul), **infrastructură reală**, **cod real din repo**, sau documente normative din proiect. Dacă dovada lipsește, se scrie explicit **limita de evidență** — nu se umple golul cu speculații.
+
+3. **Ambiție de produs.** Scopul programului Cognitive Brain este **inovarea în domeniu** și un sistem **la sau peste cele mai exigente așteptări rezonabile ale pieței** pentru contextul dat (ex. aprilie 2026), nu un MVP generic documentat sumar.
+
+4. **Documentația conduce implementarea completă.** Textul trebuie să poată susține o **implementare completă și funcțională**: interfețe, contracte, comportamente, observabilitate, guardrails și reconcilieri — nu o listă de idei fără criterii de „gata”.
+
+## Documente „gândite”, nu liste dezordonate
+
+- **Nu insira** informații care **nu au coerență logică internă** (contradicții, salturi fără legătură, termeni folosiți în sensuri diferite în aceeași pagină fără definiție).
+- **Nu prezenta** ca fapt ceea ce este doar intuiție sau ipoteză; separă clar **dovadă** / **decizie** / **ipoteză deschisă**.
+- Înainte de a scrie: definește **scopul secțiunii**, **cititorul țintă**, **ce decizie sau ce acțiune dezvăluie** și **ce dovezi o susțin**.
+- **Fiecare propoziție relevantă** trebuie să își merite locul: ori informează, ori argumentează, ori fixează o constrângere verificabilă. Evită umplutura și repetarea fără progres logic.
+
+## Rețea de documente: totul se leagă
+
+- Documentele **se susțin reciproc**: terminologie **consistentă** (același concept = același termen sau glosar explicat), **trimiteri explicite** (`README` → overview → ADR → contracte), **fără contradicții** între fișiere; dacă apar două surse în conflict, documentul nou **rezolvă** conflictul sau îl **înregistrează** ca problemă deschisă cu pași de reconciliere.
+- Respectă **ierarhia de autoritate** deja definită în proiect (ex.: registru runtime vs export graf vs catalog semantic) și **nu o oculti**; orice document nou o **reafirmă** sau o **actualizează** printr-un ADR sau o secțiune de evidență, nu prin text paralel neoficial.
+- La adăugarea unui document nou: spune **unde se potrivește în hartă** (director, linkuri către și dinspre el) și ce **închide** sau ce **deschide** ca următoare sarcină.
+
+## Research
+
+- Research-ul citat trebuie **identificabil** (sursă, dată accesării sau versiune de spec unde e cazul). Nu atribui cifre sau versiuni fără verificare.
+- Distinge între **„recomandare din research”** și **„stare confirmată în Cerniq”**; al doilea cere dovada din infra sau cod.
+
+## Limbă și deliberare
+
+- Răspunsurile și documentația cerute în **română** rămân în română; termenii tehnici consacrați pot fi păstrați în engleză când claritatea o cere.
+- **Gândește înainte de a scrie:** fiecare acțiune de editare și fiecare formulare trebuie să servească coerenței, dovezei și legăturii între documente — nu volumului brut.
+
+## Coerență cu celelalte reguli
+
+- Când același flux atinge și cod: respectați **`enterprise-verification-diagnostics.mdc`** și **`anti-hallucination-global.mdc`** din același director; pentru fișierele `docs/` modificate, remediați și diagnosticele IDE/lint raportate pe aceste path-uri, fără a lăsa probleme cunoscute.
+
+## Testare și coverage (surse canonice)
+
+- Strategia și comenzile: **`docs/adr/ADR Etapa 0/ADR-0029-Testing-Strategy.md`**.
+- Registru mașină-citibil (tier, praguri, integrare): **`docs/developer-guide/testing-coverage-tiers.json`**, cu ghiduri adiacente (`testing-strategy-and-coverage-tiers.md`, catalog E2E, pgTAP unde există). Documentația nouă despre testare trebuie să **trimită** la aceste surse, nu să le contrazică.

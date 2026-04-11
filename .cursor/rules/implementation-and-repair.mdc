@@ -1,0 +1,58 @@
+---
+description: Implementare și remediere cod — audit cognitiv, anti-halucinare, fără presupuneri, enterprise-grade, teste pnpm/turbo.
+globs: "**/*.{ts,tsx,js,jsx,mjs,cjs}"
+alwaysApply: true
+---
+
+# Implementare și remediere cod — reguli obligatorii
+
+Postură: **expert developer enterprise-grade**. Orice remediere deeroare sau implementare în aplicație trebuie să fie **corectă în contextul real** al monorepo-ului Cerniq (workers, `apps/*`, `packages/*`, contracte API, cozi, observabilitate), **fără inventare** de API-uri, fișiere, env-uri sau comportamente care nu sunt demonstrate în cod, config sau documentație normativă din repo.
+
+## Disciplină de evidență (anti-halucinare, fără presupuneri)
+
+- **Citiți și verificați** înainte de a schimba: fișierele apelante/apelate, tipurile exportate, registry-uri (ex. cozi), rute HTTP, migrații, feature flags — folosind căutare în repo și, unde există, scripturi `pnpm audit:*` / `pnpm validate`.
+- **Nu presupuneți** nume de funcții, shape-uri de payload, coduri de eroare sau ordinea pipeline-ului; **urmați** implementarea existentă și testele.
+- Dacă informația lipsește, **documentați limita** (comentariu scurt lângă schimbare sau notă în PR) și **obțineți** dovada (citire cod, rulare test, log) — nu completați cu speculații.
+- Orice afirmație despre „cum funcționează producția” trebuie **ancorată** în cod + config din repo; pentru infra externă, indicați sursa (ex. script, manifest) sau marcați ca neconfirmat.
+
+## Audit cognitiv înainte de decizie și înainte de implementare
+
+1. **Scop și context:** Ce problemă de business sau ce invariant de sistem rezolvăm? Cine consumă rezultatul (UI, worker, integrare externă)?
+2. **Logici și procese:** Parcurgeți fluxul end-to-end relevant (ingest → procesare → persistență → ieșire / notificare). Identificați punctele de tranzacție, idempotență, retry, HITL, permisiuni.
+3. **Raționament explicit:** Folosiți ramuri de tip **what-if / what-else / if-else**: intrări valide, invalide, limite, timeout-uri, date lipsă, versiuni vechi de client, reexecutări, concurență.
+4. **Edge cases și eșecuri:** Enumerați critic scenarii de margine (null, liste goale, Unicode, timezone, rate limit, duplicate keys, ordinea mesajelor în coadă, rollback parțial). Decideți comportamentul **dorit** și aliniați-l la tiparele existente în pachetul respectiv.
+5. **Abia apoi** alegeți designul patch-ului. Nicio schimbare „de primul impuls” fără acest pas când impactul nu este trivial (o linie, typo evident).
+
+## Bară de calitate implementare (exclusiv enterprise-grade)
+
+- **Interzise remedierile superficiale** care ascund simptomul (ex. `as any`, înghițirea excepțiilor, fallback-uri opace) fără a rezolva cauza în contextul contractelor reale ale aplicației.
+- Soluțiile trebuie să fie **enterprise-grade**: claritate, tipare stricte acolo unde proiectul le folosește, gestionare erori coerentă, observabilitate acolo unde fluxul este deja instrumentat (fără a inventa scheme noi fără nevoie).
+- Ambiție: aliniere la **cele mai exigente practici rezonabile din domeniu** pentru contextul aprilie 2026 (securitate, idempotență, testare, compatibilitate).
+
+## Simboluri declarate dar neintegrate / nefolosite
+
+- **Auditați** dacă simbolul aparține unui traseu de business intenționat (spec, ADR, apeluri viitoare) sau este mort.
+- Dacă **face parte din scopul real** al aplicației: **implementați** comportamentul complet (nu stub gol), conectați la fluxul corect și **acoperiți cu teste**.
+- Dacă **nu** este parte din scop: **eliminați** sau izolați explicit (export privat, deprecare documentată) — fără a lăsa API publice ambigue. Nu adăugați „implementări” speculative fără traseu real verificat.
+
+## Testare obligatorie (pnpm / turbo / vitest)
+
+- Orice implementare sau remediere cu risc non-trivial include **teste enterprise-grade**: suite noi sau **extinderi adânci** ale celor existente (`*.test.ts`, `*.spec.ts`, după convenția pachetului), cu **aserțiuni explicite** pe comportament, contracte și regresii.
+- **Executați exhaustiv** testele aplicabile pachetului atins (întreaga suită a pachetului ori de câte ori este fezabil, nu doar un fișier izolat fără motiv), folosind convențiile monorepo (ex. `pnpm --filter <pachet> test`, `pnpm test` / `turbo run test` la root conform `package.json`). Preferință operațională: **`pnpm validate`** (lint + typecheck + test) când resursele de timp și CI o permit, pentru a reproduce bariera de calitate a proiectului.
+- Dacă nu există infrastructură de test pentru zona atinsă, **introduceți o infrastructură și o suită complete**, la nivel enterprise: teste unitare și/sau de integrare **detaliate**, care acoperă **fluxurile nominale și excepționale**, **condițiile de eroare** și **invariantele** relevante; **interzise** testele care doar „ating” codul fără verdicte clare sau fără acoperire a scenariilor critice și a marginilor contractului.
+
+### Coverage Vitest (v8) și registru tier
+
+- **Registru:** `docs/developer-guide/testing-coverage-tiers.json` + **ADR-0029** definesc tier A/B/C, `vitestThresholds`, `coverageIncludeGlobs` / exclude-uri cu rațional, `integrationTestScript` și `coverageEnforcement`. **`infra/scripts/verify-vitest-coverage-policy.mjs`** validează `vitest.config.ts` împotriva registrului (nu o listă paralelă nedocumentată).
+- Pentru pachetele cu **`enforceVitestThresholds`**, `vitest.config.ts` trebuie să reflecte **aceleași praguri** ca în registru (în mod tipic **100** pe toate dimensiunile pe suprafața măsurată). Exclude-urile masive sau coborârea pragurilor cer **actualizare în registru + ADR**, nu doar editare locală.
+- La livrare: **`pnpm verify:coverage-policy`**, **`pnpm test:coverage`** / **`pnpm test:ci`** pe zona atinsă; la gap-uri → **îmbunătățire cod sau teste**, nu tăiere funcționalitate pentru CI.
+- Taskuri din planuri: `plan-task-execution.mdc` (secțiunea *Obligație 100%*).
+
+## Coerență cu restul regulilor proiectului
+
+- După modificări: **`.cursor/rules/enterprise-verification-diagnostics.mdc`** (teste în scope, Problems/lint pe fișierele atinse, remediere inclusiv a problemelor preexistente acolo, fără închidere cu erori cunoscute).
+- Respectați **`.cursor/rules/documentation-and-research.mdc`** când schimbările impun actualizare de contracte sau `docs/`: documentația trebuie să rămână ancorată în realitate și legată ierarhic de sursele canonice ale proiectului.
+
+## Rezumat operațional
+
+**Gândiți → verificați în repo → raționați scenarii și edge cases → implementați la standard enterprise → testați cu pnpm/turbo și confirmați coverage 100% acolo unde pragurile Vitest se aplică → fără presupuneri și fără halucinații de API sau flux.**

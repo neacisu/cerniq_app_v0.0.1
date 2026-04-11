@@ -58,6 +58,10 @@ describe("isValidCUI", () => {
   it("rejects non-numeric CUI after sanitization", () => {
     expect(isValidCUI("ABCDEF")).toBe(false);
   });
+
+  it("acceptă CUI unde restul împărțirii la 11 al sumei ponderate este 10 (cifră de control 0)", () => {
+    expect(isValidCUI("60")).toBe(true);
+  });
 });
 
 describe("sanitizeNrRegCom", () => {
@@ -84,7 +88,16 @@ describe("sanitizeNrRegCom", () => {
   });
 
   it("returns null for invalid new format (bad check digit)", () => {
-    expect(sanitizeNrRegCom("J20030000980999")).toBeNull();
+    const canonical = normalizeNrRegCom("J09/98/2003");
+    expect(canonical).not.toBeNull();
+    if (canonical === null) {
+      throw new Error("expected canonical NrRegCom for fixture");
+    }
+    const last = canonical.slice(-1);
+    const wrongLast = String((Number(last) + 1) % 10);
+    const corrupted = `${canonical.slice(0, -1)}${wrongLast}`;
+    expect(sanitizeNrRegCom(corrupted)).toBeNull();
+    expect(normalizeNrRegCom(corrupted)).toBeNull();
   });
 
   it("returns null for garbage input", () => {
@@ -109,6 +122,10 @@ describe("normalizeNrRegCom (canonical conversion)", () => {
 
   it("returns null for invalid input", () => {
     expect(normalizeNrRegCom("INVALID")).toBeNull();
+  });
+
+  it("returns null for whitespace-only input after normalizare", () => {
+    expect(normalizeNrRegCom("  \t  ")).toBeNull();
   });
 });
 

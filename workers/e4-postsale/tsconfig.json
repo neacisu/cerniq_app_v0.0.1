@@ -23,6 +23,6 @@
       "@cerniq/worker-shared/*": ["./node_modules/@cerniq/worker-shared/src/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

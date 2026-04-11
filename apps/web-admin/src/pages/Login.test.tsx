@@ -44,6 +44,40 @@ describe("admin login page", () => {
     expect(loginMock).not.toHaveBeenCalled();
   });
 
+  it("afișează mesajul din Error la login eșuat", async () => {
+    const user = userEvent.setup();
+    loginMock.mockRejectedValue(new Error("bad password"));
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText(/email/i), "admin@cerniq.app");
+    await user.type(screen.getByLabelText(/parola/i), "x");
+    await user.click(screen.getByRole("button", { name: /autentificare/i }));
+
+    expect(screen.getByText("bad password")).toBeInTheDocument();
+  });
+
+  it("afișează mesaj generic când login aruncă non-Error", async () => {
+    const user = userEvent.setup();
+    loginMock.mockRejectedValue("svc");
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText(/email/i), "admin@cerniq.app");
+    await user.type(screen.getByLabelText(/parola/i), "x");
+    await user.click(screen.getByRole("button", { name: /autentificare/i }));
+
+    expect(screen.getByText(/autentificare esuata/i)).toBeInTheDocument();
+  });
+
   it("submits email and password through admin auth context", async () => {
     const user = userEvent.setup();
     loginMock.mockResolvedValue(undefined);

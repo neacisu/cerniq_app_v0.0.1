@@ -18,6 +18,6 @@
       "@cerniq/observability/*": ["../../packages/observability/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

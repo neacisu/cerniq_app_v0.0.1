@@ -1,0 +1,9 @@
+# Sinapsă `webhook-timelinesai-ingest-lead-assign-user`
+
+> **Status:** placeholder — textul canonic complet este în `docs/cerniq_cognitive_brain_master_implementation_plan.md`, secțiunea *Complete synapse contract register*.
+
+| Câmp | Valoare |
+| --- | --- |
+| Identificator sinapsă | `webhook-timelinesai-ingest-lead-assign-user` |
+
+Completează sursă, țintă, tip muchie, descriere și statusuri (payload, retry, siguranță, telemetrie) din planul master.

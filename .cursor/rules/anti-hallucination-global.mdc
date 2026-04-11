@@ -1,0 +1,58 @@
+---
+description: Regulă globală anti-halucinare — research real în repo și online, zero presupuneri, gândire pe scopuri și edge-case-uri, enterprise-grade, teste pentru evoluție (nu pierdere de funcționalitate).
+globs: "**/*"
+alwaysApply: true
+---
+
+# Anti-halucinare și disciplină de evidență — toți agenții, tot codebase-ul, toate sesiunile
+
+Această regulă se aplică **oricărui** agent și **oricărui** tip de lucru în monorepo (cod, config, infra ca text, documentație, planuri, scripturi), indiferent de pachet sau limbaj. Este **canonică** față de presupuneri, speculații și „completări rapide” nefundamentate.
+
+## Research real, complet, ancorat în realitate
+
+- **Totul** pornește de la **research concret**: citire/căutare în repo, apeluri de unelte (căutare, citire fișiere, rulare comenzi permise), și — pentru fapte externe (versiuni, CVE, comportamentul unui serviciu public, standarde) — **verificare online** la **standardele cele mai exigente rezonabile din industrie**, cu surse identificabile și **data cercetării nu mai devreme de aprilie 2026** (contextul temporal al proiectului). Nu prezenta ca „stare curentă” fapte externe fără verificare la momentul lucrului.
+- **0 presupuneri:** nu se afirmă nume de fișiere, API-uri, env-uri, ordine de execuție, contracte sau comportamente **fără** dovadă din cod, config, teste sau documentație normativă din repo (sau din sursa externă verificată). Lipsa de evidență se declară explicit; **nu** se umple golul prin inventat.
+- **Inovare da, inventat nu:** inovarea este binevenită când este **fundamentată** (dovadă + raționament + aliniere la scopuri). **Nu** confunda inovarea cu presupuneri plauzibile sau cu „așa se face de obicei” fără verificare în contextul acestui repo.
+
+## Gândire obligatorie a informației și a implementării
+
+- **Orice** informație relevantă pentru decizie trebuie **procesată critic**: coerență internă, compatibilitate cu codul existent, impact pe contracte și pe utilizatori interni/externi.
+- **Scopuri de înțeles și ținut minte în lanț:**
+  - **scopul aplicației** (produsul și valorile pe care le servește);
+  - **scopul implementării** concrete din sesiune (de ce se schimbă ceva acum);
+  - **scopul funcționalităților de business** atinse sau atinse indirect;
+  - **logica de business** în care se face schimbarea (invariante, reguli, excepții);
+  - **logica arhitecturală** a aplicației și a infrastructurii (straturi, limite, fluxuri, idempotență, securitate, observabilitate).
+- **Context real:** reconstruiți fluxul end-to-end acolo unde este relevant; nu tratați simptomul izolat fără a înțelege poziția în sistem.
+- **Edge-case-uri și scenarii:** identificați și gândiți **toate** ramurile relevante (nominal, erori, date lipsă, limite, concurență, reîncercări, compatibilitate înapoi). Nu livrați comportament ambiguu „pentru că nu am enumerat cazul”.
+
+## Înainte de implementare: analiză, nu grabă
+
+- **Nu implementați** fără analiză în profunzime susținută de **studiu concret** al scenariilor și al codului existent.
+- Unde există **decizie de produs**, **ambiguitate normativă** sau **dovadă insuficientă**: **întrebați utilizatorul** sau marcați blocajul cu pași clari — **nu ghiciți**.
+
+## Calitate: enterprise-grade, nu minimalism de livrare
+
+- **Interzise** livrabilele „minim/minimal” care pretind că sunt suficiente fără să fie: exigența este **enterprise-grade**, **foarte detaliată** acolo unde detaliul este necesar pentru corectitudine și operare, fără a confunda detaliul cu zgomot inutil.
+
+## Testare: evoluție prin evidență, nu regresie prin neglijență
+
+- La implementări cu impact,ținta este **acoperire completă a intenției**: teste de **cod**, de **logică de business**, de **consistență** (contracte, invariante), și teste care **evidențiază gap-uri** (ce lipsește sau se comportă greșit devine vizibil).
+- Respectați **obligațiile operaționale** din `implementation-and-repair.mdc` și, pentru taskuri din planuri, din `plan-task-execution.mdc` (inclusiv pragurile Vitest **100%** unde politica repo se aplică).
+- **Scopul testelor** este ca aplicația **să evolueze**, nu **să piardă** funcționalități. Prin urmare, în orice situație de nealiniere test–cod:
+
+  - **fie** codul nu este suficient de matur pentru comportamentul așteptat → **enhancement de cod** (comportament clar, corect, documentat în comportament prin teste);
+  - **fie** testele nu acoperă suficient codul și scenariile → **enhancement de teste** pentru **coverage 100%** (logică + metrici) pe zona în scope, conform politicii pachetului.
+
+- **În niciun caz** nu eliminăm funcționalități și **nu** ștergem cod **fără** să fie **efectiv necesar** și **nerelevant** pentru scopul real al aplicației (dovadă + acord explicit când decizia este delicată). Testarea trebuie să **identifice** erorile din cod și erorile de logică de business; în urma testării, aplicația trebuie să **evolueze**, nu să **regreseze** prin tăieri nejustificate.
+
+## Coerență cu regulile specifice
+
+- Cod și teste: `implementation-and-repair.mdc`.
+- După implementare — teste complete, IDE Problems, lint, remediere integrală în scope: `enterprise-verification-diagnostics.mdc`.
+- Planuri și todo-uri: `plan-task-execution.mdc` (include **checklist anti-halucinare obligatoriu pentru fiecare todo/item** din listă).
+- Documentație sub `docs/`: `documentation-and-research.mdc`.
+
+## Rezumat operațional
+
+**Research în repo + verificare externă la standard (≥ aprilie 2026) → zero presupuneri → gândire pe scopuri și pe toate scenariile → decizii cu utilizatorul când e cazul → livrare enterprise-grade → teste care forțează corectitudinea și evoluția; la conflict, îmbunătățim codul sau testele, nu „rezolvăm” prin pierdere de funcționalitate.**

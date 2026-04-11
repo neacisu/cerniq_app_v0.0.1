@@ -8,6 +8,26 @@ import {
 } from "./traced-postgres.js";
 
 describe("traced-postgres (statement redaction)", () => {
+  it("templateToRedactedStatement: array gol", () => {
+    const strings = Object.assign([], { raw: [] as readonly string[] }) as TemplateStringsArray;
+    expect(templateToRedactedStatement(strings)).toBe("");
+  });
+
+  it("templateToRedactedStatement: primul segment nullish devine gol înainte de placeholder-e", () => {
+    const strings = Object.assign([undefined as unknown as string, "tail"], {
+      raw: [undefined as unknown as string, "tail"],
+    }) as TemplateStringsArray;
+    expect(templateToRedactedStatement(strings)).toBe("$1tail");
+  });
+
+  it("templateToRedactedStatement folosește ?? pentru segmente lipsă", () => {
+    const strings = Object.assign(["a", undefined as unknown as string, "c"], {
+      raw: ["a", undefined as unknown as string, "c"],
+    }) as TemplateStringsArray;
+    // Trei segmente ⇒ două placeholder-e ($1, $2); segmentul din mijloc devine gol prin ??.
+    expect(templateToRedactedStatement(strings)).toBe("a$1$2c");
+  });
+
   it("templateToRedactedStatement înlocuiește valorile cu placeholders numerotate", () => {
     const strings = Object.assign(["SELECT * FROM users WHERE id = ", " AND x = ", ""], {
       raw: ["SELECT * FROM users WHERE id = ", " AND x = ", ""],

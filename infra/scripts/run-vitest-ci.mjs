@@ -6,6 +6,10 @@ import prettier from "prettier";
 const rootDir = process.cwd();
 const resultsDir = path.join(rootDir, "test-results", "vitest");
 
+const registryPath = path.join(rootDir, "docs/developer-guide/testing-coverage-tiers.json");
+const registry = JSON.parse(readFileSync(registryPath, "utf-8"));
+const packages = registry.packages.filter((p) => p.includeInVitestCi !== false).map((p) => p.package);
+
 /**
  * Rapoarte `--reporter=json` (Vitest) pe o singură linie → formatare Prettier.
  * NU folosim `filepath` în `prettier.format`: `.prettierignore` conține `test-results`,
@@ -35,24 +39,6 @@ async function formatVitestJsonReports() {
     }
   }
 }
-
-const packages = [
-  "@cerniq/api",
-  "@cerniq/web",
-  "@cerniq/web-admin",
-  "@cerniq/monitoring-api",
-  "@cerniq/db",
-  "@cerniq/shared-types",
-  "@cerniq/config",
-  "@cerniq/observability",
-  "@cerniq/worker-enrichment",
-  "@cerniq/worker-shared",
-  "@cerniq/worker-ai",
-  "@cerniq/worker-outreach",
-  "@cerniq/worker-e3-ai-sales",
-  "@cerniq/worker-e4-postsale",
-  "@cerniq/worker-e5-nurturing",
-];
 
 mkdirSync(resultsDir, { recursive: true });
 
@@ -159,7 +145,9 @@ writeFileSync(
   JSON.stringify(
     {
       generatedAt: new Date().toISOString(),
-      packages: summary,
+      registry: path.relative(rootDir, registryPath),
+      packages,
+      items: summary,
     },
     null,
     2,

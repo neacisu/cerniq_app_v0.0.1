@@ -1,5 +1,13 @@
 import { defineConfig } from "vitest/config";
 
+/** Suprafața Tier B măsurată — vezi `docs/developer-guide/testing-coverage-tiers.json` (@cerniq/worker-shared). Registry/LLM/factory rămân în afara pragului Vitest până la suite extinse sau integrare Redis. */
+const coverageInclude = [
+  "src/event-contract.ts",
+  "src/external-api-wrapper.ts",
+  "src/worker-auto-obs-env.ts",
+  "src/worker-cognitive-env.ts",
+];
+
 export default defineConfig({
   test: {
     globals: true,
@@ -9,12 +17,12 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "lcov"],
       reportsDirectory: "./coverage",
-      /** Bibliotecă mare (registry, redis, factory); praguri anti-regresie — vezi roadmap creștere la 75%+. */
+      include: coverageInclude,
       thresholds: {
-        statements: 52,
-        branches: 35,
-        functions: 48,
-        lines: 54,
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100,
       },
     },
   },

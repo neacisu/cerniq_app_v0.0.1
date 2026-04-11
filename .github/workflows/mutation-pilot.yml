@@ -1,0 +1,42 @@
+# Pilot mutation testing (Stryker) — nu blochează PR; semnal pe main programat + manual.
+# ADR-0029 § mutation testing; implementare: packages/config (test:mutation).
+
+name: Mutation pilot (Stryker)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "17 4 * * 1"
+
+concurrency:
+  group: mutation-pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "25.8.1"
+  PNPM_VERSION: "10.32.1"
+
+jobs:
+  stryker-config-pilot:
+    name: Stryker — @cerniq/config
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Mutation testing (pilot)
+        run: pnpm --filter @cerniq/config test:mutation

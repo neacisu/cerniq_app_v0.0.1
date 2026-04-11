@@ -106,6 +106,8 @@ coverage/
 coverage-app/
 .nyc_output/
 test-results/
+.stryker-tmp/
+**/reports/mutation/
 
 # Playwright E2E — storageState generat (setup); nu comit
 apps/web/playwright/.auth/

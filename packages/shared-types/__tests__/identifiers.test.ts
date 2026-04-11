@@ -39,4 +39,14 @@ describe("shared identifiers", () => {
     const canonical = nrRegComSchema.parse("J40/1234/2020");
     expect(canonical).toBe(convertOldNrRegComToCanonical("J", "40", "1234", "2020"));
   });
+
+  it("cuiSchema respinge intrări goale sau invalide (safeParse)", () => {
+    expect(cuiSchema.safeParse("").success).toBe(false);
+    expect(cuiSchema.safeParse("   ").success).toBe(false);
+    expect(cuiSchema.safeParse("RO").success).toBe(false);
+  });
+
+  it("nrRegComSchema respinge format invalid (safeParse)", () => {
+    expect(nrRegComSchema.safeParse("not-a-nrregcom").success).toBe(false);
+  });
 });

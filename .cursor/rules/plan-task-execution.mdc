@@ -1,0 +1,80 @@
+---
+description: Execuție taskuri/todo-uri din planuri — lectură integrală, audit cognitiv, fără presupuneri, completare enterprise, marcare completed doar când e adevărat.
+globs: "**/.cursor/plans/**/*.md"
+alwaysApply: true
+---
+
+# Execuție taskuri din planuri și todo-uri de proiect
+
+Această regulă se aplică când lucrați din **planuri** (fișiere `.md` sub `.cursor/plans/` din repo sau din mediul Cursor, plan atașat conversației, sau document de implementare echivalent) și din **liste de taskuri** derivate din acestea.
+
+## Checklist anti-halucinare — obligatoriu pentru **fiecare** todo / item de listă
+
+Canonul complet: **`.cursor/rules/anti-hallucination-global.mdc`**. Până la închiderea itemului, **nu** marcați progresul ca finalizat decât dacă toate punctele de mai jos sunt îndeplinite (sau explicite ca blocaj cu următorul pas).
+
+1. **Research în repo:** dovezi din **cod, config, teste, scripturi** — căutare și citire concretă; nicio afirmație despre „cum e în proiect” fără fișier sau comandă care o susține.
+2. **Fapte externe (versiuni, CVE, comportament servicii, standarde):** verificare **online** la momentul lucrului, **surse identificabile**, aliniere la exigențe rezonabile din industrie; **context temporal al proiectului: nu înainte de aprilie 2026** pentru „stare curentă” a unui fapt extern.
+3. **0 presupuneri:** fără completat goluri cu „probabil”; lipsa de evidență = declarat explicit + întrebare către utilizator sau blocaj documentat.
+4. **Inovare ≠ inventat:** orice propunere nouă are **dovadă + raționament + legătură cu scopurile** de mai jos, nu speculație.
+5. **Gândire pe lanțul de scopuri** (explicit, înainte de patch): scopul **aplicației** → al **implementării** acestui item → al **funcționalităților de business** → **logica de business** → **arhitectura / infrastructura** relevantă.
+6. **Context real și edge-case-uri:** flux end-to-end unde e cazul; enumerate ramuri **nominal, erori, date lipsă, limite, concurență, retry, compatibilitate înapoi** care ating itemul.
+7. **Fără implementare în orb:** analiză în profunzime cu scenarii concrete; la **decizie de produs** sau ambiguitate normativă → **întrebați utilizatorul**, nu ghiciți.
+8. **Calitate enterprise-grade:** interzise livrabile „minim” care pretind suficiență fără corectitudine și trasabilitate; detaliu acolo unde e necesar pentru operare și contracte.
+9. **Teste ca evoluție, nu tăiere:** teste pe **cod**, **logică de business**, **consistență** (contracte, invariante), **identificare gap-uri**; la nealiniere test–cod → **fie** enhancement **cod**, **fie** enhancement **teste** conform **registrului tier** și **ADR-0029** (100% pe suprafața declarată, integrare pentru I/O greu). **Interzis** mock-uri care înlocuiesc I/O **fără aserțiuni** pe comportament; **interzis** să eliminați funcționalități doar pentru metrici (excepție rară: cod mort dovedit + ADR). Vezi `implementation-and-repair.mdc`.
+10. **„Completed” doar cu dovezi:** item închis când verificările din secțiunea *Validare înainte de „completed”* sunt adevărate, inclusiv raport coverage acolo unde e criteriu obligatoriu — nu după impresie; aplicați și **`enterprise-verification-diagnostics.mdc`** (teste, IDE Problems, lint pe path-urile atinse, fără probleme lăsate în urmă în scope).
+
+## Lectură și înțelegere (fără lectură parțială)
+
+- **Citiți planul în integralitatea lui** (toate secțiunile, dependențele, ADR-urile sau doc-urile referite) înainte de a modifica cod. Nu rezolvați doar primul paragraf vizibil sau snippet-ul din chat fără a încadra restul planului.
+- **Reconstruiți cognitiv** lanțul cauză–efect: scopul aplicației, scopul planului, scopul taskului curent, **outcome-urile** așteptate măsurabile (comportament, contracte, observabilitate, teste).
+- **Analiză critică înainte de implementare:** what-if / what-else / if-else pe intrări, erori, reconectări, concurență, date lipsă, compatibilitate înapoi. Identificați **gap-uri de implementare**, **inconsistențe logice** între plan și codul existent, și **contradicții** între taskuri consecutive.
+
+## Standard de livrare (context aprilie 2026, enterprise-grade)
+
+- Obiectiv: implementare **completă și corectă** în contextul real al monorepo-ului, la standarde **enterprise-grade** pentru perioada proiectului — **fără ocoliri** (*workaround*-uri) mascate, **fără fișiere lăsate jumătate** (TODO-uri neterminate, stub-uri nejustificate, tipuri falsificate).
+- **Nu presupuneți** comportamente ale workerilor, API-urilor, cozilor sau mediului: verificați în **cod, config, teste și documentație normativă** din repo.
+- **Nu inventați** endpoint-uri, env-uri, flag-uri sau evenimente care nu apar în evidențele proiectului.
+
+## Dincolo de taskul literal (fără deviație necontrolată)
+
+- Dacă, prin audit, identificați **lucruri critice extra** față de formularea îngustă a taskului — dar **necesare** pentru coerența planului, securitatea, idempotența sau outcome-ul în interesul aplicației — **documentați-le** (în PR sau în plan) și **rezolvați-le** sau **escaladați explicit**. Nu ignorați inconsistențe majore din „nu era în checklist”.
+- Orice extindere de scope trebuie **justificată** prin legătură cu scopul planului și al aplicației, nu prin refactor gratuit.
+
+## Decizii incerte
+
+- Când o decizie depinde de preferință de produs, de date lipsă din repo sau de ambiguitate normativă: **nu ghiciți** — **întrebați utilizatorul** sau marcați blocajul cu pașii exacți necesari pentru deblocare.
+
+## Testare și audit post-implementare
+
+- Adăugați sau extindeți **teste** astfel încât modificările să fie **verificabile** și **regresiile prinse**: unit, integrare sau alte tipuri acceptate în pachetul atins.
+
+### Obligație **100%** (forțată, definită operațional)
+
+În perimetrul fiecărui task, **„100%” nu este opțional** — înseamnă simultan:
+
+1. **100% logică și contracte în scope:** orice cale de execuție **nominale și excepțională** relevantă, orice **funcție publică sau handler** atins, orice **worker / proces** modificat sau introdus trebuie să aibă **teste care afirmă explicit** comportamentul așteptat și tratarea erorilor (nu simple apeluri fără aserțiuni).
+2. **100% acoperire metrică pe fișierele/modulele atinse:** pentru codul **nou sau modificat** din scope-ul taskului, raportul **Vitest coverage (provider v8)** trebuie să indice **100%** pentru **statements**, **branches**, **functions** și **lines** pe acele fișiere (sau pe modulele exportate vizate). Dacă un fișier nu poate fi adus la 100% (ex. cod generat, boundary extern nedeterminist), **nu presupuneți** — **întrebați utilizatorul** sau documentați blocajul; altfel continuați până la 100%.
+3. **Politica repo:** sursa de adevăr pentru tier-uri, praguri și suprafața `coverage.include` este **`docs/developer-guide/testing-coverage-tiers.json`**, aliniată la **ADR-0029**. Rulați **`pnpm verify:coverage-policy`** (validare `vitest.config.ts` vs registru, `coverage.thresholds` v8) și, pentru pachetele modificate, **`pnpm test:coverage`** / **`pnpm test:ci`** astfel încât **pragurile din registru** să fie **îndeplinite**, iar pe codul din scope **100%** pe dimensiunile măsurate acolo unde tier-ul o cere (nu coborâți praguri fără ADR + registru).
+
+**Marcați taskul ca finalizat din punct de vedere al testării doar după verificarea concretă a raportului de coverage** (sau a artefactului CI) pentru zona atinsă, nu după impresia că „au fost scrise destule teste”.
+
+- Rulați, pentru zona atinsă, fluxurile de validare relevante (ex. `pnpm --filter <pachet> test`, `pnpm validate` când este fezabil), conform regulii `implementation-and-repair.mdc` din același director `rules/`.
+
+## Validare înainte de „completed” în plan
+
+Înainte de a marca un task sau întreg planul ca **completed**:
+
+1. **Re-auditați** codul livrat față de cerințele taskului și față de planul integral (nu doar titlul taskului).
+2. Confirmați **fără workaround-uri** care încalcă contractele proiectului și **fără fișiere incomplete** introduse de mâna voastră.
+3. Verificați că **testele** și, unde e cazul, **lint/typecheck** trec pentru pachetele modificate, și că **criteriul de acoperire 100%** din secțiunea *Obligație 100%* este **îndeplinit** pentru tot codul din scope-ul taskului (cu excepții doar dacă utilizatorul a acceptat explicit altfel).
+4. Dacă taskul cere actualizare de **documentație** sau contracte: respectați regula `documentation-and-research.mdc` din același director `rules/`.
+
+**Marcați `completed` în plan doar când cele de mai sus sunt adevărate.** Dacă nu sunt, folosiți stări intermediare (ex. în progres, blocat) cu motiv și următorul pas concret.
+
+## Căi de plan (fără hardcodare fragilă)
+
+- Planurile pot fi în **repo** (ex. `docs/`, `.cursor/plans/`) sau furnizate ca **fișier atașat / cale absolută în mediul Cursor**. Înlocuiți mereu **calea din exemplul de task** cu **fișierul de plan efectiv** al sesiunii curente; nu presupuneți că un UUID de plan vechi este încă canonic.
+
+## Rezumat operațional
+
+**Checklist anti-halucinare (fiecare todo) → plan integral → gândire pe scenarii și edge cases → zero presupuneri → implementare enterprise fără ocoliri → testare cu obligație 100% (logică + metrici Vitest v8 pe zona taskului); la conflict, cod mai matur sau teste mai complete, nu pierdere de funcționalitate → întrebare la incertitudine → `completed` doar când criteriile din secțiunea anterioară sunt îndeplinite integral.**

@@ -1,5 +1,10 @@
 import { toast } from "sonner";
 
+import { getAdminSessionCorrelationId as resolveAdminSessionCorrelationId } from "./admin-session-correlation.js";
+import { getApiBase } from "./get-api-base.js";
+
+export { getAdminSessionCorrelationId } from "./admin-session-correlation.js";
+
 type AdminUser = {
   id?: string;
   email?: string;
@@ -10,33 +15,11 @@ type AdminUser = {
 
 const TOKEN_KEY = "cerniq_admin_token";
 const USER_KEY = "cerniq_admin_user";
-const SESSION_CORR_KEY = "cerniq_admin_x_correlation_id";
 const AUTH_PREFIX = "/api/v1/auth";
 const ADMIN_ROLES = new Set(["admin", "owner", "superadmin"]);
 
 function hasBrowserWindow(): boolean {
   return globalThis.window !== undefined;
-}
-
-function getBrowserLocation(): Location | null {
-  if (!hasBrowserWindow()) {
-    return null;
-  }
-
-  return globalThis.window.location;
-}
-
-function getApiBase(): string {
-  const env = import.meta.env as { VITE_API_URL?: string; DEV?: boolean };
-  if (env.VITE_API_URL) return env.VITE_API_URL.replace(/\/$/, "");
-  if (env.DEV) return "http://localhost:64010";
-  const location = getBrowserLocation();
-  if (location?.hostname) {
-    const host = location.hostname.replace(/^admin\./, "api.");
-    const proto = location.protocol || "https:";
-    return `${proto}//${host}`;
-  }
-  return "";
 }
 
 export const apiBase = getApiBase();
@@ -98,20 +81,6 @@ function buildAdminUrl(path: string): string {
   return `${apiBase}${normalizedPath}`;
 }
 
-export function getAdminSessionCorrelationId(): string {
-  if (!hasBrowserWindow()) return "";
-  try {
-    let id = globalThis.sessionStorage.getItem(SESSION_CORR_KEY);
-    if (!id) {
-      id = crypto.randomUUID();
-      globalThis.sessionStorage.setItem(SESSION_CORR_KEY, id);
-    }
-    return id;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
-
 function createAdminHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
   const token = getStoredAdminToken();
@@ -120,7 +89,7 @@ function createAdminHeaders(init: RequestInit): Headers {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const cid = getAdminSessionCorrelationId();
+  const cid = resolveAdminSessionCorrelationId();
   if (cid && !headers.has("x-correlation-id")) {
     headers.set("x-correlation-id", cid);
   }
@@ -188,7 +157,7 @@ async function refreshAdminToken(): Promise<string | null> {
   }
   refreshPromise = (async () => {
     try {
-      const cid = getAdminSessionCorrelationId();
+      const cid = resolveAdminSessionCorrelationId();
       const res = await fetch(`${apiBase}${AUTH_PREFIX}/refresh`, {
         method: "POST",
         credentials: "include",
@@ -379,4 +348,9 @@ export function retryFailedQueue(queue: string) {
 
 export function drainQueue(queue: string) {
   return postQueueAction(queue, "drain");
+}
+
+/** Upload multipart admin (FormData); expune ramura fără `Content-Type: application/json` din antete. */
+export async function postAdminFormData(path: string, body: FormData, init: RequestInit = {}) {
+  return adminFetch<Record<string, unknown>>(path, { method: "POST", body, ...init });
 }

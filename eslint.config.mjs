@@ -47,6 +47,16 @@ export default defineConfig(
       "@typescript-eslint/ban-ts-comment": "off",
     },
   },
+  /** Vitest configs stau în afara rootDir/tsconfig composite; fără projectService pentru a evita TS6305 / parsing errors. */
+  {
+    files: ["**/vitest.config.ts"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+    },
+  },
   {
     ignores: [
       "node_modules/**",

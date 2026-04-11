@@ -22,12 +22,14 @@ export function isValidCUI(input: string): boolean {
   const padded = clean.padStart(10, "0");
   const digits = padded.split("").map(Number);
   const checkDigit = digits.pop();
-  if (checkDigit == null) return false;
+  if (checkDigit === undefined) {
+    return false;
+  }
 
   const controlKey = [7, 5, 3, 2, 1, 7, 5, 3, 2];
   let sum = 0;
   for (let i = 0; i < controlKey.length; i++) {
-    sum += (digits[i] ?? 0) * controlKey[i];
+    sum += digits[i] * controlKey[i];
   }
   const remainder = (sum * 10) % 11;
   const expected = remainder === 10 ? 0 : remainder;
@@ -40,10 +42,14 @@ export function computeNrRegComCheckDigit(base: string): number {
     throw new Error("Invalid base for NrRegCom check digit");
   }
 
-  const type = normalized[0];
+  const typeChar = normalized.charAt(0);
   const rest = normalized.slice(1);
   const sumDigits = rest.split("").reduce((acc, ch) => acc + Number(ch), 0);
-  return ((type.codePointAt(0) ?? 0) + sumDigits) % 10;
+  const typeCp = typeChar.codePointAt(0);
+  if (typeCp === undefined) {
+    throw new Error("Invalid base for NrRegCom check digit");
+  }
+  return (typeCp + sumDigits) % 10;
 }
 
 export function convertOldNrRegComToCanonical(
@@ -73,10 +79,9 @@ export function sanitizeNrRegCom(input: string): string | null {
   const raw = normalizeIdentifierWhitespace(input);
   if (!raw) return null;
 
-  if (NEW_NR_REG_COM_RE.test(raw)) {
-    const newMatch = NEW_NR_REG_COM_RE.exec(raw);
-    if (!newMatch) return null;
-    const [, type, year, order, county, checkDigit] = newMatch;
+  const newFormatMatch = NEW_NR_REG_COM_RE.exec(raw);
+  if (newFormatMatch) {
+    const [, type, year, order, county, checkDigit] = newFormatMatch;
     const base = `${type}${year}${order}${county}`;
     const expected = computeNrRegComCheckDigit(base);
     return expected === Number(checkDigit) ? raw : null;

@@ -266,6 +266,8 @@ vi.mock("@cerniq/worker-shared", () => ({
   })),
   closeRedisConnections: vi.fn(),
   loadSecretsFromFile: vi.fn(),
+  assertQueueRegistryComplete: vi.fn(),
+  registerCognitiveWorkerEtapa: vi.fn(),
   queueRegistry: [],
   startQueueDepthMonitor: vi.fn(() => vi.fn()),
   watchSecretsFile: vi.fn(() => vi.fn()),

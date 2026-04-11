@@ -9,6 +9,11 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:mutation": "stryker run"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "9.6.0",
+    "@stryker-mutator/vitest-runner": "9.6.0"
   }
 }

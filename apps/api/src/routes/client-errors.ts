@@ -54,7 +54,8 @@ const clientErrorBodySchema = z.object({
 
 export async function clientErrorsRoutes(app: FastifyInstance) {
   const clientErrorsLimiter = app.rateLimit({
-    max: 10,
+    /** În `NODE_ENV=test` suite-ul API face multe `inject` cu același IP → plafon mare ca să nu mascheze contractul. */
+    max: process.env.NODE_ENV === "test" ? 1_000_000 : 10,
     timeWindow: "1 minute",
     keyGenerator: (req) => `client-errors:${req.ip}`,
   });

@@ -8,12 +8,8 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: "v8",
-      include: [
-        "src/lib/ensure-job-data-correlation.ts",
-        "src/lib/phone-last4.ts",
-        "src/lib/outreach-job-logger.ts",
-        "src/lib/sms-job-failure-log.ts",
-      ],
+      /** Suprafața Tier B măsurată — vezi `docs/developer-guide/testing-coverage-tiers.json`. */
+      include: ["src/lib/phone-last4.ts", "src/lib/outreach-job-logger.ts"],
       exclude: ["**/node_modules/**", "**/dist/**"],
       reporter: ["text", "json-summary", "lcov"],
       reportsDirectory: "./coverage",

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactFlowProvider } from "@xyflow/react";
 import { CognitiveBrainCanvas } from "@/components/cognitive/CognitiveBrainCanvas.js";
 
@@ -27,12 +28,21 @@ vi.mock("@/hooks/use-cognitive-brain.js", () => ({
 describe("CognitiveBrainCanvas", () => {
   it("montează canvas cu topologie fallback (catalog)", () => {
     const onNodeSelect = vi.fn();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     render(
-      <ReactFlowProvider>
-        <div style={{ width: 800, height: 600 }}>
-          <CognitiveBrainCanvas batchId={null} selectedNodeKey={null} onNodeSelect={onNodeSelect} />
-        </div>
-      </ReactFlowProvider>,
+      <QueryClientProvider client={queryClient}>
+        <ReactFlowProvider>
+          <div style={{ width: 800, height: 600 }}>
+            <CognitiveBrainCanvas
+              batchId={null}
+              selectedNodeKey={null}
+              onNodeSelect={onNodeSelect}
+            />
+          </div>
+        </ReactFlowProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByTestId("cognitive-brain-canvas")).toBeInTheDocument();
   });

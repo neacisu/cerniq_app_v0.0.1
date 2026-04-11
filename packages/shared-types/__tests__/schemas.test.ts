@@ -64,6 +64,24 @@ describe("Zod Schemas", () => {
         count: 2,
       });
     });
+
+    it("redact este alias funcțional la redactPii", () => {
+      const redactor = createPiiRedactor();
+      expect(redactor.redact("a@b.co")).toContain("[EMAIL_REDACTED]");
+    });
+
+    it("redactObject păstrează null și parcurge tablouri ca obiecte cu chei numerice", () => {
+      const redactor = createPiiRedactor();
+      expect(
+        redactor.redactObject({
+          empty: null,
+          arr: ["user@x.com"],
+        }),
+      ).toEqual({
+        empty: null,
+        arr: { 0: "[EMAIL_REDACTED]" },
+      });
+    });
   });
 
   describe("TenantSchema", () => {

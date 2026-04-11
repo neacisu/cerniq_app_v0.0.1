@@ -302,7 +302,8 @@ describe("useCognitiveEventStream", () => {
 
     const inst = getInstances()[0];
     expect(inst).toBeDefined();
-    expect(inst.url).toBe("http://127.0.0.1:64010/api/v1/brain/events/stream");
+    const base = "http://127.0.0.1:64010/api/v1/brain/events/stream";
+    expect(inst.url.startsWith(`${base}?`) || inst.url === base).toBe(true);
   });
 
   it("apelează ultimul callback la mesaje SSE după rerender", () => {

@@ -1,0 +1,9 @@
+# Sinapsă `referral-consent-expire-content-personalize-ai`
+
+> **Status:** placeholder — textul canonic complet este în `docs/cerniq_cognitive_brain_master_implementation_plan.md`, secțiunea *Complete synapse contract register*.
+
+| Câmp | Valoare |
+| --- | --- |
+| Identificator sinapsă | `referral-consent-expire-content-personalize-ai` |
+
+Completează sursă, țintă, tip muchie, descriere și statusuri (payload, retry, siguranță, telemetrie) din planul master.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-10T07:36:47.556Z",
+  "generatedAt": "2026-04-11T17:43:39.257Z",
   "paths": {
     "/": [
       "GET"
@@ -109,6 +109,9 @@
     "/api/v1/bronze/contacts/{id}/reprocess": [
       "POST"
     ],
+    "/api/v1/churn/{leadId}/evaluate": [
+      "POST"
+    ],
     "/api/v1/churn/factors": [
       "GET"
     ],
@@ -124,11 +127,14 @@
     "/api/v1/churn/stats": [
       "GET"
     ],
-    "/api/v1/churn/{leadId}/evaluate": [
-      "POST"
-    ],
     "/api/v1/contracts/": [
       "GET"
+    ],
+    "/api/v1/contracts/{id}": [
+      "GET"
+    ],
+    "/api/v1/contracts/{id}/send-docusign": [
+      "POST"
     ],
     "/api/v1/contracts/audit": [
       "GET"
@@ -144,12 +150,6 @@
     ],
     "/api/v1/contracts/templates": [
       "GET"
-    ],
-    "/api/v1/contracts/{id}": [
-      "GET"
-    ],
-    "/api/v1/contracts/{id}/send-docusign": [
-      "POST"
     ],
     "/api/v1/credit/profiles": [
       "GET"
@@ -211,9 +211,6 @@
     "/api/v1/enrichment/approvals": [
       "GET"
     ],
-    "/api/v1/enrichment/approvals/stats": [
-      "GET"
-    ],
     "/api/v1/enrichment/approvals/{id}": [
       "GET"
     ],
@@ -226,6 +223,9 @@
     "/api/v1/enrichment/approvals/{id}/escalate": [
       "POST"
     ],
+    "/api/v1/enrichment/approvals/stats": [
+      "GET"
+    ],
     "/api/v1/enrichment/queues": [
       "GET"
     ],
@@ -236,6 +236,9 @@
       "POST"
     ],
     "/api/v1/enrichment/queues/{name}/resume": [
+      "POST"
+    ],
+    "/api/v1/errors/client": [
       "POST"
     ],
     "/api/v1/fiscal/einvoice/submissions": [
@@ -312,24 +315,6 @@
       "GET",
       "POST"
     ],
-    "/api/v1/imports/control": [
-      "GET"
-    ],
-    "/api/v1/imports/control/pause": [
-      "POST"
-    ],
-    "/api/v1/imports/control/resume": [
-      "POST"
-    ],
-    "/api/v1/imports/mapping-targets": [
-      "GET"
-    ],
-    "/api/v1/imports/template": [
-      "GET"
-    ],
-    "/api/v1/imports/template/columns": [
-      "GET"
-    ],
     "/api/v1/imports/{id}": [
       "DELETE",
       "GET"
@@ -397,18 +382,27 @@
     "/api/v1/imports/{importId}/logs/stream": [
       "GET"
     ],
+    "/api/v1/imports/control": [
+      "GET"
+    ],
+    "/api/v1/imports/control/pause": [
+      "POST"
+    ],
+    "/api/v1/imports/control/resume": [
+      "POST"
+    ],
+    "/api/v1/imports/mapping-targets": [
+      "GET"
+    ],
+    "/api/v1/imports/template": [
+      "GET"
+    ],
+    "/api/v1/imports/template/columns": [
+      "GET"
+    ],
     "/api/v1/negotiation/": [
       "GET",
       "POST"
-    ],
-    "/api/v1/negotiation/by-lead/{leadId}": [
-      "GET"
-    ],
-    "/api/v1/negotiation/guardrails": [
-      "GET"
-    ],
-    "/api/v1/negotiation/stats": [
-      "GET"
     ],
     "/api/v1/negotiation/{id}": [
       "GET",
@@ -429,18 +423,18 @@
     "/api/v1/negotiation/{id}/reminder": [
       "POST"
     ],
+    "/api/v1/negotiation/by-lead/{leadId}": [
+      "GET"
+    ],
+    "/api/v1/negotiation/guardrails": [
+      "GET"
+    ],
+    "/api/v1/negotiation/stats": [
+      "GET"
+    ],
     "/api/v1/negotiations/": [
       "GET",
       "POST"
-    ],
-    "/api/v1/negotiations/by-lead/{leadId}": [
-      "GET"
-    ],
-    "/api/v1/negotiations/guardrails": [
-      "GET"
-    ],
-    "/api/v1/negotiations/stats": [
-      "GET"
     ],
     "/api/v1/negotiations/{id}": [
       "GET",
@@ -461,14 +455,23 @@
     "/api/v1/negotiations/{id}/reminder": [
       "POST"
     ],
+    "/api/v1/negotiations/by-lead/{leadId}": [
+      "GET"
+    ],
+    "/api/v1/negotiations/guardrails": [
+      "GET"
+    ],
+    "/api/v1/negotiations/stats": [
+      "GET"
+    ],
     "/api/v1/notifications/": [
       "GET"
     ],
-    "/api/v1/notifications/read-all": [
-      "POST"
-    ],
     "/api/v1/notifications/{id}/read": [
       "PATCH"
+    ],
+    "/api/v1/notifications/read-all": [
+      "POST"
     ],
     "/api/v1/nurturing/actions": [
       "GET"
@@ -508,6 +511,14 @@
       "GET",
       "POST"
     ],
+    "/api/v1/orders/{id}": [
+      "DELETE",
+      "GET",
+      "PATCH"
+    ],
+    "/api/v1/orders/{id}/payments": [
+      "GET"
+    ],
     "/api/v1/orders/payments": [
       "GET"
     ],
@@ -518,14 +529,6 @@
       "GET"
     ],
     "/api/v1/orders/stats": [
-      "GET"
-    ],
-    "/api/v1/orders/{id}": [
-      "DELETE",
-      "GET",
-      "PATCH"
-    ],
-    "/api/v1/orders/{id}/payments": [
       "GET"
     ],
     "/api/v1/outreach/analytics/daily": [
@@ -550,12 +553,6 @@
       "GET",
       "POST"
     ],
-    "/api/v1/outreach/leads/export": [
-      "GET"
-    ],
-    "/api/v1/outreach/leads/import": [
-      "POST"
-    ],
     "/api/v1/outreach/leads/{id}": [
       "GET",
       "PATCH"
@@ -569,14 +566,20 @@
     "/api/v1/outreach/leads/{id}/takeover": [
       "POST"
     ],
+    "/api/v1/outreach/leads/export": [
+      "GET"
+    ],
+    "/api/v1/outreach/leads/import": [
+      "POST"
+    ],
     "/api/v1/outreach/notifications": [
       "GET"
     ],
-    "/api/v1/outreach/notifications/mark-all-read": [
-      "POST"
-    ],
     "/api/v1/outreach/notifications/{id}/read": [
       "PATCH"
+    ],
+    "/api/v1/outreach/notifications/mark-all-read": [
+      "POST"
     ],
     "/api/v1/outreach/phones": [
       "GET"
@@ -591,9 +594,6 @@
     "/api/v1/outreach/reviews": [
       "GET"
     ],
-    "/api/v1/outreach/reviews/stats": [
-      "GET"
-    ],
     "/api/v1/outreach/reviews/{id}": [
       "GET"
     ],
@@ -602,6 +602,9 @@
     ],
     "/api/v1/outreach/reviews/{id}/resolve": [
       "POST"
+    ],
+    "/api/v1/outreach/reviews/stats": [
+      "GET"
     ],
     "/api/v1/outreach/sequences": [
       "GET",
@@ -639,19 +642,6 @@
       "GET",
       "POST"
     ],
-    "/api/v1/products/categories": [
-      "GET",
-      "POST"
-    ],
-    "/api/v1/products/index/rebuild": [
-      "POST"
-    ],
-    "/api/v1/products/search": [
-      "POST"
-    ],
-    "/api/v1/products/stats": [
-      "GET"
-    ],
     "/api/v1/products/{id}": [
       "GET",
       "PATCH"
@@ -665,12 +655,22 @@
     "/api/v1/products/{id}/stock": [
       "GET"
     ],
-    "/api/v1/referrals/": [
+    "/api/v1/products/categories": [
       "GET",
       "POST"
     ],
-    "/api/v1/referrals/stats": [
+    "/api/v1/products/index/rebuild": [
+      "POST"
+    ],
+    "/api/v1/products/search": [
+      "POST"
+    ],
+    "/api/v1/products/stats": [
       "GET"
+    ],
+    "/api/v1/referrals/": [
+      "GET",
+      "POST"
     ],
     "/api/v1/referrals/{id}": [
       "GET"
@@ -681,7 +681,13 @@
     "/api/v1/referrals/{id}/outreach": [
       "POST"
     ],
+    "/api/v1/referrals/stats": [
+      "GET"
+    ],
     "/api/v1/shipments/": [
+      "GET"
+    ],
+    "/api/v1/shipments/{id}": [
       "GET"
     ],
     "/api/v1/shipments/addresses": [
@@ -694,9 +700,6 @@
       "POST"
     ],
     "/api/v1/shipments/stats": [
-      "GET"
-    ],
-    "/api/v1/shipments/{id}": [
       "GET"
     ],
     "/api/v1/silver/companies": [

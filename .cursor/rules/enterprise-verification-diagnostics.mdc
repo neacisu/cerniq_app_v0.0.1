@@ -1,0 +1,27 @@
+---
+description: Verificare completă după implementare — teste, diagnostic IDE/lint, remediere integrală a erorilor și avertismentelor, postură inginer senior, evoluție fără tăieri de funcționalitate.
+globs: "**/*"
+alwaysApply: true
+---
+
+# Verificare, diagnostic și închidere curată — toți agenții
+
+Postură: **inginer software profesionist**, cu **cele mai înalte abilități** rezonabile în contextul taskului: rigoare, responsabilitate pentru calitatea livrabilei, refuz al „merge-ului mental” cu erori cunoscute. Orice **implementare** sau **remediere** se încheie numai după **verificare activă**, nu după presupunerea că „ar trebui să fie ok”.
+
+## Obligații după modificări (ordine logică, adaptată la scope)
+
+1. **Înțelegere în lanț:** scopul aplicației, al schimbării și al regulilor din **toate** fișierele din `.cursor/rules/` care se aplică (în special `anti-hallucination-global.mdc`, `implementation-and-repair.mdc`, `plan-task-execution.mdc`, `documentation-and-research.mdc`).
+2. **Teste:** rulați **suitele complete relevante** pentru zona atinsă (minimum: întreg pachetul modificat; unde politica și timpul permit: `pnpm validate` / `turbo run test` / fluxul din `package.json` echivalent). **Identificați** eșecuri, flakiness explicabil și regresii; **nu** livrați cu teste roșii în perimetrul livrării.
+3. **Diagnostic static în IDE:** pentru fișierele și directoarele din **scope-ul lucrului**, consultați **Problems** din IDE și **raportul de lint/diagnostics** disponibil agentului (ex. citirea linterului pe path-urile modificate). Tratați **toate** erorile și **avertismentele** raportate acolo care privesc aceste path-uri, **inclusiv** cele **preexistente** (nu doar cele „introduse acum”), prin **remedieri reale**: cod corect, tipuri, importuri, contracte — nu ocoliri enterprise-inacceptabile (ex. dezactivări masive de reguli fără motiv documentat).
+4. **Remediere enterprise-grade:** fiecare problemă găsită (test, tip, lint, logică) se **repară** la standardul proiectului: cauză abordată, nu mascată; aliniere la tiparele existente în pachet; teste care prind regresia dacă e cazul.
+5. **Zero probleme lăsate în urmă (în scope):** nu marcați taskul ca final și nu considerați implementarea „gata” dacă în fișierele atinse mai există **erori sau avertismente** cunoscute în IDE sau **eșecuri de test** neadresate. Dacă o problemă nu poate fi rezolvată fără decizie de produs sau fără schimbare de scope major: **documentați blocajul**, **întrebați utilizatorul** — nu ignorați.
+6. **Evoluție, nu regresie:** aplicația și implementarea **evoluează**; **nu** ștergeți funcții sau funcționalități ca „scurtătură” pentru a face verificările să treacă. Dacă ceva trebuie îndepărtat, trebuie să fie **dovedit** necesar și **nerelevant** scopului (vezi `anti-hallucination-global.mdc`); altfel **corectați** sau **completați** codul și testele.
+
+## Delimitare practică
+
+- **Perimetru prioritar:** pachetele, aplicațiile și fișierele **modificate sau citite ca parte directă** a taskului. Extinderea la monorepo întreg este **țintă** când rulați `pnpm validate` / CI local și este fezabil — nu folosiți „nu am atins fișierul” ca motiv să lăsați **același fișier** cu diagnostice roșii după ce l-ați editat.
+- **Conflict între reguli:** prevală **dovada** și **explicitarea**; nu încălciți contractele documentate din proiect pentru a „șterge” o eroare.
+
+## Rezumat operațional
+
+**Implementare → teste complete în scope → IDE Problems + lint pe path-urile atinse → reparare integrală (inclusiv preexistent) la standard enterprise → fără tăieri de funcționalitate → coerență cu toate regulile `.cursor/rules`.**
