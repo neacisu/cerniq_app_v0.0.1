@@ -80,14 +80,24 @@ export function redactPII(
 // ---------------------------------------------------------------------------
 
 /**
- * Emite un eveniment cognitiv:
- * - INSERT în `bronze.cognitive_events` (când `ctx.tenantId` este prezent)
- * - PUBLISH pe canalul Redis `cognitive:events:{batchId}` sau `cognitive:events`
+ * Contract JSON Redis / SSE (tenant-scoped), aliniat la `mapEventRow` din API:
+ * - `id` — bigserial după INSERT (absent dacă nu s-a scris în DB)
+ * - `tenantId` — obligatoriu pe firul live când evenimentul e per-tenant
+ * - `batchId` — opțional; canal Redis = `cognitive:events:{batchId}` sau `cognitive:events`
+ * - `nodeKey`, `eventType`, `timestamp` (ISO)
+ * - `data` — payload eveniment + `traceId`, `spanId`, `correlationId` (UUID sau null)
  *
- * @param nodeKey - Cheia nodului cognitiv (ex: "e1:pipeline:orchestrate")
- * @param event   - Tipul și payload-ul evenimentului
- * @param ctx     - Context opțional ImportExecutionContext (pentru INSERT DB + canal per-batch)
+ * Evenimente fără `ctx.tenantId` nu sunt publicate pe Redis (API le respinge oricum).
  */
+const CORRELATION_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseCorrelationUuid(v: string | null | undefined): string | null {
+  if (v == null || typeof v !== "string") return null;
+  const t = v.trim();
+  return CORRELATION_UUID_RE.test(t) ? t : null;
+}
+
 export async function emitCognitiveEvent(
   nodeKey: string,
   event: { eventType: string; data?: Record<string, unknown> },
@@ -95,31 +105,52 @@ export async function emitCognitiveEvent(
 ): Promise<void> {
   const now = new Date();
   const payload = event.data ?? {};
+  const correlationUuid = parseCorrelationUuid(ctx?.correlationId ?? undefined);
 
-  // INSERT DB doar când tenantId e disponibil (INSERT opțional pentru backward compat)
+  let insertedId: number | undefined;
   if (ctx?.tenantId) {
     const activeSpan = trace.getActiveSpan();
     const spanId = activeSpan?.spanContext().spanId ?? null;
-    await db.insert(cognitiveEvents).values({
-      tenantId: ctx.tenantId,
-      nodeKey,
-      eventType: event.eventType,
-      traceId: ctx.traceId ?? null,
-      spanId,
-      payload,
-      createdAt: now,
-    });
+    const [row] = await db
+      .insert(cognitiveEvents)
+      .values({
+        tenantId: ctx.tenantId,
+        nodeKey,
+        eventType: event.eventType,
+        traceId: ctx.traceId ?? null,
+        spanId,
+        correlationId: correlationUuid,
+        payload,
+        createdAt: now,
+      })
+      .returning({ id: cognitiveEvents.id });
+    insertedId = row?.id;
   }
 
-  // PUBLISH Redis — canal specific per batch dacă batchId disponibil
-  const channel = ctx?.batchId ? `cognitive:events:${ctx.batchId}` : "cognitive:events";
-  const message = JSON.stringify({
+  if (!ctx?.tenantId) {
+    return;
+  }
+
+  const traceId = ctx.traceId ?? null;
+  const activeSpan = trace.getActiveSpan();
+  const spanId = activeSpan?.spanContext().spanId ?? null;
+  const wire = {
+    id: insertedId,
+    tenantId: ctx.tenantId,
+    ...(ctx.batchId ? { batchId: ctx.batchId } : {}),
     nodeKey,
     eventType: event.eventType,
-    data: payload,
     timestamp: now.toISOString(),
-  });
-  await getPubRedis().publish(channel, message);
+    data: {
+      ...payload,
+      traceId,
+      spanId,
+      correlationId: correlationUuid,
+    },
+  };
+
+  const channel = ctx.batchId ? `cognitive:events:${ctx.batchId}` : "cognitive:events";
+  await getPubRedis().publish(channel, JSON.stringify(wire));
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +200,9 @@ export async function recordDataMutation(
 
 const tracer = trace.getTracer("cerniq");
 
+/** Marchează spanul OTel ca să detectăm același `nodeKey` (factory + procesor). */
+export const CERNIQ_COGNITIVE_SPAN_NODE_KEY = "__cerniqCognitiveNodeKey" as const;
+
 /**
  * Instrumentare OTel pentru un nod cognitiv.
  * Când `ctx` este prezent, emite automat: `node_started`, `node_completed`, `node_failed`.
@@ -183,8 +217,14 @@ export async function withCognitiveSpan<T>(
   fn: (span: Span) => Promise<T>,
   ctx?: Partial<ImportExecutionContext>,
 ): Promise<T> {
+  const active = trace.getActiveSpan() as (Span & Record<string, unknown>) | undefined;
+  if (active?.[CERNIQ_COGNITIVE_SPAN_NODE_KEY] === nodeKey) {
+    return fn(active as Span);
+  }
+
   const catalogEntry = getNodeByKey(nodeKey);
   return tracer.startActiveSpan(`cognitive:${nodeKey}`, async (span: Span) => {
+    (span as Span & Record<string, unknown>)[CERNIQ_COGNITIVE_SPAN_NODE_KEY] = nodeKey;
     span.setAttribute("cognitive.nodeKey", nodeKey);
     if (catalogEntry) {
       span.setAttribute("cognitive.neuronType", catalogEntry.neuronType);
@@ -197,7 +237,6 @@ export async function withCognitiveSpan<T>(
 
     const startedAt = new Date().toISOString();
 
-    // Fire-and-forget: erori de observabilitate nu blochează logica de business
     if (ctx) {
       void emitCognitiveEvent(
         nodeKey,
@@ -328,13 +367,20 @@ export async function propagatePause(
 ): Promise<void> {
   const redis = getPubRedis();
 
-  if (!rootBatchId || !tenantId) {
-    // Comportament original: pauza DOAR nodul solicitat
+  if (!tenantId) {
     await redis.set(`cognitive:pause:${nodeKey}`, "1");
-    await emitCognitiveEvent(nodeKey, {
-      eventType: "PAUSE_PROPAGATED",
-      data: { pausedAt: new Date().toISOString() },
-    });
+    return;
+  }
+  if (!rootBatchId) {
+    await redis.set(`cognitive:pause:${nodeKey}`, "1");
+    await emitCognitiveEvent(
+      nodeKey,
+      {
+        eventType: "PAUSE_PROPAGATED",
+        data: { pausedAt: new Date().toISOString() },
+      },
+      { tenantId },
+    );
     return;
   }
 
@@ -383,6 +429,23 @@ export async function propagatePause(
       }
     }
   }
+}
+
+/** Telemetrie muchie — eveniment cognitiv pe nodul sursă cuținta în payload. */
+export async function emitCognitiveEdgeHandoff(
+  sourceNodeKey: string,
+  targetNodeKey: string,
+  ctx: Partial<ImportExecutionContext> & { tenantId: string },
+  detail?: Record<string, unknown>,
+): Promise<void> {
+  await emitCognitiveEvent(
+    sourceNodeKey,
+    {
+      eventType: "edge_handoff",
+      data: { targetNodeKey, ...detail },
+    },
+    ctx,
+  );
 }
 
 // ── LLM cost tracker (Plan §XVI.B) — re-export pentru workeri / API; apelurile LLM sunt în `llm-fallback` / E3. ──

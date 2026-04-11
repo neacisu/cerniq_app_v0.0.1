@@ -9,19 +9,39 @@ import {
   dataMutations,
   importCognitiveNodes,
   importCognitiveEdges,
+  importNodeAnomalies,
   db,
   eq,
   and,
   gte,
   asc,
   desc,
+  isNull,
 } from "@cerniq/db";
 import { COGNITIVE_NODE_CATALOG, CATALOG_STATS, SWIMLANES, getNodeByKey } from "@cerniq/shared";
-import type { CognitiveBrain, CognitiveEdge, CognitiveNode } from "@cerniq/shared";
-import { propagatePause } from "@cerniq/worker-shared";
+import type {
+  AnomalyRecord,
+  CognitiveBrain,
+  CognitiveEdge,
+  CognitiveNode,
+  NodeControlState,
+} from "@cerniq/shared";
+import {
+  propagatePause,
+  detectStaleImportCognitiveHeartbeatsForBatch,
+} from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
+import {
+  evaluateCognitiveSseLiveMessage,
+  MAX_SSE_BRAIN_PAYLOAD_BYTES,
+} from "../lib/cognitive-sse-live-message.js";
 import { requireRole } from "../middleware/authz.js";
-import { sseConnectionErrorsTotal, sseEventsSentTotal } from "../plugins/metrics.js";
+import {
+  sseBrainLiveEventsDroppedTotal,
+  sseBrainRedisMessagesTotal,
+  sseConnectionErrorsTotal,
+  sseEventsSentTotal,
+} from "../plugins/metrics.js";
 import { requireTenantId, parseLimit, ensureRequestTenantIdFromJwtIfMissing } from "./utils.js";
 
 const SSE_ROUTE_COGNITIVE_EVENTS = "/api/v1/brain/events/stream";
@@ -51,6 +71,8 @@ const sseQuerySchema = z.object({
   token: z.string().min(1).optional(),
   /** Paritate cu `x-correlation-id` sesiune din SPA (EventSource fără headere custom). */
   correlationId: z.string().min(1).max(128).optional(),
+  /** Abonare Redis `cognitive:events:{batchId}` + filtru evenimente pentru batch-ul selectat în UI. */
+  batchId: z.uuid().optional(),
 });
 const pauseBodySchema = z
   .object({
@@ -125,34 +147,36 @@ function buildEdgesFromSwimlaneFlow(): CognitiveEdge[] {
 }
 
 /** Determină statusul unui nod din starea live DB (fără nesting ternary). */
-function liveNodeStatus(liveStatus: string | undefined): "ACTIVE" | "PAUSED" | "ERROR" {
+function liveNodeStatus(liveStatus: string | undefined): CognitiveNode["status"] {
   if (liveStatus === "paused") return "PAUSED";
   if (liveStatus === "error") return "ERROR";
+  if (liveStatus === "idle") return "IDLE";
+  if (liveStatus === "completed") return "COMPLETED";
   return "ACTIVE";
 }
 
 /** Construiește topology per-batch din importCognitiveNodes + importCognitiveEdges. */
 function mergeBatchTopologyEdges(
   staticEdges: CognitiveEdge[],
-  dbEdges: { sourceNodeKey: string; targetNodeKey: string }[],
+  dbEdges: { sourceNodeKey: string; targetNodeKey: string; edgeKind: string }[],
 ): CognitiveEdge[] {
   const seen = new Set<string>();
   const edges: CognitiveEdge[] = [];
 
   for (const dbEdge of dbEdges) {
-    const key = `${dbEdge.sourceNodeKey}→${dbEdge.targetNodeKey}`;
+    const key = `${dbEdge.sourceNodeKey}→${dbEdge.targetNodeKey}:${dbEdge.edgeKind}`;
     if (!seen.has(key)) {
       seen.add(key);
       edges.push({
         sourceNodeKey: dbEdge.sourceNodeKey,
         targetNodeKey: dbEdge.targetNodeKey,
-        edgeType: "DATA_FLOW",
+        edgeType: dbEdge.edgeKind as CognitiveEdge["edgeType"],
         weight: 1,
       });
     }
   }
   for (const staticEdge of staticEdges) {
-    const key = `${staticEdge.sourceNodeKey}→${staticEdge.targetNodeKey}`;
+    const key = `${staticEdge.sourceNodeKey}→${staticEdge.targetNodeKey}:${staticEdge.edgeType}`;
     if (!seen.has(key)) {
       seen.add(key);
       edges.push(staticEdge);
@@ -222,6 +246,7 @@ function formatSseData(payload: string): string {
 /** Mapează un row de `cognitiveEvents` la un obiect de răspuns API. */
 function mapEventRow(r: {
   id: number;
+  tenantId: string;
   nodeKey: string;
   eventType: string;
   createdAt: Date;
@@ -232,6 +257,7 @@ function mapEventRow(r: {
 }) {
   return {
     id: r.id,
+    tenantId: r.tenantId,
     nodeKey: r.nodeKey,
     eventType: r.eventType,
     timestamp: r.createdAt.toISOString(),
@@ -241,6 +267,53 @@ function mapEventRow(r: {
       spanId: r.spanId,
       correlationId: r.correlationId,
     },
+  };
+}
+
+const MAX_SSE_BRAIN_CONNECTIONS_PER_TENANT = 64;
+/** Limită anti-furtun: evenimente SSE trimise într-o singură sesiune live (după replay). */
+const MAX_SSE_BRAIN_EVENTS_PER_SESSION = 25_000;
+const sseBrainConnectionsByTenant = new Map<string, number>();
+const topologyStaleHeartbeatLastRunMs = new Map<string, number>();
+const TOPOLOGY_STALE_HEARTBEAT_MIN_INTERVAL_MS = 60_000;
+
+function shouldRunTopologyStaleCheck(tenantId: string, batchId: string): boolean {
+  const key = `${tenantId}:${batchId}`;
+  const now = Date.now();
+  const last = topologyStaleHeartbeatLastRunMs.get(key) ?? 0;
+  if (now - last < TOPOLOGY_STALE_HEARTBEAT_MIN_INTERVAL_MS) return false;
+  topologyStaleHeartbeatLastRunMs.set(key, now);
+  return true;
+}
+
+function mapAnomalyRow(r: typeof importNodeAnomalies.$inferSelect): AnomalyRecord {
+  return {
+    id: r.id,
+    tenantId: r.tenantId,
+    batchId: r.batchId,
+    nodeKey: r.nodeKey,
+    ruleKind: r.ruleKind as AnomalyRecord["ruleKind"],
+    detectedAt: r.detectedAt.toISOString(),
+    resolvedAt: r.resolvedAt ? r.resolvedAt.toISOString() : null,
+    payload: (r.payload as Record<string, unknown>) ?? {},
+  };
+}
+
+function buildNodeControlState(
+  config: typeof cognitiveNodeConfigs.$inferSelect | undefined,
+  redisPaused: boolean,
+): NodeControlState | undefined {
+  if (!config && !redisPaused) return undefined;
+  const applyStatus = config?.applyStatus ?? "immediate";
+  return {
+    paused: redisPaused || (config?.paused ?? false),
+    applyStatus,
+    concurrency: config?.concurrency,
+    rateLimitMax: config?.rateLimitMax ?? null,
+    rateLimitDuration: config?.rateLimitDuration ?? null,
+    requiresWorkerRestart: applyStatus === "pending_apply",
+    appliedAt: config?.appliedAt ? config.appliedAt.toISOString() : null,
+    appliedByWorkerInstance: config?.appliedByWorkerInstance ?? null,
   };
 }
 
@@ -330,7 +403,19 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
       if (batchId) {
         const tenantId = requireTenantId(request);
 
-        const [liveNodes, liveEdges] = await Promise.all([
+        let pauseFlags: (string | null)[];
+        try {
+          const redis = getCommandRedis();
+          const keys = COGNITIVE_NODE_CATALOG.map((e) => pauseKey(e.nodeKey));
+          pauseFlags = await redis.mget(keys);
+        } catch {
+          pauseFlags = COGNITIVE_NODE_CATALOG.map(() => null);
+        }
+        const redisPausedByNode = new Map(
+          COGNITIVE_NODE_CATALOG.map((e, i) => [e.nodeKey, pauseFlags[i] === "1"]),
+        );
+
+        const [liveNodes, liveEdges, anomalyRows, configRows] = await Promise.all([
           db
             .select()
             .from(importCognitiveNodes)
@@ -349,7 +434,26 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
                 eq(importCognitiveEdges.batchId, batchId),
               ),
             ),
+          db
+            .select()
+            .from(importNodeAnomalies)
+            .where(
+              and(
+                eq(importNodeAnomalies.tenantId, tenantId),
+                eq(importNodeAnomalies.batchId, batchId),
+                isNull(importNodeAnomalies.resolvedAt),
+              ),
+            ),
+          db.select().from(cognitiveNodeConfigs).where(eq(cognitiveNodeConfigs.tenantId, tenantId)),
         ]);
+
+        const configByNode = new Map(configRows.map((c) => [c.nodeKey, c]));
+        const anomaliesByNode = new Map<string, AnomalyRecord[]>();
+        for (const ar of anomalyRows) {
+          const list = anomaliesByNode.get(ar.nodeKey) ?? [];
+          list.push(mapAnomalyRow(ar));
+          anomaliesByNode.set(ar.nodeKey, list);
+        }
 
         // Index live node state per nodeKey
         const liveMap = new Map(liveNodes.map((n) => [n.nodeKey, n]));
@@ -358,6 +462,8 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
         const nodes: CognitiveNode[] = COGNITIVE_NODE_CATALOG.map((entry) => {
           const live = liveMap.get(entry.nodeKey);
           const liveMetrics = live?.metrics as Record<string, number> | undefined;
+          const cfg = configByNode.get(entry.nodeKey);
+          const redisPaused = redisPausedByNode.get(entry.nodeKey) ?? false;
           return {
             nodeKey: entry.nodeKey,
             queueName: entry.queueName,
@@ -369,10 +475,17 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
               failed: liveMetrics?.failures ?? 0,
               avgLatency: liveMetrics?.avg_duration_ms ?? 0,
             },
+            controlState: buildNodeControlState(cfg, redisPaused),
+            anomalies: anomaliesByNode.get(entry.nodeKey),
           };
         });
 
-        const edges = mergeBatchTopologyEdges(topologyEdges, liveEdges);
+        const dbEdgesForMerge = liveEdges.map((e) => ({
+          sourceNodeKey: e.sourceNodeKey,
+          targetNodeKey: e.targetNodeKey,
+          edgeKind: e.edgeKind,
+        }));
+        const edges = mergeBatchTopologyEdges(topologyEdges, dbEdgesForMerge);
 
         const activeNeurons = nodes.filter((n) => n.status === "ACTIVE").length;
         const brain: CognitiveBrain = {
@@ -384,6 +497,9 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
             lastUpdated: new Date().toISOString(),
           },
         };
+        if (shouldRunTopologyStaleCheck(tenantId, batchId)) {
+          detectStaleImportCognitiveHeartbeatsForBatch(tenantId, batchId).catch(() => undefined);
+        }
         return { success: true, data: brain, batchId };
       }
 
@@ -435,7 +551,11 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
         tags: ["cognitive-brain"],
         summary: "SSE stream of cognitive events — supports Last-Event-ID replay from DB",
         querystring: sseQuerySchema,
-        response: { 401: errorResponseSchema, 403: errorResponseSchema },
+        response: {
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          429: errorResponseSchema,
+        },
       },
     },
     async (request, reply) => {
@@ -477,13 +597,23 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
 
       ensureRequestTenantIdFromJwtIfMissing(request);
 
-      // Extrage tenantId ÎNAINTE de hijack — necesitar pentru DB replay
-      let tenantId: string | undefined;
+      let tenantId: string;
       try {
         tenantId = requireTenantId(request);
       } catch {
-        // Dacă nu e disponibil, continuăm fără replay din DB
-        tenantId = undefined;
+        return reply
+          .code(403)
+          .send({ success: false, error: "Tenant JWT necesar pentru fluxul Brain" });
+      }
+
+      const queryBatchId = queryParsed.success ? queryParsed.data.batchId : undefined;
+
+      const currentConn = sseBrainConnectionsByTenant.get(tenantId) ?? 0;
+      if (currentConn >= MAX_SSE_BRAIN_CONNECTIONS_PER_TENANT) {
+        return reply.code(429).send({
+          success: false,
+          error: "Limită conexiuni SSE Brain atinsă pentru acest tenant",
+        });
       }
 
       const subscriber = new Redis(envConfig.REDIS_URL, {
@@ -500,6 +630,9 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
         "X-Accel-Buffering": "no",
       });
       reply.raw.write(": connected\n\n");
+      request.raw.socket?.setTimeout(900_000);
+
+      sseBrainConnectionsByTenant.set(tenantId, currentConn + 1);
 
       let sseEventsSent = 0;
       const recordSseEvent = () => {
@@ -507,10 +640,16 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
         sseEventsSentTotal.inc({ route: SSE_ROUTE_COGNITIVE_EVENTS });
       };
 
+      const releaseConn = () => {
+        const n = (sseBrainConnectionsByTenant.get(tenantId) ?? 1) - 1;
+        if (n <= 0) sseBrainConnectionsByTenant.delete(tenantId);
+        else sseBrainConnectionsByTenant.set(tenantId, n);
+      };
+
       // ── Last-Event-ID replay din DB ──────────────────────────────────────────
       const rawLastIdHeader = request.headers["last-event-id"];
       const rawLastId = Array.isArray(rawLastIdHeader) ? rawLastIdHeader[0] : rawLastIdHeader;
-      if (rawLastId && tenantId) {
+      if (rawLastId) {
         const clientAlive = await replayFromLastEventId(
           reply.raw,
           tenantId,
@@ -518,22 +657,51 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
           recordSseEvent,
         );
         if (!clientAlive) {
+          releaseConn();
           await subscriber.quit().catch(() => undefined);
           return;
         }
       }
 
-      // ── Live events via Redis pub/sub ────────────────────────────────────────
-      await subscriber.subscribe("cognitive:events");
+      // ── Live events via Redis pub/sub (PSUBSCRIBE cognitive:events*) ─────────
+      await subscriber.psubscribe("cognitive:events*");
 
       const closePromise = new Promise<void>((resolve) => {
         request.raw.on("close", resolve);
         request.raw.on("aborted", resolve);
       });
 
-      const onMessage = (_channel: string, message: string) => {
+      const onPMessage = (_pattern: string, _channel: string, message: string) => {
+        sseBrainRedisMessagesTotal.inc({
+          route: SSE_ROUTE_COGNITIVE_EVENTS,
+          channel_pattern: "cognitive:events*",
+        });
+        if (sseEventsSent >= MAX_SSE_BRAIN_EVENTS_PER_SESSION) {
+          sseBrainLiveEventsDroppedTotal.inc({
+            route: SSE_ROUTE_COGNITIVE_EVENTS,
+            reason: "event_flood",
+          });
+          return;
+        }
+        const evalResult = evaluateCognitiveSseLiveMessage(
+          message,
+          tenantId,
+          queryBatchId,
+          MAX_SSE_BRAIN_PAYLOAD_BYTES,
+        );
+        if (!evalResult.ok) {
+          sseBrainLiveEventsDroppedTotal.inc({
+            route: SSE_ROUTE_COGNITIVE_EVENTS,
+            reason: evalResult.reason,
+          });
+          return;
+        }
+        const wire = evalResult.wire;
         try {
-          reply.raw.write(formatSseData(message));
+          const idPart =
+            wire.id !== undefined && Number.isFinite(wire.id) ? `id: ${wire.id}\n` : "";
+          reply.raw.write(idPart);
+          reply.raw.write(formatSseData(JSON.stringify(wire)));
           recordSseEvent();
         } catch {
           sseConnectionErrorsTotal.inc({
@@ -542,17 +710,19 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
           });
         }
       };
-      subscriber.on("message", onMessage);
+      subscriber.on("pmessage", onPMessage);
 
       await closePromise;
 
       trace.getActiveSpan()?.addEvent("sse.session_end", {
         "sse.events_sent": sseEventsSent,
         "sse.route": SSE_ROUTE_COGNITIVE_EVENTS,
+        "sse.batch_scope": queryBatchId ?? "",
       });
 
-      subscriber.off("message", onMessage);
-      await subscriber.unsubscribe("cognitive:events").catch(() => undefined);
+      releaseConn();
+      subscriber.off("pmessage", onPMessage);
+      await subscriber.punsubscribe("cognitive:events*").catch(() => undefined);
       await subscriber.quit().catch(() => undefined);
     },
   );
@@ -664,7 +834,8 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
       ...viewerAuth,
       schema: {
         tags: ["cognitive-brain"],
-        summary: "Data mutations for an import/batch id",
+        summary:
+          "Data mutations scoped la batchId de import (bronze). Nu acoperă toate pipeline-urile (ex. E3 fără batchId); tab Mutații reflectă doar înregistrările `recordDataMutation`.",
         params: batchIdParamsSchema,
         response: {
           200: z.unknown(),

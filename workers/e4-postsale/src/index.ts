@@ -23,8 +23,11 @@ import {
   getRedisConnectionOptions,
   loadSecretsFromFile,
   QUEUES,
+  registerCognitiveWorkerEtapa,
   startQueueDepthMonitor,
 } from "@cerniq/worker-shared";
+
+registerCognitiveWorkerEtapa(4);
 import { createA1Processor } from "./workers/a1-revolut-webhook-ingest.js";
 import { revolutTransactionProcessProcessor } from "./workers/a2-revolut-transaction-process.js";
 import { revolutPaymentRecordProcessor } from "./workers/a3-revolut-payment-record.js";

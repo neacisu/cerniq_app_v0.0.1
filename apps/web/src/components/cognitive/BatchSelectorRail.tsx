@@ -58,7 +58,8 @@ function useBatchList() {
       const res = await api.get<BatchListResponse>("/api/v1/imports?page=0&limit=30");
       return res.data ?? res.items ?? [];
     },
-    staleTime: 30_000,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
     retry: (count, err) => {
       const e = err as ApiError;
       if (e && "status" in e && e.status === 401) return false;

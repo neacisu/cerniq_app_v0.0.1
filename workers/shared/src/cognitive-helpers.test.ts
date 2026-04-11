@@ -9,9 +9,12 @@ const {
   quitMock,
   setMock,
   RedisCtor,
+  dbInsertReturningMock,
   dbInsertValuesMock,
   dbInsertMock,
   dbSelectMock,
+  otelMockSpan,
+  otelStartActiveSpan,
 } = vi.hoisted(() => {
   const publishMock = vi.fn().mockResolvedValue(1);
   const quitMock = vi.fn().mockResolvedValue("OK");
@@ -27,18 +30,33 @@ const {
     this.set = setMock;
   });
 
-  const dbInsertValuesMock = vi.fn().mockResolvedValue(undefined);
+  const dbInsertReturningMock = vi.fn().mockResolvedValue([{ id: 1 }]);
+  const dbInsertValuesMock = vi.fn().mockReturnValue({ returning: dbInsertReturningMock });
   const dbInsertMock = vi.fn().mockReturnValue({ values: dbInsertValuesMock });
   const dbSelectMock = vi.fn();
+
+  const otelMockSpan = {
+    setAttribute: vi.fn(),
+    recordException: vi.fn(),
+    end: vi.fn(),
+    spanContext: () => ({ spanId: "abc123", traceId: "def456" }),
+  };
+
+  const otelStartActiveSpan = vi.fn(
+    async (_name: string, fn: (s: typeof otelMockSpan) => unknown) => fn(otelMockSpan),
+  );
 
   return {
     publishMock,
     quitMock,
     setMock,
     RedisCtor,
+    dbInsertReturningMock,
     dbInsertValuesMock,
     dbInsertMock,
     dbSelectMock,
+    otelMockSpan,
+    otelStartActiveSpan,
   };
 });
 
@@ -67,30 +85,21 @@ vi.mock("./redis.js", () => ({
   getRedisConnectionOptions: () => ({ host: "127.0.0.1", port: 6379 }),
 }));
 
-vi.mock("@opentelemetry/api", () => {
-  const mockSpan = {
-    setAttribute: vi.fn(),
-    recordException: vi.fn(),
-    end: vi.fn(),
-    spanContext: () => ({ spanId: "abc123", traceId: "def456" }),
-  };
-  return {
-    trace: {
-      getTracer: vi.fn(() => ({
-        startActiveSpan: vi.fn((_name: string, fn: (s: typeof mockSpan) => unknown) =>
-          fn(mockSpan),
-        ),
-      })),
-      getActiveSpan: vi.fn(() => mockSpan),
-    },
-  };
-});
+vi.mock("@opentelemetry/api", () => ({
+  trace: {
+    getTracer: vi.fn(() => ({
+      startActiveSpan: otelStartActiveSpan,
+    })),
+    getActiveSpan: vi.fn(() => otelMockSpan),
+  },
+}));
 
 // ---------------------------------------------------------------------------
 // Importuri sub test (după mock-uri)
 // ---------------------------------------------------------------------------
 
 import {
+  CERNIQ_COGNITIVE_SPAN_NODE_KEY,
   closeCognitiveRedis,
   emitCognitiveEvent,
   recordDataMutation,
@@ -100,6 +109,7 @@ import {
   redactPII,
   DATA_MUTATION_PII_ALLOWLIST,
 } from "./cognitive-helpers.js";
+import type { Span } from "@opentelemetry/api";
 import { getNodeByKey } from "@cerniq/shared";
 
 // ---------------------------------------------------------------------------
@@ -130,18 +140,22 @@ describe("cognitive-helpers (Redis publisher)", () => {
     publishMock.mockClear();
     quitMock.mockClear();
     RedisCtor.mockClear();
+    dbInsertMock.mockClear();
+    dbInsertValuesMock.mockClear();
+    dbInsertReturningMock.mockClear();
   });
 
   it("reutilizează același client IORedis până la closeCognitiveRedis (lazy singleton)", async () => {
-    await emitCognitiveEvent("node:a", { eventType: "EVT1" });
-    await emitCognitiveEvent("node:b", { eventType: "EVT2" });
+    const tenant = "550e8400-e29b-41d4-a716-446655440001";
+    await emitCognitiveEvent("node:a", { eventType: "EVT1" }, { tenantId: tenant });
+    await emitCognitiveEvent("node:b", { eventType: "EVT2" }, { tenantId: tenant });
     expect(RedisCtor).toHaveBeenCalledTimes(1);
     expect(publishMock).toHaveBeenCalledTimes(2);
 
     await closeCognitiveRedis();
     expect(quitMock).toHaveBeenCalledTimes(1);
 
-    await emitCognitiveEvent("node:c", { eventType: "EVT3" });
+    await emitCognitiveEvent("node:c", { eventType: "EVT3" }, { tenantId: tenant });
     expect(RedisCtor).toHaveBeenCalledTimes(2);
     expect(publishMock).toHaveBeenCalledTimes(3);
   });
@@ -201,26 +215,30 @@ describe("emitCognitiveEvent cu ctx", () => {
     publishMock.mockClear();
     dbInsertMock.mockClear();
     dbInsertValuesMock.mockClear();
+    dbInsertReturningMock.mockClear();
     RedisCtor.mockClear();
   });
 
-  it("fără ctx: nu face INSERT DB, publică pe 'cognitive:events'", async () => {
+  it("fără ctx: nu face INSERT DB și nu publică pe Redis", async () => {
     await emitCognitiveEvent("e1:test", { eventType: "TEST" });
     expect(dbInsertMock).not.toHaveBeenCalled();
-    const [[channel]] = publishMock.mock.calls;
-    expect(channel).toBe("cognitive:events");
+    expect(publishMock).not.toHaveBeenCalled();
   });
 
   it("cu ctx.tenantId: face INSERT în cognitiveEvents", async () => {
     await emitCognitiveEvent(
       "e1:test",
       { eventType: "TEST", data: { foo: "bar" } },
-      { tenantId: "tenant-uuid", batchId: "batch-uuid", traceId: "trace-123" },
+      {
+        tenantId: "550e8400-e29b-41d4-a716-446655440000",
+        batchId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        traceId: "trace-123",
+      },
     );
     expect(dbInsertMock).toHaveBeenCalledTimes(1);
     expect(dbInsertValuesMock).toHaveBeenCalledTimes(1);
     const insertArgs = dbInsertValuesMock.mock.calls[0][0] as Record<string, unknown>;
-    expect(insertArgs.tenantId).toBe("tenant-uuid");
+    expect(insertArgs.tenantId).toBe("550e8400-e29b-41d4-a716-446655440000");
     expect(insertArgs.nodeKey).toBe("e1:test");
     expect(insertArgs.eventType).toBe("TEST");
     expect(insertArgs.traceId).toBe("trace-123");
@@ -230,25 +248,38 @@ describe("emitCognitiveEvent cu ctx", () => {
     await emitCognitiveEvent(
       "e1:test",
       { eventType: "TEST" },
-      { tenantId: "tenant-uuid", batchId: "batch-123" },
+      {
+        tenantId: "550e8400-e29b-41d4-a716-446655440000",
+        batchId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      },
     );
     const [[channel]] = publishMock.mock.calls;
-    expect(channel).toBe("cognitive:events:batch-123");
+    expect(channel).toBe("cognitive:events:6ba7b810-9dad-11d1-80b4-00c04fd430c8");
   });
 
   it("fără ctx.batchId dar cu ctx.tenantId: publică pe canal generic", async () => {
-    await emitCognitiveEvent("e1:test", { eventType: "TEST" }, { tenantId: "tenant-uuid" });
+    await emitCognitiveEvent(
+      "e1:test",
+      { eventType: "TEST" },
+      { tenantId: "550e8400-e29b-41d4-a716-446655440000" },
+    );
     const [[channel]] = publishMock.mock.calls;
     expect(channel).toBe("cognitive:events");
   });
 
-  it("mesajul publicat are structura corectă", async () => {
-    await emitCognitiveEvent("e1:node", { eventType: "MY_EVENT", data: { x: 1 } });
+  it("mesajul publicat are structura wire (tenantId, data.traceId)", async () => {
+    await emitCognitiveEvent(
+      "e1:node",
+      { eventType: "MY_EVENT", data: { x: 1 } },
+      { tenantId: "550e8400-e29b-41d4-a716-446655440000", traceId: "tr-1" },
+    );
     const [[, messageStr]] = publishMock.mock.calls;
     const message = JSON.parse(messageStr as string) as Record<string, unknown>;
+    expect(message.tenantId).toBe("550e8400-e29b-41d4-a716-446655440000");
     expect(message.nodeKey).toBe("e1:node");
     expect(message.eventType).toBe("MY_EVENT");
     expect((message.data as Record<string, unknown>).x).toBe(1);
+    expect((message.data as Record<string, unknown>).traceId).toBe("tr-1");
     expect(typeof message.timestamp).toBe("string");
   });
 });
@@ -346,6 +377,7 @@ describe("withCognitiveSpan", () => {
     dbInsertMock.mockClear();
     dbInsertValuesMock.mockClear();
     RedisCtor.mockClear();
+    delete (otelMockSpan as Record<string, unknown>)[CERNIQ_COGNITIVE_SPAN_NODE_KEY];
   });
 
   it("fără ctx: execută fn, returnează rezultatul, fără auto-emit", async () => {
@@ -359,8 +391,8 @@ describe("withCognitiveSpan", () => {
 
   it("cu ctx: emite node_started și node_completed", async () => {
     await withCognitiveSpan("e1:test", async () => "done", {
-      tenantId: "tenant-1",
-      batchId: "batch-1",
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+      batchId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
     });
     // Așteptăm propagarea promisiunilor fire-and-forget
     await new Promise((r) => setTimeout(r, 20));
@@ -380,7 +412,10 @@ describe("withCognitiveSpan", () => {
         async () => {
           throw new Error("test failure");
         },
-        { tenantId: "tenant-1", batchId: "batch-1" },
+        {
+          tenantId: "550e8400-e29b-41d4-a716-446655440000",
+          batchId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        },
       ),
     ).rejects.toThrow("test failure");
     await new Promise((r) => setTimeout(r, 20));
@@ -392,10 +427,10 @@ describe("withCognitiveSpan", () => {
   });
 
   it("emitCognitiveEvent eșuat nu blochează execuția principală", async () => {
-    dbInsertValuesMock.mockRejectedValueOnce(new Error("DB down"));
+    dbInsertReturningMock.mockRejectedValueOnce(new Error("DB down"));
     const result = await withCognitiveSpan("e1:test", async () => "ok", {
-      tenantId: "tenant-1",
-      batchId: "batch-1",
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+      batchId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
     });
     expect(result).toBe("ok");
   });
@@ -410,6 +445,26 @@ describe("withCognitiveSpan", () => {
 
     await withCognitiveSpan("e1:test", async () => undefined);
     expect(mockSpan.setAttribute).toHaveBeenCalledWith("cognitive.nodeKey", "e1:test");
+  });
+
+  it("când spanul activ poartă deja același nodeKey, nu deschide un span nou (anti-dublare factory + procesor)", async () => {
+    (otelMockSpan as Record<string, unknown>)[CERNIQ_COGNITIVE_SPAN_NODE_KEY] = "e1:dedupe";
+    otelStartActiveSpan.mockClear();
+
+    const { trace } = await import("@opentelemetry/api");
+    expect(trace.getActiveSpan()).toBe(otelMockSpan);
+    expect(
+      (trace.getActiveSpan() as unknown as Record<string, unknown>)[CERNIQ_COGNITIVE_SPAN_NODE_KEY],
+    ).toBe("e1:dedupe");
+
+    const inner = vi.fn(async (s: Span) => {
+      expect(s).toBe(otelMockSpan);
+      return 7;
+    });
+    const out = await withCognitiveSpan("e1:dedupe", inner);
+    expect(out).toBe(7);
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(otelStartActiveSpan).not.toHaveBeenCalled();
   });
 });
 
@@ -551,11 +606,18 @@ describe("propagatePause", () => {
     dbSelectMock.mockClear();
     dbInsertMock.mockClear();
     dbInsertValuesMock.mockClear();
+    dbInsertReturningMock.mockClear();
     RedisCtor.mockClear();
   });
 
-  it("fără rootBatchId: SET Redis + emit PAUSE_PROPAGATED pe nodul unic", async () => {
+  it("fără tenantId: SET Redis fără pub/sub", async () => {
     await propagatePause("e1:test");
+    expect(setMock).toHaveBeenCalledWith("cognitive:pause:e1:test", "1");
+    expect(publishMock).not.toHaveBeenCalled();
+  });
+
+  it("fără rootBatchId dar cu tenantId: SET + emit PAUSE_PROPAGATED", async () => {
+    await propagatePause("e1:test", undefined, "550e8400-e29b-41d4-a716-446655440000");
     expect(setMock).toHaveBeenCalledWith("cognitive:pause:e1:test", "1");
     expect(publishMock).toHaveBeenCalledTimes(1);
     const [[, msg]] = publishMock.mock.calls;
@@ -566,7 +628,11 @@ describe("propagatePause", () => {
   it("cu rootBatchId și tenantId: SET Redis + INSERT DB pentru nodul rădăcină", async () => {
     // Niciun edge downstream
     dbSelectMock.mockReturnValue(makeSelectChain([]));
-    await propagatePause("e1:root", "batch-abc", "tenant-1");
+    await propagatePause(
+      "e1:root",
+      "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
     expect(setMock).toHaveBeenCalledWith("cognitive:pause:e1:root", "1");
     // INSERT în cognitiveEvents (tenantId prezent în emitCognitiveEvent)
     expect(dbInsertValuesMock).toHaveBeenCalledTimes(1);
@@ -579,7 +645,11 @@ describe("propagatePause", () => {
       .mockReturnValueOnce(makeSelectChain([{ targetNodeKey: "e1:child" }]))
       .mockReturnValueOnce(makeSelectChain([]));
 
-    await propagatePause("e1:root", "batch-abc", "tenant-1");
+    await propagatePause(
+      "e1:root",
+      "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
 
     // SET apelat pentru ambele noduri
     expect(setMock).toHaveBeenCalledWith("cognitive:pause:e1:root", "1");
@@ -596,7 +666,11 @@ describe("propagatePause", () => {
       .mockReturnValueOnce(makeSelectChain([{ targetNodeKey: "e1:a" }]))
       .mockReturnValueOnce(makeSelectChain([]));
 
-    await propagatePause("e1:a", "batch-abc", "tenant-1");
+    await propagatePause(
+      "e1:a",
+      "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
 
     // e1:a vizitat o dată, e1:b vizitat o dată
     expect(setMock).toHaveBeenCalledTimes(2);
@@ -604,8 +678,12 @@ describe("propagatePause", () => {
 
   it("canalul Redis include batchId în mesajul emis", async () => {
     dbSelectMock.mockReturnValue(makeSelectChain([]));
-    await propagatePause("e1:test", "batch-xyz", "tenant-1");
+    await propagatePause(
+      "e1:test",
+      "6ba7b810-9dad-11d1-80b4-00c04fd430c9",
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
     const [[channel]] = publishMock.mock.calls;
-    expect(channel).toBe("cognitive:events:batch-xyz");
+    expect(channel).toBe("cognitive:events:6ba7b810-9dad-11d1-80b4-00c04fd430c9");
   });
 });

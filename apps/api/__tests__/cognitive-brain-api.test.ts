@@ -362,7 +362,7 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
       expect(types).toContain("node_completed");
     });
 
-    it("fiecare eveniment are câmpurile: id, nodeKey, eventType, timestamp, data", async () => {
+    it("fiecare eveniment are câmpurile: id, tenantId, nodeKey, eventType, timestamp, data", async () => {
       const res = await app.inject({
         method: "GET",
         url: `/api/v1/brain/traces/${SAMPLE_TRACE_ID}`,
@@ -371,6 +371,8 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
       const body = JSON.parse(res.body);
       for (const ev of body.data) {
         expect(ev).toHaveProperty("id");
+        expect(ev).toHaveProperty("tenantId");
+        expect(ev.tenantId).toBe(testTenantId);
         expect(ev).toHaveProperty("nodeKey");
         expect(ev).toHaveProperty("eventType");
         expect(ev).toHaveProperty("timestamp");
@@ -395,9 +397,8 @@ describe("Cognitive Brain API — /api/v1/brain", () => {
         headers: { authorization: `Bearer ${viewerToken}` },
       });
       const body = JSON.parse(res.body);
-      // Niciun eveniment nu trebuie să aibă tenantId altui tenant
       for (const ev of body.data) {
-        expect(ev.data?.tenantId ?? testTenantId).not.toBe(otherTenantId);
+        expect(ev.tenantId).not.toBe(otherTenantId);
       }
 
       await db.delete(cognitiveEvents).where(eq(cognitiveEvents.tenantId, otherTenantId));

@@ -1,6 +1,7 @@
 import "@xyflow/react/dist/style.css";
 
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ReactFlow,
   Background,
@@ -31,6 +32,7 @@ import {
   useCognitiveEventStream,
   useCognitiveLOD,
 } from "@/hooks/use-cognitive-brain.js";
+import { voidAsyncHandler } from "@/lib/void-async-handlers.js";
 import { NeuronNodeComponent, type NeuronNodeType } from "./NeuronNode.js";
 import { NEURON_COLORS } from "./neuron-tokens.js";
 import { QueueSynapseComponent } from "./QueueSynapse.js";
@@ -82,8 +84,8 @@ const SWIMLANE_ACCENT: Record<string, string> = {
 /** Zoom-level granularity for the canvas rendering. */
 type LodLevel = "minimal" | "standard" | "detailed";
 
-/** Runtime status of a cognitive node, driven by SSE events. */
-type NodeStatus = "ACTIVE" | "PAUSED" | "ERROR";
+/** Runtime status of a cognitive node, driven de SSE + topology. */
+type NodeStatus = CognitiveNode["status"];
 
 type StatusAction = { nodeKey: string; status: NodeStatus };
 
@@ -317,9 +319,10 @@ function buildFlowNodes(
       const swimlaneNodes = brainNodes.filter((n) => n.swimlane === swimlane);
       if (!bg) continue;
 
-      const active = swimlaneNodes.filter(
-        (n) => (statusOverrides.get(n.nodeKey) ?? n.status) === "ACTIVE",
-      ).length;
+      const active = swimlaneNodes.filter((n) => {
+        const s = statusOverrides.get(n.nodeKey) ?? n.status;
+        return s === "ACTIVE";
+      }).length;
       const errors = swimlaneNodes.filter(
         (n) => (statusOverrides.get(n.nodeKey) ?? n.status) === "ERROR",
       ).length;
@@ -394,7 +397,24 @@ function buildFlowEdges(
   lod: LodLevel,
   showEdgeLabels: boolean,
 ): Edge[] {
-  if (lod === "minimal") return [];
+  if (lod === "minimal") {
+    const edges: Edge[] = [];
+    for (let i = 0; i < SWIMLANES.length - 1; i++) {
+      const a = SWIMLANES[i];
+      const b = SWIMLANES[i + 1];
+      edges.push({
+        id: `lod-edge-${a}-${b}`,
+        source: `aggregate-${a}`,
+        target: `aggregate-${b}`,
+        type: "queueSynapse",
+        animated: false,
+        label: showEdgeLabels ? "depends_on" : undefined,
+        data: { edgeType: "depends_on", weight: 0.5 },
+        zIndex: 0,
+      });
+    }
+    return edges;
+  }
 
   return brainEdges.map((edge) => ({
     id: `edge-${edge.sourceNodeKey}-${edge.targetNodeKey}`,
@@ -512,6 +532,17 @@ export function CognitiveBrainCanvas({
   onNodeSelect,
 }: CognitiveBrainCanvasProps) {
   const [zoom, setZoom] = useState(0.7);
+  const queryClient = useQueryClient();
+  const topoInvalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleTopologyRefresh = useCallback(() => {
+    if (topoInvalidateTimerRef.current) clearTimeout(topoInvalidateTimerRef.current);
+    topoInvalidateTimerRef.current = setTimeout(() => {
+      queryClient
+        .invalidateQueries({ queryKey: ["cognitive-brain", "topology"] })
+        .catch(voidAsyncHandler);
+    }, 400);
+  }, [queryClient]);
 
   // Status overrides from live SSE stream — useReducer makes state transitions
   // explicit and ensures SonarQube can track that statusOverrides is consumed.
@@ -530,12 +561,15 @@ export function CognitiveBrainCanvas({
       dispatchStatus({ nodeKey, status: "ACTIVE" });
     } else if (eventType === "node_error" || eventType === "node_failed") {
       dispatchStatus({ nodeKey, status: "ERROR" });
-    } else if (eventType === "node_paused") {
+    } else if (eventType === "node_paused" || eventType === "PAUSE_PROPAGATED") {
       dispatchStatus({ nodeKey, status: "PAUSED" });
     }
   }, []);
 
-  const { connected } = useCognitiveEventStream(handleCognitiveEvent);
+  const { connected } = useCognitiveEventStream(handleCognitiveEvent, {
+    batchId,
+    afterEvent: scheduleTopologyRefresh,
+  });
 
   // Fetch topology — uses shared hook (single query, no duplicate fetches)
   const {
@@ -544,7 +578,9 @@ export function CognitiveBrainCanvas({
     isLoading: topologyLoading,
   } = useCognitiveBrain(batchId ?? undefined);
 
-  // Resolved display nodes — fallback to catalog when API returns empty
+  const isCatalogFallback = remoteNodes.length === 0;
+
+  // Resolved display nodes — fallback la catalog când API nu întoarce noduri
   const displayNodes = useMemo<CognitiveNode[]>(() => {
     if (remoteNodes.length > 0) return remoteNodes;
     return CATALOG_NODES;
@@ -591,6 +627,29 @@ export function CognitiveBrainCanvas({
         style={{ width: "100%", height: "100%", position: "relative" }}
       >
         <LoadingOverlay visible={topologyLoading} />
+
+        {isCatalogFallback && (
+          <div
+            style={{
+              position: "absolute",
+              top: 10,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 12,
+              fontSize: 11,
+              color: "var(--color-t2)",
+              background: "var(--color-s900)",
+              border: "1px solid oklch(0.35 0.08 85 / 45%)",
+              borderRadius: 8,
+              padding: "6px 12px",
+              maxWidth: 480,
+              textAlign: "center",
+            }}
+          >
+            Catalog static — fără răspuns topologie de la API; metricile sunt zero și nu reflectă
+            runtime.
+          </div>
+        )}
 
         <ReactFlow
           nodes={flowNodes}

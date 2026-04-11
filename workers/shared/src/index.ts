@@ -1,5 +1,7 @@
 export * from "./factory.js";
 export * from "./worker-auto-obs-env.js";
+export * from "./worker-cognitive-env.js";
+export * from "./cognitive-worker-register.js";
 export * from "./rate-limiter.js";
 export * from "./circuit-breaker.js";
 export * from "./external-api-wrapper.js";
@@ -13,6 +15,7 @@ export * from "./identifiers.js";
 export * from "./job-validation.js";
 export * from "./event-contract.js";
 export * from "./import-execution.js";
+export * from "./import-cognitive-sync.js";
 export * from "./semantic-entropy.js";
 export * from "./cognitive-helpers.js";
 export * from "./queue-monitor.js";

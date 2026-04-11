@@ -1,5 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.monorepo-paths.json",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "target": "ESNext",
@@ -11,33 +12,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "@cerniq/observability": [
-        "node_modules/@cerniq/observability/src/index.ts",
-        "node_modules/@cerniq/observability/dist/index.d.ts",
-        "../observability/src/index.ts",
-        "../observability/dist/index.d.ts",
-        "../../node_modules/@cerniq/observability/src/index.ts"
-      ],
-      "@cerniq/observability/*": [
-        "node_modules/@cerniq/observability/src/*",
-        "node_modules/@cerniq/observability/dist/*",
-        "../observability/src/*",
-        "../observability/dist/*",
-        "../../node_modules/@cerniq/observability/src/*"
-      ],
-      "@cerniq/worker-shared": [
-        "node_modules/@cerniq/worker-shared/src/index.ts",
-        "../../workers/shared/src/index.ts",
-        "../../node_modules/@cerniq/worker-shared/src/index.ts"
-      ],
-      "@cerniq/worker-shared/*": [
-        "node_modules/@cerniq/worker-shared/src/*",
-        "../../workers/shared/src/*",
-        "../../node_modules/@cerniq/worker-shared/src/*"
-      ]
-    },
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

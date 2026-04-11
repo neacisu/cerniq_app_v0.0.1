@@ -3325,6 +3325,30 @@ export function getNodeByQueue(queueName: string): CognitiveNodeEntry | undefine
   return _byQueue.get(queueName);
 }
 
+/**
+ * Rezolvă `nodeKey` din numele cozii BullMQ sau din numele canonic (`:`).
+ * BullMQ înlocuiește `:` cu `__` — încercăm ambele forme.
+ */
+export function resolveNodeKeyFromQueueName(queueName: string): string | undefined {
+  const direct = getNodeByQueue(queueName);
+  if (direct) return direct.nodeKey;
+  const canonical = queueName.includes("__") ? queueName.replaceAll("__", ":") : queueName;
+  if (canonical !== queueName) {
+    return getNodeByQueue(canonical)?.nodeKey;
+  }
+  return undefined;
+}
+
+/** Când același `queueName` există în catalog pe mai multe etape (ex. E2 vs E3), alege neuronul potrivit. */
+export function resolveNodeKeyFromQueueNameAndEtapa(
+  queueName: string,
+  etapa: number,
+): string | undefined {
+  const canonical = queueName.includes("__") ? queueName.replaceAll("__", ":") : queueName;
+  return COGNITIVE_NODE_CATALOG.find((e) => e.queueName === canonical && e.etapa === etapa)
+    ?.nodeKey;
+}
+
 export function getNodesByEtapa(etapa: number): CognitiveNodeEntry[] {
   return COGNITIVE_NODE_CATALOG.filter((e) => e.etapa === etapa);
 }

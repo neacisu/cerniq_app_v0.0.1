@@ -130,7 +130,9 @@ export const cognitiveNodeConfigs = bronzeSchema.table(
 // ─── Tabele noi (0036) ────────────────────────────────────────────────────────
 
 /** Catalog live al nodurilor cognitive active per batch de import.
- *  Actualizat prin heartbeat de fiecare worker la fiecare ciclu de procesare.
+ *  Sursă primară de scriere: `syncImportCognitiveNodeFromRuntime` din `@cerniq/worker-shared`
+ *  (apelat din `import-execution` la tranziții `beginImportRuntimeJob` / `updateImportRuntimeProgress` /
+ *  `completeImportRuntimeJob` / `failImportRuntimeJob` / `upsertImportRuntimeJob` enqueue).
  *  Permite vizualizarea stării întregului sistem cognitiv per batch.
  */
 export const importCognitiveNodes = bronzeSchema.table(
@@ -161,8 +163,9 @@ export const importCognitiveNodes = bronzeSchema.table(
 );
 
 /** Relații direcționate între noduri cognitive, scoped per batch.
- *  Permite traversarea dependency graph pentru propagare pause/resume
- *  prin funcția `propagatePause(nodeId, rootBatchId)` din cognitive-helpers.
+ *  Populare idempotentă: `ensureImportCognitiveEdgesForBatch` (`@cerniq/worker-shared`) la primul
+ *  job de runtime pe batch (enqueue / begin). Muchiile `depends_on` reflectă fluxul swimlane din catalog.
+ *  Traversare pause/resume: `propagatePause` (muchii `triggers` / `blocks` când sunt prezente în DB).
  */
 export const importCognitiveEdges = bronzeSchema.table(
   "import_cognitive_edges",
@@ -192,9 +195,8 @@ export const importCognitiveEdges = bronzeSchema.table(
 // ─── Tabele noi (0037) ────────────────────────────────────────────────────────
 
 /** Catalog de anomalii detectate de Cognitive Brain per nod, per batch.
- *  Fiecare intrare reprezintă o abatere comportamentală detectată de un detector
- *  (stale heartbeat, counter drift, queue backpressure etc.).
- *  Stocate pentru audit trail, HITL escalation și dashboard Grafana.
+ *  Scrieri aplicație: `recordImportNodeFailureAnomaly` și alți detectori din `@cerniq/worker-shared`
+ *  (ex. eșec job de import → `retry_exhausted`). Rândurile `resolved_at` non-null = rezolvate.
  */
 export const importNodeAnomalies = bronzeSchema.table(
   "import_node_anomalies",

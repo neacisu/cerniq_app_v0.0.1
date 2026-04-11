@@ -330,7 +330,7 @@ export interface CognitiveNode {
   queueName: string;
   neuronType: string;
   swimlane: string;
-  status: "ACTIVE" | "PAUSED" | "ERROR";
+  status: "ACTIVE" | "PAUSED" | "ERROR" | "IDLE" | "COMPLETED";
   metrics: NodeMetrics;
   /** Starea de control runtime (paused flag, applyStatus, concurrency). Opțional pentru compat. */
   controlState?: NodeControlState;
@@ -338,11 +338,16 @@ export interface CognitiveNode {
   anomalies?: AnomalyRecord[];
 }
 
+/** Tip muchie în topology: legăturile statice istorice + valorile `cognitive_edge_kind` din DB. */
+export type CognitiveEdgeWireType = "DATA_FLOW" | "TRIGGER" | "FALLBACK" | EdgeKind;
+
 export interface CognitiveEdge {
   sourceNodeKey: string;
   targetNodeKey: string;
-  edgeType: "DATA_FLOW" | "TRIGGER" | "FALLBACK";
+  edgeType: CognitiveEdgeWireType;
   weight: number;
+  /** Agregat opțional (handoff-uri, ultimul eveniment) — sinapse „live”. */
+  telemetry?: { handoffCount?: number; lastHandoffAt?: string };
 }
 
 /**
@@ -352,6 +357,8 @@ export interface CognitiveEdge {
 export interface CognitiveEvent {
   /** ID bigserial din `bronze.cognitive_events` (prezent la replay din DB). */
   id?: number;
+  /** Prezent la evenimente tenant-scoped (Redis live + replay) pentru filtrare client. */
+  tenantId?: string;
   nodeKey: string;
   eventType: string;
   timestamp: string;

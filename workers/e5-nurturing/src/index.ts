@@ -14,8 +14,11 @@ import {
   loadSecretsFromFile,
   QUEUES,
   queueRegistry,
+  registerCognitiveWorkerEtapa,
   startQueueDepthMonitor,
 } from "@cerniq/worker-shared";
+
+registerCognitiveWorkerEtapa(5);
 import { createLifecycleOrderCompletedWorker } from "./workers/a1-lifecycle-order-completed.js";
 import { createLifecycleStateEvaluateWorker } from "./workers/a2-lifecycle-state-evaluate.js";
 import { createOnboardingSequenceStartWorker } from "./workers/a3-onboarding-sequence-start.js";

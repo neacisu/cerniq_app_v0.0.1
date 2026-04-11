@@ -87,7 +87,7 @@ export const SSE_BACKOFF_MAX_MS = 60_000;
 // ─── Helpers URL ──────────────────────────────────────────────────────────────
 
 /** Exclusiv pentru SSE; vezi `docs/developer-guide/security-sse-brain-token.md` (risc ?token= în URL). */
-export function buildBrainStreamUrl(): string {
+export function buildBrainStreamUrl(batchId?: string | null): string {
   const base = getApiBase().replace(/\/$/, "");
   const base_url = `${base}/api/v1/brain/events/stream`;
   // EventSource nativ nu poate trimite Authorization header.
@@ -97,6 +97,7 @@ export function buildBrainStreamUrl(): string {
   const params = new URLSearchParams();
   if (token) params.set("token", token);
   if (cid) params.set("correlationId", cid);
+  if (batchId) params.set("batchId", batchId);
   const q = params.toString();
   if (!q) return base_url;
   return `${base_url}?${q}`;
@@ -110,6 +111,7 @@ function parseCognitiveEventPayload(raw: string): CognitiveEvent | null {
     if (typeof o.nodeKey !== "string" || typeof o.eventType !== "string") return null;
     return {
       id: typeof o.id === "number" ? o.id : undefined,
+      tenantId: typeof o.tenantId === "string" ? o.tenantId : undefined,
       nodeKey: o.nodeKey,
       eventType: o.eventType,
       timestamp: typeof o.timestamp === "string" ? o.timestamp : new Date().toISOString(),
@@ -177,11 +179,29 @@ export function useCognitiveBrain(batchId?: string) {
  * - `disconnect()`: oprire permanentă (fără auto-reconnect). Resetat la remount.
  * - Backoff reset la 1s la fiecare reconectare cu succes (open).
  */
-export function useCognitiveEventStream(onEvent: (event: CognitiveEvent) => void) {
+export type CognitiveEventStreamOptions = {
+  /** Limitează evenimentele Redis la batch-ul selectat (query `batchId` pe API). */
+  batchId?: string | null;
+  /** Apelat după fiecare eveniment valid (ex. invalidare topology debounced). */
+  afterEvent?: () => void;
+};
+
+export function useCognitiveEventStream(
+  onEvent: (event: CognitiveEvent) => void,
+  options?: CognitiveEventStreamOptions,
+) {
   const onEventRef = useRef(onEvent);
+  const afterEventRef = useRef(options?.afterEvent);
+  const batchIdRef = useRef(options?.batchId ?? null);
   useEffect(() => {
     onEventRef.current = onEvent;
   }, [onEvent]);
+  useEffect(() => {
+    afterEventRef.current = options?.afterEvent;
+  }, [options?.afterEvent]);
+  useEffect(() => {
+    batchIdRef.current = options?.batchId ?? null;
+  }, [options?.batchId]);
 
   const eventSourceUnsupported = typeof EventSource === "undefined";
 
@@ -223,7 +243,7 @@ export function useCognitiveEventStream(onEvent: (event: CognitiveEvent) => void
     function connect(): void {
       if (stoppedRef.current) return;
 
-      const url = buildBrainStreamUrl();
+      const url = buildBrainStreamUrl(batchIdRef.current ?? undefined);
       const es = new EventSource(url, { withCredentials: true });
       sourceRef.current = es;
 
@@ -236,7 +256,10 @@ export function useCognitiveEventStream(onEvent: (event: CognitiveEvent) => void
 
       const handleMessage = (ev: MessageEvent<string>): void => {
         const event = parseCognitiveEventPayload(ev.data);
-        if (event) onEventRef.current(event);
+        if (event) {
+          onEventRef.current(event);
+          afterEventRef.current?.();
+        }
       };
 
       const handleError = (): void => {
@@ -278,7 +301,7 @@ export function useCognitiveEventStream(onEvent: (event: CognitiveEvent) => void
       sourceRef.current?.close();
       sourceRef.current = null;
     };
-  }, [eventSourceUnsupported]);
+  }, [eventSourceUnsupported, options?.batchId]);
 
   return { connected, error, disconnect };
 }
@@ -302,6 +325,11 @@ export function useNeuronInspector(nodeKey: string | null, batchId?: string) {
       return api.get<TracesResponse>(`/api/v1/brain/nodes/${encodeURIComponent(nodeKey)}/traces`);
     },
     enabled: Boolean(nodeKey),
+    refetchInterval: (q) => {
+      if (q.state.error instanceof ApiError && q.state.error.status === 401) return false;
+      if (typeof document === "undefined") return 12_000;
+      return document.visibilityState === "visible" ? 12_000 : false;
+    },
     retry: (failureCount, err) => {
       if (err instanceof ApiError && err.status === 401) return false;
       return failureCount < 3;
@@ -315,6 +343,11 @@ export function useNeuronInspector(nodeKey: string | null, batchId?: string) {
       return api.get<MutationsResponse>(`/api/v1/brain/mutations/${encodeURIComponent(batchId)}`);
     },
     enabled: Boolean(batchId),
+    refetchInterval: (q) => {
+      if (q.state.error instanceof ApiError && q.state.error.status === 401) return false;
+      if (typeof document === "undefined") return 12_000;
+      return document.visibilityState === "visible" ? 12_000 : false;
+    },
     retry: (failureCount, err) => {
       if (err instanceof ApiError && err.status === 401) return false;
       return failureCount < 3;

@@ -205,6 +205,22 @@ export const sseConnectionErrorsTotal = new Counter({
   registers: [register],
 });
 
+/** Mesaje primite de la Redis pub/sub pe fluxul Brain (înainte de filtrare tenant). */
+export const sseBrainRedisMessagesTotal = new Counter({
+  name: "cerniq_sse_brain_redis_messages_total",
+  help: "Redis pub/sub messages received on cognitive brain SSE",
+  labelNames: ["route", "channel_pattern"],
+  registers: [register],
+});
+
+/** Evenimente live respinse pe SSE (tenant lipsă, malformed, mismatch, payload prea mare). */
+export const sseBrainLiveEventsDroppedTotal = new Counter({
+  name: "cerniq_sse_brain_live_events_dropped_total",
+  help: "Cognitive brain SSE live events dropped after Redis receive",
+  labelNames: ["route", "reason"],
+  registers: [register],
+});
+
 /**
  * Durată apeluri HTTP outbound din API (fără URL complet în label — doar peer logic).
  * Populat explicit unde avem clienți cunoscuți (ex. `monitoringInternalFetch`).

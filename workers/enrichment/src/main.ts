@@ -12,9 +12,12 @@ import {
   loadSecretsFromFile,
   buildWorkerQueueNamesForProcessors,
   queueRegistry,
+  registerCognitiveWorkerEtapa,
   startQueueDepthMonitor,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
+
+registerCognitiveWorkerEtapa(1);
 import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
 import {
   createServiceLogger,

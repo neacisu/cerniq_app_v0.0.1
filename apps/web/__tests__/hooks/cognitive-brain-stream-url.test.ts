@@ -60,4 +60,13 @@ describe("buildBrainStreamUrl", () => {
     expect(u).toContain("token=tok");
     expect(u).toContain("correlationId=cid-1");
   });
+
+  it("cu batchId → include batchId (UUID) în query", () => {
+    getStoredToken.mockReturnValue(null);
+    const batch = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+    const u = buildBrainStreamUrl(batch);
+    expect(u).toBe(
+      `https://api.example.com/api/v1/brain/events/stream?batchId=${encodeURIComponent(batch)}`,
+    );
+  });
 });

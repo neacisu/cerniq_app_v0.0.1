@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.monorepo-paths.json",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "target": "ESNext",
@@ -11,59 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "@cerniq/observability": [
-        "node_modules/@cerniq/observability/src/index.ts",
-        "node_modules/@cerniq/observability/dist/index.d.ts",
-        "../../packages/observability/src/index.ts",
-        "../../packages/observability/dist/index.d.ts",
-        "../../node_modules/@cerniq/observability/src/index.ts"
-      ],
-      "@cerniq/observability/*": [
-        "node_modules/@cerniq/observability/src/*",
-        "node_modules/@cerniq/observability/dist/*",
-        "../../packages/observability/src/*",
-        "../../packages/observability/dist/*",
-        "../../node_modules/@cerniq/observability/src/*"
-      ],
-      "@opentelemetry/api": [
-        "node_modules/@opentelemetry/api",
-        "../../node_modules/@opentelemetry/api",
-        "../../packages/observability/node_modules/@opentelemetry/api"
-      ],
-      "@cerniq/db": [
-        "node_modules/@cerniq/db/src/index.ts",
-        "../../packages/db/src/index.ts",
-        "../../node_modules/@cerniq/db/src/index.ts"
-      ],
-      "@cerniq/db/*": [
-        "node_modules/@cerniq/db/src/*",
-        "../../packages/db/src/*",
-        "../../node_modules/@cerniq/db/src/*"
-      ],
-      "@cerniq/shared": [
-        "node_modules/@cerniq/shared/src/index.ts",
-        "../../packages/shared/src/index.ts",
-        "../../node_modules/@cerniq/shared/src/index.ts"
-      ],
-      "@cerniq/shared/*": [
-        "node_modules/@cerniq/shared/src/*",
-        "../../packages/shared/src/*",
-        "../../node_modules/@cerniq/shared/src/*"
-      ],
-      "@cerniq/shared-types": [
-        "node_modules/@cerniq/shared-types/src/index.ts",
-        "../../packages/shared-types/src/index.ts",
-        "../../node_modules/@cerniq/shared-types/src/index.ts"
-      ],
-      "@cerniq/shared-types/*": [
-        "node_modules/@cerniq/shared-types/src/*",
-        "../../packages/shared-types/src/*",
-        "../../node_modules/@cerniq/shared-types/src/*"
-      ]
-    }
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

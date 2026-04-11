@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toBullMqQueueName } from "./factory.js";
 import { parseWorkerAutoObservabilityEnv } from "./worker-auto-obs-env.js";
+import { parseWorkerCognitiveInstrumentationEnv } from "./worker-cognitive-env.js";
 
 describe("parseWorkerAutoObservabilityEnv", () => {
   it("acceptă 1, true, yes (case-insensitive)", () => {
@@ -13,6 +14,19 @@ describe("parseWorkerAutoObservabilityEnv", () => {
     expect(parseWorkerAutoObservabilityEnv(undefined)).toBe(false);
     expect(parseWorkerAutoObservabilityEnv("")).toBe(false);
     expect(parseWorkerAutoObservabilityEnv("0")).toBe(false);
+  });
+});
+
+describe("parseWorkerCognitiveInstrumentationEnv", () => {
+  it("implicit activ (gol / undefined)", () => {
+    expect(parseWorkerCognitiveInstrumentationEnv(undefined)).toBe(true);
+    expect(parseWorkerCognitiveInstrumentationEnv("")).toBe(true);
+  });
+
+  it("dezactivare explicită", () => {
+    expect(parseWorkerCognitiveInstrumentationEnv("0")).toBe(false);
+    expect(parseWorkerCognitiveInstrumentationEnv("false")).toBe(false);
+    expect(parseWorkerCognitiveInstrumentationEnv("OFF")).toBe(false);
   });
 });
 

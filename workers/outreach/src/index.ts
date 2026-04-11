@@ -20,8 +20,11 @@ import {
   loadSecretsFromFile,
   QUEUES,
   queueRegistry,
+  registerCognitiveWorkerEtapa,
   startQueueDepthMonitor,
 } from "@cerniq/worker-shared";
+
+registerCognitiveWorkerEtapa(2);
 import { QUOTA_CHECK_LUA } from "./utils/quota-lua.js";
 import {
   createQuotaCheckWorker,

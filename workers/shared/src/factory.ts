@@ -9,6 +9,10 @@ import {
   enrichError,
   withSpan,
 } from "@cerniq/observability";
+import { resolveNodeKeyFromQueueName, resolveNodeKeyFromQueueNameAndEtapa } from "@cerniq/shared";
+import { withCognitiveSpan } from "./cognitive-helpers.js";
+import { getRegisteredCognitiveWorkerEtapa } from "./cognitive-worker-register.js";
+import type { ImportExecutionContext } from "./import-execution.js";
 import { getQueuePrefix, getRedisConnectionOptions } from "./redis.js";
 import {
   jobDurationSeconds,
@@ -18,6 +22,7 @@ import {
   jobsRetriedTotal,
 } from "./metrics.js";
 import { parseWorkerAutoObservabilityEnv } from "./worker-auto-obs-env.js";
+import { parseWorkerCognitiveInstrumentationEnv } from "./worker-cognitive-env.js";
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? "cerniq-workers";
 const otelEnabled = !!(
@@ -29,8 +34,78 @@ const workerAutoObservability = parseWorkerAutoObservabilityEnv(
   process.env.WORKER_AUTO_OBSERVABILITY,
 );
 
+const workerCognitiveInstrumentation = parseWorkerCognitiveInstrumentationEnv(
+  process.env.WORKER_COGNITIVE_INSTRUMENTATION,
+);
+
 /** Valoare la încărcarea modulului (rollout worker). */
 export const WORKER_AUTO_OBSERVABILITY_ACTIVE = workerAutoObservability;
+
+/** Brain / Redis cognitive events — implicit activ; dezactivare: WORKER_COGNITIVE_INSTRUMENTATION=0 */
+export const WORKER_COGNITIVE_INSTRUMENTATION_ACTIVE = workerCognitiveInstrumentation;
+
+function toCanonicalQueueName(queueName: string): string {
+  return queueName.includes("__") ? queueName.replaceAll("__", ":") : queueName;
+}
+
+function buildCognitiveContextFromJob<T>(
+  job: Job<T>,
+  queueName: string,
+): Partial<ImportExecutionContext> | null {
+  const data = job.data as Record<string, unknown> | null | undefined;
+  if (!data || typeof data !== "object") return null;
+  const tenantId = typeof data.tenantId === "string" ? data.tenantId.trim() : "";
+  if (!tenantId) return null;
+
+  const batchId =
+    typeof data.batchId === "string" && data.batchId.trim() ? data.batchId.trim() : undefined;
+  const sessionId = typeof data.sessionId === "string" ? data.sessionId : "";
+  const correlationRaw = data.correlationId;
+  const correlationId =
+    typeof correlationRaw === "string" ? correlationRaw : correlationRaw === null ? null : null;
+  const runtimeKey =
+    (typeof data.negotiationId === "string" && data.negotiationId) ||
+    (typeof data.leadId === "string" && data.leadId) ||
+    (typeof data.runtimeJobKey === "string" && data.runtimeJobKey) ||
+    `${queueName}:${String(job.id ?? "")}`;
+
+  const etapa = getRegisteredCognitiveWorkerEtapa();
+  const stageKey = etapa !== undefined ? `e${etapa}` : "worker";
+  const workerName = process.env.OTEL_SERVICE_NAME?.trim() || "cerniq-workers";
+
+  const ctx: Partial<ImportExecutionContext> = {
+    tenantId,
+    sessionId,
+    runtimeJobKey: runtimeKey,
+    workerName,
+    stageKey,
+    queueName,
+    correlationId,
+    traceId: typeof correlationRaw === "string" ? correlationRaw : undefined,
+  };
+  if (batchId) ctx.batchId = batchId;
+  return ctx;
+}
+
+function wrapProcessorWithCognitiveInstrumentation<T>(
+  queueName: string,
+  processor: Processor<T>,
+): Processor<T> {
+  if (!workerCognitiveInstrumentation) return processor;
+  return async (job: Job<T>, token?: string) => {
+    const canonical = toCanonicalQueueName(queueName);
+    const etapa = getRegisteredCognitiveWorkerEtapa();
+    const nodeKey =
+      etapa !== undefined
+        ? (resolveNodeKeyFromQueueNameAndEtapa(canonical, etapa) ??
+          resolveNodeKeyFromQueueName(queueName))
+        : resolveNodeKeyFromQueueName(queueName);
+    if (!nodeKey) return processor(job, token);
+    const ctx = buildCognitiveContextFromJob(job, canonical);
+    if (!ctx?.tenantId) return processor(job, token);
+    return withCognitiveSpan(nodeKey, async (_span) => processor(job, token), ctx);
+  };
+}
 
 type JobDataForCorrelation = {
   correlationId?: string;
@@ -125,6 +200,12 @@ export function createQueue<T = unknown>(
   });
 }
 
+/**
+ * Creează un Worker BullMQ cu OTel + logging + (implicit) instrumentare cognitivă Brain.
+ * Apel `registerCognitiveWorkerEtapa(n)` din bootstrap-ul binarului pentru rezolvare corectă
+ * `queueName`→`nodeKey` când catalogul are coliziuni între etape. `withCognitiveSpan` imbricat
+ * în procesor nu dublează evenimente (guard în `cognitive-helpers`).
+ */
 export function createWorker<T = unknown>(
   name: string,
   processor: Processor<T> | string | URL,
@@ -133,7 +214,10 @@ export function createWorker<T = unknown>(
   const { db, ...workerOpts } = options ?? {};
   const wrappedProcessor =
     typeof processor === "function"
-      ? wrapProcessorWithAutoObservability(name, processor)
+      ? wrapProcessorWithAutoObservability(
+          name,
+          wrapProcessorWithCognitiveInstrumentation(name, processor),
+        )
       : processor;
   const worker = new Worker<T>(toBullMqQueueName(name), wrappedProcessor, {
     connection: getRedisConnectionOptions({ db }),

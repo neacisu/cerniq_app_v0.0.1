@@ -16,7 +16,16 @@ import {
   tenants,
 } from "@cerniq/db";
 import { createServiceLogger } from "@cerniq/observability";
+import { resolveNodeKeyFromQueueName, resolveNodeKeyFromQueueNameAndEtapa } from "@cerniq/shared";
+import { emitCognitiveEdgeHandoff } from "./cognitive-helpers.js";
+import { getRegisteredCognitiveWorkerEtapa } from "./cognitive-worker-register.js";
 import { createQueue } from "./factory.js";
+import {
+  ensureImportCognitiveEdgesForBatch,
+  recordImportNodeFailureAnomaly,
+  resolveNodeKeyForImportContext,
+  syncImportCognitiveNodeFromRuntime,
+} from "./import-cognitive-sync.js";
 import { dispatchNotification } from "./notification-dispatcher.js";
 
 const importExecLog = createServiceLogger("import-execution");
@@ -1068,6 +1077,47 @@ function truncateString(value: string, maxLength = 4000) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
 }
 
+function canonicalQueueNameForCognitive(queueName: string): string {
+  return queueName.includes("__") ? queueName.replaceAll("__", ":") : queueName;
+}
+
+function resolveHandoffNodeKeyFromQueue(queueName: string): string | null {
+  const canonical = canonicalQueueNameForCognitive(queueName);
+  const etapa = getRegisteredCognitiveWorkerEtapa();
+  if (etapa != null) {
+    return (
+      resolveNodeKeyFromQueueNameAndEtapa(canonical, etapa) ??
+      resolveNodeKeyFromQueueName(canonical) ??
+      null
+    );
+  }
+  return resolveNodeKeyFromQueueName(canonical) ?? null;
+}
+
+async function emitEdgeHandoffAfterEnqueueIfChained(args: {
+  queueName: string;
+  jobName: string;
+  parentImportExecution?: ImportExecutionContext | null;
+  importExecution: ImportExecutionContext;
+}): Promise<void> {
+  const parent = args.parentImportExecution;
+  if (!parent?.queueName) return;
+  const sourceKey = resolveHandoffNodeKeyFromQueue(parent.queueName);
+  const targetKey = resolveHandoffNodeKeyFromQueue(args.queueName);
+  if (!sourceKey || !targetKey || sourceKey === targetKey) return;
+  try {
+    await emitCognitiveEdgeHandoff(sourceKey, targetKey, args.importExecution, {
+      targetQueueName: args.queueName,
+      jobName: args.jobName,
+    });
+  } catch (err) {
+    importExecLog.warn(
+      { err, sourceKey, targetKey },
+      "emitCognitiveEdgeHandoff after enqueue failed",
+    );
+  }
+}
+
 async function createExecutionContextFromArgs<TPayload extends JsonRecord>(
   args: EnqueueCommonArgs<TPayload>,
 ): Promise<ImportExecutionContext | null> {
@@ -1231,6 +1281,13 @@ export async function enqueueImportJob<TPayload extends JsonRecord>(
       maxRecoveryAttempts: args.maxRecoveryAttempts,
     });
 
+    await ensureImportCognitiveEdgesForBatch(importExecution.tenantId, importExecution.batchId);
+    await syncImportCognitiveNodeFromRuntime({
+      ctx: importExecution,
+      queueName: args.queueName,
+      state: isPaused ? "paused" : "queued",
+    });
+
     await applyWorkerCounterDelta({
       tenantId: importExecution.tenantId,
       sessionId: importExecution.sessionId,
@@ -1275,6 +1332,12 @@ export async function enqueueImportJob<TPayload extends JsonRecord>(
       });
       throw error;
     }
+    await emitEdgeHandoffAfterEnqueueIfChained({
+      queueName: args.queueName,
+      jobName: args.jobName,
+      parentImportExecution: args.parentImportExecution,
+      importExecution,
+    });
     return {
       queued: true,
       sessionId: importExecution.sessionId,
@@ -1833,6 +1896,12 @@ export async function beginImportRuntimeJob(queueName: string, job: Job, workerN
     resumePayload: asRecord(job.data),
     checkpointPayload: asRecord(job.data),
   });
+  await ensureImportCognitiveEdgesForBatch(context.tenantId, context.batchId);
+  await syncImportCognitiveNodeFromRuntime({
+    ctx: context,
+    queueName,
+    state: isPaused ? "paused" : "running",
+  });
   await applyWorkerCounterDelta({
     tenantId: context.tenantId,
     sessionId: context.sessionId,
@@ -1888,6 +1957,12 @@ export async function updateImportRuntimeProgress(job: Job, patch: RuntimeProgre
     metrics: patch.metrics,
     metadata: paused ? { pausedByControl: true } : undefined,
   });
+  await syncImportCognitiveNodeFromRuntime({
+    ctx: context,
+    queueName: context.queueName ?? context.workerName,
+    state: nextState,
+    metricsPatch: patch.metrics ?? undefined,
+  });
   await applyWorkerCounterDelta({
     tenantId: context.tenantId,
     sessionId: context.sessionId,
@@ -1927,6 +2002,12 @@ export async function completeImportRuntimeJob(job: Job, result?: JsonRecord) {
     checkpointPayload: result ?? asRecord(job.progress),
     resumePayload: asRecord(job.data),
     metrics: result,
+  });
+  await syncImportCognitiveNodeFromRuntime({
+    ctx: context,
+    queueName: context.queueName ?? context.workerName,
+    state: "completed",
+    metricsPatch: result ?? undefined,
   });
   await applyWorkerCounterDelta({
     tenantId: context.tenantId,
@@ -1971,6 +2052,22 @@ export async function failImportRuntimeJob(job: Job, error: unknown) {
     resumePayload: asRecord(job.data),
     checkpointPayload: asRecord(job.progress),
     lastError: message.slice(0, 4000),
+  });
+  const failQueue = context.queueName ?? context.workerName;
+  const failNodeKey = resolveNodeKeyForImportContext(context, failQueue);
+  if (failNodeKey) {
+    await recordImportNodeFailureAnomaly({
+      tenantId: context.tenantId,
+      batchId: context.batchId,
+      nodeKey: failNodeKey,
+      message,
+    });
+  }
+  await syncImportCognitiveNodeFromRuntime({
+    ctx: context,
+    queueName: failQueue,
+    state: "failed",
+    metricsPatch: { last_error: message.slice(0, 500) },
   });
   await applyWorkerCounterDelta({
     tenantId: context.tenantId,

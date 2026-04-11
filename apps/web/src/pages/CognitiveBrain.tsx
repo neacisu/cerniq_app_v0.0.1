@@ -1,3 +1,8 @@
+/**
+ * Brain: batchId din importuri (Etapa 1) alimentează topologia ICN/ICE și SSE opțional cu `batchId`.
+ * Activitatea E3 (cozi Bull) folosește în general `tenantId`/sesiune fără batch de import — evenimentele
+ * cognitive globale (`cognitive:events`) pot apărea fără legătură cu batch-ul selectat în UI.
+ */
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BatchSelectorRail } from "@/components/cognitive/BatchSelectorRail.js";

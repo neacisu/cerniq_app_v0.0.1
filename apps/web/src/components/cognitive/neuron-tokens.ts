@@ -59,6 +59,8 @@ export const STATUS_COLORS: Record<string, string> = {
   ACTIVE: "var(--color-neuron-firing)",
   PAUSED: "var(--color-neuron-paused)",
   ERROR: "var(--color-neuron-failed)",
+  IDLE: "var(--color-t4)",
+  COMPLETED: "var(--color-ok)",
 } as const;
 
 /** Fallback color when neuronType is unknown. */

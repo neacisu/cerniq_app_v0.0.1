@@ -43,7 +43,7 @@ export type NeuronNodeData = {
   nodeKey: string;
   neuronType: string;
   swimlane: string;
-  status: "ACTIVE" | "PAUSED" | "ERROR";
+  status: "ACTIVE" | "PAUSED" | "ERROR" | "IDLE" | "COMPLETED";
   metrics: { processed: number; failed: number; avgLatency: number };
   cognitiveFunction?: string;
   biologicalAnalogy?: string;

@@ -27,11 +27,14 @@ import {
   createWorker,
   loadSecretsFromFile,
   queueRegistry,
+  registerCognitiveWorkerEtapa,
   startQueueDepthMonitor,
   watchSecretsFile,
   closeRedisConnections,
   createRedisConnections,
 } from "@cerniq/worker-shared";
+
+registerCognitiveWorkerEtapa(3);
 
 // A1-A6: Product Knowledge Workers
 import { productIngestProcessor } from "./workers/a1-product-ingest.js";
