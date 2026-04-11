@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
-"""Generează placeholder-e pentru neuroni și sinapse din planul master."""
+"""Generează placeholder-e pentru neuroni și sinapse din planul master.
+
+Pentru contracte neuron complete (tabel self-aware), folosiți
+`scripts/generate_neuron_contracts_from_v2.py` — acest script **nu** rescrie
+fișiere care conțin deja `Tabel self-aware (13 criterii)` decât dacă treceți
+`--force-neurons`.
+"""
 from __future__ import annotations
 
+import argparse
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -28,9 +36,13 @@ def compact_two_col(header: tuple[str, str], body: list[tuple[str, str]]) -> str
 
 
 def parse_neurons(text: str) -> list[tuple[str, str, str]]:
-    """Returnează liste de (queue_name, stage, family)."""
+    """Returnează liste de (queue_name, stage, family) — include liniile « — duplicat #2 »."""
     out: list[tuple[str, str, str]] = []
-    for m in re.finditer(r"^### NEURON `([^`]+)`\s*$", text, re.MULTILINE):
+    for m in re.finditer(
+        r"^### NEURON `([^`]+)`(?:\s+— duplicat #2)?\s*$",
+        text,
+        re.MULTILINE,
+    ):
         start = m.end()
         block = text[start : start + 2500]
         st = re.search(r"^\-\s\*\*Stage:\*\*\s*(E[1-5])", block, re.MULTILINE)
@@ -88,7 +100,27 @@ Completează sursă, țintă, tip muchie, descriere și statusuri (payload, retr
 """
 
 
+def neuron_contract_complete(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    t = path.read_text(encoding="utf-8")
+    return "Tabel self-aware (13 criterii)" in t
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description="Placeholder-e neuron/sinapsă din planul master.")
+    ap.add_argument(
+        "--force-neurons",
+        action="store_true",
+        help="Rescrie și fișierele neuron cu contract self-aware deja generat.",
+    )
+    ap.add_argument(
+        "--refresh-family-placeholders",
+        action="store_true",
+        help="Rescrie toate ADR-FAMILY din adr/families/ (destructiv). Implicit: nu.",
+    )
+    args = ap.parse_args()
+
     if not MASTER.is_file():
         raise SystemExit(f"Lipsește planul master: {MASTER}")
 
@@ -101,10 +133,14 @@ def main() -> None:
 
     seen_syn: set[str] = set()
     n_count = 0
+    n_skip = 0
     for queue, stage, family in parse_neurons(text):
         sub = neurons_dir / stage
         sub.mkdir(parents=True, exist_ok=True)
         path = sub / f"{slug_queue(queue)}.md"
+        if neuron_contract_complete(path) and not args.force_neurons:
+            n_skip += 1
+            continue
         path.write_text(neuron_doc(queue, stage, family), encoding="utf-8")
         n_count += 1
 
@@ -117,8 +153,12 @@ def main() -> None:
         path.write_text(synapse_doc(sname), encoding="utf-8")
         s_count += 1
 
-    print(f"Scrie {n_count} neuroni în {neurons_dir}")
+    print(f"Scrie {n_count} neuroni în {neurons_dir} (sărite complete: {n_skip})")
     print(f"Scrie {s_count} sinapse în {synapses_dir}")
+
+    if not args.refresh_family_placeholders:
+        print("ADR-FAMILY: nemodificate (fără --refresh-family-placeholders).", file=sys.stderr)
+        return
 
     fam_root = ROOT / "adr" / "families"
     fam_n = 0

@@ -16,21 +16,68 @@ Acest director descompune conținutul din planul master într-o structură de co
 | --- | --- |
 | [`research/`](research/) | Teme extrase din baza de cercetare neuronală (CoALA, SGLang, etc.). |
 | [`overview/`](overview/) | §0–2, §8–9: dovezi, baseline factual, direcție arhitecturală, reconciliere runtime/graf, consecințe imediate. |
-| [`adr/global/`](adr/global/) | ADR-0001 … ADR-0008. |
+| [`adr/global/`](adr/global/) | ADR-0001 … ADR-0008 — fișiere **complete** (2026-04-11), ancorate în v2 §3, cu dovezi repo + surse externe datate unde e cazul. |
 | [`adr/families/`](adr/families/) | 52 × ADR-FAMILY pe etapă (E1–E5). **E1–E5:** fișierele din [`adr/families/e1/`](adr/families/e1/) … [`e5/`](adr/families/e5/) sunt ADR-uri complete de documentare (2026-04-11), cu dovezi din [`queue-registry.ts`](../../workers/shared/src/queue-registry.ts) și [`cognitive-node-catalog.ts`](../../packages/shared/src/cognitive-node-catalog.ts), reconciliere față de **v2** și limite de evidență. |
+
+## ADR-uri globale (0001–0008)
+
+| ID | Titlu | Fișier |
+| --- | --- | --- |
+| ADR-0001 | Autoritate runtime neuron | [adr/global/ADR-0001-runtime-neuron-authority.md](adr/global/ADR-0001-runtime-neuron-authority.md) |
+| ADR-0002 | Autoritate semantică neuron | [adr/global/ADR-0002-semantic-neuron-authority.md](adr/global/ADR-0002-semantic-neuron-authority.md) |
+| ADR-0003 | Coloană vertebrală telemetrie | [adr/global/ADR-0003-telemetry-backbone.md](adr/global/ADR-0003-telemetry-backbone.md) |
+| ADR-0004 | Direcție „event spine” | [adr/global/ADR-0004-event-spine-direction.md](adr/global/ADR-0004-event-spine-direction.md) |
+| ADR-0005 | Direcție cogniție pe graf | [adr/global/ADR-0005-graph-cognition-direction.md](adr/global/ADR-0005-graph-cognition-direction.md) |
+| ADR-0006 | Rutare modele self-hosted first | [adr/global/ADR-0006-self-hosted-model-routing.md](adr/global/ADR-0006-self-hosted-model-routing.md) |
+| ADR-0007 | Guardrails ca infrastructură | [adr/global/ADR-0007-guardrails-infrastructure.md](adr/global/ADR-0007-guardrails-infrastructure.md) |
+| ADR-0008 | HITL ca plan transversal | [adr/global/ADR-0008-hitl-transversal.md](adr/global/ADR-0008-hitl-transversal.md) |
+
+### Matrice acoperire (v2 §3 · research · cod) — sumar
+
+| ADR | v2 §3 | research_base | Cod (exemple) | Lacună declarată |
+| --- | --- | --- | --- | --- |
+| 0001 | Runtime = registry | BullMQ ca execuție | `queue-registry.ts` | Handler-i nu toți auditați |
+| 0002 | Semantic = catalog | Taxonomii UI | `cognitive-node-catalog.ts`, `cognitive-brain.ts` | Drift OpenAPI «118» vs catalog |
+| 0003 | OTel + GenAI semconv | Observabilitate | `observability/init.ts`, `withCognitiveSpan` | Fără `gen_ai.*` în TS la audit |
+| 0004 | BullMQ + Kafka spine | Nerv dublu | BullMQ E4 FlowProducer | Fără client Kafka în repo |
+| 0005 | Neo4j / GDS / GraphRAG | Graf / memorie | — | Fără Neo4j în TS la audit |
+| 0006 | Self-hosted + SGLang | Modele / ieșiri | `llm-client.ts`, `outreach-llm-routing.ts` | SGLang / CMDB host nu în cod |
+| 0007 | NeMo + Cedar | Guardrails | Catalog guard + `/guard` gateway | NeMo/Cedar npm lipsă |
+| 0008 | HITL + LangGraph | Autonomie / HITL | Registry `hitl:*`, `enrichment.ts` approvals | LangGraph lipsă în TS |
+
+### Checklist anti-halucinare (ADR globale)
+
+Înainte de a considera un ADR global «închis», verificați: **(1)** fiecare afirmație despre cozi/API/OTel are fișier citit sau `grep` relevant; **(2)** faptele externe (versiuni, spec) au URL + dată (≥ aprilie 2026); **(3)** există paragraf **Limită evidență**; **(4)** distincție clară între **recomandare v2/research** și **implementat în repo**; **(5)** contradicții v2 vs cod tabelate, nu ignorate. Canon extins: [plan-task-execution.mdc](../../.cursor/rules/plan-task-execution.mdc), [anti-hallucination-global.mdc](../../.cursor/rules/anti-hallucination-global.mdc).
+
 | [`governance/`](governance/) | Clase de sinapse și reguli tranzitorii (§5). |
-| [`contracts/neurons/`](contracts/neurons/) | Un fișier placeholder per neuron (coadă canonică), grupat pe etapă. |
+| [`contracts/neurons/`](contracts/neurons/) | **322** fișiere contract (pereche unică etapă + coadă v2 §6) + schema [`_CONTRACT_SCHEMA.md`](contracts/neurons/_CONTRACT_SCHEMA.md); **324** intrări `### NEURON` în v2 (două cozi au câte două instanțe în același fișier: `ai:intent:classify`, `hitl:task:resolve`). |
 | [`contracts/synapses/`](contracts/synapses/) | Un fișier placeholder per sinapsă din registrul §7. |
+
+## Matrice neuron (v2 §6 × registry × catalog)
+
+- [`NEURON_MATRIX.csv`](NEURON_MATRIX.csv) — câte un rând per antet `### NEURON` (324 rânduri).
+- [`NEURON_MATRIX.md`](NEURON_MATRIX.md) — sumar + excerpt.
+- Generator: `python3 docs/CognitiveBrain/scripts/build_neuron_matrix.py`
 
 ## Regenerare contracte neuron/sinapsă
 
-După actualizarea planului master, rulează din rădăcina repo:
+Contracte neuron din v2 §6: generatorul creează **doar structura** (metadata, instanțe v2, extras) și **placeholder-e «TODO manual»** în coloana «În cod (dovadă)». Completarea raționată a fiecărui neuron = autor uman / agent care urmează DOD din [`contracts/neurons/CONTRACT_AUTHORING_CHECKLIST.md`](contracts/neurons/CONTRACT_AUTHORING_CHECKLIST.md). După închidere, adăugați `<!-- neuron-contract:author-complete -->` în fișier ca să nu fie suprascris la regenerare.
+
+```bash
+python3 docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py --force --prune-orphans
+```
+
+Placeholder-e simple (sinapse + neuroni fără self-aware) și regenerare opțională ADR-FAMILY:
 
 ```bash
 python3 docs/CognitiveBrain/_generate_placeholders.py
 ```
 
-Scriptul citește **`v2_cerniq_cognitive_brain_master_implementation_plan.md`** dacă există, altfel `cerniq_cognitive_brain_master_implementation_plan.md` din același director, și rescrie fișierele din `contracts/neurons/`, `contracts/synapses/` și (dacă aplică) placeholder-e ADR. **Atenție:** înainte de regenerare, excludeți sau versionați ADR-urile **complete** din `adr/families/e1/` … `e5/` dacă scriptul le suprascrie — verificați comportamentul scriptului.
+`_generate_placeholders.py` citește **`v2_cerniq_cognitive_brain_master_implementation_plan.md`** dacă există; **nu** rescrie fișiere neuron care conțin deja `Tabel self-aware (13 criterii)` (folosiți `--force-neurons` pentru a forța). **ADR-FAMILY** nu sunt modificate decât cu `--refresh-family-placeholders` (evitați pe fișiere deja complete).
+
+## Migrare registry / catalog (val 1)
+
+Strategie cutover / dual-listen: [`migration/wave1-registry-catalog.md`](migration/wave1-registry-catalog.md).
 
 ## Sinteză pe etapă (ADR-uri de familie)
 
