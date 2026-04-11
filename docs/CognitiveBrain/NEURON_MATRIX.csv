@@ -20,8 +20,8 @@ v2_line,v2_queue,stage,family,v2_dup2,contract_path,group_key,catalog_nodekey_v2
 2148,enrich:email:smtp-verify,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--email--smtp-verify.md,E1|enrich--email--smtp-verify,,e1:discover:email-hunter-verify,no
 2170,enrich:geo:geocode,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--geo--geocode.md,E1|enrich--geo--geocode,,e1:geo:geocode-nominatim,no
 2192,enrich:geo:siruta-lookup,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--geo--siruta-lookup.md,E1|enrich--geo--siruta-lookup,,,no
-2214,enrich:madr:cooperative,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--cooperative.md,E1|enrich--madr--cooperative,,,no
-2236,enrich:madr:producer-groups,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--producer-groups.md,E1|enrich--madr--producer-groups,,,no
+2214,enrich:madr:cooperative,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--cooperative.md,E1|enrich--madr--cooperative,,e1:agri:cooperative,no
+2236,enrich:madr:producer-groups,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--madr--producer-groups.md,E1|enrich--madr--producer-groups,,e1:agri:cooperative;e5:association:madr-scrape,no
 2258,enrich:onrc:capital,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--onrc--capital.md,E1|enrich--onrc--capital,,,no
 2280,enrich:onrc:registration,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--onrc--registration.md,E1|enrich--onrc--registration,,,no
 2302,enrich:phone:carrier-detect,E1,enrichment,no,docs/CognitiveBrain/contracts/neurons/E1/enrich--phone--carrier-detect.md,E1|enrich--phone--carrier-detect,,,no
