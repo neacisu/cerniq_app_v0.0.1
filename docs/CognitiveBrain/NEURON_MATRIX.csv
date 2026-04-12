@@ -71,7 +71,7 @@ v2_line,v2_queue,stage,family,v2_dup2,contract_path,group_key,catalog_nodekey_v2
 3294,q:email:warm,E2,email-cold,no,docs/CognitiveBrain/contracts/neurons/E2/q--email--warm.md,E2|q--email--warm,e2:email:warm-send,e2:email:warm-send;q:email:warm,yes
 3319,email:warm:document,E2,email-warm,no,docs/CognitiveBrain/contracts/neurons/E2/email--warm--document.md,E2|email--warm--document,e2:email:warm-document,e2:email:warm-document,yes
 3344,email:warm:proforma,E2,email-warm,no,docs/CognitiveBrain/contracts/neurons/E2/email--warm--proforma.md,E2|email--warm--proforma,e2:email:warm-proforma,e2:email:warm-proforma,yes
-3369,email:warm:send,E2,email-warm,no,docs/CognitiveBrain/contracts/neurons/E2/email--warm--send.md,E2|email--warm--send,,,no
+3369,email:warm:send,E2,email-warm,no,docs/CognitiveBrain/contracts/neurons/E2/email--warm--send.md,E2|email--warm--send,e2:email:warm-send,e2:email:warm-send;q:email:warm,no
 3391,human:approve:message,E2,human,no,docs/CognitiveBrain/contracts/neurons/E2/human--approve--message.md,E2|human--approve--message,e2:human:approve-message,e2:human:approve-message,yes
 3416,human:review:queue,E2,human,no,docs/CognitiveBrain/contracts/neurons/E2/human--review--queue.md,E2|human--review--queue,e2:human:review-queue,e2:human:review-queue,yes
 3441,human:takeover:complete,E2,human,no,docs/CognitiveBrain/contracts/neurons/E2/human--takeover--complete.md,E2|human--takeover--complete,e2:human:takeover-complete,e2:human:takeover-complete,yes

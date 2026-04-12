@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `human:approve:message`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Coada este în registry/catalog; **lipsește** procesor BullMQ în `workers/outreach` (și orice `add` către această coadă în cod TypeScript auditat).
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `human:approve:message` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `human` |
+| familie (v2) | `human` |
 | contract_path | `contracts/neurons/E2/human--approve--message.md` |
 | ADR familie (indicativ) | [human](../../adr/families/e2/human.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Aprobare mesaj generat de AI înainte de trimitere. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2 + catalog:** `HumanNeuron`, aprobare mesaj AI înainte de trimitere, coadă `human:approve:message`, OODA cu UI și `Command(resume=...)`. **Repo:** `QUEUES.HUMAN_APPROVE_MESSAGE` în `workers/shared/src/queue-registry.ts` (L175, L844); intrare catalog `e2:human:approve-message` / `human:approve:message` în `packages/shared/src/cognitive-node-catalog.ts` (L1434–1441). **Nu** există `createWorker(QUEUES.HUMAN_APPROVE_MESSAGE)` sau înregistrare în `workers/outreach/src/index.ts` (L183–189 listează alți workeri HITL, fără approve-message). Căutare `human:approve:message` în `*.ts`: doar registry + catalog + documentație. **E3** folosește coada distinctă `human:approve` (`workers/e3-ai-sales/src/workers/n78-human-approve.ts`) — **nu** este același contract. Comportament operațional pentru `human:approve:message` = **neimplementat** la data auditului.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3391 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`human:approve:message\`` (L3392–3415).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:human:approve-message` (L1434–1441).
+- `workers/shared/src/queue-registry.ts` — `HUMAN_APPROVE_MESSAGE` (L175, L844).
+- `workers/outreach/src/index.ts` — absență worker dedicate (audit enumerare L142–219).
+- `docs/specifications/Etapa 2/etapa2-hitl-system.md` — secțiune design worker (referință arhitecturală, nu înlocuiește lipsa handlerului).
+- Grep repo: `human:approve:message` în `*.ts` (doar registry/catalog).
 
 ## Instanțe v2
 
-### Instanță 1 — `human` (linia v2 ~3391)
+- **Catalog nodeKey:** `e2:human:approve-message`
+- **OTel (v2):** `cognitive.e2.human.approve-message`
 
-- **Stage:** E2
-- **Family:** human
-- **Catalog nodeKey:** e2:human:approve-message
-- **Neuron type:** HumanNeuron
-- **Swimlane:** human-oversight
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive HITL task. ORIENT: load decision context via LangGraph checkpoint. DECIDE: present to human via UI. ACT: resume pipeline with APPROVE/REJECT/MODIFY via Command(resume=...).
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="HumanNeuron",stage="E2",swimlane="human-oversight"}, cerniq_neuron_duration_seconds{neuron_id="e2:human:approve-message"}, cerniq_neuron_confidence{neuron_id="e2:human:approve-message"}
-- **OTel span name:** cognitive.e2.human.approve-message
+- **Rând 8:** **N/A** — non-AI în v2.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:human:approve-message`. | v2: `human:approve:message`; Catalog nodeKey (v2 bloc): `e2:human:approve-message` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `human`, swimlane `human-oversight` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Aprobare mesaj generat de AI înainte de trimitere; analogie: Neocortex — decizie conștientă umană obligatorie | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`HumanNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `HumanNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.human.approve-message`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive HITL task. ORIENT: load decision context via LangGraph checkpoint. DECIDE: present to human via UI. ACT: resume pipeline with APPROVE/REJECT/MODIFY via Command(resume=...). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e2:human:approve-message`**, coadă **`human:approve:message`** în registry; **fără** worker/procesor în outreach. | v2 queue = registry. | Implementare lipsă — v2 §2.4. |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 2, `human-oversight`. | v2 familie `human`. | — |
+| 3 | Rol declarat | *Țintă:* gate HITL pre-send; **în cod:** doar coadă statică. | v2 + catalog. | — |
+| 4 | NeuronType + SOFAI | **Catalog:** `HumanNeuron`. | v2. | — |
+| 5 | Criticitate | **Catalog:** `HIGH`. | v2 HIGH. | — |
+| 6 | Înveliș telemetrie | Fără `withCognitiveSpan` pe coadă (fără handler). | v2 span `cognitive.e2.human.approve-message`. | **Migrare planificată** când există worker. |
+| 7 | Înveliș politică | — | v2 Tier 3 + HITL policy. | Fără cod de aplicat. |
+| 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
+| 9 | Guardrails | — | ADR-0007. | Fără handler. |
+| 10 | Escaladare HITL | Neuronul **este** flux HITL în v2; fără motor runtime pe această coadă. | ADR-0008 menționează coada. | — |
+| 11 | Micro-OODA | v2: LangGraph + UI + resume; **cod:** absent. | v2. | **LangGraph:** fără referințe în `workers/outreach` la audit. |
+| 12 | Tier + de-escaladare | — | v2. | Fără handler. |
+| 13 | Stack | BullMQ (coadă înregistrată); rest neconectat. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.human.approve-message`.
+- **Cod:** *n/a* până la implementare worker.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `email:warm:send`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **Nu** există coadă BullMQ cu numele literal `email:warm:send` în registry; trimiterea warm este implementată ca **`q:email:warm`** (`e2:email:warm-send`). v2 marchează acest antet ca *graph-export-grounded*, ne-reconciliat — reconcilierea runtime este documentată aici.
 
 ## Metadata
 
@@ -8,62 +10,55 @@
 | --- | --- |
 | v2_queue | `email:warm:send` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `email-warm` |
+| familie (v2) | `email-warm` |
 | contract_path | `contracts/neurons/E2/email--warm--send.md` |
 | ADR familie (indicativ) | [email-warm](../../adr/families/e2/email-warm.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron pentru email warm sau documente tranzacționale. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** antet `email:warm:send`, scop tranzacțional email warm, `MotorNeuron` inferat, câmp queue din export graf **fără** reconciliere inițială cu registry (L3370–3391). **Repo:** implementarea trimiterii este **aceeași** cu neuronul documentat în [`q--email--warm.md`](q--email--warm.md): `createEmailWarmSenderWorker` pe `QUEUES.EMAIL_WARM` = `q:email:warm`, Resend tranzacțional, gardă ADR-0059 `WARM_REPLY` / `NEGOTIATION`, `communication_log` OUTBOUND. **Convenție:** `email:warm:send` (v2) ≡ **`q:email:warm`** (runtime) + **`e2:email:warm-send`** (catalog).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3369 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`email:warm:send\`` (L3370–3391).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:email:warm-send` mapat la **`q:email:warm`** (L1150–1157).
+- `workers/shared/src/queue-registry.ts` — `EMAIL_WARM: "q:email:warm"` (L129); **lipsă** cheie `email:warm:send`.
+- `workers/outreach/src/workers/email.ts` — `createEmailWarmSenderWorker` (L476–549).
+- `docs/CognitiveBrain/contracts/neurons/E2/q--email--warm.md` — contract canonic al cozii de trimitere.
+- `apps/api/src/routes/outreach.ts` — răspuns API `queueName: "q:email:warm"` pentru canal EMAIL_WARM (L548).
 
 ## Instanțe v2
 
-### Instanță 1 — `email-warm` (linia v2 ~3369)
+- **Catalog nodeKey (trimitere):** `e2:email:warm-send` — asociat cozii **`q:email:warm`**, nu `email:warm:send`.
+- **OTel (v2):** `cognitive.email.warm.send` (antet v2) vs `cognitive.e2.email.warm-send` (bloc `q:email:warm` din aceeași sursă v2, L3317) — **două denumiri** în document; runtime span efectiv: vezi contract `q:email:warm`.
 
-- **Stage:** E2
-- **Family:** email-warm
-- **Inferred neuron type:** MotorNeuron
-- **Inferred criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive command. ORIENT: validate + check quotas. DECIDE: send/defer/retry. ACT: execute external action + log.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80). SLA: 4h.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E2",swimlane="email-warm"}
-- **OTel span name:** cognitive.email.warm.send
+- **Rând 8:** **N/A** — non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `email:warm:send`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `email-warm`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron pentru email warm sau documente tranzacționale.; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.email.warm.send`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80). SLA: 4h. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive command. ORIENT: validate + check quotas. DECIDE: send/defer/retry. ACT: execute external action + log. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Trimitere:** `e2:email:warm-send` → coadă **`q:email:warm`**. Literal **`email:warm:send`:** absent din `queue-registry.ts`. | v2 queue field `email:warm:send`. | Granța v2 §2.4: mapare explicită queue v2 ↔ runtime. |
+| 2 | Etapă, familie, swimlane | **Catalog** pentru `e2:email:warm-send`: etapa 2, `fiscal-execution`. | v2 familie `email-warm`; swimlane email-warm în metrici v2 — catalog folosește `fiscal-execution`. | Mică divergență swimlane v2 vs catalog — ambele citate. |
+| 3 | Rol declarat | Trimitere mesaj warm Resend + audit `communication_log` — vezi `q--email--warm.md`. | v2 operational purpose tranzacțional. | — |
+| 4 | NeuronType + SOFAI | **Catalog:** `MotorNeuron`. | v2 inferred MotorNeuron. | — |
+| 5 | Criticitate | **Catalog:** `HIGH`. | v2 inferred HIGH. | — |
+| 6 | Înveliș telemetrie | Același stack ca `q:email:warm`: `cognitive:e2:email:warm-send`. | v2 `cognitive.email.warm.send` **și** `cognitive.e2.email.warm-send` în secțiuni diferite ale planului. | **Migrare planificată** pentru un singur nume canonic span. |
+| 7 | Înveliș politică | Gardă stări în `createEmailWarmSenderWorker` (ADR-0059). | v2 Tier 3. | — |
+| 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
+| 9 | Guardrails | Resend + tag-uri identitate lead/tenant. | ADR-0007. | — |
+| 10 | Escaladare HITL | Nu din acest procesor. | v2. | — |
+| 11 | Micro-OODA | Validare stare → send Resend → persistență → metrici (detaliu în `q--email--warm.md`). | v2 OODA send. | — |
+| 12 | Tier + de-escaladare | Throw pe încălcire canal / eșec send. | v2. | — |
+| 13 | Stack | BullMQ, Resend, Postgres. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2 (antet `email:warm:send`):** `cognitive.email.warm.send`.
+- **v2 (bloc `q:email:warm`):** `cognitive.e2.email.warm-send`.
+- **Cod:** `cognitive:e2:email:warm-send` — **aliniat** cu catalog + contract `q:email:warm`; numele `cognitive.email.warm.send` tratat ca **țintă / dublură document** până la unificare.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

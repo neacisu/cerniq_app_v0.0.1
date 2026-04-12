@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `human:takeover:complete`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Resolution handler: închide review, returnează journey la automatizare.
 
 ## Metadata
 
@@ -8,64 +10,53 @@
 | --- | --- |
 | v2_queue | `human:takeover:complete` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `human` |
+| familie (v2) | `human` |
 | contract_path | `contracts/neurons/E2/human--takeover--complete.md` |
 | ADR familie (indicativ) | [human](../../adr/families/e2/human.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Finalizare preluare și predare înapoi la AI. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2 + catalog:** `HumanNeuron`, finalizare preluare și predare înapoi la AI. **Repo:** `createResolutionHandlerWorker` în `workers/outreach/src/workers/hitl.ts` (L572–682) pe `QUEUES.HUMAN_TAKEOVER_COMPLETE` (`human:takeover:complete`): setează `humanReviewQueue` la `RESOLVED` cu `resolutionAction: RETURN_TO_AUTOMATION`, `resolutionNotes`, `resolvedBy`; apoi `lead_journey` cu `isHumanControlled: false`, `requiresHumanReview: false`; inserează `hitlAuditLog` + `auditWriter`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3441 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`human:takeover:complete\`` (L3442–3465).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:human:takeover-complete` (L1425–1432).
+- `workers/shared/src/queue-registry.ts` — `HUMAN_TAKEOVER_COMPLETE` (L174, L843).
+- `workers/outreach/src/workers/hitl.ts` — `TakeoverCompleteJobData`, `createResolutionHandlerWorker` (L111–118, L572–682).
+- `workers/outreach/src/index.ts` — L186.
 
 ## Instanțe v2
 
-### Instanță 1 — `human` (linia v2 ~3441)
+- **Catalog nodeKey:** `e2:human:takeover-complete`
+- **OTel (v2):** `cognitive.e2.human.takeover-complete`
 
-- **Stage:** E2
-- **Family:** human
-- **Catalog nodeKey:** e2:human:takeover-complete
-- **Neuron type:** HumanNeuron
-- **Swimlane:** human-oversight
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive HITL task. ORIENT: load decision context via LangGraph checkpoint. DECIDE: present to human via UI. ACT: resume pipeline with APPROVE/REJECT/MODIFY via Command(resume=...).
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="HumanNeuron",stage="E2",swimlane="human-oversight"}, cerniq_neuron_duration_seconds{neuron_id="e2:human:takeover-complete"}, cerniq_neuron_confidence{neuron_id="e2:human:takeover-complete"}
-- **OTel span name:** cognitive.e2.human.takeover-complete
+- **Rând 8:** **N/A** — non-AI.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | �Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:human:takeover-complete`. | v2: `human:takeover:complete`; Catalog nodeKey (v2 bloc): `e2:human:takeover-complete` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `human`, swimlane `human-oversight` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Finalizare preluare și predare înapoi la AI; analogie: Neocortex — decizie conștientă umană obligatorie | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`HumanNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `HumanNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.human.takeover-complete`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive HITL task. ORIENT: load decision context via LangGraph checkpoint. DECIDE: present to human via UI. ACT: resume pipeline with APPROVE/REJECT/MODIFY via Command(resume=...). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e2:human:takeover-complete`**, worker `createResolutionHandlerWorker`. | v2. | — |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 2, `human-oversight`. | v2. | — |
+| 3 | Rol declarat | Închidere review + reluare automatizare pe journey. | v2. | — |
+| 4 | NeuronType + SOFAI | **Catalog:** `HumanNeuron`. | v2. | — |
+| 5 | Criticitate | **Catalog:** `HIGH`. | v2 HIGH. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e2:human:takeover-complete", …)` (L576). | v2 span. | — |
+| 7 | Înveliș politică | `UnrecoverableError` dacă review/journey lipsesc după update. | v2 HITL policy. | — |
+| 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
+| 9 | Guardrails | Rezoluție persistată + audit trail. | ADR-0007. | — |
+| 10 | Escaladare HITL | Închide ciclul takeover; nu enfilează alt task HITL aici. | v2. | — |
+| 11 | Micro-OODA | Update review → update journey → audit. | v2 LangGraph/UI — **nu** în cod. | LangGraph: **țintă v2**. |
+| 12 | Tier + de-escaladare | Eșec dur la inconsistențe DB. | v2. | — |
+| 13 | Stack | BullMQ, Postgres. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.human.takeover-complete`.
+- **Cod:** `withCognitiveSpan("e2:human:takeover-complete")` — **aliniat**.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.
