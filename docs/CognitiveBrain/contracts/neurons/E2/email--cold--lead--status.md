@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `email:cold:lead:status`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Procesare **deterministă** a evenimentelor Instantly; **v2** menționează rutare LLM pentru acest neuron — **nu** există în codul citat.
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `email:cold:lead:status` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `email-cold` |
+| familie (v2) | `email-cold` |
 | contract_path | `contracts/neurons/E2/email--cold--lead--status.md` |
 | ADR familie (indicativ) | [email-cold](../../adr/families/e2/email-cold.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Sincronizare status lead din platforma email. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** `AssociativeNeuron`, sincronizare status lead din platforma email; blocul v2 include **Model routing** cu vLLM/SGLang (posibil eroare de copiere din alt neuron). **Repo:** `createEmailColdTrackingWorker` pe `QUEUES.EMAIL_COLD_LEAD_STATUS` (`email:cold:lead:status`) în `workers/outreach/src/workers/email.ts`: `switch` pe `eventType` (`email_sent`, `email_opened`, `reply_received`, `email_bounced`, `lead_unsubscribed`) — actualizări `communicationLog` / `leadJourney`, inserare inbound la reply, enfilează `lead:state:transition`, `ai:sentiment:analyze`, `sequence:schedule:stop` (coadă `SEQUENCE_STOP`), `monitor:email:deliverability` la bounce. **Producător:** `createInstantlyEventProcessorWorker` (`webhooks.ts` L320–411) după rezolvare `journeyId` din email; altfel skip logat. Fără apel LLM în acest procesor.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3244 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`email:cold:lead:status\`` (~L3220–3268).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:email:cold-lead-status` (L1139–1146).
+- `workers/shared/src/queue-registry.ts` — `EMAIL_COLD_LEAD_STATUS` (L126, L797).
+- `workers/outreach/src/workers/email.ts` — `createEmailColdTrackingWorker` (L217–395).
+- `workers/outreach/src/workers/webhooks.ts` — enqueue tracking (L320–411).
+- `workers/outreach/src/index.ts` — bootstrap outreach etapa 2.
 
 ## Instanțe v2
 
-### Instanță 1 — `email-cold` (linia v2 ~3244)
+- **Catalog nodeKey:** `e2:email:cold-lead-status`
+- **OTel (v2):** `cognitive.e2.email.cold-lead-status`
 
-- **Stage:** E2
-- **Family:** email-cold
-- **Catalog nodeKey:** e2:email:cold-lead-status
-- **Neuron type:** AssociativeNeuron
-- **Swimlane:** pipeline-control
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read input. ORIENT: process per AssociativeNeuron logic. DECIDE: validate output. ACT: emit result.
-- **Model routing:** PRIMARY: vllm-fast-14b (Qwen2.5-14B-AWQ, port 8002, max 12K ctx). FALLBACK: vllm-reasoning-32b if confidence < 0.85. Structured output: SGLang guided_json.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AssociativeNeuron",stage="E2",swimlane="pipeline-control"}, cerniq_neuron_duration_seconds{neuron_id="e2:email:cold-lead-status"}, cerniq_neuron_confidence{neuron_id="e2:email:cold-lead-status"}
-- **OTel span name:** cognitive.e2.email.cold-lead-status
+- **Rând 8:** **N/A** — implementare fără LLM; textul v2 care cere vLLM/SGLang nu se aplică repo-ului la audit.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:email:cold-lead-status`. | v2: `email:cold:lead:status`; Catalog nodeKey (v2 bloc): `e2:email:cold-lead-status` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `email-cold`, swimlane `pipeline-control` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Sincronizare status lead din platforma email; analogie: Neuron asociativ cortical — corelează și integrează date | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AssociativeNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AssociativeNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.email.cold-lead-status`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-fast-14b (Qwen2.5-14B-AWQ, port 8002, max 12K ctx). FALLBACK: vllm-reasoning-32b if confidence < 0.85. Structured output: SGLang guided_json. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input. ORIENT: process per AssociativeNeuron logic. DECIDE: validate output. ACT: emit result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Catalog + registry + worker** — `e2:email:cold-lead-status`, coadă `email:cold:lead:status`. | v2. | — |
+| 2 | Etapă, familie, swimlane | **Catalog:** etapa 2, `pipeline-control`. | v2. | — |
+| 3 | Rol declarat | Sincronizare stare cold email din evenimente Instantly → DB + cozi downstream. | v2. | — |
+| 4 | NeuronType + SOFAI | **Catalog:** `AssociativeNeuron`. | v2. | — |
+| 5 | Criticitate | **Catalog:** `MEDIUM`. | v2. | — |
+| 6 | Înveliș telemetrie | `createWorker` + etapa 2 → `cognitive:e2:email:cold-lead-status` (cu `tenantId` în `job.data`). | v2 puncte vs cod. | — |
+| 7 | Înveliș politică | Early return dacă lipsește `journeyId` (L234–244). | v2 HITL la eșecuri repetate. | — |
+| 8 | Rutare model (dacă AI) | N/A în cod. | v2: mențiune LLM — **contradicție** față de implementare. | Tratați ca **decalaj v2** până la corecție document master. |
+| 9 | Guardrails | Logică pe enum `eventType`; **fără** NeMo. | ADR-0007. | — |
+| 10 | Escaladare HITL | Enfilează **`ai:sentiment:analyze`** și tranziții stare, nu direct `human:review:queue` aici. | v2 + lanț indirect HITL prin sentiment. | — |
+| 11 | Micro-OODA | Observe (eveniment normalizat), Orient (rezolvare journey), Decide (switch), Act (DB + cozi). | v2. | — |
+| 12 | Tier + de-escaladare | Erori rezolvare journey → skip procesare parțială. | v2. | — |
+| 13 | Stack | BullMQ, Postgres, webhook ingest separat. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.email.cold-lead-status`.
+- **Cod:** `cognitive:e2:email:cold-lead-status`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.
