@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `bronze:ingest:json-parser`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**.
 
 ## Metadata
 
@@ -14,56 +16,49 @@
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron de ingestie care aduce date brute în pipeline-ul Bronze. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** definește **`bronze:ingest:json-parser`** ca neuron SensoryNeuron de ingestie Bronze (JSON structurat). **În repo** nu există coadă sau `nodeKey` cu acest nume. **Cea mai apropiată** capabilitate este **`ingest:webhook`**: job-ul primește deja `payload: Record<string, unknown> | Array<...>` (JSON de-serializat înainte de enqueue), semnătură HMAC pe `JSON.stringify(payload)`, limite de mărime și vârstă timestamp (`a3-webhook-receiver.ts`). Aceasta este **ingestie eveniment**, nu un «parser JSON bronze» generic pentru fișiere sau fluxuri batch ca la CSV. **Concluzie:** **fără mapare 1:1**; suprapunere semantică **parțială** cu webhook.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~2742 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`bronze:ingest:json-parser\`` (~L2743–2763).
+- `packages/shared/src/cognitive-node-catalog.ts` — **fără** `bronze:ingest:json-parser`; există `e1:ingest:webhook` / `ingest:webhook` (~L369–376).
+- `workers/shared/src/queue-registry.ts` — `INGEST_WEBHOOK: "ingest:webhook"` (~L23).
+- `workers/enrichment/src/main.ts` — `"ingest:webhook": webhookReceiverProcessor` (~L118).
+- `workers/enrichment/src/workers/a3-webhook-receiver.ts` — tip `WebhookReceiverJobData`, validări, `withCognitiveSpan("e1:ingest:webhook", …)` (~L17–28, ~L54–57).
+- `rg` `bronze:ingest:json-parser` în `*.ts`: **fără**.
 
 ## Instanțe v2
 
-### Instanță 1 — `ingest` (linia v2 ~2742)
+- **OTel span name (v2):** `cognitive.bronze.ingest.json-parser`
+- **Evidence status:** graph-export-grounded; reconciliere registry nefinalizată în v2.
 
-- **Stage:** E1
-- **Family:** ingest
-- **Inferred neuron type:** SensoryNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: ingest external data. ORIENT: validate schema. DECIDE: accept/reject/retry. ACT: enqueue to downstream.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="SensoryNeuron",stage="E1",swimlane="ingest"}
-- **OTel span name:** cognitive.bronze.ingest.json-parser
+- **Rând 8:** **N/A** — v2 Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `bronze:ingest:json-parser`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E1`, familie `ingest`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron de ingestie care aduce date brute în pipeline-ul Bronze.; analogie: Receptor senzorial — captează stimuli din mediul extern | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`SensoryNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `SensoryNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.bronze.ingest.json-parser`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: ingest external data. ORIENT: validate schema. DECIDE: accept/reject/retry. ACT: enqueue to downstream. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** `bronze:ingest:json-parser`. **Parțial:** `e1:ingest:webhook` / `ingest:webhook` pentru payload JSON la intrare. | v2 canonic. | Webhook ≠ parser bronze generic. |
+| 2 | Etapă, familie, swimlane | A3: E1; catalog webhook: `data-ingest` (aceeași zonă ingest ca CSV). | v2 ingest. | — |
+| 3 | Rol declarat | Catalog webhook: «Recepție date via webhook HTTP extern». | v2: parser JSON bronze. | Domeniu diferit (HTTP vs fișier/batch). |
+| 4 | NeuronType + SOFAI | Catalog: `SensoryNeuron` pentru webhook; v2: `SensoryNeuron`. | v2. | — |
+| 5 | Criticitate | Catalog webhook: `MEDIUM`. v2: `MEDIUM`. | v2. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e1:ingest:webhook", …)` → `cognitive:e1:ingest:webhook`. **Fără** span `cognitive.bronze.ingest.json-parser`. | ADR-0003. | Nealinat literal v2. |
+| 7 | Înveliș politică | Semnătură, timestamp, max payload (~L30–51 în A3). | v2 Tier 4; audit. | Parser v2 dedicat: lipsă. |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | Validări deterministe în A3; NeMo **țintă** ADR-0007. | v2. | — |
+| 10 | Escaladare HITL | Webhook: fără legătură directă citită cu `hitl:*` în A3. | ADR-0008. | — |
+| 11 | Micro-OODA | OBSERVE: payload + headers; ORIENT: validări; DECIDE: accept; ACT: inserții bronze (flux A3). | v2 OODA ingest. | Mapare parțială. |
+| 12 | Tier + de-escaladare | Fără prag «încredere» în A3 la audit. | v2 §2.2. | — |
+| 13 | Stack | BullMQ, Redis, Postgres (`bronzeWebhooks` etc. în A3), HMAC. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.bronze.ingest.json-parser`.
+- **Cod:** **lipsă** pentru `v2_queue`; cel mai apropiat: **`cognitive:e1:ingest:webhook`**.
+- **Stare:** **gap** canonic; **suprapunere parțială** JSON documentată.
 
 ---
 *Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`

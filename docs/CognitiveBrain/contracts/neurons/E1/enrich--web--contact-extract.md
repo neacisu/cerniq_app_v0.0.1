@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `enrich:web:contact-extract`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**.
 
 ## Metadata
 
@@ -14,56 +16,50 @@
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron de enrichment extern care adaugă date fiscale, juridice, contact sau geo. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** definește `enrich:web:contact-extract` (Non-AI, span `cognitive.enrich.web.contact-extract`). **În runtime**, extracția de contact din HTML este implementată ca **`scrape:website:contact-page`** — `contactPageScraperProcessor` în `i4-contact-page-scraper.ts`, span **`e1:scrape:website-contact`**. Job-ul primește `websiteUrl`, încearcă rute `/contact`, `/contacte`, etc., face `fetch` + regex pentru email, telefon RO, adresă, apoi actualizează `silverCompanies` și `metadata.contactScraper`. **Nu** există coada literală `enrich:web:contact-extract` în registry.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~2566 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`enrich:web:contact-extract\`` (~L2567–2586).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e1:scrape:website-contact` / `scrape:website:contact-page` (~L704–711).
+- `workers/shared/src/queue-registry.ts` — `SCRAPE_WEBSITE_CONTACT_PAGE` (~L63).
+- `workers/enrichment/src/main.ts` — `"scrape:website:contact-page"` (~L148).
+- `workers/enrichment/src/workers/i3-website-finder.ts` — enqueue către `scrape:website:contact-page` (~L162–171).
+- `workers/enrichment/src/workers/i4-contact-page-scraper.ts` — `withCognitiveSpan("e1:scrape:website-contact", …)` (~L59–62); `extractFromHtml` (~L37–45).
+- `rg` `enrich:web:contact-extract` în `*.ts`: **fără** potrivire.
 
 ## Instanțe v2
 
-### Instanță 1 — `enrichment` (linia v2 ~2566)
+- **OTel v2:** `cognitive.enrich.web.contact-extract`.
+- **OTel cod:** `e1:scrape:website-contact`.
 
-- **Stage:** E1
-- **Family:** enrichment
-- **Inferred neuron type:** ToolNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read enrichment request. ORIENT: check rate limits + cache. DECIDE: API call vs cache. ACT: merge external data.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ToolNeuron",stage="E1",swimlane="enrichment"}
-- **OTel span name:** cognitive.enrich.web.contact-extract
+- **Rând 8:** **N/A** — v2 Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `enrich:web:contact-extract`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E1`, familie `enrichment`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron de enrichment extern care adaugă date fiscale, juridice, contact sau geo.; analogie: Cortex premotor — interfațare cu instrumente externe | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ToolNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `ToolNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.enrich.web.contact-extract`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read enrichment request. ORIENT: check rate limits + cache. DECIDE: API call vs cache. ACT: merge external data. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** literal v2. Runtime: `e1:scrape:website-contact` ↔ `scrape:website:contact-page`. | v2 contact-extract. | Nume v2 ≠ registry. |
+| 2 | Etapă, familie, swimlane | Catalog: E1 `enrichment-external`. | v2 E1 enrichment. | — |
+| 3 | Rol declarat | «Extragere date contact de pe website» (catalog). | v2. | — |
+| 4 | NeuronType + SOFAI | `ToolNeuron`. | v2 ToolNeuron. | — |
+| 5 | Criticitate | Catalog `MEDIUM`; v2 `MEDIUM`. | v2. | — |
+| 6 | Înveliș telemetrie | Span `e1:scrape:website-contact` vs v2 `cognitive.enrich.web.contact-extract`. | ADR-0003. | Nealinat literal. |
+| 7 | Înveliș politică | Circuit breaker + timeout fetch; fără HITL în handler. | v2 tier 4. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | Regex filtre (ex. exclude `example.com`); logging. | ADR-0007. | — |
+| 10 | Escaladare HITL | Fără. | ADR-0008. | — |
+| 11 | Micro-OODA | Fetch HTML → strip tags → regex → DB. | v2 OODA generic. | — |
+| 12 | Tier + de-escaladare | Fără prag încredere. | v2 §2.2. | — |
+| 13 | Stack | BullMQ, `fetch`, Postgres. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.enrich.web.contact-extract`.
+- **Cod:** `e1:scrape:website-contact`.
+- **Stare:** **nealinat** (nume).
 
 ---
 *Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`

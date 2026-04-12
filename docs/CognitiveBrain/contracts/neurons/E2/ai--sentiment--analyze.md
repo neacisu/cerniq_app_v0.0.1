@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `ai:sentiment:analyze`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Coloana «În cod (dovadă)» completată din v2 §6 + fișiere citate; markerul blochează regenerarea accidentală.
 
 ## Metadata
 
@@ -8,64 +10,66 @@
 | --- | --- |
 | v2_queue | `ai:sentiment:analyze` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `ai-analysis` |
+| familie (v2) | `ai-analysis` |
 | contract_path | `contracts/neurons/E2/ai--sentiment--analyze.md` |
 | ADR familie (indicativ) | [ai-analysis](../../adr/families/e2/ai-analysis.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Analiză sentiment mesaje primite de la lead. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+În **v2**, neuronul este **EmotionNeuron** pentru analiza sentimentului mesajelor de la lead, cu rutare LLM, prag de încredere și span `cognitive.e2.ai.sentiment-analyze`. În **repo**, coada **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`) este procesată de `createSentimentAnalyzerWorker` în `workers/outreach/src/workers/ai-sentiment.ts`: apel LLM structurat JSON (schema Zod `sentimentAnalysisSchema`), scor −100..100, intenții (`INTERESTED`, `NOT_INTERESTED`, `QUESTION`, `COMPLAINT`, `NEUTRAL`), `urgency`, `requiresHuman`; cache Redis per tenant+conținut; actualizare `leadJourney` în DB; rutare **ADR-0063** — dacă `score >= 50` și fără review obligatoriu → enqueue **`ai:response:generate`**; altfel (inclusiv `NOT_INTERESTED` sau `requiresHuman`) → **`human:review:queue`**. Comentariul din fișier documentează **unificarea** logicii vechi `ai:intent:classify` (ex. `NOT_INTERESTED` forțează review). Worker-ul outreach înregistrează **`registerCognitiveWorkerEtapa(2)`** (`workers/outreach/src/index.ts`). Rutarea modelului folosește `resolveOutreachLlmRouting(tenantId, OUTREACH_NODE_SENTIMENT)` cu `OUTREACH_NODE_SENTIMENT = "e2:ai:sentiment-analyze"` (`outreach-llm-routing.ts`).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3122 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`ai:sentiment:analyze\`` (L3123–3146).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:ai:sentiment-analyze` / `ai:sentiment:analyze` (în jurul L1308–1320).
+- `workers/shared/src/queue-registry.ts` — `AI_SENTIMENT_ANALYZE: "ai:sentiment:analyze"` (L156); concurrency (L827).
+- `workers/outreach/src/index.ts` — `registerCognitiveWorkerEtapa(2)` (L27).
+- `workers/outreach/src/workers/ai-sentiment.ts` — worker sentiment, `withCognitiveSpan("e2:ai:sentiment-analyze", …)`, rutare, `callAIForSentiment`, schema Zod (L172–337, L339–436).
+- `workers/shared/src/outreach-llm-routing.ts` — `OUTREACH_NODE_SENTIMENT`, fast vs reasoning (L19–21, L29+).
+- `workers/shared/src/factory.ts` — `wrapProcessorWithCognitiveInstrumentation` + `createWorker` (L90–107, L209–221).
+- `workers/shared/src/cognitive-helpers.ts` — `withCognitiveSpan` → `cognitive:${nodeKey}` (L215–234).
+- `workers/outreach/src/workers/ai-sentiment.test.ts` — teste worker sentiment / rutare / registry.
 
 ## Instanțe v2
 
-### Instanță 1 — `ai-analysis` (linia v2 ~3122)
+### Instanță 1 — `ai-analysis` (v2 ~L3123)
 
-- **Stage:** E2
-- **Family:** ai-analysis
-- **Catalog nodeKey:** e2:ai:sentiment-analyze
-- **Neuron type:** EmotionNeuron
-- **Swimlane:** ai-analysis
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+- **Catalog nodeKey:** `e2:ai:sentiment-analyze`
+- **Confirmed queue field:** `ai:sentiment:analyze`
+- **Neuron type:** `EmotionNeuron`
+- **OTel span name (v2):** `cognitive.e2.ai.sentiment-analyze`
 
-### Extras câmpuri v2 (prima instanță)
+### Extras câmpuri v2
 
-- **OODA micro-cycle:** OBSERVE: read message text. ORIENT: LLM sentiment/intent analysis with structured output. DECIDE: classify emotion + confidence score. ACT: update lead sentiment profile + trigger escalation if negative trend.
-- **Model routing:** PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="EmotionNeuron",stage="E2",swimlane="ai-analysis"}, cerniq_neuron_duration_seconds{neuron_id="e2:ai:sentiment-analyze"}, cerniq_neuron_confidence{neuron_id="e2:ai:sentiment-analyze"}
-- **OTel span name:** cognitive.e2.ai.sentiment-analyze
+- OODA, QwQ/SGLang, HITL la încredere < 0.80 — conform blocului v2.
+
+## N/A pe criterii
+
+Nu s-a folosit **N/A** pe rânduri.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | ��intă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:ai:sentiment-analyze`. | v2: `ai:sentiment:analyze`; Catalog nodeKey (v2 bloc): `e2:ai:sentiment-analyze` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `ai-analysis`, swimlane `ai-analysis` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Analiză sentiment mesaje primite de la lead; analogie: Amigdală — procesare tonalitate emoțională | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`EmotionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.ai.sentiment-analyze`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read message text. ORIENT: LLM sentiment/intent analysis with structured output. DECIDE: classify emotion + confidence score. ACT: update lead sentiment profile + trigger escalation if negative trend. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Catalog:** `nodeKey` **`e2:ai:sentiment-analyze`**, coadă **`ai:sentiment:analyze`**. **Registry:** același literal. **Worker:** `createSentimentAnalyzerWorker` + `QUEUES.AI_SENTIMENT_ANALYZE` (`ai-sentiment.ts` L179–184). | v2: `ai:sentiment:analyze`. | — |
+| 2 | Etapă, familie, swimlane | **Catalog:** `etapa: 2`, `swimlane: "ai-analysis"`. **Worker:** `registerCognitiveWorkerEtapa(2)`. | v2: E2, familie `ai-analysis`, swimlane `ai-analysis`. | — |
+| 3 | Rol declarat | Analiză sentiment + intenție pentru outreach; actualizare `leadJourney`; rutare către răspuns AI sau coadă umană (`ai-sentiment.ts` L265–322). **Catalog:** „Analiză sentiment mesaje primite de la lead”. | v2: funcție cognitivă + analogie amigdală. | „Intent” unificat aici vs neuron separat `ai:intent:classify` în v2 — documentat în cod ca deprecare. |
+| 4 | NeuronType + SOFAI | **Catalog:** `NeuronType.EmotionNeuron`. Clasificare **emoție / tonalitate** (v2 §2.1), nu DeliberativeNeuron. | v2: `EmotionNeuron`. | — |
+| 5 | Criticitate | **Catalog:** `HIGH`. | v2: `HIGH`. | — |
+| 6 | Înveliș telemetrie | **Explicit:** `withCognitiveSpan("e2:ai:sentiment-analyze", …)` în procesor (`ai-sentiment.ts` L186). Span activ: `cognitive:e2:ai:sentiment-analyze` (`cognitive-helpers.ts` L226). **Automat:** `createWorker` poate învălui același `nodeKey` rezolvat din coadă + etapă 2 — guard anti-dublare în `withCognitiveSpan` (L221–223). **v2:** notație puncte `cognitive.e2.ai.sentiment-analyze`. | ADR-0003. | Diferență puncte vs două puncte în numele spanului. |
+| 7 | Înveliș politică | **Fără** Cedar/OPA în fișier. Rutare comportament: praguri `score >= 50`, `requiresReview`, `score < 0` (`ai-sentiment.ts` L269–322). La eșec structurat → flag review + enqueue `human:review:queue` (L211–239). | v2: Tier 3, HITL la anomalii, SLA 4h. | SLA4h nu e citit în acest worker; politici numerice diferite de checklist v2. |
+| 8 | Rutare model (dacă AI) | **`resolveOutreachLlmRouting`** alege fast vs reasoning vs echivalent Anthropic per tenant (`outreach-llm-routing.ts`). În `callAIForSentiment`, apel OpenAI-compat cu `response_format` JSON și lanț fallback frontier (`ai-sentiment.ts` L393–433). Fallback-ul urmează eșecul apelului, nu un prag de încredere scris în schema v2. | v2: QwQ-32B și fallback la încredere sub 0.80. | Reasoning disponibil prin config; mecanism diferit de textul v2. |
+| 9 | Guardrails | **Zod** `sentimentAnalysisSchema`; `generateValidatedJsonWithRetries` max 3 încercări (`ai-sentiment.ts` L373–397). **Fără** NeMo în fișier. | v2 + ADR-0007. | NeMo: țintă. |
+| 10 | Escaladare HITL | Enqueue **`QUEUES.HUMAN_REVIEW_QUEUE`** (`human:review:queue` registry) pe ramurile review (`ai-sentiment.ts` L226–238, L306–321). | v2 + ADR-0008. | Detaliu handler coadă umană în afara fragmentului citat. |
+| 11 | Micro-OODA | Observe (mesaj + cache), Orient (LLM JSON), Decide (schema + praguri score/intent), Act (DB update + enqueue response sau review). **Fără** GraphRAG. | v2 OODA; GraphRAG țintă ADR-0005. | — |
+| 12 | Tier + de-escaladare | Escaladare la `NOT_INTERESTED`, `requiresHuman`, scor negativ, sau eșec validare structurată. **Nu** apare trigger „2σ” explicit. | v2 §2.2. | Trigger-e statistice v2 neobservate literal. |
+| 13 | Stack v2 §2.3 (subset) | BullMQ, Redis cache, Postgres `leadJourney`, OpenAI-compat gateway + frontier, OTel `withCognitiveSpan`. | v2 §2.3. | Kafka/SGLang/Neo4j: neaudit pentru acest worker. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.ai.sentiment-analyze`.
+- **Cod:** `cognitive:e2:ai:sentiment-analyze`; atribute catalog populate din `getNodeByKey("e2:ai:sentiment-analyze")` când spanul este creat.
+- **Stare la 2026-04-11:** **parțial aliniat** — același `nodeKey`, convenție separator nume span diferită de notația puncte din v2.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.
