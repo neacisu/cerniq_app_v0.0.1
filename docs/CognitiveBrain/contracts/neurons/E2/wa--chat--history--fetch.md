@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `wa:chat:history:fetch`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Coada există în registry și catalog, dar **worker-ul înregistrat nu apelează API de istoric chat**; folosește același procesator ca **`wa:read:receipt`** (actualizare READ + `engagement_score`), conform comentariului din cod.
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `wa:chat:history:fetch` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `whatsapp` |
+| familie (v2) | `whatsapp` |
 | contract_path | `contracts/neurons/E2/wa--chat--history--fetch.md` |
 | ADR familie (indicativ) | [whatsapp](../../adr/families/e2/whatsapp.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Recuperare istoric conversații WhatsApp. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2 + catalog:** `e2:wa:chat-history`, SensoryNeuron, recuperare istoric conversații. **Repo:** `createWaLegacyChatHistoryReadReceiptWorker` = `createWorker(QUEUES.WA_CHAT_HISTORY_FETCH, processWaReadReceiptJob, …)` (`whatsapp.ts` L446–451). `processWaReadReceiptJob` (L376–437) actualizează `communication_log` la READ și recalculează `leadJourney.engagementScore` — **fără** `timelinesClient.getChatHistory` sau similar. Clientul TimelinesAI oferă `getChatHistory` (`packages/integrations/src/timelinesai/client.ts`, L251+) dar **nu** este folosit de acest worker. **Test:** `whatsapp-legacy-workers.test.ts` confirmă că worker-ul ascultă `WA_CHAT_HISTORY_FETCH` cu procesator read receipt (L41–51).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4267 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`wa:chat:history:fetch\`` (L4268–4291).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:wa:chat-history`, `wa:chat:history:fetch`.
+- `workers/shared/src/queue-registry.ts` — `WA_CHAT_HISTORY_FETCH`, comentariu L116.
+- `workers/outreach/src/workers/whatsapp.ts` — `createWaLegacyChatHistoryReadReceiptWorker`, `processWaReadReceiptJob`.
+- `workers/outreach/src/index.ts` — L157–158.
+- `workers/outreach/src/workers/whatsapp-legacy-workers.test.ts`.
+- `packages/integrations/src/timelinesai/client.ts` — metodă istoric (neconectată la acest worker).
 
 ## Instanțe v2
 
-### Instanță 1 — `whatsapp` (linia v2 ~4267)
+- **Divergență semantică:** numele cozii sugerează fetch istoric; comportament = read receipt / engagement.
 
-- **Stage:** E2
-- **Family:** whatsapp
-- **Catalog nodeKey:** e2:wa:chat-history
-- **Neuron type:** SensoryNeuron
-- **Swimlane:** data-ingest
-- **Criticality:** LOW
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: ingest external data. ORIENT: validate schema. DECIDE: accept/reject/retry. ACT: enqueue to downstream normalization/enrichment.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** No HITL required. Audit log retained 30 days. Auto-recovery via BullMQ retry with exponential backoff.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="SensoryNeuron",stage="E2",swimlane="data-ingest"}, cerniq_neuron_duration_seconds{neuron_id="e2:wa:chat-history"}, cerniq_neuron_confidence{neuron_id="e2:wa:chat-history"}
-- **OTel span name:** cognitive.e2.wa.chat-history
+- **Rând 8:** **N/A** — fără LLM în `processWaReadReceiptJob`.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:wa:chat-history`. | v2: `wa:chat:history:fetch`; Catalog nodeKey (v2 bloc): `e2:wa:chat-history` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `whatsapp`, swimlane `data-ingest` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Recuperare istoric conversații WhatsApp; analogie: Receptor senzorial — captează stimuli din mediul extern | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`SensoryNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `SensoryNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `LOW` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.wa.chat-history`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No HITL required. Audit log retained 30 days. Auto-recovery via BullMQ retry with exponential backoff. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: ingest external data. ORIENT: validate schema. DECIDE: accept/reject/retry. ACT: enqueue to downstream normalization/enrichment. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e2:wa:chat-history`** + queue în catalog L1075–1076. | v2 catalog-grounded. | — |
+| 2 | Etapă, familie, swimlane | E2; v2 swimlane `data-ingest` — worker e mai degrabă post-procesare PG. | v2. | — |
+| 3 | Rol declarat | **În cod:** compatibilitate job-uri vechi pe această coadă → același flux ca read receipt. | v2 „Recuperare istoric conversații”. | **Gap:** fetch istoric neimplementat în acest handler. |
+| 4 | NeuronType + SOFAI | Logică de actualizare stare (aproape Sensory/Interneuron față de v2 Sensory). | v2 SensoryNeuron. | — |
+| 5 | Criticitate | — | v2 LOW. | — |
+| 6 | Înveliș telemetrie | `createWorker` pe `wa:chat:history:fetch`. | v2 `cognitive.e2.wa.chat-history`. | — |
+| 7 | Înveliș politică | Concurrency 20 în registry L787; worker L449. | v2 Tier 4, retry BullMQ. | — |
+| 8 | Rutare model (dacă AI) | N/A | v2 Non-AI. | N/A |
+| 9 | Guardrails | Validare câmpuri prin utilizarea `job.data` în update-uri PG. | v2. | — |
+| 10 | Escaladare HITL | Nu. | v2 No HITL. | — |
+| 11 | Micro-OODA | OBSERVE: read receipt job; ACT: UPDATE log + journey score. | v2 OODA ingest — parțial. | — |
+| 12 | Tier + de-escaladare | Retry BullMQ implicit. | v2 Tier 4. | — |
+| 13 | Stack | BullMQ, Drizzle/Postgres. | v2 §2.3. | Integrare TimelinesAI pentru istoric: **nelegată**. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.wa.chat-history`.
+- **Cod:** `cognitive.nodeKey` **`e2:wa:chat-history`** dacă rezolvarea urmează catalogul — **aliniat nominal**; **semantica** necesită fie redenumire coadă, fie handler dedicat fetch.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

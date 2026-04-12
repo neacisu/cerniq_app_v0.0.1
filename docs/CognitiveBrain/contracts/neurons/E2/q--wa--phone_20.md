@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `q:wa:phone_20`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **Coada runtime:** **`q:wa:phone-20`** (ultimul index din `WA_PHONE_COUNT = 20`).
 
 ## Metadata
 
@@ -8,62 +10,51 @@
 | --- | --- |
 | v2_queue | `q:wa:phone_20` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `whatsapp` |
+| familie (v2) | `whatsapp` |
 | contract_path | `contracts/neurons/E2/q--wa--phone_20.md` |
 | ADR familie (indicativ) | [whatsapp](../../adr/families/e2/whatsapp.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional pentru trimitere, status și istoric WhatsApp. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Repo:** bucla `for (let i = 1; i <= WA_PHONE_COUNT; i++)` (`whatsapp.ts` L298) creează worker pentru **`getWaPhoneQueueName(20)`** = **`q:wa:phone-20`**. Același procesator `createWaWorker` ca pentru celelalte indexuri: limitare zilnică prin quota, jitter înainte de send, integrare TimelinesAI, logging (`whatsapp.ts` L106–290). **Orchestration** folosește `Math.min(phoneIndex, 20)` la alegerea cozii (`orchestration.ts` L532), deci indexul 20 este plafon explicit.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4198 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`q:wa:phone_20\`` (L4199–4219).
+- `workers/outreach/src/workers/whatsapp.ts` — `createAllWaWorkers`, `WA_PHONE_COUNT` import.
+- `workers/shared/src/queue-registry.ts` — `getWaPhoneQueueName`, `WA_PHONE_COUNT = 20`.
+- `workers/outreach/src/workers/orchestration.ts` — `Math.min(phoneIndex, 20)` (L532).
 
 ## Instanțe v2
 
-### Instanță 1 — `whatsapp` (linia v2 ~4198)
+- **Mapare:** v2 `q:wa:phone_20` → **`q:wa:phone-20`**.
 
-- **Stage:** E2
-- **Family:** whatsapp
-- **Inferred neuron type:** MotorNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive command. ORIENT: validate + check quotas. DECIDE: send/defer/retry. ACT: execute external action + log.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E2",swimlane="whatsapp"}
-- **OTel span name:** cognitive.q.wa.phone_20
+- **Rând 8:** **N/A** — Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `q:wa:phone_20`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `whatsapp`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional pentru trimitere, status și istoric WhatsApp.; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.q.wa.phone_20`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive command. ORIENT: validate + check quotas. DECIDE: send/defer/retry. ACT: execute external action + log. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Pattern catalog; fără `nodeKey` singular „20”. | v2 `q:wa:phone_20`. | — |
+| 2 | Etapă, familie, swimlane | E2 whatsapp. | v2. | — |
+| 3 | Rol declarat | Coadă motor pentru linia WA #20. | v2. | — |
+| 4 | NeuronType + SOFAI | MotorNeuron. | v2. | — |
+| 5 | Criticitate | — | v2 MEDIUM. | — |
+| 6 | Înveliș telemetrie | Worker `q:wa:phone-20`. | v2 `cognitive.q.wa.phone_20`. | — |
+| 7 | Înveliș politică | Concurrency 1, quota. | v2 Tier 4. | — |
+| 8 | Rutare model (dacă AI) | N/A | v2 Non-AI. | N/A |
+| 9 | Guardrails | Quota Lua, status telefon, jitter. | ADR. | — |
+| 10 | Escaladare HITL | Nu. | v2. | — |
+| 11 | Micro-OODA | Flux `createWaWorker`. | v2. | — |
+| 12 | Tier + de-escaladare | Erori deterministe non-retryable. | v2. | — |
+| 13 | Stack | BullMQ + Redis + PG + provider. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.q.wa.phone_20`.
+- **Cod:** `cognitive.nodeKey` / span din numele **`q:wa:phone-20`**; mapare față de `cognitive.neuron.*` (ADR-0003) — **în curs de aliniere** cu convenția v2.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

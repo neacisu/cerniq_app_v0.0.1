@@ -49,7 +49,7 @@ Nu s-a folosit **N/A** pe rânduri.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | ��intă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Catalog:** `nodeKey` **`e2:ai:sentiment-analyze`**, coadă **`ai:sentiment:analyze`**. **Registry:** același literal. **Worker:** `createSentimentAnalyzerWorker` + `QUEUES.AI_SENTIMENT_ANALYZE` (`ai-sentiment.ts` L179–184). | v2: `ai:sentiment:analyze`. | — |
 | 2 | Etapă, familie, swimlane | **Catalog:** `etapa: 2`, `swimlane: "ai-analysis"`. **Worker:** `registerCognitiveWorkerEtapa(2)`. | v2: E2, familie `ai-analysis`, swimlane `ai-analysis`. | — |

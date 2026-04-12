@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `webhook:instantly:ingest`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Rezolvă lead după email, enfilează `email:cold:lead:status` pentru tracking.
 
 ## Metadata
 
@@ -8,64 +10,52 @@
 | --- | --- |
 | v2_queue | `webhook:instantly:ingest` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `webhooks` |
+| familie (v2) | `webhooks` |
 | contract_path | `contracts/neurons/E2/webhook--instantly--ingest.md` |
 | ADR familie (indicativ) | [webhooks](../../adr/families/e2/webhooks.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Recepție webhook-uri Instantly (email events). **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** ingest Instantly. **Repo:** `createInstantlyEventProcessorWorker` (`webhooks.ts`, L320–419): join `lead_journey` + `goldContacts` pe email; pentru `reply_received` / `lead_unsubscribed` cere journey rezolvat — altfel warn + return; `trackingQueue.add` (`EMAIL_COLD_LEAD_STATUS`) cu `event_type`; metrici pe reply. **Teste:** `outreach-metrics.test.ts`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4057 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2 — L4058–4081.
+- `packages/shared/src/cognitive-node-catalog.ts` — L1217–1225.
+- `workers/outreach/src/workers/webhooks.ts`.
+- `workers/outreach/src/workers/outreach-metrics.test.ts`.
 
 ## Instanțe v2
 
-### Instanță 1 — `webhooks` (linia v2 ~4057)
+- **Catalog nodeKey:** `e2:webhook:instantly`
+- **OTel (v2):** `cognitive.e2.webhook.instantly`
 
-- **Stage:** E2
-- **Family:** webhooks
-- **Catalog nodeKey:** e2:webhook:instantly
-- **Neuron type:** SensoryNeuron
-- **Swimlane:** data-ingest
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: ingest external data. ORIENT: validate schema. DECIDE: accept/reject/retry. ACT: enqueue to downstream normalization/enrichment.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="SensoryNeuron",stage="E2",swimlane="data-ingest"}, cerniq_neuron_duration_seconds{neuron_id="e2:webhook:instantly"}, cerniq_neuron_confidence{neuron_id="e2:webhook:instantly"}
-- **OTel span name:** cognitive.e2.webhook.instantly
+- **Rând 8:** **N/A**.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:webhook:instantly`. | v2: `webhook:instantly:ingest`; Catalog nodeKey (v2 bloc): `e2:webhook:instantly` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `webhooks`, swimlane `data-ingest` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Recepție webhook-uri Instantly (email events); analogie: Receptor senzorial — captează stimuli din mediul extern | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`SensoryNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `SensoryNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.webhook.instantly`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: ingest external data. ORIENT: validate schema. DECIDE: accept/reject/retry. ACT: enqueue to downstream normalization/enrichment. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `e2:webhook:instantly`. | v2. | — |
+| 2 | Etapă, familie, swimlane | `data-ingest`. | v2. | — |
+| 3 | Rol declarat | Normalizare eveniment cold email → coadă tracking. | v2. | — |
+| 4 | NeuronType + SOFAI | `SensoryNeuron`. | v2. | — |
+| 5 | Criticitate | `HIGH`. | v2. | — |
+| 6 | Înveliș telemetrie | `createWorker`. | v2. | — |
+| 7 | Înveliș politică | Skip controlat dacă nu se rezolvă journey. | v2. | — |
+| 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
+| 9 | Guardrails | Validare email gol → warn. | v2. | — |
+| 10 | Escaladare HITL | Nu. | v2. | — |
+| 11 | Micro-OODA | OBSERVE: rawEvent; ORIENT: tip; ACT: enqueue tracking. | v2. | — |
+| 12 | Tier + de-escaladare | return early pe unresolved. | v2. | — |
+| 13 | Stack | BullMQ, Postgres, coadă `email:cold:lead:status`. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.webhook.instantly`.
+- **Cod:** fabrică OTel — aliniat condiționat de rezolvare `nodeKey`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

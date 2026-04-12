@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `quota:guardian:reset`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Reset zilnic Redis: șterge chei `quota:wa:*` și `sms:quota:*`; **nu** modifică istoricul Postgres `wa_quota_usage`.
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `quota:guardian:reset` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `quota` |
+| familie (v2) | `quota` |
 | contract_path | `contracts/neurons/E2/quota--guardian--reset.md` |
 | ADR familie (indicativ) | [quota](../../adr/families/e2/quota.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Resetare automată contoare cote la miezul nopții. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** reset contoare la miezul nopții. **Repo:** `createQuotaDailyResetWorker` (`workers/outreach/src/workers/quota-guardian.ts`, L291–337) face `SCAN` + `DEL` pe pattern-uri. **Producător:** `workers/outreach/src/index.ts` (L221–225) înregistrează job repetat BullMQ `repeat: { pattern: "0 0 * * *", tz: "Europe/Bucharest" }` cu payload `{ source: "cron_quota_reset" }` (fără `tenantId`). **Observație telemetrie:** `buildCognitiveContextFromJob` poate ocoli `withCognitiveSpan` din fabrică din cauza lipsei `tenantId` pe job (vezi `factory.ts`).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3982 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`quota:guardian:reset\`` (L3983–4006).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:quota:guardian-reset` (L998–1006).
+- `workers/shared/src/queue-registry.ts` — `QUOTA_GUARDIAN_RESET`.
+- `workers/outreach/src/workers/quota-guardian.ts` — `createQuotaDailyResetWorker`.
+- `workers/outreach/src/index.ts` — `repeat` cron enqueue (L221–225).
+- `workers/outreach/src/lib/outreach-job-logger.js` sau `.ts` — `OUTREACH_SYSTEM_TENANT` pentru log (din import worker).
 
 ## Instanțe v2
 
-### Instanță 1 — `quota` (linia v2 ~3982)
+- **Catalog nodeKey:** `e2:quota:guardian-reset`
+- **OTel (v2):** `cognitive.e2.quota.guardian-reset`
 
-- **Stage:** E2
-- **Family:** quota
-- **Catalog nodeKey:** e2:quota:guardian-reset
-- **Neuron type:** AutonomicNeuron
-- **Swimlane:** pipeline-control
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: cron/timer trigger. ORIENT: check system state. DECIDE: maintenance action needed. ACT: execute background task (sync/cleanup/refresh).
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AutonomicNeuron",stage="E2",swimlane="pipeline-control"}, cerniq_neuron_duration_seconds{neuron_id="e2:quota:guardian-reset"}, cerniq_neuron_confidence{neuron_id="e2:quota:guardian-reset"}
-- **OTel span name:** cognitive.e2.quota.guardian-reset
+- **Rând 8:** **N/A** — Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:quota:guardian-reset`. | v2: `quota:guardian:reset`; Catalog nodeKey (v2 bloc): `e2:quota:guardian-reset` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `quota`, swimlane `pipeline-control` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Resetare automată contoare cote la miezul nopții; analogie: Sistem nervos autonom — mentenanță invizibilă de fundal | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AutonomicNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System1 (reactiv) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.quota.guardian-reset`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: cron/timer trigger. ORIENT: check system state. DECIDE: maintenance action needed. ACT: execute background task (sync/cleanup/refresh). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `e2:quota:guardian-reset`; coadă `quota:guardian:reset`. | v2. | — |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 2, `pipeline-control`. | v2. | — |
+| 3 | Rol declarat | Curățare contoare Redis zilnic; păstrare istoric PG. | v2. | Comentariu în cod: PG neatinse. |
+| 4 | NeuronType + SOFAI | Catalog: `AutonomicNeuron`. | v2. | — |
+| 5 | Criticitate | Catalog / v2: `MEDIUM`. | v2. | — |
+| 6 | Înveliș telemetrie | `createWorker` + logger cu `OUTREACH_SYSTEM_TENANT`. | Span v2. | **Limită:** fără `tenantId` pe job → posibil fără `withCognitiveSpan` cognitiv (fabrică). |
+| 7 | Înveliș politică | Concurrency 1; pattern-uri fixe Redis. | v2 tier 4. | — |
+| 8 | Rutare model (dacă AI) | N/A | Non-AI v2. | N/A |
+| 9 | Guardrails | Doar scan/delete — risc operațional dacă pattern prea larg (documentat în cod ca intenționat). | v2. | — |
+| 10 | Escaladare HITL | Nu. | v2. | — |
+| 11 | Micro-OODA | OBSERVE: cron; ORIENT: keys; DECIDE: del; ACT: count. | v2 OODA mentenanță. | — |
+| 12 | Tier + de-escaladare | Eșec Redis → throw. | v2. | — |
+| 13 | Stack | BullMQ repeatable job, ioredis SCAN/DEL. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.quota.guardian-reset`.
+- **Cod:** span cognitiv fabrică posibil **dezactivat** fără `tenantId` pe payload; logging outreach folosește tenant sistem — **parțial aliniat** ADR-0003.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

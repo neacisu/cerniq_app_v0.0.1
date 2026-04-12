@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `wa:message:retry`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **Consumator principal:** `createRetryOrchestratorWorker` (`resilience.ts`) așteaptă **`RetryJobData`** (`originalQueue`, `originalJobData`, `errorType`, `attemptsMade`, …). **Producător separat:** `processWaDeliveryStatusJob` enfileiază pe FAILED un job cu **`tenantId`**, **`externalMessageId`**, **`failureReason`** (`whatsapp.ts` L346–352) — **schema incompatibilă** cu `RetryJobData`.
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `wa:message:retry` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `whatsapp` |
+| familie (v2) | `whatsapp` |
 | contract_path | `contracts/neurons/E2/wa--message--retry.md` |
 | ADR familie (indicativ) | [whatsapp](../../adr/families/e2/whatsapp.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Reîncercare mesaj WhatsApp eșuat. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Catalog:** `e2:wa:message-retry` (`cognitive-node-catalog.ts`, L1066–1067). **Registry:** `WA_MESSAGE_RETRY: "wa:message:retry"` (`queue-registry.ts`, L114). **Orchestrator retry:** clasifică erori, DLQ pentru erori client (4xx) sau epuizare încercări, altfel re-enqueue pe `originalQueue` cu backoff (`resilience.ts`, L169–249). **Enqueue din livrare:** pe status FAILED, `createQueue(QUEUES.WA_MESSAGE_RETRY).add("evaluate", { tenantId, externalMessageId, failureReason })` (`whatsapp.ts` L347–352). Al doilea payload **nu** conține `originalQueue` / `originalJobData` — risc de comportament incorect dacă ambele tipuri de job împart aceeași coadă.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4317 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`wa:message:retry\`` (L4318–4341).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:wa:message-retry`.
+- `workers/shared/src/queue-registry.ts` — `WA_MESSAGE_RETRY`.
+- `workers/outreach/src/workers/resilience.ts` — `createRetryOrchestratorWorker`, `RetryJobData` L122–128.
+- `workers/outreach/src/workers/whatsapp.ts` — enqueue pe FAILED L346–352.
+- `workers/outreach/src/index.ts` — `createRetryOrchestratorWorker` L173.
+- `workers/outreach/src/workers/whatsapp-delivery-status.test.ts` — verifică apel retry pe FAILED L52–64.
 
 ## Instanțe v2
 
-### Instanță 1 — `whatsapp` (linia v2 ~4317)
+- —
 
-- **Stage:** E2
-- **Family:** whatsapp
-- **Catalog nodeKey:** e2:wa:message-retry
-- **Neuron type:** ReflexNeuron
-- **Swimlane:** pipeline-control
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: detect error/timeout event. ORIENT: classify error type. DECIDE: retry/fallback/dead-letter. ACT: re-enqueue or route to DLQ.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ReflexNeuron",stage="E2",swimlane="pipeline-control"}, cerniq_neuron_duration_seconds{neuron_id="e2:wa:message-retry"}, cerniq_neuron_confidence{neuron_id="e2:wa:message-retry"}
-- **OTel span name:** cognitive.e2.wa.message-retry
+- **Rând 8:** **N/A** — orchestrator determinist, fără LLM.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:wa:message-retry`. | v2: `wa:message:retry`; Catalog nodeKey (v2 bloc): `e2:wa:message-retry` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `whatsapp`, swimlane `pipeline-control` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Reîncercare mesaj WhatsApp eșuat; analogie: Arc reflex spinal — răspuns automat fără deliberare | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ReflexNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System1 (reactiv) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.wa.message-retry`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: detect error/timeout event. ORIENT: classify error type. DECIDE: retry/fallback/dead-letter. ACT: re-enqueue or route to DLQ. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e2:wa:message-retry`** în catalog. | v2. | — |
+| 2 | Etapă, familie, swimlane | `outreach-resilience`, etapa e2 (`resilience.ts` L23). | v2 `pipeline-control`. | — |
+| 3 | Rol declarat | Reîncercare orchestrată / rutare DLQ; plus intent separat din webhook FAILED. | v2 „Reîncercare mesaj eșuat”. | **Divergență payload** între producători. |
+| 4 | NeuronType + SOFAI | ReflexNeuron (rutare automată retry sau DLQ). | v2 ReflexNeuron. | — |
+| 5 | Criticitate | — | v2 MEDIUM. | — |
+| 6 | Înveliș telemetrie | `createWorker(QUEUES.WA_MESSAGE_RETRY, …)`. | v2 `cognitive.e2.wa.message-retry`. | — |
+| 7 | Înveliș politică | `RETRY_POLICIES`, `DLQ_CONFIG` (`resilience.ts` L57–68). | v2 HITL după erori repetate — nu mapat 1:1 în handler. | — |
+| 8 | Rutare model (dacă AI) | N/A | v2 Non-AI. | N/A |
+| 9 | Guardrails | Eroare client → DLQ imediat; număr maxim de încercări per policy. | ADR-style policies în cod. | — |
+| 10 | Escaladare HITL | DLQ + categorii `reviewRequired` în config (L68); consumator DLQ în altă parte. | v2. | — |
+| 11 | Micro-OODA | OBSERVE: job retry; ORIENT: policy; DECIDE: DLQ vs amânare re-enqueue; ACT: `targetQueue.add`. | v2 OODA. | — |
+| 12 | Tier + de-escaladare | `attemptsMade` comparat cu `attempts` din policy. | v2 Tier 4. | — |
+| 13 | Stack | BullMQ, DLQ `dlq:outreach`. | v2 §2.3. | Testele citite verifică enqueue din delivery, nu procesarea completă a ambelor forme de payload. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.wa.message-retry`.
+- **Cod:** span fabrică + **`cognitive.nodeKey`** `e2:wa:message-retry` — **aliniat**; unificare **payload** recomandată.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `monitor:phone:health`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Health check TimelinesAI per tenant; poate enfilează alertă offline sau ban + quarantine.
 
 ## Metadata
 
@@ -8,64 +10,53 @@
 | --- | --- |
 | v2_queue | `monitor:phone:health` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `monitoring` |
+| familie (v2) | `monitoring` |
 | contract_path | `contracts/neurons/E2/monitor--phone--health.md` |
 | ADR familie (indicativ) | [monitoring](../../adr/families/e2/monitoring.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Monitorizare sănătate telefoane WhatsApp. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** monitorizare sănătate linii WhatsApp. **Repo:** `createPhoneHealthMonitorWorker` (`workers/outreach/src/workers/phone-monitoring.ts`, L166–274) pe `QUEUES.MONITOR_PHONE_HEALTH`: pentru fiecare rând `wa_phone_numbers` activ (`isEnabled`), citește status din TimelinesAI, actualizează DB; la `BANNED` enfilează `alert:phone:banned` + `phone:quarantine:trigger`; la trecere `ACTIVE`→`OFFLINE` enfilează `alert:phone:offline` cu întârziere. **API:** `POST /phones/:id/health-check` (`apps/api/src/routes/outreach.ts`, L2243–2257) enfilează job cu `tenantId` și `phoneId`; worker-ul iterează **toate** telefoanele activate ale tenantului — **nu** filtrează după `phoneId` din payload în bucla citită (L183–186), deci health-check-ul manual poate avea efect mai larg decât ID-ul cerut.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3641 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`monitor:phone:health\`` (L3642–3665).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:monitor:phone-health` (L1342–1350).
+- `workers/shared/src/queue-registry.ts` — `MONITOR_PHONE_HEALTH`.
+- `workers/outreach/src/workers/phone-monitoring.ts` — `PhoneHealthCheckJobData`, `createPhoneHealthMonitorWorker`.
+- `apps/api/src/routes/outreach.ts` — enqueue manual.
 
 ## Instanțe v2
 
-### Instanță 1 — `monitoring` (linia v2 ~3641)
+- **Catalog nodeKey:** `e2:monitor:phone-health`
+- **OTel (v2):** `cognitive.e2.monitor.phone-health`
 
-- **Stage:** E2
-- **Family:** monitoring
-- **Catalog nodeKey:** e2:monitor:phone-health
-- **Neuron type:** AttentionNeuron
-- **Swimlane:** pipeline-control
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: poll metrics/health endpoints. ORIENT: compare against baseline thresholds. DECIDE: normal/warning/critical. ACT: emit alert or trigger corrective action.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AttentionNeuron",stage="E2",swimlane="pipeline-control"}, cerniq_neuron_duration_seconds{neuron_id="e2:monitor:phone-health"}, cerniq_neuron_confidence{neuron_id="e2:monitor:phone-health"}
-- **OTel span name:** cognitive.e2.monitor.phone-health
+- **Rând 8:** **N/A** — non-AI în v2.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e2:monitor:phone-health`. | v2: `monitor:phone:health`; Catalog nodeKey (v2 bloc): `e2:monitor:phone-health` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `monitoring`, swimlane `pipeline-control` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Monitorizare sănătate telefoane WhatsApp; analogie: Formațiune reticulară — vigilență și detectare anomalii | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AttentionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AttentionNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.monitor.phone-health`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: poll metrics/health endpoints. ORIENT: compare against baseline thresholds. DECIDE: normal/warning/critical. ACT: emit alert or trigger corrective action. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e2:monitor:phone-health`**, coadă `monitor:phone:health`. | v2. | — |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 2, `pipeline-control`. | v2. | — |
+| 3 | Rol declarat | Sincronizare status API → DB + alertă derivată. | v2. | — |
+| 4 | NeuronType + SOFAI | Catalog: `AttentionNeuron`. | v2. | — |
+| 5 | Criticitate | Catalog / v2: `MEDIUM`. | v2. | — |
+| 6 | Înveliș telemetrie | `createWorker` + span condiționat (`factory.ts`). | Span v2. | — |
+| 7 | Înveliș politică | Metrică `outreachPhoneStatus`; fără Cedar în handler. | v2 tier4. | — |
+| 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
+| 9 | Guardrails | Try/catch per telefon; continuă bucla la eroare. | ADR-0067 antet fișier. | — |
+| 10 | Escaladare HITL | Alertă pe cozi dedicate, nu `human:review` direct. | v2. | — |
+| 11 | Micro-OODA | OBSERVE API; ORIENT map status; ACT DB + cozi. | v2. | — |
+| 12 | Tier + de-escaladare | Eroare per telefon → log, nu oprire globală. | v2. | — |
+| 13 | Stack | BullMQ, `@cerniq/integrations` TimelinesAI, Postgres `wa_phone_numbers`. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.monitor.phone-health`.
+- **Cod:** **aliniat** când `tenantId` în `job.data`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `outreach:wa:send`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. Numele v2 **`outreach:wa:send`** nu apare ca literal de coadă în runtime; **trimiterea WA** este implementată pe **cozi per-telefon** `q:wa:phone-NN` și `q:wa:phone-NN:followup` (`getWaPhoneQueueName` / `getWaPhoneFollowupQueueName`), worker `createWaWorker` în `whatsapp.ts`.
 
 ## Metadata
 
@@ -8,62 +10,54 @@
 | --- | --- |
 | v2_queue | `outreach:wa:send` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `orchestrator` |
+| familie (v2) | `orchestrator` |
 | contract_path | `contracts/neurons/E2/outreach--wa--send.md` |
 | ADR familie (indicativ) | [orchestrator](../../adr/families/e2/orchestrator.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E2, familia orchestrator. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** neuron graf umbrella „send”. **Repo:** `createWaWorker` (`workers/outreach/src/workers/whatsapp.ts`, L106–290) procesează `WaSendInitialJobData`: `quotaGuardianCheck` (Redis Lua), verificare telefon ACTIVE în PG, **jitter** 30s + random120s (`applyJitter`, ADR-0057), `processSpintax`, `createWaProvider("timelinesai").sendWhatsApp`, INSERT `communication_log`, UPDATE `lead_journey` (stare `CONTACTED_WA` pentru mesaje non-followup). Concurrency **1** per coadă (ADR-0060). **Catalog:** `CATALOG_STATS.skippedQueues` (`cognitive-node-catalog.ts` L3381–3393) documentează pattern-urile `q:wa:phone-{01..20}` fără `QUEUES.*` constante.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~3885 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`outreach:wa:send\`` (L3886–3906).
+- `workers/outreach/src/workers/whatsapp.ts` — `createWaWorker`, `WaSendInitialJobData`, `applyJitter`, integrare TimelinesAI.
+- `workers/shared/src/queue-registry.ts` — `getWaPhoneQueueName`, `getWaPhoneFollowupQueueName`, `buildWaPhoneQueues`, `WA_PHONE_COUNT`.
+- `packages/shared/src/cognitive-node-catalog.ts` — `CATALOG_STATS.skippedQueues` (cozi dinamice).
+- `workers/outreach/src/workers/quota-guardian.ts` — `quotaGuardianCheck` apelat din WA sender.
+- `docs/CognitiveBrain/NEURON_MATRIX.csv` — rând `outreach:wa:send`, catalog gol (neuron conceptual vs cozi reale).
 
 ## Instanțe v2
 
-### Instanță 1 — `orchestrator` (linia v2 ~3885)
+- **Catalog nodeKey (pentru `outreach:wa:send`):** — **gap**; neuroni înrudiți în catalog: `wa:send:initial` / `wa:send:reply` (alte intrări v2), nu acest literal.
+- **OTel (v2):** `cognitive.outreach.wa.send`
 
-- **Stage:** E2
-- **Family:** orchestrator
-- **Inferred neuron type:** ExecutiveNeuron
-- **Inferred criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: collect child status. ORIENT: evaluate pipeline state. DECIDE: route/schedule/escalate. ACT: orchestrate via FlowProducer DAG.
-- **Model routing:** PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ). FALLBACK: frontier if confidence < 0.80. SGLang guided_json.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ errors). SLA: 4h.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ExecutiveNeuron",stage="E2",swimlane="orchestrator"}
-- **OTel span name:** cognitive.outreach.wa.send
+- **Rând 8:** **N/A** — fără LLM în `createWaWorker` (doar reguli + provider HTTP).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `outreach:wa:send`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `orchestrator`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E2, familia orchestrator.; analogie: Cortex executiv — orchestrare și coordonare de nivel înalt | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ExecutiveNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.outreach.wa.send`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ errors). SLA: 4h. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ). FALLBACK: frontier if confidence < 0.80. SGLang guided_json. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: collect child status. ORIENT: evaluate pipeline state. DECIDE: route/schedule/escalate. ACT: orchestrate via FlowProducer DAG. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Divergență:** implementare pe `q:wa:phone-*` / `*:followup`; fără `nodeKey` unic pentru eticheta `outreach:wa:send`. | v2 queue `outreach:wa:send`. | Aliniere registry ↔ v2 necesită decizie cutover. |
+| 2 | Etapă, familie, swimlane | Worker outreach `etapa: e2` în logger (L38); cozi în registry secțiune WA. | v2 E2 orchestrator. | Swimlane v2 `orchestrator` vs `pipeline-control` în alte neuroni — folosiți v2 pentru acest antet. |
+| 3 | Rol declarat | Trimitere WA outbound + telemetrie + journey. | v2 operational purpose generic. | — |
+| 4 | NeuronType + SOFAI | — (fără intrare catalog pentru numele v2). | v2 ExecutiveNeuron inferat. | Catalog folosește alte chei pentru WA send. |
+| 5 | Criticitate | — | v2 HIGH inferat. | — |
+| 6 | Înveliș telemetrie | `createWorker(queueName, ...)` per coadă dinamică; rezolvare `nodeKey` din nume coadă + etapă (fabrică). | `cognitive.outreach.wa.send` (v2). | Nume span v2 ≠ pattern-uri `q:wa:phone-NN` — verificare `resolveNodeKeyFromQueueName` la nevoie. |
+| 7 | Înveliș politică | Quota + status telefon + jitter obligatoriu. | v2 tier 3, guardrails. | — |
+| 8 | Rutare model (dacă AI) | N/A | v2 declară LLM pentru antet graf — **nu** în cod sender. | N/A |
+| 9 | Guardrails | Quota Lua, telefon ACTIVE, spintax. | ADR-0056, ADR-0057, ADR-0060. | — |
+| 10 | Escaladare HITL | Nu în acest worker. | v2. | — |
+| 11 | Micro-OODA | OBSERVE: Redis/PG; ORIENT: quota + telefon; DECIDE: skip vs send; ACT: provider + INSERT log. | v2 OODA. | — |
+| 12 | Tier + de-escaladare | Return struct cu `retryable` pe erori quota/telefon. | v2. | — |
+| 13 | Stack | BullMQ, Redis Lua, Postgres, TimelinesAI (`@cerniq/integrations`), metrici `waSent` / `outreachMessagesSentTotal`. | v2 §2.3. | Fără test unitar citit pentru `createWaWorker` la acest audit. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.outreach.wa.send`.
+- **Cod:** span-uri din `createWorker` + rezolvare catalog pentru numele cozii reale; **nu** există o coadă unică `outreach:wa:send` — mapare **parțială / conceptuală** până la unificare denumiri.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

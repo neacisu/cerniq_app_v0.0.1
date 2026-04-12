@@ -37,7 +37,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | �Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **`e2:human:takeover-complete`**, worker `createResolutionHandlerWorker`. | v2. | — |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 2, `human-oversight`. | v2. | — |
