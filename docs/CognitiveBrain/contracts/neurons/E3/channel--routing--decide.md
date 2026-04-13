@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `channel:routing:decide`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **Contractul v2** folosește coada `channel:routing:decide`; **runtime-ul** implementează **`channel:route:decide`** (J58) cu `nodeKey` **`e3:channel:route-decide`** — aceeași funcție de rutare canale, **denumire diferită** (vezi ADR familie channels).
 
 ## Metadata
 
@@ -8,62 +10,57 @@
 | --- | --- |
 | v2_queue | `channel:routing:decide` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `channels` |
+| familie (v2) | `channels` |
 | contract_path | `contracts/neurons/E3/channel--routing--decide.md` |
 | ADR familie (indicativ) | [channels](../../adr/families/e3/channels.md) |
+| **coadă runtime (dovadă)** | `channel:route:decide` |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E3, familia channels. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L4747–4767) descrie neuron **channels**, câmp confirmat **`channel:routing:decide`**, tip **MotorNeuron** *inferat*, criticitate **MEDIUM**, **Non-AI**, status evidență: export graf ne-reconciliat cu registry (L4767). **Repo:** `workers/e3-ai-sales/src/workers/j58-channel-route-decide.ts` — **decizie deterministă** canal handover: WA (cu blackout 21:00–08:00 Europe/Bucharest), EMAIL, PHONE (critic + high-value), sau **HITL** dacă lipsesc date contact. După decizie: enqueue **`channel:whatsapp:send`**, **`channel:email:send`**, sau **`hitl:escalation`** (`j58` L212–274). **Upstream:** `handover:context:load` (J57) enfilează J58 (`j57-handover-context-load.ts` L11, L41). **Înregistrare:** `main.ts` L244. **Registry:** `QUEUES.E3_CHANNEL_ROUTE_DECIDE` → literal **`channel:route:decide`** (`queue-registry.ts` L312, L1012). **Catalog:** `e3:channel:route-decide` — **ExecutiveNeuron**, criticitate **HIGH** (`cognitive-node-catalog.ts` L2030–2037). **Teste:** `j-workers.test.ts` J58 (L481+). Nu s-au găsit producători în `apps/api` pentru această coadă la audit.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4746 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`channel:routing:decide\`` (L4747–4767).
+- `docs/CognitiveBrain/adr/families/e3/channels.md` — graf `channel:routing:decide` vs runtime `channel:route:decide`.
+- `packages/shared/src/cognitive-node-catalog.ts` — `e3:channel:route-decide` (L2030–2037); **fără** intrare pentru string-ul literal `channel:routing:decide`.
+- `workers/shared/src/queue-registry.ts` — `E3_CHANNEL_ROUTE_DECIDE` (L312, L1012).
+- `workers/e3-ai-sales/src/main.ts` — L244.
+- `workers/e3-ai-sales/src/workers/j58-channel-route-decide.ts` — procesor + `resolveChannel` (L120–169).
+- `workers/e3-ai-sales/src/workers/j57-handover-context-load.ts` — enqueue J58 (L41, L11).
+- `workers/e3-ai-sales/src/__tests__/j-workers.test.ts` — J58 (L481+).
+- `workers/shared/src/factory.ts` — instrumentare cognitivă.
 
 ## Instanțe v2
 
-### Instanță 1 — `channels` (linia v2 ~4746)
+- —
 
-- **Stage:** E3
-- **Family:** channels
-- **Inferred neuron type:** MotorNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive command. ORIENT: validate + check quotas. DECIDE: send/defer/retry. ACT: execute external action + log.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E3",swimlane="channels"}
-- **OTel span name:** cognitive.channel.routing.decide
+- **8 — Rutare model:** N/A — v2 Non-AI (L4763); J58 fără LLM.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `channel:routing:decide`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `channels`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E3, familia channels.; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.channel.routing.decide`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive command. ORIENT: validate + check quotas. DECIDE: send/defer/retry. ACT: execute external action + log. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Runtime:** `e3:channel:route-decide` ↔ **`channel:route:decide`** (`cognitive-node-catalog.ts` L2030–2031). **v2 contract:** `channel:routing:decide` (L4761) — **fără** aceeași cheie în registry/catalog. | v2: `Confirmed queue field` = `channel:routing:decide`. | **Divergență denumire coadă** — migrare documentată în ADR/plan fază 2. |
+| 2 | Etapă, familie, swimlane | E3; swimlane catalog **`ai-reasoning`** (`cognitive-node-catalog.ts` L2034). | v2: swimlane `channels` în metrici (L4765) — **decalaj** față de catalog (`ai-reasoning`). | v2 L4765 vs catalog L2034. |
+| 3 | Rol declarat | Rutare handover WA/EMAIL/PHONE/HITL + enqueue cozi (`j58` L1–16, L212–274). | v2: descriere generică E3 channels (L4758–4760). | Funcția reală îngustă: flux handover negociere. |
+| 4 | NeuronType + SOFAI | **`ExecutiveNeuron`** (`cognitive-node-catalog.ts` L2033). | v2: **MotorNeuron** inferat (L4754). | **Decalaj tip:** inferență v2 vs catalog explicit. |
+| 5 | Criticitate | **`HIGH`** (`cognitive-node-catalog.ts` L2036). | v2: **MEDIUM** inferat (L4756). | **Decalaj criticitate.** |
+| 6 | Înveliș telemetrie | `withCognitiveSpan` via factory worker. | v2: `cognitive.channel.routing.decide` (L4766) — fără prefix `e3` în nume. | **Parțial aliniat:** convenții span diferite; cod `cognitive.nodeKey`. |
+| 7 | Înveliș politică | Logică deterministă + HITL queue la `HITL`/`PHONE` (`j58` L242–274); fără Cedar. | v2: Tier 4, fără HITL obligatoriu (L4757, L4764). | PHONE log + HITL — mai strict decât „no mandatory HITL” pentru unele ramuri. |
+| 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
+| 9 | Guardrails | E.164 WA, blackout, prag RON 50k (`j58` L30, L33, L56–60, L189–206); preferințe `preferredChannel`. | ADR-0007 — țintă. | — |
+| 10 | Escaladare HITL | `QUEUES.HITL_ESCALATION` pentru `PHONE` și `HITL` (`j58` L66, L248–274). | ADR-0008; v2 „no mandatory HITL” (L4764). | Implementare concretă de escaladare la lipsă contact / telefon. |
+| 11 | Micro-OODA | OBSERVE — context handover; ORIENT — blackout, contact, valoare; DECIDE — `resolveChannel`; ACT — `add` job pe cozi (`j58` L177–277). | v2 OODA generic (L4762). | Aliniat; „quotas” v2 nu apar ca Redis explicit — delegare la cozi downstream. |
+| 12 | Tier + de-escaladare | Fără scor încredere în J58. | v2 Tier 4 (L4757). | — |
+| 13 | Stack (subset) | BullMQ, `createQueue`, Intl timezone Europe/Bucharest. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.channel.routing.decide` (L4766).
+- **Cod:** `cognitive.nodeKey` **`e3:channel:route-decide`** pentru coada **`channel:route:decide`** — **parțial aliniat**; numele v2 nu include `e3` și nu coincide cu `nodeKey`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

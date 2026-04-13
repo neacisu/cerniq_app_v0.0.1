@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `ai:prompt:optimize`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **Gap runtime:** nu există coadă `ai:prompt:optimize` în `queue-registry.ts`, intrare în `cognitive-node-catalog.ts` sau procesor în `workers/e3-ai-sales/src/main.ts` la căutare `prompt:optimize` / `ai:prompt` în cod TypeScript worker/API.
 
 ## Metadata
 
@@ -8,62 +10,52 @@
 | --- | --- |
 | v2_queue | `ai:prompt:optimize` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `ai-core` |
+| familie (v2) | `ai-core` |
 | contract_path | `contracts/neurons/E3/ai--prompt--optimize.md` |
 | ADR familie (indicativ) | [ai-core](../../adr/families/e3/ai-core.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron cognitiv central pentru planificare și generare comercială. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L4578–4598) descrie un neuron **technology** / **DeliberativeNeuron** inferat, cu `Confirmed queue field` **`ai:prompt:optimize`**, OODA cu LLM și rutare QwQ/SGLang; **evidence status:** graph-export, *not yet reconciled with runtime registry*. **Repo:** la audit nu s-a identificat worker BullMQ, constantă `QUEUES` sau `nodeKey` pentru această coadă. Optimizarea efectivă de prompturi poate fi **înglobată** informal în alte pași (ex. construire `systemPrompt` în C13), dar **nu** ca neuron izolat mapat la `ai:prompt:optimize`. Specificația veche `docs/specifications/Etapa 3/etapa3-workers-C-ai-agent-core.md` nu a fost reluată ca dovadă de implementare activă în `workers/e3-ai-sales` fără fișier procesor dedicat citit.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4577 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`ai:prompt:optimize\`` (L4578–4598).
+- `packages/shared/src/cognitive-node-catalog.ts` — căutare `prompt:optimize`: **fără potrivire**.
+- `workers/shared/src/queue-registry.ts` — căutare `prompt:optimize`: **fără potrivire**.
+- `workers/e3-ai-sales/src/main.ts` — map `processors`: **fără** cheie `ai:prompt:optimize`.
+- `rg` workspace (fișiere `.ts/.tsx`): **fără** `prompt:optimize` / `ai:prompt:optimize` în cod aplicație.
 
 ## Instanțe v2
 
-### Instanță 1 — `ai-core` (linia v2 ~4577)
+- —
 
-- **Stage:** E3
-- **Family:** ai-core
-- **Inferred neuron type:** DeliberativeNeuron
-- **Inferred criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: load context. ORIENT: LLM reasoning (SGLang structured output). DECIDE: confidence gate (>0.80 pass). ACT: emit decision + episodic memory update.
-- **Model routing:** PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ). FALLBACK: frontier if confidence < 0.80. SGLang guided_json.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80). SLA: 4h.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="DeliberativeNeuron",stage="E3",swimlane="ai-core"}
-- **OTel span name:** cognitive.ai.prompt.optimize
+- — (criteriile 1–13 se aplică; coloana «În cod» notează absența handler-ului unde e cazul).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `ai:prompt:optimize`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `ai-core`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron cognitiv central pentru planificare și generare comercială.; analogie: Cortex prefrontal — deliberare și raționament profund | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`DeliberativeNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.ai.prompt.optimize`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80). SLA: 4h. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ). FALLBACK: frontier if confidence < 0.80. SGLang guided_json. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: load context. ORIENT: LLM reasoning (SGLang structured output). DECIDE: confidence gate (>0.80 pass). ACT: emit decision + episodic memory update. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Lipsă** `nodeKey` / `queueName` în `cognitive-node-catalog.ts` pentru `ai:prompt:optimize` (grep). | v2: coadă `ai:prompt:optimize`; reconciliere registry — nefinalizată în textul v2. | v2 §2.4 — comportament doar după implementare. |
+| 2 | Etapă, familie, swimlane | — | v2: E3, ai-core; swimlane menționat în metrici ca `ai-core`. | Fără worker E3 pentru această coadă. |
+| 3 | Rol declarat | — | v2: planificare / generare comercială (descriere generică în bloc). | Scop operațional per-neuron: sub-specificat în v2 față de cod. |
+| 4 | NeuronType + SOFAI | — | v2: `DeliberativeNeuron` inferat; System2 (clasificare v2). | — |
+| 5 | Criticitate | — | v2: `HIGH` inferat. | — |
+| 6 | Înveliș telemetrie | — | v2: `cognitive.ai.prompt.optimize`. | Fără `withCognitiveSpan` pentru coadă inexistentă. |
+| 7 | Înveliș politică | — | v2: Tier 3, HITL la anomalie încredere. | — |
+| 8 | Rutare model (dacă AI) | — | v2: QwQ + SGLang + fallback. | Fără cod LLM dedicat acestei cozi. |
+| 9 | Guardrails | — | v2 / ADR-0007 țintă. | — |
+| 10 | Escaladare HITL | — | v2: SLA 4h; ADR-0008. | — |
+| 11 | Micro-OODA | — | v2: OODA cu LLM ORIENT/DECIDE. | Nu mapat la flux BullMQ în repo. |
+| 12 | Tier + de-escaladare | — | v2 Tier 3. | — |
+| 13 | Stack (subset) | — | v2 §2.3. | BullMQ: **fără** coadă înregistrată pentru acest neuron. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.ai.prompt.optimize`.
+- **Cod:** fără procesor — **neaplicat**; la migrare: aliniere la `cognitive.nodeKey` + `withCognitiveSpan` (ADR-0003).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

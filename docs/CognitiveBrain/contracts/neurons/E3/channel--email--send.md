@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `channel:email:send`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **J60** — trimitere email de **handover** (Handlebars + **Resend**), nu un pipeline generic „ofertă/follow-up” decât prin extensie semantică a aceluiași canal.
 
 ## Metadata
 
@@ -8,64 +10,55 @@
 | --- | --- |
 | v2_queue | `channel:email:send` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `channels` |
+| familie (v2) | `channels` |
 | contract_path | `contracts/neurons/E3/channel--email--send.md` |
 | ADR familie (indicativ) | [channels](../../adr/families/e3/channels.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Trimitere email comercial — ofertă, follow-up, confirmare negociere. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L4722–4745) plasează neuronul în **channels**, **MotorNeuron**, scop catalog: trimitere email comercial (ofertă, follow-up, confirmare negociere), **Non-AI**. **Repo:** `workers/e3-ai-sales/src/workers/j60-channel-email-send.ts` implementează **notificare email de preluare conversație (handover)**: template-uri HTML RO/EN în sursă, compilare **Handlebars**, validare destinatar (`EMAIL_REGEX` L28, L142–147), apel **Resend** prin `callExternalApi("resend", …)` (L176–189), tag-uri `handover_notification` + `tenant_id` / `negotiation_id` / `stage` (L182–187). **Producător** principal: **J58** când decizia de canal este `EMAIL` — `emailSendQueue.add` cu `tenantId`, `negotiationId`, `recipientEmail`, `context`, `stage` (`j58-channel-route-decide.ts` L228–239). **Înregistrare worker:** `main.ts` L246. **Registry:** `QUEUES.E3_CHANNEL_EMAIL_SEND` (`queue-registry.ts` L314, L1014). **Teste:** `j-workers.test.ts` — secțiune J60 (L763+). Nu s-a găsit în audit `apps/api` enqueuing direct către această coadă.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4721 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`channel:email:send\`` (L4722–4745).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e3:channel:email-send` (L2047–2055).
+- `workers/shared/src/queue-registry.ts` — `E3_CHANNEL_EMAIL_SEND` (L314, L1014).
+- `workers/e3-ai-sales/src/main.ts` — L246.
+- `workers/e3-ai-sales/src/workers/j60-channel-email-send.ts` — procesor.
+- `workers/e3-ai-sales/src/workers/j58-channel-route-decide.ts` — L228–239 (enqueue EMAIL).
+- `workers/e3-ai-sales/src/__tests__/j-workers.test.ts` — J60 (L763+).
+- `workers/shared/src/factory.ts` — instrumentare cognitivă worker.
 
 ## Instanțe v2
 
-### Instanță 1 — `channels` (linia v2 ~4721)
+- — (o singură instanță în v2 pentru această coadă.)
 
-- **Stage:** E3
-- **Family:** channels
-- **Catalog nodeKey:** e3:channel:email-send
-- **Neuron type:** MotorNeuron
-- **Swimlane:** ai-reasoning
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E3",swimlane="ai-reasoning"}, cerniq_neuron_duration_seconds{neuron_id="e3:channel:email-send"}, cerniq_neuron_confidence{neuron_id="e3:channel:email-send"}
-- **OTel span name:** cognitive.e3.channel.email-send
+- **8 — Rutare model:** N/A — v2 **Non-AI** (L4741); J60 fără LLM.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:channel:email-send`. | v2: `channel:email:send`; Catalog nodeKey (v2 bloc): `e3:channel:email-send` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `channels`, swimlane `ai-reasoning` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Trimitere email comercial — ofertă, follow-up, confirmare negociere; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.channel.email-send`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e3:channel:email-send`**, coadă **`channel:email:send`** (`cognitive-node-catalog.ts` L2048–2049). `QUEUES.E3_CHANNEL_EMAIL_SEND` (`queue-registry.ts` L314). | v2: același `Confirmed queue field` (L4739). | — |
+| 2 | Etapă, familie, swimlane | E3; swimlane catalog **`ai-reasoning`** (`cognitive-node-catalog.ts` L2052). | v2: E3, channels, swimlane `ai-reasoning` (L4732). | — |
+| 3 | Rol declarat | Handover email + template-uri RO/EN + Resend (`j60` L1–16, L159–201). | v2: formulare mai largă (ofertă/follow-up) (L4736–4737). | **Decalaj semantic:** implementarea actuală = handover, nu orice email comercial. |
+| 4 | NeuronType + SOFAI | **`MotorNeuron`** (`cognitive-node-catalog.ts` L2051). | v2: MotorNeuron (L4730). | Clasificare SOFAI: reper v2 §2.1. |
+| 5 | Criticitate | **`MEDIUM`** (`cognitive-node-catalog.ts` L2054). | v2: MEDIUM (L4733). | — |
+| 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` (când tenant valid) — `factory.ts`. | v2: span `cognitive.e3.channel.email-send` (L4744). | **Parțial aliniat:** cod folosește `cognitive.nodeKey` etc.; v2 nume punctat — ADR-0003. |
+| 7 | Înveliș politică | Fără Cedar/OPA; lipsă `RESEND_API_KEY` → throw (`j60` L153–155); email invalid → `sent: false` fără throw (L142–147). | v2: Tier 4, HITL la eșecuri repetate (L4734, L4742). | Fără contor „3+ erori” în J60; retry BullMQ la throw. |
+| 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
+| 9 | Guardrails | Validare regex email; `callExternalApi` pentru rate limit/circuit breaker (comentariu L175). | NeMo / ADR-0007 — țintă. | — |
+| 10 | Escaladare HITL | Nu în J60; lantul handover vine din J57→J58; HITL la „fără contact” e în J58 (`j58` L262–274). | v2: politică HITL la eșecuri repetate (L4742). | Escaladare pre-trimitere email, nu în workerul de send. |
+| 11 | Micro-OODA | OBSERVE — payload job; ORIENT — validare + env Resend; DECIDE — trimite / skip invalid; ACT — Resend + log (`j60` L131–201). | v2 OODA generic send/defer/retry (L4740). | Aliniat operațional; fără „quota” explicită în J60 (spre deosebire de comentarii J59 pentru WA). |
+| 12 | Tier + de-escaladare | Fără scor încredere sau tier în cod. | v2 Tier 4 (L4734). | — |
+| 13 | Stack (subset) | BullMQ, **Resend** SDK, Handlebars, `@cerniq/worker-shared` (`callExternalApi`). | v2 §2.3 + integrări. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.channel.email-send`.
+- **Cod:** `cognitive.nodeKey` **`e3:channel:email-send`**, atribute `withCognitiveSpan` — **parțial aliniat** față de convenția `cognitive.neuron.*` din v2 (ADR-0003).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

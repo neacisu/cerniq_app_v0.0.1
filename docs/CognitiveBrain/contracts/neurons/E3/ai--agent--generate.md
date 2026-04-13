@@ -36,7 +36,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | ��intă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** catalog + registry pentru `ai:agent:generate`. | v2 queue `ai:agent:generate`. | Implementare sub alte nume (C14/C15). |
 | 2 | Etapă, familie, swimlane | — | v2 E3 `ai-core`. | — |

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `document:template:compile`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **I54** compilează template-uri **Handlebars inline** (registry în cod), fără LLM — aliniat cu „deterministic” din antetul fișierului; comentariul `MaintenanceNeuron` din I54 este **învechit** față de catalog (**ProceduralNeuron**).
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `document:template:compile` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `fiscal-docs` |
+| familie (v2) | `fiscal-docs` |
 | contract_path | `contracts/neurons/E3/document--template--compile.md` |
 | ADR familie (indicativ) | [fiscal-docs](../../adr/families/e3/fiscal-docs.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Compilare template document Handlebars cu date negociere/factură pentru PDF. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L4844–4867): **ProceduralNeuron**, **MEDIUM**, compilare template Handlebars cu date negociere/factură, **Non-AI**. **Repo:** `workers/e3-ai-sales/src/workers/i54-document-template-compile.ts` — template-uri HTML mari definite în fișier (`INVOICE_TEMPLATE_RO`, `PROFORMA_TEMPLATE_RO`, …), `TEMPLATE_REGISTRY` mapare `templateName` → string (`i54` L306–345), `Handlebars.compile` + `templateVariables` (`i54` L336–337), helper `inc` (L302). Necunoscut `templateName` → throw cu listă disponibilă (`i54` L328–334). **Înregistrare:** `main.ts` L238. **Registry:** `QUEUES.E3_DOCUMENT_TEMPLATE_COMPILE` (`queue-registry.ts` L301, L1001). **Catalog:** `e3:document:template-compile`, **ProceduralNeuron** (`cognitive-node-catalog.ts` L1991–1998). **Teste:** `i-workers.test.ts` I54 (L246+).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4843 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`document:template:compile\`` (L4844–4867).
+- `packages/shared/src/cognitive-node-catalog.ts` — L1991–1998.
+- `workers/shared/src/queue-registry.ts` — L301, L1001.
+- `workers/e3-ai-sales/src/main.ts` — L238.
+- `workers/e3-ai-sales/src/workers/i54-document-template-compile.ts`.
+- `workers/e3-ai-sales/src/__tests__/i-workers.test.ts` — I54.
+- `workers/shared/src/factory.ts`.
 
 ## Instanțe v2
 
-### Instanță 1 — `fiscal-docs` (linia v2 ~4843)
+- —
 
-- **Stage:** E3
-- **Family:** fiscal-docs
-- **Catalog nodeKey:** e3:document:template-compile
-- **Neuron type:** ProceduralNeuron
-- **Swimlane:** fiscal-execution
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read input payload. ORIENT: apply deterministic transformation rules. DECIDE: validate output schema. ACT: emit transformed result to next queue.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ProceduralNeuron",stage="E3",swimlane="fiscal-execution"}, cerniq_neuron_duration_seconds{neuron_id="e3:document:template-compile"}, cerniq_neuron_confidence{neuron_id="e3:document:template-compile"}
-- **OTel span name:** cognitive.e3.document.template-compile
+- **8 — Rutare model:** N/A — v2 Non-AI (L4863); I54 fără LLM (L6–7).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:document:template-compile`. | v2: `document:template:compile`; Catalog nodeKey (v2 bloc): `e3:document:template-compile` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `fiscal-docs`, swimlane `fiscal-execution` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Compilare template document Handlebars cu date negociere/factură pentru PDF; analogie: Ganglioni bazali — execuție procedurală pas cu pas | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ProceduralNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System1 (reactiv) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.document.template-compile`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input payload. ORIENT: apply deterministic transformation rules. DECIDE: validate output schema. ACT: emit transformed result to next queue. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e3:document:template-compile`**, coadă **`document:template:compile`** (`cognitive-node-catalog.ts` L1992–1993). `QUEUES.E3_DOCUMENT_TEMPLATE_COMPILE` (`queue-registry.ts` L301). | v2: același `Confirmed queue field` (L4861). | — |
+| 2 | Etapă, familie, swimlane | E3; **`fiscal-execution`** (`cognitive-node-catalog.ts` L1995). | v2: fiscal-execution (L4854). | — |
+| 3 | Rol declarat | Compilare HTML din registry Handlebars (`i54` L1–10, L306–345). | v2: compilare pentru PDF (L4858–4860). | Template-uri **inline**, nu din DB/FS (explicit L5–6). |
+| 4 | NeuronType + SOFAI | **`ProceduralNeuron`** (`cognitive-node-catalog.ts` L1994). | v2: ProceduralNeuron (L4852). | Antet I54 spune „MaintenanceNeuron” (L8) — **contradicție față de catalog/v2**. |
+| 5 | Criticitate | **`MEDIUM`** (`cognitive-node-catalog.ts` L1997). | v2: MEDIUM (L4855). | — |
+| 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2: `cognitive.e3.document.template-compile` (L4866). | **Parțial aliniat.** |
+| 7 | Înveliș politică | Throw pe template necunoscut (`i54` L329–334). | v2: Tier 4, HITL la eșecuri repetate (L4856, L4864). | — |
+| 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
+| 9 | Guardrails | Registru finit de nume + Handlebars strict. | ADR-0007 țintă. | — |
+| 10 | Escaladare HITL | Nu în I54. | v2 / ADR-0008. | — |
+| 11 | Micro-OODA | OBSERVE — `templateName` + variabile; ORIENT — lookup registry; DECIDE — valid; ACT — emit HTML (`i54` L325–345). | v2 OODA transformare deterministă (L4862). | Aliniat. |
+| 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 4 (L4856). | — |
+| 13 | Stack (subset) | BullMQ, Handlebars. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.document.template-compile`.
+- **Cod:** `cognitive.nodeKey` **`e3:document:template-compile`** — **parțial aliniat**.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

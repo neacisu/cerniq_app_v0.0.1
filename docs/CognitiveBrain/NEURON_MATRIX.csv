@@ -128,7 +128,7 @@ v2_line,v2_queue,stage,family,v2_dup2,contract_path,group_key,catalog_nodekey_v2
 4671,mcp:tool:register,E3,ai-core,no,docs/CognitiveBrain/contracts/neurons/E3/mcp--tool--register.md,E3|mcp--tool--register,e3:mcp:tool-register,e3:mcp:tool-register,yes
 4696,sentiment:trend:analyze,E3,ai-core,no,docs/CognitiveBrain/contracts/neurons/E3/sentiment--trend--analyze.md,E3|sentiment--trend--analyze,e3:sentiment:trend-analyze,e3:sentiment:trend-analyze,yes
 4721,channel:email:send,E3,channels,no,docs/CognitiveBrain/contracts/neurons/E3/channel--email--send.md,E3|channel--email--send,e3:channel:email-send,e3:channel:email-send,yes
-4746,channel:routing:decide,E3,channels,no,docs/CognitiveBrain/contracts/neurons/E3/channel--routing--decide.md,E3|channel--routing--decide,,,no
+4746,channel:routing:decide,E3,channels,no,docs/CognitiveBrain/contracts/neurons/E3/channel--routing--decide.md,E3|channel--routing--decide,,e3:channel:route-decide,no
 4768,channel:whatsapp:send,E3,channels,no,docs/CognitiveBrain/contracts/neurons/E3/channel--whatsapp--send.md,E3|channel--whatsapp--send,e3:channel:whatsapp-send,e3:channel:whatsapp-send,yes
 4793,document:email:send,E3,fiscal-docs,no,docs/CognitiveBrain/contracts/neurons/E3/document--email--send.md,E3|document--email--send,e3:document:email-send,e3:document:email-send,yes
 4818,document:pdf:generate,E3,fiscal-docs,no,docs/CognitiveBrain/contracts/neurons/E3/document--pdf--generate.md,E3|document--pdf--generate,e3:document:pdf-generate,e3:document:pdf-generate,yes
