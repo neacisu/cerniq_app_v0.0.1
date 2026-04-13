@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `oblio:invoice:cancel`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **G42** — două faze: fără `approvalRef` → coadă `hitl:escalate` cu callback la `oblio:invoice:cancel`; cu `approvalRef` → `oblioClient.cancelInvoice` (STUB), marchează factura `CANCELLED`, inserează `CREDIT_NOTE`, lanț `fiscal_audit_trail`.
 
 ## Metadata
 
@@ -8,64 +10,55 @@
 | --- | --- |
 | v2_queue | `oblio:invoice:cancel` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `fiscal-docs` |
+| familie (v2) | `fiscal-docs` |
 | contract_path | `contracts/neurons/E3/oblio--invoice--cancel.md` |
 | ADR familie (indicativ) | [fiscal-docs](../../adr/families/e3/fiscal-docs.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Anulare factură în Oblio la abandon sau stornare. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L4919–4942): **MotorNeuron**, **HIGH**, anulare factură Oblio, **Non-AI**, Tier 3, HITL la anomalii. **Repo:** `workers/e3-ai-sales/src/workers/g42-oblio-invoice-cancel.ts` — validare `INVOICE` + `ACTIVE` (`g42` L90–119); faza 1: `createQueue(QUEUES.HITL_ESCALATION)` + `callbackQueue: QUEUES.E3_OBLIO_INVOICE_CANCEL` (`g42` L52–79); faza 2: `oblioClient.cancelInvoice` (`g42` L121–122), `UPDATE` status `CANCELLED`, `INSERT` `CREDIT_NOTE` (`g42` L124–145), audit SHA-256 (`g42` L149–183). **Înregistrare:** `main.ts` L224. **Registry:** `E3_OBLIO_INVOICE_CANCEL` (`queue-registry.ts` L275). **Client Oblio:** `cancelInvoice` este **STUB** (`oblio-client.ts` L179–189). **Teste:** `g-workers.test.ts` — `G42` (L856+).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4918 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`oblio:invoice:cancel\`` (L4919–4942).
+- `packages/shared/src/cognitive-node-catalog.ts` — L1879–1886.
+- `workers/shared/src/queue-registry.ts` — L275.
+- `workers/e3-ai-sales/src/main.ts` — L224.
+- `workers/e3-ai-sales/src/workers/g42-oblio-invoice-cancel.ts`.
+- `workers/e3-ai-sales/src/lib/oblio-client.ts` — `cancelInvoice`.
+- `workers/e3-ai-sales/src/__tests__/g-workers.test.ts` — G42.
+- `workers/shared/src/factory.ts` (înveliș worker).
 
 ## Instanțe v2
 
-### Instanță 1 — `fiscal-docs` (linia v2 ~4918)
+- —
 
-- **Stage:** E3
-- **Family:** fiscal-docs
-- **Catalog nodeKey:** e3:oblio:invoice-cancel
-- **Neuron type:** MotorNeuron
-- **Swimlane:** fiscal-execution
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E3",swimlane="fiscal-execution"}, cerniq_neuron_duration_seconds{neuron_id="e3:oblio:invoice-cancel"}, cerniq_neuron_confidence{neuron_id="e3:oblio:invoice-cancel"}
-- **OTel span name:** cognitive.e3.oblio.invoice-cancel
+- **8 — Rutare model:** N/A — v2 Non-AI (L4938); G42 fără LLM.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:oblio:invoice-cancel`. | v2: `oblio:invoice:cancel`; Catalog nodeKey (v2 bloc): `e3:oblio:invoice-cancel` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `fiscal-docs`, swimlane `fiscal-execution` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Anulare factură în Oblio la abandon sau stornare; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.oblio.invoice-cancel`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e3:oblio:invoice-cancel`**, coadă **`oblio:invoice:cancel`** (`cognitive-node-catalog.ts` L1880–1881). | v2 același câmp coadă (L4936). | — |
+| 2 | Etapă, familie, swimlane | E3; **`fiscal-execution`** (`cognitive-node-catalog.ts` L1884). | v2 fiscal-docs / swimlane fiscal-execution (L4922–4929). | — |
+| 3 | Rol declarat | Anulare + notă credit + audit; HITL înainte de execuție (`g42` L6–14, L52–86, L121–183). | v2: anulare la abandon/stornare (L4933–4934). | — |
+| 4 | NeuronType + SOFAI | **`MotorNeuron`** (`cognitive-node-catalog.ts` L1883). | v2 MotorNeuron (L4927). | Clasificare SOFAI raportată ca în v2 §2.1. |
+| 5 | Criticitate | **`HIGH`** (`cognitive-node-catalog.ts` L1886). | v2 HIGH (L4930). | — |
+| 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` (fabrică partajată). | v2: `cognitive.e3.oblio.invoice-cancel` (L4941). | **Parțial aliniat** — `cognitive.nodeKey` vs span v2. |
+| 7 | Înveliș politică | HITL obligatoriu faza 1; fără `approvalRef` nu se apelează Oblio (`g42` L52–86). | v2 Tier 3, HITL la anomalii (L4931–4939). | Implementarea cere HITL **întotdeauna** înainte de cancel — mai strict decât «on anomaly» din v2. |
+| 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2 Non-AI. | — |
+| 9 | Guardrails | Verificări `documentType` / `status`; constrângeri menționate în antet (`g42` L10–14, L112–118). | ADR-0007 țintă. | — |
+| 10 | Escaladare HITL | `hitl:escalate` + `type: invoice_cancel_approval` + callback (`g42` L54–74). | ADR-0008; v2 politică HITL (L4939). | Comportamentul callback-ului după aprobare (cine re-enqueue cu `approvalRef`) = în afara fișierului G42. |
+| 11 | Micro-OODA | OBSERVE — job + DB invoice; ORIENT — faze approval; DECIDE — pending vs exec; ACT — API stub + DB + audit (`g42` L47–189). | v2 OODA send/execute (L4937). | — |
+| 12 | Tier + de-escaladare | Fără praguri «confidence» în cod. | v2 Tier 3 (L4931). | — |
+| 13 | Stack (subset) | BullMQ, Drizzle, `node:crypto`, `oblioClient` STUB. | v2 §2.3. | Apel HTTP real Oblio: **FAZA 13** per `oblio-client.ts` L12–13. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.oblio.invoice-cancel`.
+- **Cod:** `cognitive.nodeKey` **`e3:oblio:invoice-cancel`** — **parțial aliniat**.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

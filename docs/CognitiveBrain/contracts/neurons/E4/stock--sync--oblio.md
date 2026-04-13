@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `stock:sync:oblio`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **F28** — coadă **`stock:sync:oblio`**, catalog `e4:stock:sync-oblio`. `withCognitiveSpan("e4:stock:sync:oblio", …)` folosește **două puncte** în ultimele segmente; catalog folosește **cratimă** în `sync-oblio` — verificați `getNodeByKey` pentru atribute span.
 
 ## Metadata
 
@@ -8,64 +10,63 @@
 | --- | --- |
 | v2_queue | `stock:sync:oblio` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `logistics` |
+| familie (v2) | `logistics` |
 | contract_path | `contracts/neurons/E4/stock--sync--oblio.md` |
 | ADR familie (indicativ) | [logistics](../../adr/families/e4/logistics.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Sincronizare stoc Oblio ERP → goldProducts.metadata.stockCount — cron */15 min. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Cron **\*/15** (înregistrat în `index.ts` E4): sincronizare stoc Oblio → `goldProducts.metadata.stockCount` prin `oblioClient.syncStock` (comentariu anti-halucinare: **STUB** în `oblio-client-e4.ts`), metrică `e4StockSyncTotal`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7354 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L7355–7378.
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e4:stock:sync-oblio` (~L2488–2496).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E4_STOCK_SYNC_OBLIO` (~L440), config ~L1174.
+- Handler: [`f28-stock-sync-oblio.ts`](../../../../../workers/e4-postsale/src/workers/f28-stock-sync-oblio.ts).
+- Bootstrap + cron: [`workers/e4-postsale/src/index.ts`](../../../../../workers/e4-postsale/src/index.ts) — F28 ~L416–417, cron ~L644–645.
+- **Notă:** E3 are [`oblio:stock:sync`](../../../../../workers/e3-ai-sales/src/workers/g44-oblio-stock-sync.ts) — flux **diferit** (stock_inventory vs goldProducts).
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `logistics` (linia v2 ~7354)
+### Instanță 1 — `logistics` (v2 L7355–7378)
 
-- **Stage:** E4
-- **Family:** logistics
-- **Catalog nodeKey:** e4:stock:sync-oblio
+- **Catalog nodeKey:** `e4:stock:sync-oblio`
 - **Neuron type:** StockNeuron
-- **Swimlane:** logistics
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+- **Swimlane:** `logistics`
+- **Criticitate:** HIGH
+- **Autonomy tier (v2):** Tier 3
+- **Model routing:** Non-AI
+- **OTel (v2):** `cognitive.e4.stock.sync-oblio`
+- **Evidence status:** catalog-grounded
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: read input. ORIENT: process per StockNeuron logic. DECIDE: validate output. ACT: emit result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="StockNeuron",stage="E4",swimlane="logistics"}, cerniq_neuron_duration_seconds{neuron_id="e4:stock:sync-oblio"}, cerniq_neuron_confidence{neuron_id="e4:stock:sync-oblio"}
-- **OTel span name:** cognitive.e4.stock.sync-oblio
+- **8 — Rutare model:** N/A — Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e4:stock:sync-oblio`. | v2: `stock:sync:oblio`; Catalog nodeKey (v2 bloc): `e4:stock:sync-oblio` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `logistics`, swimlane `logistics` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Sincronizare stoc Oblio ERP → goldProducts.metadata.stockCount — cron */15 min; analogie: Sistem de inventar — sincronizare și gestiune stocuri în timp real | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`StockNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `StockNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e4.stock.sync-oblio`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input. ORIENT: process per StockNeuron logic. DECIDE: validate output. ACT: emit result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Coadă `stock:sync:oblio`; `nodeKey` catalog `e4:stock:sync-oblio`. | v2 L7362–7372. | — |
+| 2 | Etapă, familie, swimlane | Etapa 4, swimlane `logistics`. | v2 L7357–7365. | — |
+| 3 | Rol declarat | F28 antet + pași SELECT produse → sync → UPDATE metadata (~L1–16, ~L48–117). | v2 L7369–7370. | Client Oblio STUB. |
+| 4 | NeuronType + SOFAI | StockNeuron. | v2 L7363. | — |
+| 5 | Criticitate | HIGH în catalog. | v2 L7366. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e4:stock:sync:oblio", …)` (F28 ~L42–43); span `cognitive:e4:stock:sync:oblio`. Metrică Prometheus în F28. | v2 L7376–7377. | **Nealiniere** string `nodeKey` span vs catalog (`sync:oblio` vs `sync-oblio`). |
+| 7 | Înveliș politică | Try/catch per produs + logging. | v2 L7375. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
+| 9 | Guardrails | Filtru `isActive`, SKU non-null. | — | — |
+| 10 | Escaladare HITL | Nu în F28. | v2 L7375. | — |
+| 11 | Micro-OODA | Colectare SKU → apel sync → persistență. | v2 L7373. | — |
+| 12 | Tier + de-escaladare | Fără prag încredere. | v2 Tier 3. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E4, Drizzle, Redis DB E4. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e4.stock.sync-oblio`.
+- **Cod:** `cognitive:e4:stock:sync:oblio` — unificare recomandată cu cheia din catalog pentru `getNodeByKey`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

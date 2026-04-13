@@ -1,69 +1,68 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `contract:clause:assemble`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. Eticheta graf v2 `contract:clause:assemble` **nu** există ca literal în `queue-registry.ts`. **Implementare:** G33 — coadă `contract:clauses:select`, `nodeKey` catalog `e4:contract:clauses-select`. **`withCognitiveSpan`** din cod folosește stringul `e4:contract:clauses:select` (două puncte) — **nealinier** la `e4:contract:clauses-select` din catalog (`getNodeByKey` poate returna `undefined`).
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `contract:clause:assemble` |
+| v2_queue (graf) | `contract:clause:assemble` |
+| coadă runtime | `contract:clauses:select` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `contracts` |
+| familie (v2) | `contracts` |
 | contract_path | `contracts/neurons/E4/contract--clause--assemble.md` |
 | ADR familie (indicativ) | [contracts](../../adr/families/e4/contracts.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E4, familia contracts. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Selecție clauze contractuale după `riskTier` (mapare fixă L2099 în comentariu G33), îmbinare cu clauze obligatorii din `gold_contract_clauses`, UPDATE `gold_contracts.clausesUsed`, enqueue G34 `contract:docusign:send`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6467 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L6468–6488.
+- ADR familie: [`adr/families/e4/contracts.md`](../../adr/families/e4/contracts.md) — tabel cozi + reconciliere denumiri.
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e4:contract:clauses-select` (~L2536–2543).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E4_CONTRACT_CLAUSES_SELECT` (~L426).
+- Handler: [`g33-contract-clauses-select.ts`](../../../../../workers/e4-postsale/src/workers/g33-contract-clauses-select.ts).
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `contracts` (linia v2 ~6467)
+### Instanță 1 — `contracts` (v2 L6468–6488)
 
-- **Stage:** E4
-- **Family:** contracts
-- **Inferred neuron type:** ContractNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+- **Confirmed queue field:** `contract:clause:assemble`
+- **Neuron type (v2 inferat):** ContractNeuron
+- **Evidence status:** graph-export (L6488)
+- **OTel (v2):** `cognitive.contract.clause.assemble`
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: receive contract trigger. ORIENT: select clauses per risk. DECIDE: generate/send/archive. ACT: DocuSign integration + audit trail.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ContractNeuron",stage="E4",swimlane="contracts"}
-- **OTel span name:** cognitive.contract.clause.assemble
+- **8 — Rutare model:** N/A — Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `contract:clause:assemble`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `contracts`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E4, familia contracts.; analogie: Cortex contractual — generare și execuție contracte digitale DocuSign | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ContractNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `ContractNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.contract.clause.assemble`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive contract trigger. ORIENT: select clauses per risk. DECIDE: generate/send/archive. ACT: DocuSign integration + audit trail. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Runtime `contract:clauses:select`; graf `contract:clause:assemble`. Catalog `e4:contract:clauses-select`. | v2 L6482. | Trei denumiri pentru același pas din pipeline. |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 4, `contract-execution`. | v2: E4, `contracts`. | Swimlane v2 L6487 `contracts` vs catalog `contract-execution`. |
+| 3 | Rol declarat | G33 antet + mapare coduri risk tier (~L1–41, ~L60–80). | v2 L6480–6481 generic. | — |
+| 4 | NeuronType + SOFAI | `ContractNeuron` în catalog. | v2 ContractNeuron inferat. | — |
+| 5 | Criticitate | `HIGH` în catalog (~L2542). | v2 inferat MEDIUM. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e4:contract:clauses:select", …)` (G33 ~L54–55). Span activ: `cognitive:e4:contract:clauses:select` (pattern helper). Catalog cheie cu **cratimă**. | v2 L6487 — metrică generică. | **Nealiniere nodeKey** colon vs cratimă → atribute catalog pe span posibil incomplete. |
+| 7 | Înveliș politică | Reguli deterministe pe tier; fără Cedar în G33. | v2 L6485 — fără HITL obligatoriu. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
+| 9 | Guardrails | Mapare strictă coduri clauză din plan (comentariu anti-halucinare G33). | — | — |
+| 10 | Escaladare HITL | Nu în G33. | — | — |
+| 11 | Micro-OODA | Select clauze → UPDATE contract → enqueue G34. | v2 OODA L6483. | — |
+| 12 | Tier + de-escaladare | Fără prag încredere. | v2 Tier 4. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ, Drizzle, enqueue G34. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2 (graf):** `cognitive.contract.clause.assemble`.
+- **Cod:** `withCognitiveSpan` + `cognitive.nodeKey` = argumentul string din G33; aliniere la catalog necesită unificare `e4:contract:clauses-select` vs `e4:contract:clauses:select`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

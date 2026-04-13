@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `feedback:writeback:crm`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L8077–L8097): coadă `feedback:writeback:crm`, `EmotionNeuron`, LLM (L8092–L8093). **Repo:** **fără** literal `feedback:writeback:crm` sau `crm:writeback` în `queue-registry.ts`. **H46** `feedback:complaint:route` enfilează **`outreach:orchestrator:dispatch`** pentru rute moderate (`h46-feedback-complaint-route.ts` L33, L10–11) — propagare către stratul de outreach, nu un CRM writeback dedicat. **Concluzie:** „writeback CRM” din v2 **nu** are coadă canonică; există doar **lanț indirect** prin orchestrator / acțiuni nurturing.
 
 ## Metadata
 
@@ -8,62 +10,51 @@
 | --- | --- |
 | v2_queue | `feedback:writeback:crm` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `feedback` |
+| familie (v2) | `feedback` |
 | contract_path | `contracts/neurons/E5/feedback--writeback--crm.md` |
 | ADR familie (indicativ) | [feedback](../../adr/families/e5/feedback.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E5, familia feedback. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** sincronizare rezultate feedback către CRM (L8088–L8091). **Cod:** rutare plângere → orchestrator (H46) sau alte acțiuni `goldNurturingActions`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8076 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L8077–L8097.
+- `workers/shared/src/queue-registry.ts` — **fără** `writeback`/`crm` în nume.
+- `workers/e5-nurturing/src/workers/h46-feedback-complaint-route.ts` — `QUEUE_OUTREACH_DISPATCH` = `outreach:orchestrator:dispatch` (L33).
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `feedback` (linia v2 ~8076)
+- **L8077–L8097:** span `cognitive.feedback.writeback.crm` (L8096).
 
-- **Stage:** E5
-- **Family:** feedback
-- **Inferred neuron type:** EmotionNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read message. ORIENT: LLM sentiment analysis. DECIDE: classify + confidence. ACT: update profile + escalate if negative.
-- **Model routing:** PRIMARY: vllm-fast-14b (Qwen2.5-14B-AWQ). FALLBACK: reasoning-32b if confidence < 0.85.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="EmotionNeuron",stage="E5",swimlane="feedback"}
-- **OTel span name:** cognitive.feedback.writeback.crm
+- **8 — Rutare model:** N/A pentru H46 (rutare deterministă); v2 presupune LLM (L8092–L8093) — **divergență**.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `feedback:writeback:crm`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `feedback`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E5, familia feedback.; analogie: Amigdală — procesare tonalitate emoțională | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`EmotionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.feedback.writeback.crm`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-fast-14b (Qwen2.5-14B-AWQ). FALLBACK: reasoning-32b if confidence < 0.85. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read message. ORIENT: LLM sentiment analysis. DECIDE: classify + confidence. ACT: update profile + escalate if negative. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Lipsă** coadă `feedback:writeback:crm`. Lanț: **H46** → `outreach:orchestrator:dispatch`. | v2: `feedback:writeback:crm` (L8091). | Mapare indirectă. |
+| 2 | Etapă, familie, swimlane | H46: `feedback-nps` (catalog L3184). | v2: `feedback` E5 (L8080). | — |
+| 3 | Rol declarat | Rutare reclamație NPS (`h46` L7–10). | v2: writeback CRM (L8088–L8090). | Semantică parțială. |
+| 4 | NeuronType + SOFAI | H46: `ReflexNeuron` (catalog L3183). | v2: `EmotionNeuron` (L8084). | — |
+| 5 | Criticitate | H46: `HIGH` (L3186). | v2: `MEDIUM` (L8086). | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e5:feedback:complaint:route", …)` (`h46` L70). | v2 span (L8096). | — |
+| 7 | Înveliș politică | — | v2 Tier 4 (L8087), fără HITL obligatoriu (L8094). | — |
+| 8 | Rutare model (dacă AI) | H46 fără LLM. | v2: vllm-fast (L8092–L8093). | — |
+| 9 | Guardrails | Enum canal IN_APP pentru HITL (`h46` L13–14). | v2 L8094. | — |
+| 10 | Escaladare HITL | H46: `hitl:complaint:review` pentru sever (`h46` L8–9). | v2 L8094. | — |
+| 11 | Micro-OODA | Scor NPS → rută AUTO/HITL → enqueue. | v2 OODA (L8092). | — |
+| 12 | Tier + de-escaladare | — | v2 Tier 4. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E5 + outreach. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.feedback.writeback.crm`.
+- **Cod (cea mai apropiată cale):** `cognitive:e5:feedback:complaint:route` + downstream orchestrator.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

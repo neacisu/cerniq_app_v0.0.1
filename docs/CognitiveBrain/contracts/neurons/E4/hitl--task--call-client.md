@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `hitl:task:call-client`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** definește `hitl:task:call-client` (*not yet reconciled*, L7068). **Repo:** **fără** catalog, registry sau worker pentru această coadă. **Neuron HITL task** implementat în E4: **`hitl:task:resolve`** (`e4:hitl:task-resolve`, K52) — **altă coadă**; nu echivalează „call client” fără dovadă suplimentară.
 
 ## Metadata
 
@@ -8,62 +10,52 @@
 | --- | --- |
 | v2_queue | `hitl:task:call-client` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `hitl` |
+| familie (v2) | `hitl` |
 | contract_path | `contracts/neurons/E4/hitl--task--call-client.md` |
 | ADR familie (indicativ) | [hitl](../../adr/families/e4/hitl.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E4, familia hitl. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L7048–L7068): task HITL uman, OTel `cognitive.hitl.task.call-client`. **Cod:** căutare literală negativă; pentru rezolvare task-uri există `hitlTaskResolveProcessor` pe coada `hitl:task:resolve` (`k-hitl-workers.ts` L367–440, `index.ts` L553–557).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7047 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`hitl:task:call-client\`` (L7048–L7068).
+- `packages/shared/src/cognitive-node-catalog.ts` — fără `hitl:task:call-client`; există `e4:hitl:task-resolve` / `hitl:task:resolve` (L2715–2722).
+- `workers/shared/src/queue-registry.ts` — `E4_HITL_TASK_RESOLVE: "hitl:task:resolve"` (L501); **fără** `call-client`.
+- Căutare `hitl:task:call-client` în `*.{ts,tsx,js,mjs}` — **0** rezultate (2026-04-13).
+- Worker înrudit (rezolvare): `workers/e4-postsale/src/workers/k-hitl-workers.ts` (K52), `k52-hitl-task-resolve.ts` (re-export).
 
 ## Instanțe v2
 
-### Instanță 1 — `hitl` (linia v2 ~7047)
+- —
 
-- **Stage:** E4
-- **Family:** hitl
-- **Inferred neuron type:** HumanNeuron
-- **Inferred criticality:** CRITICAL
-- **Autonomy tier:** Tier 2 (suggest to human)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive HITL task. ORIENT: load context via LangGraph checkpoint. DECIDE: present to human. ACT: resume with APPROVE/REJECT/MODIFY.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** HITL mandatory. SLA: 2h. Auto-escalation on timeout.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="HumanNeuron",stage="E4",swimlane="hitl"}
-- **OTel span name:** cognitive.hitl.task.call-client
+- **8 — Rutare model:** N/A — v2 Non-AI (L7064).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `hitl:task:call-client`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `hitl`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E4, familia hitl.; analogie: Neocortex — decizie conștientă umană obligatorie | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`HumanNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `HumanNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `CRITICAL` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.hitl.task.call-client`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 2 (suggest to human)`; Guardrail/HITL policy (v2): HITL mandatory. SLA: 2h. Auto-escalation on timeout. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive HITL task. ORIENT: load context via LangGraph checkpoint. DECIDE: present to human. ACT: resume with APPROVE/REJECT/MODIFY. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** pentru `hitl:task:call-client`. Implementat separat: `hitl:task:resolve` (registry L501). | v2 coadă L7062. | L7068 — nereconciliat. |
+| 2 | Etapă, familie, swimlane | K52: etapă 4, swimlane catalog `human-oversight-e4` pentru `hitl:task:resolve`. | v2 familie `hitl`, swimlane `hitl` în metrică (L7066). | — |
+| 3 | Rol declarat | Lipsă handler pentru call-client. K52: `approvalService.decide` + audit (k-hitl L398–426). | v2 L7059–7061. | Funcții diferite. |
+| 4 | NeuronType + SOFAI | `HumanNeuron` pentru `hitl:task:resolve` (catalog L2719). | `HumanNeuron` inferat v2 (L7055). | — |
+| 5 | Criticitate | Neconectat pentru call-client. K52: `MEDIUM` (catalog L2722). | `CRITICAL` inferat v2 (L7057). | — |
+| 6 | Înveliș telemetrie | K52: `withCognitiveSpan("e4:hitl:task:resolve", …)` (L392–394) → span `cognitive:e4:hitl:task:resolve`; catalog `e4:hitl:task-resolve` (cratimă) — **divergență** față de `nodeKey` catalog. | v2 `cognitive.hitl.task.call-client` (L7067). | call-client: fără span. |
+| 7 | Înveliș politică | — | v2 L7065. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | — | — | — |
+| 10 | Escaladare HITL | K52 finalizează decizii pe task existent. | v2 L7065. | — |
+| 11 | Micro-OODA | — | v2 L7063. | — |
+| 12 | Tier + de-escaladare | — | Tier 2 v2 (L7058). | — |
+| 13 | Stack (subset plan v2) | BullMQ E4 pentru K52. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.hitl.task.call-client` (L7067).
+- **Cod:** neemise pentru call-client; pentru `hitl:task:resolve` vezi `cognitive:e4:hitl:task:resolve` (prim argument K52) vs `e4:hitl:task-resolve` în catalog.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial (hydrate):* înlocuit prin audit manual.

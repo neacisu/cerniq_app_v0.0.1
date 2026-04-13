@@ -1,71 +1,64 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `feedback:sentiment:analyze`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L8052–L8075): câmp coadă `feedback:sentiment:analyze`, `EmotionNeuron`, **catalog `e2:ai:sentiment-analyze`**, etapă **E2** (L8059–L8074). **Repo:** coada BullMQ canonică este **`ai:sentiment:analyze`** — `QUEUES.AI_SENTIMENT_ANALYZE` (`queue-registry.ts` L156), același nod catalog (`cognitive-node-catalog.ts` L1313–L1320), worker `createSentimentAnalyzerWorker` în `workers/outreach/src/workers/ai-sentiment.ts`. **Concluzie:** numele v2 „feedback:” este alias documentar; **execuția** este identică cu neuronul [`ai--sentiment--analyze.md`](ai--sentiment--analyze.md).
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
 | v2_queue | `feedback:sentiment:analyze` |
+| coadă runtime | `ai:sentiment:analyze` |
 | etapa | E2 |
-| familie (v2, prima instanță) | `feedback` |
+| familie (v2) | `feedback` |
+| catalog nodeKey | `e2:ai:sentiment-analyze` |
 | contract_path | `contracts/neurons/E2/feedback--sentiment--analyze.md` |
-| ADR familie (indicativ) | [feedback](../../adr/families/e2/feedback.md) |
+| contract mirror (runtime) | [`ai--sentiment--analyze.md`](ai--sentiment--analyze.md) |
+| ADR familie (indicativ) | [ai-analysis](../../adr/families/e2/ai-analysis.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Analiză sentiment mesaje primite de la lead. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Analiză LLM a mesajului lead, scor −100..100, rutare către `ai:response:generate` sau `human:review:queue` — vezi `ai-sentiment.ts` și contractul `ai:sentiment:analyze`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8051 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L8052–L8075 (atenție L8065: text „E5” în descriere vs antet E2 — **eroare internă v2**).
+- `workers/shared/src/queue-registry.ts` — `AI_SENTIMENT_ANALYZE` (L156).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e2:ai:sentiment-analyze` (L1313–L1320).
+- `workers/outreach/src/workers/ai-sentiment.ts` — worker sentiment E2.
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `feedback` (linia v2 ~8051)
+- **L8052–L8075:** `Confirmed queue field` `feedback:sentiment:analyze` (L8069) dar același `nodeKey` catalog ca `ai:sentiment:analyze` (L8059); span `cognitive.e2.ai.sentiment-analyze` (L8074).
 
-- **Stage:** E2
-- **Family:** feedback
-- **Catalog nodeKey:** e2:ai:sentiment-analyze
-- **Neuron type:** EmotionNeuron
-- **Swimlane:** ai-analysis
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read message text. ORIENT: LLM sentiment/intent analysis with structured output. DECIDE: classify emotion + confidence score. ACT: update lead sentiment profile + trigger escalation if negative trend.
-- **Model routing:** PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="EmotionNeuron",stage="E2",swimlane="ai-analysis"}, cerniq_neuron_duration_seconds{neuron_id="e2:ai:sentiment-analyze"}, cerniq_neuron_confidence{neuron_id="e2:ai:sentiment-analyze"}
-- **OTel span name:** cognitive.e2.ai.sentiment-analyze
+- —
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `feedback:sentiment:analyze`; Catalog nodeKey (v2 bloc): `e2:ai:sentiment-analyze` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E2`, familie `feedback`, swimlane `ai-analysis` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Analiză sentiment mesaje primite de la lead; analogie: Amigdală — procesare tonalitate emoțională | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`EmotionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e2.ai.sentiment-analyze`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read message text. ORIENT: LLM sentiment/intent analysis with structured output. DECIDE: classify emotion + confidence score. ACT: update lead sentiment profile + trigger escalation if negative trend. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`ai:sentiment:analyze`** + `e2:ai:sentiment-analyze`; **fără** `feedback:sentiment:analyze` în registry. | v2: `feedback:sentiment:analyze` (L8069). | Alias v2 vs literal runtime. |
+| 2 | Etapă, familie, swimlane | Catalog: etapă `2`, `ai-analysis` (L1318). | v2: E2, `feedback`, swimlane `ai-analysis` (L8062, L8068). | — |
+| 3 | Rol declarat | „Analiză sentiment mesaje primite de la lead” (catalog L1316). | v2: același rol operațional (L8066–L8068). | — |
+| 4 | NeuronType + SOFAI | `EmotionNeuron` (catalog L1317). | v2: `EmotionNeuron` (L8060). | — |
+| 5 | Criticitate | Catalog + v2: `HIGH` (L1320, L8063). | v2 L8063. | — |
+| 6 | Înveliș telemetrie | Instrumentare `createWorker` outreach → span `cognitive:e2:ai:sentiment-analyze` (vezi contract `ai--sentiment--analyze`). | v2 span (L8074). | — |
+| 7 | Înveliș politică | Praguri review ADR-0063 / logică `ai-sentiment.ts`. | v2 HITL la anomalii (L8072). | — |
+| 8 | Rutare model (dacă AI) | LLM structurat în `ai-sentiment.ts`. | v2 QwQ + fallback (L8071). | Modele: vezi implementare actuală. |
+| 9 | Guardrails | Schemă Zod, cache Redis — vezi `ai-sentiment.ts`. | v2 L8072. | — |
+| 10 | Escaladare HITL | Enqueue `human:review:queue` pe ramuri negative (`ai-sentiment.ts`). | v2 L8072. | — |
+| 11 | Micro-OODA | Text → LLM → persistență → rutare. | v2 OODA (L8070). | — |
+| 12 | Tier + de-escaladare | Tier 3 v2 (L8064). | v2. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ outreach Etapa 2, Postgres. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e2.ai.sentiment-analyze`.
+- **Cod:** `cognitive:e2:ai:sentiment-analyze` (vezi `ai--sentiment--analyze.md`).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

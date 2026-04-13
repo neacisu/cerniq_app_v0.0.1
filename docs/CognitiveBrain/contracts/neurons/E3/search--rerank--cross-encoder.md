@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `search:rerank:cross-encoder`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **Gap:** fără coadă / `nodeKey` / handler pentru `search:rerank:cross-encoder` în `workers/**/*.ts` (căutare `rerank` / `cross.encoder` / `crossEncoder` — fără potriviri). **Notă:** fuziunea RRF există separat (`search:rrf:fuse`, B10) — nu este cross-encoder.
 
 ## Metadata
 
@@ -8,62 +10,53 @@
 | --- | --- |
 | v2_queue | `search:rerank:cross-encoder` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `product-search` |
+| familie (v2) | `product-search` |
 | contract_path | `contracts/neurons/E3/search--rerank--cross-encoder.md` |
 | ADR familie (indicativ) | [product-search](../../adr/families/e3/product-search.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron de knowledge retrieval pentru produse și căutare hibridă. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L5740–5760): reranking cu cross-encoder; **Contract evidence status** indică neconciliere cu registry. **Repo:** neimplementat ca atare; poziționare în pipeline rămâne **doar țintă arhitecturală** față de B10 (RRF ponderat vector/BM25).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~5739 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`search:rerank:cross-encoder\`` (L5740–5760).
+- `workers/shared/src/queue-registry.ts` — fără intrare pentru `search:rerank:cross-encoder`.
+- `packages/shared/src/cognitive-node-catalog.ts` — fără `nodeKey` pentru acest slug.
+- Căutare în `workers/**/*.ts` — zero potriviri pentru rerank / cross-encoder (audit **2026-04-13**).
+- Referință comparativă: `search:rrf:fuse` / `e3:search:rrf-fuse` (catalog L1581–1587; `b10-search-rrf-fuse.ts`).
 
 ## Instanțe v2
 
-### Instanță 1 — `product-search` (linia v2 ~5739)
+- —
 
-- **Stage:** E3
-- **Family:** product-search
-- **Inferred neuron type:** KnowledgeNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive query. ORIENT: search Neo4j/PostgreSQL. DECIDE: cache strategy. ACT: persist/retrieve knowledge.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="KnowledgeNeuron",stage="E3",swimlane="product-search"}
-- **OTel span name:** cognitive.search.rerank.cross-encoder
+- **8 — Rutare model:** N/A — v2 Non-AI (L5756). (În research, cross-encoder implică de obicei model scoring perechi query–doc; **lipsește implementarea**.)
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `search:rerank:cross-encoder`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `product-search`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron de knowledge retrieval pentru produse și căutare hibridă.; analogie: Hipocamp — stocare și recuperare cunoștințe | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`KnowledgeNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `KnowledgeNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.search.rerank.cross-encoder`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive query. ORIENT: search Neo4j/PostgreSQL. DECIDE: cache strategy. ACT: persist/retrieve knowledge. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** — fără handler. | v2 L5754. | — |
+| 2 | Etapă, familie, swimlane | Neconectat. | v2 L5758. | — |
+| 3 | Rol declarat | Lipsă. | v2 L5751–5753. | RRF (B10) acoperă alt mecanism de ordonare. |
+| 4 | NeuronType + SOFAI | Neconectat. | `KnowledgeNeuron` v2 (L5747). | — |
+| 5 | Criticitate | Neconectat. | `MEDIUM` (L5749). | — |
+| 6 | Înveliș telemetrie | Lipsă. | `cognitive.search.rerank.cross-encoder` (L5759). | — |
+| 7 | Înveliș politică | — | v2 L5757. | — |
+| 8 | Rutare model (dacă AI) | **N/A** (criteriu; fără cod). | v2 Non-AI (L5756). | Contradicție potențială cu „cross-encoder» ca model — v2 §2.4 până la implementare. |
+| 9 | Guardrails | — | — | — |
+| 10 | Escaladare HITL | — | v2 L5757. | — |
+| 11 | Micro-OODA | — | v2 L5755. | — |
+| 12 | Tier + de-escaladare | — | Tier 4 (L5750). | — |
+| 13 | Stack v2 §2.3 (subset) | — | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.search.rerank.cross-encoder`.
+- **Cod:** **nu sunt emise** — fără `withCognitiveSpan` asociat acestui `nodeKey`.
+- **Stare:** **doar țintă documentară** în v2; reconciliere necesară la introducerea cozii / catalogului.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

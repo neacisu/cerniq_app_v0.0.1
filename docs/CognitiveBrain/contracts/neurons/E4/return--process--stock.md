@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `return:process:stock`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L7095–L7115): coadă **`return:process:stock`**, tip inferat **`LogisticsNeuron`**, criticitate `MEDIUM`. **Repo:** coadă runtime **`return:process`** (H38), `ReturnNeuron` în catalog, criticitate **`HIGH`** — **nu** există literal `return:process:stock` în `queue-registry.ts` sau TS citit.
 
 ## Metadata
 
@@ -8,62 +10,54 @@
 | --- | --- |
 | v2_queue | `return:process:stock` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `logistics` |
+| familie (v2) | `logistics` |
 | contract_path | `contracts/neurons/E4/return--process--stock.md` |
 | ADR familie (indicativ) | [logistics](../../adr/families/e4/logistics.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron logistic pentru AWB, tracking, stoc și retur. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Cod (H38):** finalizează retur — verifică `RETURN_PROCESSING`, setează `RETURNED`, audit `RETURN_PROCESSED`, enqueue I40 (`h38-return-process.ts` L1–12, L35–37). **Semantic:** include ajustări stoc indirect (comentariu lanț H37→F30/H38); **nu** redenumește coada ca „stock” în registry.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7094 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L7095–L7115.
+- `workers/shared/src/queue-registry.ts` — `E4_RETURN_PROCESS: "return:process"` (L455); **fără** `return:process:stock`.
+- `packages/shared/src/cognitive-node-catalog.ts` — `e4:return:process` / `return:process`, `ReturnNeuron` (L2583–2590).
+- `workers/e4-postsale/src/workers/h38-return-process.ts` — `withCognitiveSpan("e4:return:process", …)` (L35–36).
+- `workers/e4-postsale/src/index.ts` — H38 worker (L453–457).
+- Căutare `return:process:stock` în `workers/**/*.ts`, `packages/**/*.ts` — **0** potriviri relevante pentru nume coadă (2026-04-13).
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `logistics` (linia v2 ~7094)
+- —
 
-- **Stage:** E4
-- **Family:** logistics
-- **Inferred neuron type:** LogisticsNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive shipping trigger. ORIENT: validate AWB data. DECIDE: create/track/return. ACT: Sameday API + status updates.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="LogisticsNeuron",stage="E4",swimlane="logistics"}
-- **OTel span name:** cognitive.return.process.stock
+- **8 — Rutare model:** N/A — v2 Non-AI (L7112).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `return:process:stock`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `logistics`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron logistic pentru AWB, tracking, stoc și retur.; analogie: Cortex motor logistic — coordonare transport și expediere AWB | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`LogisticsNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `LogisticsNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.return.process.stock`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive shipping trigger. ORIENT: validate AWB data. DECIDE: create/track/return. ACT: Sameday API + status updates. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`return:process`** + `e4:return:process`. | v2 **`return:process:stock`** L7109. | Nume coadă diferit. |
+| 2 | Etapă, familie, swimlane | Catalog: `logistics`, etapă 4 (L2587–L2588). | v2 familie `logistics` (L7098). | — |
+| 3 | Rol declarat | Procesare retur finală + alertă livrare. | „Proces stock” în eticheta v2 (L7100). | — |
+| 4 | NeuronType + SOFAI | **`ReturnNeuron`**. | v2 **`LogisticsNeuron`** inferat (L7102). | Contradicție tip neuron. |
+| 5 | Criticitate | **`HIGH`** (L2589). | v2 **`MEDIUM`** (L7104). | Contradicție. |
+| 6 | Înveliș telemetrie | `cognitive:e4:return:process`. | v2 `cognitive.return.process.stock` (L7114). | Convenții diferite. |
+| 7 | Înveliș politică | — | v2 L7113. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | L7112. | — |
+| 9 | Guardrails | Verificări status comandă în handler. | — | — |
+| 10 | Escaladare HITL | — | v2 L7113. | — |
+| 11 | Micro-OODA | UPDATE + audit + enqueue alert. | v2 OODA AWB/Sameday (L7110). | v2 OODA mai larg decât H38. |
+| 12 | Tier + de-escaladare | — | Tier 4 (L7105). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.return.process.stock` (L7114).
+- **Cod:** `cognitive:e4:return:process`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Revizuire manuală:* dovezi repo 2026-04-13.

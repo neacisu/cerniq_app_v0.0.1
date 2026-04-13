@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `reconcile:daily:unmatched`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. v2 L6377–6397: **evidence status** = graph-export — coadă **nu** apare în `queue-registry.ts`. În runtime, cazul „unmatched” este tratat în lanțul B7→B8→**B9** (`payment:reconcile:manual`), nu printr-un job zilnic cu acest nume.
 
 ## Metadata
 
@@ -8,62 +10,59 @@
 | --- | --- |
 | v2_queue | `reconcile:daily:unmatched` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `cash` |
+| familie (v2) | `cash` |
 | contract_path | `contracts/neurons/E4/reconcile--daily--unmatched.md` |
 | ADR familie (indicativ) | [cash](../../adr/families/e4/cash.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron financiar pentru webhooks de plată și reconciliere. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**țintă conceptuală (graf):** raportare / colectare zilnică a plăților fără potrivire, spre escaladare. **Implementare Cerniq (dovadă):** nu există literal `reconcile:daily:unmatched` în registry; fluxul „no match” duce la B8 apoi B9 cu `reason: "unmatched"` când nu există candidați fuzzy (`b8-payment-reconcile-fuzzy.ts`, teste în `b-workers.test.ts`).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6376 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L6377–6397 (swimlane `cash` în metrici v2 L6395 — nealiniat la `payment-processing` din restul cozilor E4).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `rg` fără potrivire pentru string-ul cozii (confirmat la audit).
+- Lanț reconciliere: [`b7-payment-reconcile-auto.ts`](../../../../../workers/e4-postsale/src/workers/b7-payment-reconcile-auto.ts), [`b8-payment-reconcile-fuzzy.ts`](../../../../../workers/e4-postsale/src/workers/b8-payment-reconcile-fuzzy.ts), [`b9-payment-reconcile-manual.ts`](../../../../../workers/e4-postsale/src/workers/b9-payment-reconcile-manual.ts).
+- ADR cash (gap): [`adr/families/e4/cash.md`](../../adr/families/e4/cash.md).
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `cash` (linia v2 ~6376)
+### Instanță 1 — `cash` (v2 L6377–6397)
 
-- **Stage:** E4
-- **Family:** cash
-- **Inferred neuron type:** ReconciliationNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+- **Tip inferat (v2):** `ReconciliationNeuron`
+- **Criticitate inferată:** `MEDIUM`
+- **Autonomy tier (v2):** Tier 4
+- **Confirmed queue field:** `reconcile:daily:unmatched`
+- **Evidence status:** graph-export — ne-reconciliat cu registry (v2 L6397)
+- **OTel (v2):** `cognitive.reconcile.daily.unmatched`
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: receive payment event. ORIENT: match against invoices. DECIDE: auto/fuzzy/manual tier. ACT: update balance + escalate unmatched.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ReconciliationNeuron",stage="E4",swimlane="cash"}
-- **OTel span name:** cognitive.reconcile.daily.unmatched
+- **8 — Rutare model:** N/A — Non-AI (v2).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `reconcile:daily:unmatched`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `cash`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron financiar pentru webhooks de plată și reconciliere.; analogie: Cortex de reconciliere — potrivire și corelație plăți multi-tier | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ReconciliationNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `ReconciliationNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.reconcile.daily.unmatched`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive payment event. ORIENT: match against invoices. DECIDE: auto/fuzzy/manual tier. ACT: update balance + escalate unmatched. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap registry:** fără coadă cu acest nume. `nodeKey` catalog: **lipsă** pentru `reconcile:daily:unmatched`. | v2 L6391 — etichetă graf. | Contractul păstrează eticheta v2; runtime folosește alt mecanism (B9). |
+| 2 | Etapă, familie, swimlane | B9: swimlane implicit `payment-processing` (aceeași familie cash ca restul plăților). | v2: E4, `cash`; metrică v2 L6395 menționează swimlane `cash` — posibilă nealiniere la catalog. | — |
+| 3 | Rol declarat | B9: procesare manuală cu candidați sau `unmatched` (antet `b9-payment-reconcile-manual.ts`). | v2 L6388–6390 — descriere generică reconciliere. | „Zilnic” — neimplementat ca job separat cu acest nume. |
+| 4 | NeuronType + SOFAI | B9 catalog: `ReconciliationNeuron` pentru `payment:reconcile:manual` (vecin în `cognitive-node-catalog.ts`). | v2 — ReconciliationNeuron inferat. | Mapare semantică, nu identitate v2_queue. |
+| 5 | Criticitate | `payment:reconcile:manual` = HIGH în catalog. | v2 inferat MEDIUM. | Nealiniere criticitate graf vs catalog pe calea reală. |
+| 6 | Înveliș telemetrie | B7/B8/B9: metrici reconciliere; fără span dedicat `cognitive.reconcile.daily.unmatched`. | v2 L6396. | Span v2 rămâne neimplementat pentru eticheta graf. |
+| 7 | Înveliș politică | B9 = tier manual / HITL operațional. | v2 L6394 — fără HITL obligatoriu. | Contradicție între v2 (graf) și politica reală B9. |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
+| 9 | Guardrails | Validări în `reconciliation-engine` + idempotență plăți PENDING în B7/B8. | — | — |
+| 10 | Escaladare HITL | B9 este coada manuală explicită. | v2 OODA L6392. | — |
+| 11 | Micro-OODA | Observare eveniment plată → tier auto/fuzzy → manual (plan FAZA 8c în comentarii workeri). | v2 L6392. | — |
+| 12 | Tier + de-escaladare | Fără prag 0,80 pe calea „unmatched” în B8 (motiv `unmatched` la0 candidați). | v2 Tier 4. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ pentru `payment:reconcile:manual` etc. | — | Job „daily batch” separat: neconfirmat. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.reconcile.daily.unmatched`.
+- **Cod:** nu există handler cu acest nume; telemetrie practică pe cozile B7/B8/B9 și metricile `e4_reconciliation_*`. Migrare: fie redenumire graf, fie introducere coadă dedicată — decizie de produs.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

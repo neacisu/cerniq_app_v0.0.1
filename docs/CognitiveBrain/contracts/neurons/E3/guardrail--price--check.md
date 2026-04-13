@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `guardrail:price:check`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **M71** — extrage prețuri din text AI (`extractPrices` / `runPriceCheck`), compară cu `gold_products` pentru itemii negocierii, toleranță implicită **2%** (`tolerancePercent` default în job); la fail **CRITICAL** + `guardrail_violations`.
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `guardrail:price:check` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `guardrails` |
+| familie (v2) | `guardrails` |
 | contract_path | `contracts/neurons/E3/guardrail--price--check.md` |
 | ADR familie (indicativ) | [guardrails](../../adr/families/e3/guardrails.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Guardrail DETERMINISTIC preț: blocare preț oferit < cost × 1.05 (marjă minimă). **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L5091–5114): **GuardrailNeuron**, preț vs cost ×1.05 / marjă minimă (L5105–5106). **Repo:** `m71-guardrail-price-check.ts` — `runPriceCheck` cu `tolerancePercent` default **2** (`m71` L27–38, L45–46); violare → `persistGuardrailViolation` severity CRITICAL (`m71` L48–57). Detalii numerice în `guardrails.ts` (`runPriceCheck`). **Înregistrare:** `main.ts` L263. **Registry:** `E3_GUARDRAIL_PRICE_CHECK` (`queue-registry.ts` L336). **Teste:** `m-workers.test.ts` M71 (L64+); `guardrails.test.ts`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~5090 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L5091–5114.
+- `packages/shared/src/cognitive-node-catalog.ts` — L2152–2159.
+- `workers/shared/src/queue-registry.ts` — L336.
+- `workers/e3-ai-sales/src/main.ts` — L263.
+- `workers/e3-ai-sales/src/workers/m71-guardrail-price-check.ts`.
+- `workers/e3-ai-sales/src/lib/guardrails.ts` — `runPriceCheck`, `extractPrices`.
+- `workers/e3-ai-sales/src/__tests__/m-workers.test.ts`, `guardrails.test.ts`.
 
 ## Instanțe v2
 
-### Instanță 1 — `guardrails` (linia v2 ~5090)
+- —
 
-- **Stage:** E3
-- **Family:** guardrails
-- **Catalog nodeKey:** e3:guardrail:price-check
-- **Neuron type:** GuardrailNeuron
-- **Swimlane:** ai-reasoning
-- **Criticality:** CRITICAL
-- **Autonomy tier:** Tier 2 (suggest to human)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: intercept action payload. ORIENT: run NeMo Guardrails + deterministic checks. DECIDE: allow/block/escalate. ACT: gate downstream execution.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL mandatory for irreversible actions. SLA: 2h. Auto-escalation on timeout. Approval via unified polymorphic HITL engine.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="GuardrailNeuron",stage="E3",swimlane="ai-reasoning"}, cerniq_neuron_duration_seconds{neuron_id="e3:guardrail:price-check"}, cerniq_neuron_confidence{neuron_id="e3:guardrail:price-check"}
-- **OTel span name:** cognitive.e3.guardrail.price-check
+- **8 — Rutare model:** N/A — v2 Non-AI (L5110).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:guardrail:price-check`. | v2: `guardrail:price:check`; Catalog nodeKey (v2 bloc): `e3:guardrail:price-check` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `guardrails`, swimlane `ai-reasoning` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Guardrail DETERMINISTIC preț: blocare preț oferit < cost × 1.05 (marjă minimă); analogie: Cortex cingulat — gardian al limitelor și siguranței | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`GuardrailNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `GuardrailNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `CRITICAL` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.guardrail.price-check`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 2 (suggest to human)`; Guardrail/HITL policy (v2): HITL mandatory for irreversible actions. SLA: 2h. Auto-escalation on timeout. Approval via unified polymorphic HITL engine. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: intercept action payload. ORIENT: run NeMo Guardrails + deterministic checks. DECIDE: allow/block/escalate. ACT: gate downstream execution. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e3:guardrail:price-check`**, **`guardrail:price:check`** (`cognitive-node-catalog.ts` L2153–2154). | v2 (L5108). | — |
+| 2 | Etapă, familie, swimlane | E3; **`ai-reasoning`** (`cognitive-node-catalog.ts` L2157). | v2 (L5094–5101). | — |
+| 3 | Rol declarat | Verificare prețuri menționate vs catalog (`m71` L4–9, L45–46). | v2 cost × 1.05 (L5105–5106). | Alinierea exactă la «cost × 1.05» = în `runPriceCheck` (citire suplimentară pentru o singură formulă). |
+| 4 | NeuronType + SOFAI | **`GuardrailNeuron`** (`cognitive-node-catalog.ts` L2156). | v2 (L5099). | — |
+| 5 | Criticitate | **`CRITICAL`** (`cognitive-node-catalog.ts` L2159). | v2 (L5102). | — |
+| 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.guardrail.price-check` (L5113). | **Parțial aliniat**. |
+| 7 | Înveliș politică | Violare CRITICAL (`m71` L50–56). | v2 Tier 2 + HITL (L5103, L5111). | — |
+| 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
+| 9 | Guardrails | Regex preț + DB (`guardrails.ts` L49–92 + `runPriceCheck`). | v2 NeMo în OODA (L5109). | NeMo **nu** în `runPriceCheck` — doar determinist. |
+| 10 | Escaladare HITL | Nu în M71. | Flow global C16/N76 (`guardrails.ts` L11–12). | — |
+| 11 | Micro-OODA | OBSERVE — `response`; ORIENT — `runPriceCheck`; DECIDE — pass/fail; ACT — persist (`m71` L33–67). | v2 gate downstream (L5109). | — |
+| 12 | Tier + de-escaladare | Fără în M71. | v2 Tier 2 (L5103). | — |
+| 13 | Stack (subset) | BullMQ, Drizzle, regex. | v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.guardrail.price-check`.
+- **Cod:** `cognitive.nodeKey` **`e3:guardrail:price-check`** — **parțial aliniat**.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

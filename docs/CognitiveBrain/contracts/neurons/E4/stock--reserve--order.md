@@ -1,69 +1,67 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `stock:reserve:order`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. v2 L7333–7353: coadă graf `stock:reserve:order`, evidence **graph-export** — **nu** există literal în [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) sau în [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts). **Cel mai apropiat echivalent operațional:** E3 **`stock:reserve:create`** (`e3:stock:reserve-create`), worker [`f34-stock-reserve-create.ts`](../../../../../workers/e3-ai-sales/src/workers/f34-stock-reserve-create.ts) — etapă **E3**, nu E4.
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `stock:reserve:order` |
-| etapa | E4 |
-| familie (v2, prima instanță) | `logistics` |
+| v2_queue (graf) | `stock:reserve:order` |
+| echivalent semantic (runtime) | `stock:reserve:create` (E3) |
+| etapa (v2) | E4 |
+| familie (v2) | `logistics` |
 | contract_path | `contracts/neurons/E4/stock--reserve--order.md` |
-| ADR familie (indicativ) | [logistics](../../adr/families/e4/logistics.md) |
+| ADR familie (indicativ) | [logistics](../../adr/families/e4/logistics.md), [stock E3](../../adr/families/e3/stock.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron logistic pentru AWB, tracking, stoc și retur. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Graf:** rezervare stoc la nivel de comandă în subgraph logistic E4. **Cod:** rezervările sunt modelate în **E3** sub numele `stock:reserve:create` / `stock:reserve:release` (vezi ADR e3-stock); specificațiile vechi [`etapa4-workers-F-stock-sync.md`](../../../../../docs/specifications/Etapa%204/etapa4-workers-F-stock-sync.md) menționează `stock:reserve:order` ca worker #29 — **nealinier** la constantele actuale `QUEUES`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7332 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L7333–7353.
+- Registry E3: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E3_STOCK_RESERVE_CREATE: "stock:reserve:create"` (~L260).
+- ADR: [`adr/families/e3/stock.md`](../../adr/families/e3/stock.md).
+- Spec (istoric): [`etapa4-workers-overview.md`](../../../../../docs/specifications/Etapa%204/etapa4-workers-overview.md) — tabel workeri 29–30.
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `logistics` (linia v2 ~7332)
+### Instanță 1 — `logistics` (v2 L7333–7353)
 
-- **Stage:** E4
-- **Family:** logistics
-- **Inferred neuron type:** LogisticsNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+- **Confirmed queue field:** `stock:reserve:order`
+- **Neuron type (inferat):** LogisticsNeuron
+- **Evidence status:** graph-export (L7353)
+- **OTel (v2):** `cognitive.stock.reserve.order`
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: receive shipping trigger. ORIENT: validate AWB data. DECIDE: create/track/return. ACT: Sameday API + status updates.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="LogisticsNeuron",stage="E4",swimlane="logistics"}
-- **OTel span name:** cognitive.stock.reserve.order
+- **8 — Rutare model:** N/A — Non-AI (v2).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `stock:reserve:order`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `logistics`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron logistic pentru AWB, tracking, stoc și retur.; analogie: Cortex motor logistic — coordonare transport și expediere AWB | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`LogisticsNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `LogisticsNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.stock.reserve.order`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive shipping trigger. ORIENT: validate AWB data. DECIDE: create/track/return. ACT: Sameday API + status updates. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap E4:** fără `stock:reserve:order` în registry. **E3:** `stock:reserve:create`, `e3:stock:reserve-create`. | v2 L7347. | Denumire comandă vs rezervare create. |
+| 2 | Etapă, familie, swimlane | Implementare în **E3** stock; v2 plasează eticheta în **E4** logistics. | v2: E4, `logistics`. | Nealiniere etapă între graf și pachetul worker. |
+| 3 | Rol declarat | Rezervare inventar în fluxul pre-comandă (ADR e3-stock). | v2 L7344–7346 — descriere logistică generică. | — |
+| 4 | NeuronType + SOFAI | Catalog E3: `StockNeuron` pentru rezerve (vecin intrări stock). | v2 LogisticsNeuron inferat. | — |
+| 5 | Criticitate | — | v2 inferat MEDIUM. | — |
+| 6 | Înveliș telemetrie | Depinde de instrumentarea F34 (nu reluată aici). | v2 L7352. | — |
+| 7 | Înveliș politică | — | v2 L7350. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
+| 9 | Guardrails | — | — | — |
+| 10 | Escaladare HITL | — | — | — |
+| 11 | Micro-OODA | — | v2 L7348. | — |
+| 12 | Tier + de-escaladare | — | v2 Tier 4. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E3 pentru rezerve. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.stock.reserve.order`.
+- **Cod:** fără span dedicat pentru eticheta graf;țintă aliniere: instrumentare pe `e3:stock:reserve-create` dacă se unifică denumirile.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `nurturing:nps:process`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L8768–8791): coadă `nurturing:nps:process`, catalog-grounded `e5:feedback:nps-process`, `EmotionNeuron`, OTel `cognitive.e5.feedback.nps-process`. **Runtime:** coadă **`feedback:nps:process`** (nu prefix `nurturing:`) — **H44** `h44-feedback-nps-process.ts`, `withCognitiveSpan("e5:feedback:nps:process", …)` L73; registry `E5_FEEDBACK_NPS_PROCESS` (L607). **v2** descrie rutare LLM (L8785–8787); **H44** este **determinist** (clasificare 0–10, fără apel LLM în fișier). **Bootstrap E5:** H44 **nu** este în `workers/e5-nurturing/src/index.ts` (2026-04-13).
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `nurturing:nps:process` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `lifecycle` |
+| familie (v2) | `lifecycle` |
 | contract_path | `contracts/neurons/E5/nurturing--nps--process.md` |
-| ADR familie (indicativ) | [lifecycle](../../adr/families/e5/lifecycle.md) |
+| ADR familie (indicativ) | [lifecycle](../../adr/families/e5/lifecycle.md) · [feedback](../../adr/families/e5/feedback.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Procesare NPS H44 — clasificare promotor/pasiv/detractor + UPDATE gold_nps. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Cod H44:** validează scor, clasifică DETRACTOR/PASSIVE/PROMOTER, UPDATE `goldNpsSurveys`, `goldNurturingState.npsScore`, enfilează `churn:signal:detect` sau `state:advocate:promote` (L7–17, L92+).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8767 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`nurturing:nps:process\`` (L8768–8791).
+- `workers/shared/src/queue-registry.ts` — L607; `E5_FEEDBACK_NPS_PROCESS`.
+- `packages/shared/src/cognitive-node-catalog.ts` — `e5:feedback:nps-process` / `feedback:nps:process` (L3161–3168); swimlane `feedback-nps`.
+- `workers/e5-nurturing/src/workers/h44-feedback-nps-process.ts` — H44.
+- `workers/e5-nurturing/src/lib/e5-metrics.ts` — `e5_nps_score_recorded_total` (L201+).
+- `workers/e5-nurturing/src/index.ts` — fără H44 în bootstrap.
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `lifecycle` (linia v2 ~8767)
+- — (familie v2 `lifecycle` vs catalog `feedback-nps` — documentat la criteriul 2.)
 
-- **Stage:** E5
-- **Family:** lifecycle
-- **Catalog nodeKey:** e5:feedback:nps-process
-- **Neuron type:** EmotionNeuron
-- **Swimlane:** feedback-nps
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read message text. ORIENT: LLM sentiment/intent analysis with structured output. DECIDE: classify emotion + confidence score. ACT: update lead sentiment profile + trigger escalation if negative trend.
-- **Model routing:** PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="EmotionNeuron",stage="E5",swimlane="feedback-nps"}, cerniq_neuron_duration_seconds{neuron_id="e5:feedback:nps-process"}, cerniq_neuron_confidence{neuron_id="e5:feedback:nps-process"}
-- **OTel span name:** cognitive.e5.feedback.nps-process
+- **8 — Rutare model:** v2 prevede LLM + fallback (L8785–8787); **codul H44 nu routează LLM** — tratăm ca **N/A pentru implementarea curentă H44** cu notă de gap față de v2.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `nurturing:nps:process`; Catalog nodeKey (v2 bloc): `e5:feedback:nps-process` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `lifecycle`, swimlane `feedback-nps` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Procesare NPS H44 — clasificare promotor/pasiv/detractor + UPDATE gold_nps; analogie: Amigdală — procesare tonalitate emoțională | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`EmotionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e5.feedback.nps-process`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read message text. ORIENT: LLM sentiment/intent analysis with structured output. DECIDE: classify emotion + confidence score. ACT: update lead sentiment profile + trigger escalation if negative trend. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `feedback:nps:process` + `e5:feedback:nps-process`; v2 `nurturing:nps:process`. | Confirmed queue v2 (L8785). | Prefix coadă diferit. |
+| 2 | Etapă, familie, swimlane | Catalog etapa 5, `feedback-nps` (L3166–3167). | v2 `lifecycle` / `feedback-nps` swimlane catalog (L8778–8779). | Familie v2 vs pachet catalog. |
+| 3 | Rol declarat | Procesare NPS + downstream churn/advocate (H44). | Procesare emoțională / NPS (L8782–8784). | — |
+| 4 | NeuronType + SOFAI | `EmotionNeuron` (L3165). | `EmotionNeuron` v2 (L8776). | Aliniat. |
+| 5 | Criticitate | `HIGH` catalog (L3168). | `HIGH` v2 (L8780). | Aliniat. |
+| 6 | Înveliș telemetrie | `cognitive:e5:feedback:nps-process`. | `cognitive.e5.feedback.nps-process` (L8790). | Aliniat semantic. |
+| 7 | Înveliș politică | Fără Cedar în H44. | HITL on anomaly (L8788). | Logica H44 nu implementează prag de încredere LLM (nu există LLM). |
+| 8 | Rutare model (dacă AI) | **Implementare H44:** determinist, fără LLM. | PRIMARY/FALLBACK LLM (L8787). | Gap major v2 ↔ cod. |
+| 9 | Guardrails | Validare scor întreg 0–10 (H44 L78–82). | NeMo țintă ADR-0007. | — |
+| 10 | Escaladare HITL | Downstream automat (churn / advocate), nu task HITL în H44. | v2 HITL anomaly (L8788). | — |
+| 11 | Micro-OODA | Validare → UPDATE DB → enqueue cozi. | OODA cu analiză LLM (L8786). | Doar parte „ACT” în cod. |
+| 12 | Tier + de-escaladare | — | Tier 3 v2 (L8781). | — |
+| 13 | Stack (subset plan v2) | BullMQ + Drizzle. | — | H44 neînregistrat în `index.ts`. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e5.feedback.nps-process` (L8790).
+- **Cod:** `cognitive:e5:feedback:nps-process`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Revizuire manuală:* dovezi repo 2026-04-13.

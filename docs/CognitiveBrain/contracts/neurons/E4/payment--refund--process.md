@@ -1,71 +1,73 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `payment:refund:process`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **Denumire runtime:** coada BullMQ este `revolut:refund:process` (nu literal `payment:refund:process`). v2 L6352–6375 confirmă `Catalog nodeKey` `e4:revolut:refund-process` dar **Confirmed queue field** graf rămâne `payment:refund:process` — documentăm ambele.
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `payment:refund:process` |
+| v2_queue (etichetă graf) | `payment:refund:process` |
+| coadă runtime (BullMQ) | `revolut:refund:process` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `cash` |
+| familie (v2) | `cash` |
 | contract_path | `contracts/neurons/E4/payment--refund--process.md` |
 | ADR familie (indicativ) | [cash](../../adr/families/e4/cash.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Procesare rambursare Revolut — creare refund entry + notificare client. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Procesare rambursare aprobată: încărcare `gold_refunds`, verificare status `APPROVED`, eligibilitate comandă și sumă, apel Revolut (POST /pay invers) cu `request_id` unic, actualizare înregistrare refund. Flux documentat în antetul workerului A4.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6351 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L6352–6375 (`Catalog nodeKey` L6359, coadă confirmată graf L6369).
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e4:revolut:refund-process` / `revolut:refund:process` (~L2263–2270).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E4_REVOLUT_REFUND_PROCESS: "revolut:refund:process"` (~L358), worker config ~L1080.
+- Handler: [`workers/e4-postsale/src/workers/a4-revolut-refund-process.ts`](../../../../../workers/e4-postsale/src/workers/a4-revolut-refund-process.ts).
+- Bootstrap: [`workers/e4-postsale/src/index.ts`](../../../../../workers/e4-postsale/src/index.ts) — A4 ~L158–164.
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `cash` (linia v2 ~6351)
+### Instanță 1 — `cash` (v2 L6352–6375)
 
-- **Stage:** E4
-- **Family:** cash
-- **Catalog nodeKey:** e4:revolut:refund-process
-- **Neuron type:** PerceptionNeuron
-- **Swimlane:** payment-processing
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+- **Catalog nodeKey:** `e4:revolut:refund-process`
+- **Neuron type:** `PerceptionNeuron`
+- **Swimlane:** `payment-processing`
+- **Criticitate (catalog):** `HIGH` (v2 L6363 indică HIGH — consistent)
+- **Autonomy tier (v2):** Tier 3 (act with oversight)
+- **OODA (v2):** OBSERVE → ORIENT → DECIDE → ACT (PerceptionNeuron)
+- **Model routing:** Non-AI
+- **OTel span (v2):** `cognitive.e4.revolut.refund-process`
+- **Evidence status:** catalog-grounded (v2 L6375)
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: read input. ORIENT: process per PerceptionNeuron logic. DECIDE: validate output. ACT: emit result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="PerceptionNeuron",stage="E4",swimlane="payment-processing"}, cerniq_neuron_duration_seconds{neuron_id="e4:revolut:refund-process"}, cerniq_neuron_confidence{neuron_id="e4:revolut:refund-process"}
-- **OTel span name:** cognitive.e4.revolut.refund-process
+- **8 — Rutare model:** N/A — Non-AI.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `payment:refund:process`; Catalog nodeKey (v2 bloc): `e4:revolut:refund-process` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `cash`, swimlane `payment-processing` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Procesare rambursare Revolut — creare refund entry + notificare client; analogie: Receptor financiar — captează semnale de plată din mediul extern | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`PerceptionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `PerceptionNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e4.revolut.refund-process`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input. ORIENT: process per PerceptionNeuron logic. DECIDE: validate output. ACT: emit result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Runtime: `revolut:refund:process` (`queue-registry.ts` ~L358). Catalog: `e4:revolut:refund-process`. Graf v2: `payment:refund:process` (L6369). | v2 L6359 + L6369 — reconciliere explicită între etichetă și implementare. | Două string-uri de coadă; operatorul trebuie să folosească constanta registry. |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 4, swimlane `payment-processing` (~L2267–2268). | v2: E4, `cash`, `payment-processing`. | — |
+| 3 | Rol declarat | A4: eligibilitate, Revolut API, idempotency `request_id` (fișier ~L4–12, ~L100+). | v2 L6366–6367 — „creare refund entry + notificare client”. | „Notificare client” poate fi în ramuri ulterioare webhook — verificat per apelant. |
+| 4 | NeuronType + SOFAI | `PerceptionNeuron` în catalog. | v2 L6360 — PerceptionNeuron. | — |
+| 5 | Criticitate | `HIGH` în catalog (~L2270). | v2 L6363 — HIGH. | — |
+| 6 | Înveliș telemetrie | A4 **nu** folosește `withCognitiveSpan` în fișierul citit. | v2 L6374 — `cognitive.e4.revolut.refund-process`. | Span OTel: țintă v2; implementare span în A4 neobservată la audit. |
+| 7 | Înveliș politică | Validări deterministe status refund / comandă / sumă (A4). | v2 L6372 — HITL on anomaly, prag0,80. | Legătura prag0,80 → cod A4: neexplicită în fișier. |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
+| 9 | Guardrails | Set status comenzi eligibile `REFUND_ELIGIBLE_ORDER_STATUSES` (A4 ~L29–35). | — | — |
+| 10 | Escaladare HITL | Respingere controlată `ok: false` cu motiv (A4 ~L56–62, ~L90–96) — nu înscrie automat HITL. | v2 L6372. | Coadă `hitl:*` pentru refund mare: neuron separat (ex. K50). |
+| 11 | Micro-OODA | Încarcă refund → verificări → apel API Revolut → update DB (A4). | v2 L6371. | — |
+| 12 | Tier + de-escaladare | Fără logică încredere numerică în A4. | v2 Tier 3. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ worker E4, client Revolut (`revolut-client.js`), DB Drizzle. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e4.revolut.refund-process`.
+- **Cod:** fără `withCognitiveSpan` pe A4 la audit; span `cognitive:${nodeKey}` ar necesita instrumentare viitoare aliniată la `getNodeByKey("e4:revolut:refund-process")`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

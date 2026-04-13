@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `alert:internal:compliance-issue`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** definește coadă granulară `alert:internal:compliance-issue` (`AlertNeuron`, E4). **Repo:** **nu** există literal `alert:internal:compliance-issue` în `queue-registry.ts`, `cognitive-node-catalog.ts` sau `workers/**/*.{ts,tsx}` (căutare `rg`). **Există** infrastructură generică I39–I44: cozi `alert:payment` … `alert:dispatch` cu `createAlertProcessor` în `i-alert-workers.ts` și `createWorker` în `index.ts` — **fără** coadă dedicată sau mapare explicită către acest nume v2.
 
 ## Metadata
 
@@ -8,62 +10,55 @@
 | --- | --- |
 | v2_queue | `alert:internal:compliance-issue` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `alerts` |
+| familie (v2) | `alerts` |
 | contract_path | `contracts/neurons/E4/alert--internal--compliance-issue.md` |
 | ADR familie (indicativ) | [alerts](../../adr/families/e4/alerts.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E4, familia alerts. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L6057–L6076): alertă internă, `AlertNeuron`, Tier 3, OODA cu decizie canal + urgență și țintă OTel `cognitive.alert.internal.compliance-issue`. **Repo:** procesorii I39–I44 loghează în `gold_audit_logs_etapa4`, incrementează `e4AlertsDispatchedTotal`; comentariu sursă: alertele sunt „internal” în faza curentă și **nu** se inventează canale WA/email/SMS (`i-alert-workers.ts` L14–17). Nu s-a găsit enqueue care să folosească exact `alert:internal:compliance-issue` ca nume de coadă BullMQ.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6056 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`alert:internal:compliance-issue\`` (L6057–L6076).
+- `workers/shared/src/queue-registry.ts` — `E4_ALERT_PAYMENT` … `E4_ALERT_DISPATCH` (L462–473); **fără** `alert:internal:compliance-issue`.
+- `packages/shared/src/cognitive-node-catalog.ts` — `e4:alert:payment` … `e4:alert:dispatch` (L2593–2647); **fără** intrare pentru coada granulară.
+- `workers/e4-postsale/src/workers/i-alert-workers.ts` — `createAlertProcessor`, export procesori I39–I44 (L62–170).
+- `workers/e4-postsale/src/index.ts` — `createWorker` pentru `QUEUES.E4_ALERT_*` (L460–496).
+- `workers/shared/src/cognitive-helpers.ts` — `startActiveSpan(\`cognitive:${nodeKey}\`)` (L226).
+- Căutare `alert:internal:compliance-issue` în `*.{ts,tsx,js,mjs}` — **0** rezultate (2026-04-13).
+- Schema: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md). Checklist: [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `alerts` (linia v2 ~6056)
+- —
 
-- **Stage:** E4
-- **Family:** alerts
-- **Inferred neuron type:** AlertNeuron
-- **Inferred criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive trigger event. ORIENT: classify severity. DECIDE: notification channel + urgency. ACT: dispatch alert via WA/email/SMS.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ errors). SLA: 4h.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AlertNeuron",stage="E4",swimlane="alerts"}
-- **OTel span name:** cognitive.alert.internal.compliance-issue
+- **8 — Rutare model:** N/A — v2 Non-AI în blocul citit.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `alert:internal:compliance-issue`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `alerts`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E4, familia alerts.; analogie: Formațiune de alertă — detectare și notificare evenimente critice | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AlertNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AlertNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.alert.internal.compliance-issue`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ errors). SLA: 4h. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive trigger event. ORIENT: classify severity. DECIDE: notification channel + urgency. ACT: dispatch alert via WA/email/SMS. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap** pentru `alert:internal:compliance-issue`; cozi runtime `alert:payment` … `alert:dispatch`. | v2 **Confirmed queue field** L6071. | Granular v2 ≠ registry. |
+| 2 | Etapă, familie, swimlane | Catalog `e4:alert:*`: swimlane `social-action` (ex. L2598–2599). | v2 familie `alerts`, exemplu metrică `swimlane="alerts"` (L6075). | Diferență swimlane metrică v2 vs catalog. |
+| 3 | Rol declarat | Infrastructură alert generică (audit + metrică). | Alertă internă conformitate (v2). | — |
+| 4 | NeuronType + SOFAI | `AlertNeuron` pentru cozile I39–I44; **fără** rând catalog pentru coada granulară. | v2 `AlertNeuron` L6064. | — |
+| 5 | Criticitate | Neconectat la coadă dedicată. | `HIGH` (L6066). | — |
+| 6 | Înveliș telemetrie | I39–I44: `withCognitiveSpan("e4:alert:payment", …)` etc. (`i-alert-workers.ts` L67, L140–170). | v2 OTel `cognitive.alert.internal.compliance-issue` (L6076). | **Fără** handler pentru coada granulară → span v2 neemis din codul citit. |
+| 7 | Înveliș politică | Comentariu „internal” / fără canale externe (`i-alert-workers.ts` L14–17). | HITL / SLA v2 (L6074). | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI (L6073). | — |
+| 9 | Guardrails | Inserare audit + metrică. | — | — |
+| 10 | Escaladare HITL | Nu pentru această coadă nominală. | v2 SLA 4h (L6074). | — |
+| 11 | Micro-OODA | Generic: log + metrică. | OODA v2 (L6072). | — |
+| 12 | Tier + de-escaladare | — | Tier 3 (L6067). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E4 (`index.ts`). | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.alert.internal.compliance-issue` (L6076).
+- **Cod:** pentru cozile implementate, span `cognitive:${nodeKey}` cu `nodeKey` = `e4:alert:payment` | … | `e4:alert:dispatch`. **Nu** există procesor pentru `alert:internal:compliance-issue`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Revizuire manuală:* înlocuiește generatorul/hidratarea automată; dovezi repo2026-04-13.

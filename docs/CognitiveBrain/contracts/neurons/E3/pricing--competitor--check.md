@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `pricing:competitor:check`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **v2** (E3 / `pricing`, `AttentionNeuron`, swimlane `pricing-engine`, Non-AI). **Cod:** procesor BullMQ în `workers/e3-ai-sales`; rezultat **STUB** — fără integrare concurenți; nu ajustează prețuri (comentariu sursă).
 
 ## Metadata
 
@@ -8,64 +10,56 @@
 | --- | --- |
 | v2_queue | `pricing:competitor:check` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `pricing` |
+| familie (v2) | `pricing` |
 | contract_path | `contracts/neurons/E3/pricing--competitor--check.md` |
 | ADR familie (indicativ) | [pricing](../../adr/families/e3/pricing.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Verificare preț față de concurență pentru ajustare competitivă. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L5458–5481): vigilență prețuri vs concurență, `AttentionNeuron`, criticitate **MEDIUM**, Tier 4, OODA declarat ca observare praguri și alertă. **Cod:** `pricingCompetitorCheckProcessor` numără produse active (sau ID-uri trimise), loghează mesaj STUB și întoarce `note: "competitor-check-pending"` fără date competitive (`competitive: null`). Comentariul din fișier confirmă integrarea externă *pending*. Deci scopul v2 este **țintă**; implementarea curentă este **placeholder operațional** (fără pricing concurențial real).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~5457 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`pricing:competitor:check\`` (L5458–5481).
+- `packages/shared/src/cognitive-node-catalog.ts` — `n("e3:pricing:competitor-check", "pricing:competitor:check", ...)` (L1785–1793).
+- `workers/shared/src/queue-registry.ts` — `E3_PRICING_COMPETITOR_CHECK` (L251).
+- `workers/e3-ai-sales/src/main.ts` — mapare `processors["pricing:competitor:check"]` (L212).
+- `workers/e3-ai-sales/src/workers/e32-pricing-competitor-check.ts` — procesor + tipuri job/rezultat.
+- `workers/e3-ai-sales/src/__tests__/e-workers.test.ts` — `describe("E32 — pricingCompetitorCheckProcessor"` (L891+).
+- `workers/shared/src/factory.ts` — `wrapProcessorWithCognitiveInstrumentation` + `withCognitiveSpan` (L90–107).
+- `workers/shared/src/cognitive-helpers.ts` — `tracer.startActiveSpan` cu prefix `cognitive:` + `nodeKey` (L226).
 
 ## Instanțe v2
 
-### Instanță 1 — `pricing` (linia v2 ~5457)
+- —
 
-- **Stage:** E3
-- **Family:** pricing
-- **Catalog nodeKey:** e3:pricing:competitor-check
-- **Neuron type:** AttentionNeuron
-- **Swimlane:** pricing-engine
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: poll metrics/health endpoints. ORIENT: compare against baseline thresholds. DECIDE: normal/warning/critical. ACT: emit alert or trigger corrective action.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AttentionNeuron",stage="E3",swimlane="pricing-engine"}, cerniq_neuron_duration_seconds{neuron_id="e3:pricing:competitor-check"}, cerniq_neuron_confidence{neuron_id="e3:pricing:competitor-check"}
-- **OTel span name:** cognitive.e3.pricing.competitor-check
+- **8 — Rutare model:** N/A — v2 «Non-AI neuron — deterministic processing» (L5477).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:pricing:competitor-check`. | v2: `pricing:competitor:check`; Catalog nodeKey (v2 bloc): `e3:pricing:competitor-check` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `pricing`, swimlane `pricing-engine` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Verificare preț față de concurență pentru ajustare competitivă; analogie: Formațiune reticulară — vigilență și detectare anomalii | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AttentionNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AttentionNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.pricing.competitor-check`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: poll metrics/health endpoints. ORIENT: compare against baseline thresholds. DECIDE: normal/warning/critical. ACT: emit alert or trigger corrective action. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `nodeKey` **`e3:pricing:competitor-check`** în catalog (L1786); coadă **`pricing:competitor:check`** în registry (`E3_PRICING_COMPETITOR_CHECK`, L251) și în `main.ts` (L212). | Confirmat v2 **Confirmed queue field** (L5475). | — |
+| 2 | Etapă, familie, swimlane | `registerCognitiveWorkerEtapa(3)` în `main.ts` (L37); catalog: `etapa` 3, swimlane **`pricing-engine`** (L1789–1790). | E3; familie `pricing`; swimlane `pricing-engine` (v2 L5468, L5479). | — |
+| 3 | Rol declarat | Procesor: enumerare `goldProducts`, fără apel competitor; return STUB (e32 L47–56). | Verificare preț concurență + analogie reticulară (v2 L5472–5474). | Comportament informativ declarat în cod ≠ ajustare automată (e32 L5–6). |
+| 4 | NeuronType + SOFAI | Catalog: **`AttentionNeuron`** (L1789). | v2 `AttentionNeuron` (L5466). | Mapare explicită System1/2 pentru `AttentionNeuron`: v2 §2.1 nu detaliază în blocul citit — fără completare inventată. |
+| 5 | Criticitate | Catalog **`MEDIUM`** (L1792). | `MEDIUM` (v2 L5469). | — |
+| 6 | Înveliș telemetrie | Factory: pentru job cu `tenantId`, `withCognitiveSpan(nodeKey, …)` cu span **`cognitive:e3:pricing:competitor-check`** și atribute `cognitive.nodeKey`, `cognitive.neuronType`, etc. (`cognitive-helpers.ts` L226–233; `factory.ts` L98–106). Procesorul nu apelează direct `withCognitiveSpan`. | v2 OTel `cognitive.e3.pricing.competitor-check` (L5480) — convenție cu **puncte** vs **`cognitive:nodeKey` cu două puncte**. | **Migrare / aliniere denumire** span: convenții diferite; atribute reale = implementare worker-shared. |
+| 7 | Înveliș politică | STUB fără Cedar/OPA sau metadata HITL în procesor. | Tier 4; HITL la eșecuri repetate, SLA 8h (v2 L5470, L5478). | Politici v2 **țintă**; lipsă cod pentru HITL specific acestui neuron. |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI (L5477). | — |
+| 9 | Guardrails | Doar logică STUB + `setSessionTenantId`; fără NeMo în fișier. | NeMo / determinist — țintă ADR-0007. | — |
+| 10 | Escaladare HITL | Fără enqueue `human:*` în e32. | v2 HITL la erori repetate (L5478). | Motor `human:escalate` etc. există în același worker (`main.ts` L270–272) dar **nu** legat de acest procesor în codul citit. |
+| 11 | Micro-OODA | **Cod:** citire DB produse → log → return structură fixă; nu poll metrics externi. | OODA v2: observare praguri / alertă (L5476). | OODA din v2 **nu** e mapat operațional în STUB. |
+| 12 | Tier + de-escaladare | Fără praguri încredere / 2σ în procesor. | Tier 4 (v2 L5470). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ procesor + Drizzle/`@cerniq/db` pentru `goldProducts`. | Kafka, SGLang etc. — v2 §2.3 ca țintă platformă. | Versiuni stack neuronal: nu extrase din acest fișier. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.pricing.competitor-check`.
+- **Cod:** span activ = prefix `cognitive:` + `nodeKey` rezolvat din catalog → literal `cognitive:e3:pricing:competitor-check`; atribute `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function`.
+- **Stare:** **parțial aliniat** (instrumentare generică factory + catalog) vs **denumire puncte** din v2; fără dovadă că numele v2 cu puncte e emis în cod.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

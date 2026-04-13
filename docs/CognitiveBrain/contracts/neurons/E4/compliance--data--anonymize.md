@@ -1,71 +1,64 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `compliance:data:anonymize`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L7760–L7783): familie `compliance`, E4, **`Confirmed queue field: compliance:data:anonymize`**, catalog `e4:audit:data-anonymize`. **Repo:** coada BullMQ canonică este **`audit:data:anonymize`** (`E4_AUDIT_DATA_ANONYMIZE` în `queue-registry.ts` L485), worker J47 `j47-audit-anonymize.ts`, același comportament ca în contractul mirror [`audit--data--anonymize.md`](audit--data--anonymize.md). **Nealiniere v2:** numele cozii în v2 (`compliance:*`) ≠ literal registry (`audit:*`).
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `compliance:data:anonymize` |
+| v2_queue (v2) | `compliance:data:anonymize` |
+| coadă runtime (registry) | `audit:data:anonymize` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `compliance` |
+| familie (v2) | `compliance` |
 | contract_path | `contracts/neurons/E4/compliance--data--anonymize.md` |
+| contract mirror (același runtime) | [`audit--data--anonymize.md`](audit--data--anonymize.md) |
 | ADR familie (indicativ) | [compliance](../../adr/families/e4/compliance.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Anonimizare GDPR date audit >7 ani — cron 0 2 ** 0, jsonb_set PII fields. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Anonimizare în `gold_audit_logs_etapa4` pentru înregistrări vechi (PII), cron săptămânal — detalii în contractul `audit:data:anonymize` (dovezi cod J47 + `index.ts`).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7759 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L7760–L7783 (atenție L7777: câmp `compliance:data:anonymize` vs cod).
+- `workers/shared/src/queue-registry.ts` — `E4_AUDIT_DATA_ANONYMIZE` → `audit:data:anonymize` (L485).
+- `packages/shared/src/cognitive-node-catalog.ts` — `n("e4:audit:data-anonymize", "audit:data:anonymize", …)` (în jurul L2668–L2676; vezi și fișierul citit la auditul J47).
+- `workers/e4-postsale/src/workers/j47-audit-anonymize.ts` — procesor + `withCognitiveSpan("e4:audit:data:anonymize", …)`.
+- `workers/e4-postsale/src/index.ts` — înregistrare worker + cron J47.
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `compliance` (linia v2 ~7759)
+- **L7760–L7783:** `ComplianceNeuron`, swimlane `audit-compliance`, criticitate HIGH, span `cognitive.e4.audit.data-anonymize`, coadă în text v2 `compliance:data:anonymize`.
 
-- **Stage:** E4
-- **Family:** compliance
-- **Catalog nodeKey:** e4:audit:data-anonymize
-- **Neuron type:** ComplianceNeuron
-- **Swimlane:** audit-compliance
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read input. ORIENT: process per ComplianceNeuron logic. DECIDE: validate output. ACT: emit result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ComplianceNeuron",stage="E4",swimlane="audit-compliance"}, cerniq_neuron_duration_seconds{neuron_id="e4:audit:data-anonymize"}, cerniq_neuron_confidence{neuron_id="e4:audit:data-anonymize"}
-- **OTel span name:** cognitive.e4.audit.data-anonymize
+- **8 — Rutare model:** N/A — non-AI (v2 L7779).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `compliance:data:anonymize`; Catalog nodeKey (v2 bloc): `e4:audit:data-anonymize` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `compliance`, swimlane `audit-compliance` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Anonimizare GDPR date audit >7 ani — cron 0 2 ** 0, jsonb_set PII fields; analogie: Cortex de conformitate — audit hash-chain și anonimizare GDPR | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ComplianceNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `ComplianceNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e4.audit.data-anonymize`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input. ORIENT: process per ComplianceNeuron logic. DECIDE: validate output. ACT: emit result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`audit:data:anonymize`** + `e4:audit:data-anonymize` (catalog); **nu** `compliance:data:anonymize` în registry. | v2: `compliance:data:anonymize` (L7777). | Prefix semantic v2 vs implementare. |
+| 2 | Etapă, familie, swimlane | Catalog: etapă `4`, `audit-compliance`. | v2: E4, familie `compliance` (L7762–L7763). | — |
+| 3 | Rol declarat | Anonimizare GDPR audit logs (J47 header + SQL). | v2 L7774–L7776. | — |
+| 4 | NeuronType + SOFAI | `ComplianceNeuron` (catalog + v2 L7768). | v2 L7768. | — |
+| 5 | Criticitate | Catalog + v2: HIGH. | v2 L7771. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e4:audit:data:anonymize", …)` vs `nodeKey` catalog `e4:audit:data-anonymize` — vezi contract `audit--data--anonymize` (nealiniere `:` vs `-` pentru îmbogățire catalog). | v2 span L7782. | Același risc ca J47 mirror. |
+| 7 | Înveliș politică | Cron + HITL în text v2 (L7780). | v2 L7780. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | L7779. | — |
+| 9 | Guardrails | `PII_FIELDS` determinist (J47). | — | — |
+| 10 | Escaladare HITL | — | v2 L7780. | — |
+| 11 | Micro-OODA | UPDATE SQL anonimizare. | v2 L7778. | — |
+| 12 | Tier + de-escaladare | Tier 3 v2 (L7772). | v2. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E4 + Postgres. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e4.audit.data-anonymize`.
+- **Cod:** span `cognitive:e4:audit:data:anonymize` (primul argument `withCognitiveSpan` în J47) — detalii în [`audit--data--anonymize.md`](audit--data--anonymize.md).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

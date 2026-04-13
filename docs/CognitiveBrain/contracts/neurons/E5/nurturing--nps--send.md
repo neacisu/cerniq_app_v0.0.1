@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `nurturing:nps:send`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L8793–L8816): coadă `nurturing:nps:send`, catalog `e5:feedback:nps-send`, `MotorNeuron`, OTel `cognitive.e5.feedback.nps-send`. **Runtime:** **`feedback:nps:send`** — **H43** `h43-feedback-nps-send.ts`, `withCognitiveSpan("e5:feedback:nps:send", …)` (L56); registry `E5_FEEDBACK_NPS_SEND` (`queue-registry.ts` L605). **Bootstrap:** `workers/e5-nurturing/src/index.ts` **nu** înregistrează H43 (2026-04-13) — același pattern ca H44/H45.
 
 ## Metadata
 
@@ -8,64 +10,53 @@
 | --- | --- |
 | v2_queue | `nurturing:nps:send` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `lifecycle` |
+| familie (v2) | `lifecycle` |
 | contract_path | `contracts/neurons/E5/nurturing--nps--send.md` |
-| ADR familie (indicativ) | [lifecycle](../../adr/families/e5/lifecycle.md) |
+| ADR familie (indicativ) | [lifecycle](../../adr/families/e5/lifecycle.md) · [feedback](../../adr/families/e5/feedback.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Trimitere NPS H43 — survey post-interacțiune via email/SMS cu link unic. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Cod H43:** cooldown 90 zile, INSERT `gold_nps_surveys`, enqueue `outreach:orchestrator:dispatch` pentru EMAIL/WHATSAPP (L7–10, L23–24). **v2:** trimitere survey post-interacțiune (L8807–L8809).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8792 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`nurturing:nps:send\`` (L8793–L8816).
+- `workers/shared/src/queue-registry.ts` — `E5_FEEDBACK_NPS_SEND` (L605); concurrency (L1325).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e5:feedback:nps-send` / `feedback:nps:send` (L3151–L3159).
+- `workers/e5-nurturing/src/workers/h43-feedback-nps-send.ts` — H43.
+- `workers/e5-nurturing/src/index.ts` — fără `createFeedbackNpsSendWorker` (verificare 2026-04-13).
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `lifecycle` (linia v2 ~8792)
+- — (familie v2 `lifecycle` vs swimlane catalog `feedback-nps`.)
 
-- **Stage:** E5
-- **Family:** lifecycle
-- **Catalog nodeKey:** e5:feedback:nps-send
-- **Neuron type:** MotorNeuron
-- **Swimlane:** feedback-nps
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E5",swimlane="feedback-nps"}, cerniq_neuron_duration_seconds{neuron_id="e5:feedback:nps-send"}, cerniq_neuron_confidence{neuron_id="e5:feedback:nps-send"}
-- **OTel span name:** cognitive.e5.feedback.nps-send
+- **8 — Rutare model:** N/A — v2 Non-AI (L8812).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `nurturing:nps:send`; Catalog nodeKey (v2 bloc): `e5:feedback:nps-send` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `lifecycle`, swimlane `feedback-nps` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Trimitere NPS H43 — survey post-interacțiune via email/SMS cu link unic; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e5.feedback.nps-send`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `feedback:nps:send` + `e5:feedback:nps-send`; v2 `nurturing:nps:send`. | Confirmed queue v2 (L8810). | Prefix coadă diferit. |
+| 2 | Etapă, familie, swimlane | Catalog etapa 5, `feedback-nps` (L3156–L3157). | v2 E5, `lifecycle`, swimlane `feedback-nps` (L8795–L8803). | — |
+| 3 | Rol declarat | Trimitere survey + orchestrator outreach (H43). | Trimitere NPS H43 (L8807–L8809). | — |
+| 4 | NeuronType + SOFAI | `MotorNeuron` (L3155). | `MotorNeuron` v2 (L8801). | Aliniat. |
+| 5 | Criticitate | `MEDIUM` catalog (L3158). | `MEDIUM` v2 (L8804). | Aliniat. |
+| 6 | Înveliș telemetrie | Span `cognitive:e5:feedback:nps-send`. | `cognitive.e5.feedback.nps-send` (L8815). | Aliniat semantic. |
+| 7 | Înveliș politică | Fără Cedar în H43 (fișier citit). | HITL repeated failure, SLA 8h (L8813). | Politica HITL din v2 neexpandată în H43. |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI (L8812). | — |
+| 9 | Guardrails | Cooldown 90d, canale valide (H43 L11–14, L65–74). | — | — |
+| 10 | Escaladare HITL | Nu explicit în H43. | v2 L8813. | — |
+| 11 | Micro-OODA | Verificare → INSERT → enqueue dispatch. | OODA send/execute (L8811). | — |
+| 12 | Tier + de-escaladare | — | Tier 4 v2 (L8805). | — |
+| 13 | Stack (subset plan v2) | BullMQ + Drizzle. | — | H43 neconectat la bootstrap E5. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e5.feedback.nps-send` (L8815).
+- **Cod:** `cognitive:e5:feedback:nps-send`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Revizuire manuală:* dovezi repo 2026-04-13.

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `search:query:understand`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** înregistrează coada `search:query:understand` + **Non-AI**; **runtime** = **`search:query:rewrite`** (B7) cu **LLM** (`fastChat`) — divergență nume + rutare model.
 
 ## Metadata
 
@@ -8,62 +10,56 @@
 | --- | --- |
 | v2_queue | `search:query:understand` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `product-search` |
+| familie (v2) | `product-search` |
 | contract_path | `contracts/neurons/E3/search--query--understand.md` |
 | ADR familie (indicativ) | [product-search](../../adr/families/e3/product-search.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron de knowledge retrieval pentru produse și căutare hibridă. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L5718–5738). **Cod:** rescriere/expandare interogare prin apel `fastChat`, guard înainte de LLM, apoi enqueue paralel `search:vector:execute` și `search:bm25:execute` (`b7-search-query-rewrite.ts` L6–7, L31–32, L45–74).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~5717 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`search:query:understand\`` (L5718–5738).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e3:search:query-rewrite` / `search:query:rewrite` (L1554–1561).
+- `workers/shared/src/queue-registry.ts` — `E3_SEARCH_QUERY_REWRITE` (L214).
+- `workers/e3-ai-sales/src/main.ts` — `processors["search:query:rewrite"]` (L180).
+- `workers/e3-ai-sales/src/workers/b7-search-query-rewrite.ts`.
+- `workers/e3-ai-sales/src/__tests__/b-workers.test.ts` — `B7 — searchQueryRewriteProcessor`.
+- `workers/shared/src/factory.ts` — `wrapProcessorWithCognitiveInstrumentation` (L90–107).
+- `workers/shared/src/cognitive-helpers.ts` — `withCognitiveSpan` (L215–234).
 
 ## Instanțe v2
 
-### Instanță 1 — `product-search` (linia v2 ~5717)
+- —
 
-- **Stage:** E3
-- **Family:** product-search
-- **Inferred neuron type:** KnowledgeNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive query. ORIENT: search Neo4j/PostgreSQL. DECIDE: cache strategy. ACT: persist/retrieve knowledge.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="KnowledgeNeuron",stage="E3",swimlane="product-search"}
-- **OTel span name:** cognitive.search.query.understand
+- —
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `search:query:understand`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `product-search`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron de knowledge retrieval pentru produse și căutare hibridă.; analogie: Hipocamp — stocare și recuperare cunoștințe | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`KnowledgeNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `KnowledgeNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.search.query.understand`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive query. ORIENT: search Neo4j/PostgreSQL. DECIDE: cache strategy. ACT: persist/retrieve knowledge. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`search:query:rewrite`** + `e3:search:query-rewrite` (catalog L1555–1556). Fără `search:query:understand` în registry. | v2 L5732. | Mapare explicită v2 → runtime. |
+| 2 | Etapă, familie, swimlane | Swimlane **`hybrid-search`** (L1559). | v2 familie `product-search` (L5721); metrics swimlane `product-search` (L5736). | — |
+| 3 | Rol declarat | Rewrite JSON + expansions + limbă (b7 L53–61, L67–84). | v2 descriere generică retrieval (L5729–5731). | — |
+| 4 | NeuronType + SOFAI | `DeliberativeNeuron` (L1558). | v2 `KnowledgeNeuron` inferat (L5725). | Divergență tip declarativ. |
+| 5 | Criticitate | `HIGH` (L1561). | `MEDIUM` v2 (L5727). | Divergență. |
+| 6 | Înveliș telemetrie | Span `cognitive:e3:search:query-rewrite` când `tenantId` în job (factory + helpers). | v2 `cognitive.search.query.understand` (L5737). | Două nume pentru același traseu conceptual. |
+| 7 | Înveliș politică | `e3ScanPromptBeforeLlm` (b7 L11, L45). | v2 L5735. | — |
+| 8 | Rutare model (dacă AI) | **Da:** `fastChat` cu timeout 5s (b7 L67–73). | v2 «Non-AI» (L5734). | **Contradicție** v2 ↔ cod. |
+| 9 | Guardrails | LLM Guard local + flux blocat dacă `guard.blocked` (b7 L45–50). | — | — |
+| 10 | Escaladare HITL | — | v2 L5735. | — |
+| 11 | Micro-OODA | Rewrite → enqueue cozi vector + BM25 (b7 L31–32 și corp procesor). | v2 L5733. | — |
+| 12 | Tier + de-escaladare | — | Tier 4 (L5728). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ + client LLM (`fastChat`) + cozi derivate din `QUEUES`. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.search.query.understand`.
+- **Cod:** span canonic instrumentat = `cognitive:e3:search:query-rewrite` + atribute `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (`cognitive-helpers.ts` L226–234); înveliș `factory.ts` (L90–107).
+- **Stare:** **denumiri diferite** (v2 vs `nodeKey`); **același handler** pentru traseul de înțelegere/rescriere a interogării.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `product:category:sync`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. Coadă **aliniată** v2 ↔ registry ↔ catalog; procesor `a5-product-category-sync.ts` (BullMQ E3).
 
 ## Metadata
 
@@ -8,64 +10,56 @@
 | --- | --- |
 | v2_queue | `product:category:sync` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `product-search` |
+| familie (v2) | `product-search` |
 | contract_path | `contracts/neurons/E3/product--category--sync.md` |
 | ADR familie (indicativ) | [product-search](../../adr/families/e3/product-search.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Sincronizare categorii produse cu taxonomia globală. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L5533–5556): sincronizare categorii cu taxonomie, `ProceduralNeuron`, swimlane `product-knowledge`, Non-AI. **Cod:** procesorul parcurge categoriile/produsele tenant, propagă reguli de preț default (`category_default`, `minMarginPct=8%`) pentru produse fără reguli — logică DB și arbori de categorii (vezi comentarii L7–9, L39+ din sursă).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~5532 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2 — `### NEURON \`product:category:sync\`` (L5533–5556).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e3:product:category-sync` / `product:category:sync` (L1534–1542).
+- `workers/shared/src/queue-registry.ts` — `E3_PRODUCT_CATEGORY_SYNC` (L210).
+- `workers/e3-ai-sales/src/main.ts` — `processors["product:category:sync"]` (L177).
+- `workers/e3-ai-sales/src/workers/a5-product-category-sync.ts` — procesor.
+- `workers/e3-ai-sales/src/__tests__/a-workers.test.ts` — `describe("A5 — productCategorySyncProcessor"` (L499+).
+- `workers/shared/src/factory.ts` — `wrapProcessorWithCognitiveInstrumentation` (L90–107).
+- `workers/shared/src/cognitive-helpers.ts` — `withCognitiveSpan` (L226–234).
 
 ## Instanțe v2
 
-### Instanță 1 — `product-search` (linia v2 ~5532)
+- —
 
-- **Stage:** E3
-- **Family:** product-search
-- **Catalog nodeKey:** e3:product:category-sync
-- **Neuron type:** ProceduralNeuron
-- **Swimlane:** product-knowledge
-- **Criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read input payload. ORIENT: apply deterministic transformation rules. DECIDE: validate output schema. ACT: emit transformed result to next queue.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ProceduralNeuron",stage="E3",swimlane="product-knowledge"}, cerniq_neuron_duration_seconds{neuron_id="e3:product:category-sync"}, cerniq_neuron_confidence{neuron_id="e3:product:category-sync"}
-- **OTel span name:** cognitive.e3.product.category-sync
+- **8 — Rutare model:** N/A — v2 Non-AI (L5552).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:product:category-sync`. | v2: `product:category:sync`; Catalog nodeKey (v2 bloc): `e3:product:category-sync` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `product-search`, swimlane `product-knowledge` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Sincronizare categorii produse cu taxonomia globală; analogie: Ganglioni bazali — execuție procedurală pas cu pas | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ProceduralNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System1 (reactiv) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.product.category-sync`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ consecutive errors). SLA: 8h. Audit log retained 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input payload. ORIENT: apply deterministic transformation rules. DECIDE: validate output schema. ACT: emit transformed result to next queue. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `e3:product:category-sync` / `product:category:sync` în catalog (L1535–1536); registry L210; `main.ts` L177. | Confirmat v2 (L5550). | — |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 3, swimlane `product-knowledge` (L1539). | v2: familie `product-search` (L5536), swimlane `product-knowledge` (L5543). | Familie v2 (`product-search`) ≠ numele swimlane-ului; swimlane este aliniat catalog ↔ v2. |
+| 3 | Rol declarat | Sync categorii + reguli default preț (a5, antet L2–9). | v2 L5547–5549. | — |
+| 4 | NeuronType + SOFAI | `ProceduralNeuron` (catalog L1538). | v2 L5541. | — |
+| 5 | Criticitate | `MEDIUM` (catalog L1540). | v2 L5544. | — |
+| 6 | Înveliș telemetrie | Factory → `withCognitiveSpan` → `cognitive:e3:product:category-sync`. | v2 `cognitive.e3.product.category-sync` (L5555). | Convenție puncte vs `cognitive:nodeKey`. |
+| 7 | Înveliș politică | Fără OPA explicit în a5; erori → excepții BullMQ. | Tier 4; HITL la eșecuri repetate (v2 L5545, L5553). | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI (L5552). | — |
+| 9 | Guardrails | Logică deterministă SQL/DB. | NeMo țintă ADR-0007. | — |
+| 10 | Escaladare HITL | Fără enqueue `human:*` în a5 citit. | v2 L5553. | — |
+| 11 | Micro-OODA | Transformări deterministe pe payload categorii/produse. | OODA v2 L5551. | — |
+| 12 | Tier + de-escaladare | Fără prag confidență. | Tier 4 (v2 L5545). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ + `@cerniq/db`. | Stack larg v2 §2.3. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.product.category-sync`.
+- **Cod:** `cognitive:e3:product:category-sync` + atribute din catalog.
+- **Stare:** instrumentare factory standard E3.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

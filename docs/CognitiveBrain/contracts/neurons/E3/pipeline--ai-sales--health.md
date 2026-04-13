@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `pipeline:ai-sales:health`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **v2:** E3 / `ops`, verificare sănătate pipeline ai-sales (etichetă graf), `AutonomicNeuron`, Non-AI, span `cognitive.pipeline.ai-sales.health`. **Repo:** gap — fără catalog, registry, worker; căutare în cod sursă **fără** literal. **Spec:** `etapa3-workers-overview.md` L492, L855 (cron — documentație, neconfirmată în workers).
 
 ## Metadata
 
@@ -8,62 +10,55 @@
 | --- | --- |
 | v2_queue | `pipeline:ai-sales:health` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `ops` |
+| familie (v2) | `ops` |
 | contract_path | `contracts/neurons/E3/pipeline--ai-sales--health.md` |
 | ADR familie (indicativ) | [ops](../../adr/families/e3/ops.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E3, familia ops. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L5370–5390): neuron `ops` pentru health-check pipeline ai-sales, **MEDIUM**, Tier 4, Non-AI, același pattern evidence «not yet reconciled with runtime registry». **Repo:** la audit nu există implementare BullMQ pentru `pipeline:ai-sales:health`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~5369 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L5370–5390.
+- `docs/CognitiveBrain/adr/families/e3/ops.md`.
+- `packages/shared/src/cognitive-node-catalog.ts` — fără potrivire.
+- `workers/shared/src/queue-registry.ts` — fără literal.
+- Căutare `pipeline:ai-sales:health` în `workers/`, `apps/`: **0** rezultate.
+- `docs/specifications/Etapa 3/etapa3-workers-overview.md` — L492, L855.
+- `docs/CognitiveBrain/NEURON_MATRIX.csv` — v2_line 5369.
 
 ## Instanțe v2
 
-### Instanță 1 — `ops` (linia v2 ~5369)
+- —
 
-- **Stage:** E3
-- **Family:** ops
-- **Inferred neuron type:** AutonomicNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: cron trigger. ORIENT: check system state. DECIDE: maintenance needed. ACT: execute background task.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AutonomicNeuron",stage="E3",swimlane="ops"}
-- **OTel span name:** cognitive.pipeline.ai-sales.health
+- **8 — Rutare model:** N/A — v2 Non-AI (L5386).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `pipeline:ai-sales:health`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `ops`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E3, familia ops.; analogie: Sistem nervos autonom — mentenanță invizibilă de fundal | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AutonomicNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System1 (reactiv) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.pipeline.ai-sales.health`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: cron trigger. ORIENT: check system state. DECIDE: maintenance needed. ACT: execute background task. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Gap.** | Coadă L5384. | v2 §2.4. |
+| 2 | Etapă, familie, swimlane | **Neconectat.** | E3; `ops`; swimlane `ops` (L5388). | — |
+| 3 | Rol declarat | **Lipsă handler**; spec: verificare sănătate (overview L492). | Ops generic (L5381–5383). | — |
+| 4 | NeuronType + SOFAI | **Neconectat.** | `AutonomicNeuron`. | — |
+| 5 | Criticitate | **Neconectat.** | `MEDIUM` (L5379). | — |
+| 6 | Înveliș telemetrie | **Lipsă** worker. | `cognitive.pipeline.ai-sales.health` (L5389). | Doar țintă. |
+| 7 | Înveliș politică | **Lipsă.** | Tier 4; policy L5387. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI (L5386). | — |
+| 9 | Guardrails | **Lipsă.** | ADR-0007. | — |
+| 10 | Escaladare HITL | **Lipsă.** | L5387. | ADR-0008. |
+| 11 | Micro-OODA | **Lipsă.** | L5385. | — |
+| 12 | Tier + de-escaladare | **Lipsă.** | Tier 4 (L5380). | — |
+| 13 | Stack | **Neaplicabil** până la worker. | BullMQ țintă. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.pipeline.ai-sales.health`.
+- **Cod:** `withCognitiveSpan` — convenție atribute reale la implementare.
+- **Stare:** **țintă** (2026-04-11).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

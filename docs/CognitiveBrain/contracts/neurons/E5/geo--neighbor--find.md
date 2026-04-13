@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `geo:neighbor:find`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** coadă `geo:neighbor:find` (L8143–8163). **Runtime:** **`geo:neighbor:identify`** (C16), `e5:geo:neighbor-identify` în catalog. Worker **pornit** în `index.ts` (L88).
 
 ## Metadata
 
@@ -8,62 +10,52 @@
 | --- | --- |
 | v2_queue | `geo:neighbor:find` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `geo` |
+| familie (v2) | `geo` |
 | contract_path | `contracts/neurons/E5/geo--neighbor--find.md` |
 | ADR familie (indicativ) | [geo](../../adr/families/e5/geo.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron geospațial pentru proximitate și teritorii. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** vecini geo, `AssociativeNeuron`, Non-AI. **Cod:** inserare relații `NEIGHBOR` în `gold_entity_relationships` când scorul din `gold_proximity_scores` depășește pragul (`c16` antet L12–16, logică L72+).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8142 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`geo:neighbor:find\`` (L8143–8163).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e5:geo:neighbor-identify` (L2900–2906).
+- `workers/shared/src/queue-registry.ts` — `E5_GEO_NEIGHBOR_IDENTIFY` (L546).
+- `workers/e5-nurturing/src/index.ts` — C16 (L37–38, L88).
+- `workers/e5-nurturing/src/workers/c16-geo-neighbor-identify.ts` — `withCognitiveSpan("e5:geo:neighbor-identify", …)` (L50).
 
 ## Instanțe v2
 
-### Instanță 1 — `geo` (linia v2 ~8142)
+- —
 
-- **Stage:** E5
-- **Family:** geo
-- **Inferred neuron type:** AssociativeNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read multi-source data. ORIENT: correlate patterns. DECIDE: match confidence. ACT: emit association + update graph.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AssociativeNeuron",stage="E5",swimlane="geo"}
-- **OTel span name:** cognitive.geo.neighbor.find
+- **8 — Rutare model:** N/A — v2 Non-AI (L8159).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `geo:neighbor:find`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `geo`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron geospațial pentru proximitate și teritorii.; analogie: Neuron asociativ cortical — corelează și integrează date | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AssociativeNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AssociativeNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.geo.neighbor.find`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read multi-source data. ORIENT: correlate patterns. DECIDE: match confidence. ACT: emit association + update graph. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`geo:neighbor:identify`**, `e5:geo:neighbor-identify` (catalog L2900–2902). **Fără** `geo:neighbor:find`. | v2 coadă (L8157). | `find` (v2) vs `identify` (runtime). |
+| 2 | Etapă, familie, swimlane | `AssociativeNeuron`, **`geo-analysis`** (L2903–2904). | v2 E5 / `geo` (L8146–8147). | — |
+| 3 | Rol declarat | Vecini, bidirecționalitate, `neighborCount` (`c16` L12–16). | v2 descriere geo (L8154–8156). | — |
+| 4 | NeuronType + SOFAI | `AssociativeNeuron` (L2903). | v2 `AssociativeNeuron` (L8150). | — |
+| 5 | Criticitate | `MEDIUM` (L2906). | v2 `MEDIUM` (L8152). | — |
+| 6 | Înveliș telemetrie | `e5:geo:neighbor-identify` (L50). | v2 `cognitive.geo.neighbor.find` (L8162). | Segment `identify` vs `find`. |
+| 7 | Înveliș politică | — | v2 L8158–8159. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | Prag `NEIGHBOR_THRESHOLD` partajat cu C15 (`c16` L29). | NeMo țintă. | — |
+| 10 | Escaladare HITL | — | v2 L8159. | — |
+| 11 | Micro-OODA | Citire scor proximitate → INSERT relații. | v2 L8156. | — |
+| 12 | Tier + de-escaladare | — | Tier 4 (L8153). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ + Drizzle + PostGIS. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.geo.neighbor.find`.
+- **Cod:** `e5:geo:neighbor-identify`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13; surse verificate în repo.*

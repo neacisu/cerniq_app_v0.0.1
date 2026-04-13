@@ -1,71 +1,71 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `churn:behavior:detect`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. v2 L7600–7623: **Confirmed queue field** graf `churn:behavior:detect`, dar catalog + registry folosesc **`decay:behavior:detect`**, `nodeKey` **`e5:decay:behavior-detect`**, worker B14 [`b14-decay-behavior-detect.ts`](../../../../../workers/e5-nurturing/src/workers/b14-decay-behavior-detect.ts). **Prioritate dovezi runtime:** `decay:behavior:detect`.
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `churn:behavior:detect` |
+| v2_queue (etichetă graf) | `churn:behavior:detect` |
+| coadă BullMQ | `decay:behavior:detect` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `churn` |
+| familie (v2) | `churn` |
 | contract_path | `contracts/neurons/E5/churn--behavior--detect.md` |
 | ADR familie (indicativ) | [churn](../../adr/families/e5/churn.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Detectare pattern behavioral decay B14 — order frequency + engagement scădere. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Detectare pattern „behavioral decay” (frecvență comenzi + engagement) — descriere catalog B14; procesor cu `withCognitiveSpan("e5:decay:behavior-detect", …)`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7599 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L7600–7623 (atenție: câmp „Confirmed queue” vs catalog).
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e5:decay:behavior-detect` / `decay:behavior:detect` (~L2879–2886).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E5_DECAY_BEHAVIOR_DETECT` (~L540).
+- Handler: [`b14-decay-behavior-detect.ts`](../../../../../workers/e5-nurturing/src/workers/b14-decay-behavior-detect.ts).
+- Teste: [`churn-detection.test.ts`](../../../../../workers/e5-nurturing/src/__tests__/churn-detection.test.ts) — enumeră cozi.
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `churn` (linia v2 ~7599)
+### Instanță 1 — `churn` (v2 L7600–7623)
 
-- **Stage:** E5
-- **Family:** churn
-- **Catalog nodeKey:** e5:decay:behavior-detect
+- **Catalog nodeKey:** `e5:decay:behavior-detect`
 - **Neuron type:** PredictiveNeuron
-- **Swimlane:** churn-detection
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+- **Swimlane:** `churn-detection`
+- **Criticitate:** HIGH
+- **Model routing (v2):** vLLM + SGLang structured (L7619)
+- **OTel (v2):** `cognitive.e5.decay.behavior-detect`
+- **Evidence status:** catalog-grounded (L7623)
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: collect feature vector. ORIENT: compute predictive score via model. DECIDE: threshold classification. ACT: emit prediction + update scoring tables.
-- **Model routing:** PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="PredictiveNeuron",stage="E5",swimlane="churn-detection"}, cerniq_neuron_duration_seconds{neuron_id="e5:decay:behavior-detect"}, cerniq_neuron_confidence{neuron_id="e5:decay:behavior-detect"}
-- **OTel span name:** cognitive.e5.decay.behavior-detect
+- — (AI: da în v2; verificați implementarea LLM în B14 complet).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `churn:behavior:detect`; Catalog nodeKey (v2 bloc): `e5:decay:behavior-detect` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `churn`, swimlane `churn-detection` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Detectare pattern behavioral decay B14 — order frequency + engagement scădere; analogie: Cortex parietal — predicție bazată pe pattern-uri | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`PredictiveNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e5.decay.behavior-detect`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-reasoning-32b (QwQ-32B-AWQ, port 8001, max 24K ctx). FALLBACK: frontier model if confidence < 0.80. Structured output: SGLang guided_json with Pydantic NeuronDecision schema. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: collect feature vector. ORIENT: compute predictive score via model. DECIDE: threshold classification. ACT: emit prediction + update scoring tables. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Coadă: `decay:behavior:detect`. Graf: `churn:behavior:detect`. | v2 L7617 vs L7607. | **Nealiniere** între „Confirmed queue” graf și catalog. |
+| 2 | Etapă, familie, swimlane | Etapa 5, `churn-detection`. | v2 E5 churn. | — |
+| 3 | Rol declarat | Catalog + antet B14. | v2 L7614–7616. | — |
+| 4 | NeuronType + SOFAI | PredictiveNeuron. | v2 L7608. | — |
+| 5 | Criticitate | HIGH. | v2 L7611. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e5:decay:behavior-detect", …)` (B14 ~L63). | v2 L7621–7622. | Aliniat catalog. |
+| 7 | Înveliș politică | — | v2 L7620. | — |
+| 8 | Rutare model (dacă AI) | Verificare în corpul B14 pentru apeluri LLM. | v2 L7619. | Audit antet + span; detaliu model: citire completă B14. |
+| 9 | Guardrails | — | v2 HITL confidence. | — |
+| 10 | Escaladare HITL | — | v2 L7620. | — |
+| 11 | Micro-OODA | — | v2 L7618. | — |
+| 12 | Tier + de-escaladare | — | v2 Tier 3. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E5, Redis DB 5. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e5.decay.behavior-detect`.
+- **Cod:** `cognitive:e5:decay:behavior-detect` — concordant cu `withCognitiveSpan`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

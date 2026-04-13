@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `nurturing:loyalty:check`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L8746–8766): coadă `nurturing:loyalty:check`, `AutonomicNeuron`, OTel `cognitive.nurturing.loyalty.check`. **Repo:** **fără** coadă literală. **Analog:** evaluare periodică FSM și propunere tranziții — **A2** `lifecycle:state:evaluate`, `a2-lifecycle-state-evaluate.ts`, `withCognitiveSpan("e5:lifecycle:state-evaluate", …)` L35; catalog `e5:lifecycle:state-evaluate` (L2769–2777). **Bootstrap:** A2 în `index.ts` L70. **Verificare loialitate explicită** (criterii advocate) în **A8**; A2 orchestrează evaluarea stării înainte de tranziții.
 
 ## Metadata
 
@@ -8,62 +10,53 @@
 | --- | --- |
 | v2_queue | `nurturing:loyalty:check` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `lifecycle` |
+| familie (v2) | `lifecycle` |
 | contract_path | `contracts/neurons/E5/nurturing--loyalty--check.md` |
 | ADR familie (indicativ) | [lifecycle](../../adr/families/e5/lifecycle.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E5, familia lifecycle. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** verificare stadiu loialitate (L8757–8759). **Cod A2:** snapshot client, `daysSinceLastOrder`, semnale churn, `evaluateTransition` → eventual enqueue A6 (L7–11, L73+).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8745 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`nurturing:loyalty:check\`` (L8746–8766).
+- `workers/shared/src/queue-registry.ts` — `E5_LIFECYCLE_STATE_EVALUATE: "lifecycle:state:evaluate"` (L514).
+- `packages/shared/src/cognitive-node-catalog.ts` — L2769–2777.
+- `workers/e5-nurturing/src/workers/a2-lifecycle-state-evaluate.ts` — A2.
+- `workers/e5-nurturing/src/index.ts` — L70.
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `lifecycle` (linia v2 ~8745)
+- —
 
-- **Stage:** E5
-- **Family:** lifecycle
-- **Inferred neuron type:** AutonomicNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: cron trigger. ORIENT: check system state. DECIDE: maintenance needed. ACT: execute background task.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AutonomicNeuron",stage="E5",swimlane="lifecycle"}
-- **OTel span name:** cognitive.nurturing.loyalty.check
+- **8 — Rutare model:** N/A — v2 Non-AI (L8762).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `nurturing:loyalty:check`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `lifecycle`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E5, familia lifecycle.; analogie: Sistem nervos autonom — mentenanță invizibilă de fundal | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AutonomicNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System1 (reactiv) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.nurturing.loyalty.check`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: cron trigger. ORIENT: check system state. DECIDE: maintenance needed. ACT: execute background task. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Analog `lifecycle:state:evaluate`; v2 `nurturing:loyalty:check`. | Confirmed queue v2 (L8760). | Nume coadă diferită. |
+| 2 | Etapă, familie, swimlane | Catalog `lifecycle-fsm-e5` (L2774). | v2 `lifecycle` (L8748–8749). | — |
+| 3 | Rol declarat | Evaluare tranziții FSM (A2). | Verificare loialitate (L8757–8759). | A2 mai larg decât „loyalty” literal. |
+| 4 | NeuronType + SOFAI | `AutonomicNeuron` catalog (L2773). | `AutonomicNeuron` v2 (L8753). | Aliniat. |
+| 5 | Criticitate | `HIGH` catalog (L2776). | `MEDIUM` v2 (L8755). | Contradicție. |
+| 6 | Înveliș telemetrie | `cognitive:e5:lifecycle:state-evaluate`. | `cognitive.nurturing.loyalty.check` (L8765). | — |
+| 7 | Înveliș politică | — | No mandatory HITL (L8763). | — |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI (L8762). | — |
+| 9 | Guardrails | Validare `isValidNurturingState` (A2 L55–57). | — | — |
+| 10 | Escaladare HITL | Nu în A2 (fișier citit). | v2 L8763. | — |
+| 11 | Micro-OODA | Observare DB → decizie tranziție → enqueue. | Cron v2 (L8761). | — |
+| 12 | Tier + de-escaladare | — | Tier 4 v2 (L8756). | — |
+| 13 | Stack (subset plan v2) | BullMQ A2 activ. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.nurturing.loyalty.check` (L8765).
+- **Cod (analog):** `cognitive:e5:lifecycle:state-evaluate`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Revizuire manuală:* dovezi repo 2026-04-13.

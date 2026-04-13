@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `credit:data:fetch-anaf`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** și **runtime** aliniate: `credit:data:fetch-anaf` / `e4:credit:data-fetch-anaf`, worker **C14** (child Flow din C13).
 
 ## Metadata
 
@@ -8,64 +10,55 @@
 | --- | --- |
 | v2_queue | `credit:data:fetch-anaf` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `credit` |
+| familie (v2) | `credit` |
 | contract_path | `contracts/neurons/E4/credit--data--fetch-anaf.md` |
 | ADR familie (indicativ) | [credit](../../adr/families/e4/credit.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Fetch date fiscale ANAF (status TVA + datorii) → cache Redis 24h. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L6644–6667). **Cod:** `creditDataFetchAnafProcessor` apelează `fetchAnafByCui` / `parseAnafForCredit`, actualizează profilul (copil Flow C13, paralel cu C15/C16) (`c14-credit-data-fetch-anaf.ts`).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6643 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`credit:data:fetch-anaf\`` (L6644–6667).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e4:credit:data-fetch-anaf` (L2357–2365).
+- `workers/shared/src/queue-registry.ts` — `E4_CREDIT_DATA_FETCH_ANAF` (L387).
+- `workers/e4-postsale/src/index.ts` — C14 (L242–247).
+- `workers/e4-postsale/src/workers/c14-credit-data-fetch-anaf.ts` — `withCognitiveSpan("e4:credit:data:fetch-anaf", …)` (L41–43).
+- `workers/e4-postsale/src/__tests__/c-workers.test.ts` — acoperire C14 (flow children).
+- `workers/shared/src/cognitive-helpers.ts` — `withCognitiveSpan` (L215–234).
 
 ## Instanțe v2
 
-### Instanță 1 — `credit` (linia v2 ~6643)
+- —
 
-- **Stage:** E4
-- **Family:** credit
-- **Catalog nodeKey:** e4:credit:data-fetch-anaf
-- **Neuron type:** CreditNeuron
-- **Swimlane:** credit-decision
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read input. ORIENT: process per CreditNeuron logic. DECIDE: validate output. ACT: emit result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="CreditNeuron",stage="E4",swimlane="credit-decision"}, cerniq_neuron_duration_seconds{neuron_id="e4:credit:data-fetch-anaf"}, cerniq_neuron_confidence{neuron_id="e4:credit:data-fetch-anaf"}
-- **OTel span name:** cognitive.e4.credit.data-fetch-anaf
+- **8 — Rutare model:** N/A — v2 Non-AI (L6663).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e4:credit:data-fetch-anaf`. | v2: `credit:data:fetch-anaf`; Catalog nodeKey (v2 bloc): `e4:credit:data-fetch-anaf` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `credit`, swimlane `credit-decision` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Fetch date fiscale ANAF (status TVA + datorii) → cache Redis 24h; analogie: Sistem de evaluare credit — scoring financiar bazat pe date reale | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`CreditNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `CreditNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e4.credit.data-fetch-anaf`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input. ORIENT: process per CreditNeuron logic. DECIDE: validate output. ACT: emit result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `e4:credit:data-fetch-anaf` / `credit:data:fetch-anaf` (L2358–2359); registry L387. | v2 L6661; `Catalog nodeKey` L6651. | — |
+| 2 | Etapă, familie, swimlane | `CreditNeuron`, **`credit-decision`** (L2361–2362). | v2 L6654–6655. | — |
+| 3 | Rol declarat | Fetch ANAF fiscal/TVA pentru scoring (c14 antet + L7–11). | v2 L6658–6660. | — |
+| 4 | NeuronType + SOFAI | `CreditNeuron` (L2352). | v2 L6652. | — |
+| 5 | Criticitate | `HIGH` (L2364). | `HIGH` v2 (L6655). | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:data:fetch-anaf", …)` (L41–43). | v2 `cognitive.e4.credit.data-fetch-anaf` (L6666). | **Span vs catalog:** segmente `data:fetch` în span vs `data-fetch` în `nodeKey` — posibil lookup catalog incomplet. |
+| 7 | Înveliș politică | — | HITL anomalii v2 (L6664). | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | `sanitizeCui` (import L17). | NeMo țintă. | — |
+| 10 | Escaladare HITL | — | v2 L6664. | — |
+| 11 | Micro-OODA | Child job → persistare componentă scor → C17 agregă. | v2 L6662. | — |
+| 12 | Tier + de-escaladare | — | Tier 3 (L6656). | — |
+| 13 | Stack v2 §2.3 (subset) | Client ANAF dedicat (`anaf-client.ts`), BullMQ Flow. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e4.credit.data-fetch-anaf`.
+- **Cod:** span `cognitive:e4:credit:data:fetch-anaf`; catalog `e4:credit:data-fetch-anaf`.
+- **Stare:** **parțial aliniat** (același job queue); verificare reconciliere șir `nodeKey` în `withCognitiveSpan` vs catalog pentru atribute span.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

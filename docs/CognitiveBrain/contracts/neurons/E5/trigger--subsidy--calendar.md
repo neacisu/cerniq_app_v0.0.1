@@ -1,69 +1,68 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `trigger:subsidy:calendar`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. Graf v2 **`trigger:subsidy:calendar`** (L7534–7554) — **nu** există ca literal în registry. **Implementare apropiată:** **J54** — coadă **`alerts:apia:seasonal`**, `nodeKey` **`e5:alert:apia-seasonal`**, calendar static APIA în [`j54-alert-apia-seasonal.ts`](../../../../../workers/e5-nurturing/src/workers/j54-alert-apia-seasonal.ts), `withCognitiveSpan("e5:alert:apia-seasonal", …)`.
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `trigger:subsidy:calendar` |
+| v2_queue (graf) | `trigger:subsidy:calendar` |
+| coadă runtime (semantic) | `alerts:apia:seasonal` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `alerts` |
+| familie (v2) | `alerts` |
 | contract_path | `contracts/neurons/E5/trigger--subsidy--calendar.md` |
 | ADR familie (indicativ) | [alerts](../../adr/families/e5/alerts.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E5, familia alerts. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Graf:** trigger calendar subvenții. **Cod:** verificare ferestre deadline APIA (SAPS, plăți, contestații) și enqueue **`alerts:campaign:trigger`** (J55) per client eligibil.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7533 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L7534–7554.
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e5:alert:apia-seasonal` (~L3255–3262).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E5_ALERT_APIA_SEASONAL` (~L628–629).
+- Handler: [`j54-alert-apia-seasonal.ts`](../../../../../workers/e5-nurturing/src/workers/j54-alert-apia-seasonal.ts).
+- ADR: [`adr/families/e5/alerts.md`](../../adr/families/e5/alerts.md) — tabel J54.
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `alerts` (linia v2 ~7533)
+### Instanță 1 — `alerts` (v2 L7534–7554)
 
-- **Stage:** E5
-- **Family:** alerts
-- **Inferred neuron type:** AlertNeuron
-- **Inferred criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+- **Confirmed queue field:** `trigger:subsidy:calendar`
+- **Neuron type (inferat):** AlertNeuron
+- **Evidence status:** graph-export (L7554)
+- **OTel (v2):** `cognitive.trigger.subsidy.calendar`
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: receive trigger event. ORIENT: classify severity. DECIDE: notification channel + urgency. ACT: dispatch alert via WA/email/SMS.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** HITL on repeated failure (3+ errors). SLA: 4h.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AlertNeuron",stage="E5",swimlane="alerts"}
-- **OTel span name:** cognitive.trigger.subsidy.calendar
+- **8 — Rutare model:** N/A — Non-AI în J54 (logică deterministă calendar).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `trigger:subsidy:calendar`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `alerts`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E5, familia alerts.; analogie: Formațiune de alertă — detectare și notificare evenimente critice | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AlertNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AlertNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.trigger.subsidy.calendar`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on repeated failure (3+ errors). SLA: 4h. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive trigger event. ORIENT: classify severity. DECIDE: notification channel + urgency. ACT: dispatch alert via WA/email/SMS. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Runtime: `alerts:apia:seasonal`. Graf: `trigger:subsidy:calendar`. | v2 L7548. | Două denumiri pentru același rol operațional. |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 5, swimlane `alerts-weather`. | v2 E5 `alerts`. | Swimlane diferită între catalog și etichetă familie graf. |
+| 3 | Rol declarat | J54 antet: calendar APIA + enqueue J55 (~L1–14, ~L100+). | v2 L7546–7547. | — |
+| 4 | NeuronType + SOFAI | Catalog: `SensoryNeuron`. | v2 AlertNeuron inferat. | Nealiniere tip între graf și catalog. |
+| 5 | Criticitate | MEDIUM în catalog. | v2 HIGH inferat. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e5:alert:apia-seasonal", …)` (~L104). Span `cognitive:e5:alert:apia-seasonal`. | v2 L7553 — `cognitive.trigger.subsidy.calendar`. | Două convenții de nume span. |
+| 7 | Înveliș politică | Calendar static în cod — modificare prin redeploy (comentariu J54 ~L26–27). | v2 L7551. | — |
+| 8 | Rutare model (dacă AI) | **N/A** pentru J54. | v2 Non-AI. | — |
+| 9 | Guardrails | Filtru `goldCompanies` (ex. doNotContact). | — | — |
+| 10 | Escaladare HITL | Nu în J54 direct. | — | — |
+| 11 | Micro-OODA | Verificare perioadă → select clienți → enqueue campanii. | v2 OODA L7549. | — |
+| 12 | Tier + de-escaladare | Fără prag LLM. | v2 Tier 3. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E5 (Redis DB 5), Drizzle. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2 (graf):** `cognitive.trigger.subsidy.calendar`.
+- **Cod:** `cognitive:e5:alert:apia-seasonal` — aliniat catalogului `e5:alert:apia-seasonal`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

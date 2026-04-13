@@ -1,69 +1,66 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `winback:campaign:enroll`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. Graf v2 **`winback:campaign:enroll`** (L9132–9152) — **fără** literal în [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts). **Mapare semantică:** crearea și activarea campaniei winback în cod este **`winback:campaign:create`** — F32 [`f32-winback-campaign-create.ts`](../../../../../workers/e5-nurturing/src/workers/f32-winback-campaign-create.ts), `withCognitiveSpan("e5:winback:campaign-create", …)`, catalog `e5:winback:campaign-create`. „Enroll” în v2 corespunde operațional intrării clientului într-o campanie nou creată (INSERT + enqueue F33/F36).
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
-| v2_queue | `winback:campaign:enroll` |
+| v2_queue (graf) | `winback:campaign:enroll` |
+| coadă runtime (semantic) | `winback:campaign:create` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `winback` |
+| familie (v2) | `winback` |
 | contract_path | `contracts/neurons/E5/winback--campaign--enroll.md` |
 | ADR familie (indicativ) | [winback](../../adr/families/e5/winback.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron operațional din E5, familia winback. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Inițiere campanie winback (strategie pe revenue), persistență pași, pornire execuție sau escaladare HITL.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~9131 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L9132–9152.
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e5:winback:campaign-create` (~L3050+).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E5_WINBACK_CAMPAIGN_CREATE` (~L581).
+- Producător exemplu: [`a6-state-transition-execute.ts`](../../../../../workers/e5-nurturing/src/workers/a6-state-transition-execute.ts) — enqueue `winback:campaign:create` la `CHURNED`.
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `winback` (linia v2 ~9131)
+### Instanță 1 — `winback` (L9132–9152)
 
-- **Stage:** E5
-- **Family:** winback
-- **Inferred neuron type:** ExecutiveNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+- **Evidence status:** graph-export (L9152)
+- **OTel (v2):** `cognitive.winback.campaign.enroll`
+- **Model routing (v2):** LLM (L9149) — **nu** regăsit în F32 citit (F32 e logică deterministă pe threshold-uri).
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: collect child status. ORIENT: evaluate pipeline state. DECIDE: route/schedule/escalate. ACT: orchestrate via FlowProducer DAG.
-- **Model routing:** PRIMARY: vllm-fast-14b (Qwen2.5-14B-AWQ). FALLBACK: reasoning-32b if confidence < 0.85.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="ExecutiveNeuron",stage="E5",swimlane="winback"}
-- **OTel span name:** cognitive.winback.campaign.enroll
+- **8:** v2 marchează LLM; **cod F32** — verificare completă fișier pentru apeluri LLM (antet: fără LLM).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `winback:campaign:enroll`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `winback`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron operațional din E5, familia winback.; analogie: Cortex executiv — orchestrare și coordonare de nivel înalt | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`ExecutiveNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | System2 (deliberativ) — clasificare din v2 §2.1 (SOFAI). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.winback.campaign.enroll`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | PRIMARY: vllm-fast-14b (Qwen2.5-14B-AWQ). FALLBACK: reasoning-32b if confidence < 0.85. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: collect child status. ORIENT: evaluate pipeline state. DECIDE: route/schedule/escalate. ACT: orchestrate via FlowProducer DAG. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | `enroll` graf vs `create` registry. | v2 L9146. | ADR winback L34. |
+| 2 | Etapă, familie, swimlane | Catalog: `winback-campaigns`. | v2 E5 `winback`. | — |
+| 3 | Rol declarat | F32: strategie, INSERT campanie, enqueue pasuri. | v2 L9143–9145. | — |
+| 4 | NeuronType + SOFAI | ExecutiveNeuron inferat v2; catalog F32 — verificare. | v2 ExecutiveNeuron. | — |
+| 5 | Criticitate | — | MEDIUM inferat. | — |
+| 6 | Înveliș telemetrie | `e5:winback:campaign-create`. | v2 L9151. | — |
+| 7 | Înveliș politică | Praguri revenue → strategie + `requiresHitl`. | v2 L9148. | — |
+| 8 | Rutare model (dacă AI) | F32 antet: procesare deterministă. | v2 LLM routing. | **Contradicție** v2 vs implementare citită. |
+| 9 | Guardrails | — | — | — |
+| 10 | Escaladare HITL | `winback:escalate:hitl` din F32 când cazul o cere. | v2 fără HITL obligatoriu. | — |
+| 11 | Micro-OODA | Job → DB → F33 sau escaladare. | v2 OODA orchestrare. | — |
+| 12 | Tier + de-escaladare | — | Tier 4. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ DB 5. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.winback.campaign.enroll`.
+- **Cod:** `cognitive:e5:winback:campaign-create`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

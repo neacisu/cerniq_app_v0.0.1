@@ -2,7 +2,7 @@
 
 # Neuron `email:cold:add-to-campaign` — instanță v2 E5 (duplicat #2)
 
-> **Status:** audit manual **2026-04-11**. În v2, al doilea antet `### NEURON` (sufix grafic „duplicat #2” în planul master) plasează același **`Confirmed queue field`** `email:cold:add-to-campaign` în **E5 / familia `content`**. În repo **nu** există worker sau coadă BullMQ dedicată E5 pentru acest nume; comportamentul operațional rămâne cel din **E2** pe **`q:email:cold`** — vezi contractul E2.
+> **Status:** audit manual **2026-04-13**. În v2, al doilea antet `### NEURON` (sufix grafic „duplicat #2” în planul master) plasează același **`Confirmed queue field`** `email:cold:add-to-campaign` în **E5 / familia `content`**. În repo **nu** există worker sau coadă BullMQ dedicată E5 pentru acest nume; comportamentul operațional rămâne cel din **E2** pe **`q:email:cold`** — vezi contractul E2.
 
 ## Metadata
 

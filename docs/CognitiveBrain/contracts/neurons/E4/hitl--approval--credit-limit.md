@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `hitl:approval:credit-limit`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **K49** — `hitlCreditLimitProcessor`; `withCognitiveSpan` primește **`e4:hitl:credit:limit`**; catalog **`e4:hitl:credit-limit`** — **divergență** pentru atribute span din catalog (vezi criteriul 6).
 
 ## Metadata
 
@@ -8,64 +10,55 @@
 | --- | --- |
 | v2_queue | `hitl:approval:credit-limit` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `hitl` |
+| familie (v2) | `hitl` |
 | contract_path | `contracts/neurons/E4/hitl--approval--credit-limit.md` |
 | ADR familie (indicativ) | [hitl](../../adr/families/e4/hitl.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Aprobare limită credit >50K RON — approver=CFO, SLA=4h. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L6901–L6924): aprobare CFO limită credit >50K RON, HumanNeuron, swimlane `human-oversight-e4`. **Cod:** `approvalService.createTask` cu metadata `approverRole: "CFO"`, `slaHours: 4`, `priority: "high"` (`k-hitl-workers.ts` L146–197); export modul `k49-hitl-credit-limit.ts`.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6900 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`hitl:approval:credit-limit\`` (L6901–L6924).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e4:hitl:credit-limit` (L2688–2696).
+- `workers/shared/src/queue-registry.ts` — `E4_HITL_CREDIT_LIMIT` (L495); concurrency (L1210).
+- `workers/e4-postsale/src/index.ts` — `createWorker(QUEUES.E4_HITL_CREDIT_LIMIT, hitlCreditLimitProcessor, …)` (L532–536).
+- `workers/e4-postsale/src/workers/k-hitl-workers.ts` — K49 (L124–197); `withCognitiveSpan("e4:hitl:credit:limit", …)` (L149).
+- `workers/e4-postsale/src/workers/k49-hitl-credit-limit.ts` — re-export procesor.
+- `workers/e4-postsale/src/__tests__/fhijk-workers.test.ts` — teste HITL K48–K53 (ex. L903+).
+- `workers/shared/src/cognitive-helpers.ts` — `withCognitiveSpan` (L215–234).
 
 ## Instanțe v2
 
-### Instanță 1 — `hitl` (linia v2 ~6900)
+- —
 
-- **Stage:** E4
-- **Family:** hitl
-- **Catalog nodeKey:** e4:hitl:credit-limit
-- **Neuron type:** HumanNeuron
-- **Swimlane:** human-oversight-e4
-- **Criticality:** CRITICAL
-- **Autonomy tier:** Tier 2 (suggest to human)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive HITL task. ORIENT: load decision context via LangGraph checkpoint. DECIDE: present to human via UI. ACT: resume pipeline with APPROVE/REJECT/MODIFY via Command(resume=...).
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL mandatory for irreversible actions. SLA: 2h. Auto-escalation on timeout. Approval via unified polymorphic HITL engine.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="HumanNeuron",stage="E4",swimlane="human-oversight-e4"}, cerniq_neuron_duration_seconds{neuron_id="e4:hitl:credit-limit"}, cerniq_neuron_confidence{neuron_id="e4:hitl:credit-limit"}
-- **OTel span name:** cognitive.e4.hitl.credit-limit
+- **8 — Rutare model:** N/A — v2 Non-AI (L6920).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e4:hitl:credit-limit`. | v2: `hitl:approval:credit-limit`; Catalog nodeKey (v2 bloc): `e4:hitl:credit-limit` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `hitl`, swimlane `human-oversight-e4` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Aprobare limită credit >50K RON — approver=CFO, SLA=4h; analogie: Neocortex — decizie conștientă umană obligatorie | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`HumanNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `HumanNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `CRITICAL` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e4.hitl.credit-limit`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 2 (suggest to human)`; Guardrail/HITL policy (v2): HITL mandatory for irreversible actions. SLA: 2h. Auto-escalation on timeout. Approval via unified polymorphic HITL engine. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive HITL task. ORIENT: load decision context via LangGraph checkpoint. DECIDE: present to human via UI. ACT: resume pipeline with APPROVE/REJECT/MODIFY via Command(resume=...). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Catalog `e4:hitl:credit-limit`; coadă `hitl:approval:credit-limit`; registry L495; `index.ts` L533. | v2 L6918. | — |
+| 2 | Etapă, familie, swimlane | Catalog swimlane `human-oversight-e4` (L2693). | Idem v2 (L6911). | — |
+| 3 | Rol declarat | Task HITL limită >50K, text RO în title/description (k-hitl L160–167). | v2 L6915–6917. | — |
+| 4 | NeuronType + SOFAI | `HumanNeuron` (catalog L2692). | v2 L6909. | — |
+| 5 | Criticitate | `CRITICAL` (catalog L2695). | v2 L6912. | — |
+| 6 | Înveliș telemetrie | `withCognitiveSpan("e4:hitl:credit:limit", …)` (L149) → span **`cognitive:e4:hitl:credit:limit`**. Catalog **`e4:hitl:credit-limit`**. | v2 `cognitive.e4.hitl.credit-limit` (L6923). | Primul argument ≠ `nodeKey` catalog → atribute catalog posibil lipsă pe span. |
+| 7 | Înveliș politică | `approvalService.createTask`; fără Cedar în fișier. | HITL mandatory, SLA 2h (v2 L6921). | SLA cod: `priority: "high"` + `slaHours: 4` în metadata (L170–180) vs v2 „2h” — documentat în plan K49. |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | Validare flux approval service. | NeMo țintă ADR-0007. | — |
+| 10 | Escaladare HITL | Task creat în `approval_tasks`; K53 pentru SLA breach (plan K53). | v2 L6921. | — |
+| 11 | Micro-OODA | Job → createTask → metrică `e4HitlTasksCreatedTotal` (L184–188). | v2 L6919. | LangGraph în v2: neverificat în K49. |
+| 12 | Tier + de-escaladare | — | Tier 2 (v2 L6913). | — |
+| 13 | Stack (subset plan v2) | BullMQ + `@cerniq/db` approval service. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e4.hitl.credit-limit` (L6923).
+- **Cod:** span efectiv `cognitive:e4:hitl:credit:limit` (prim argument K49).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial (hydrate):* înlocuit prin audit manual.

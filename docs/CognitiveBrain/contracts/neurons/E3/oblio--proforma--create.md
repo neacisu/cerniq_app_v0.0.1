@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `oblio:proforma:create`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-11**. **G39** construiește proformă din negociere în stare **CLOSING**, calculează subtotal/TVA 19%/total din `negotiationItems`, apelează `oblioClient.createProforma` (STUB), inserează `oblio_documents` `PROFORMA`, enfilează `negotiation:state:transition` → **PROFORMA_SENT**, lanț audit.
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `oblio:proforma:create` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `fiscal-docs` |
+| familie (v2) | `fiscal-docs` |
 | contract_path | `contracts/neurons/E3/oblio--proforma--create.md` |
 | ADR familie (indicativ) | [fiscal-docs](../../adr/families/e3/fiscal-docs.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Creare proformă în Oblio la închidere negociere — interfațare API Oblio. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2** (L4969–4992): **MotorNeuron**, **HIGH**, creare proformă la închidere negociere, **Non-AI**, Tier 3. **Repo:** `g39-oblio-proforma-create.ts` — stare obligatorie `CLOSING` (`g39` L34–35, L76–80), items din DB (`g39` L82–102), produse pentru nume/SKU (`g39` L104–111), totaluri (`g39` L113–119), `createProforma` cu `clientCui`/`clientName` din `negotiation.leadId` (placeholder comentat «FAZA 13», `g39` L135–139), `INSERT PROFORMA` (`g39` L146–163), tranziție `PROFORMA_SENT` (`g39` L165–181), audit `PROFORMA_CREATED` (`g39` L183–218). **Înregistrare:** `main.ts` L221. **Registry:** `E3_OBLIO_PROFORMA_CREATE` (`queue-registry.ts` L272). **Teste:** `g-workers.test.ts` G39 (L314+).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~4968 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`oblio:proforma:create\`` (L4969–4992).
+- `packages/shared/src/cognitive-node-catalog.ts` — L1851–1859.
+- `workers/shared/src/queue-registry.ts` — L272.
+- `workers/e3-ai-sales/src/main.ts` — L221.
+- `workers/e3-ai-sales/src/workers/g39-oblio-proforma-create.ts`.
+- `workers/e3-ai-sales/src/lib/oblio-client.ts` — `createProforma`.
+- `workers/e3-ai-sales/src/__tests__/g-workers.test.ts` — G39.
 
 ## Instanțe v2
 
-### Instanță 1 — `fiscal-docs` (linia v2 ~4968)
+- —
 
-- **Stage:** E3
-- **Family:** fiscal-docs
-- **Catalog nodeKey:** e3:oblio:proforma-create
-- **Neuron type:** MotorNeuron
-- **Swimlane:** fiscal-execution
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E3",swimlane="fiscal-execution"}, cerniq_neuron_duration_seconds{neuron_id="e3:oblio:proforma-create"}, cerniq_neuron_confidence{neuron_id="e3:oblio:proforma-create"}
-- **OTel span name:** cognitive.e3.oblio.proforma-create
+- **8 — Rutare model:** N/A — v2 Non-AI (L4988); G39 fără LLM.
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e3:oblio:proforma-create`. | v2: `oblio:proforma:create`; Catalog nodeKey (v2 bloc): `e3:oblio:proforma-create` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `fiscal-docs`, swimlane `fiscal-execution` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Creare proformă în Oblio la închidere negociere — interfațare API Oblio; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.oblio.proforma-create`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **`e3:oblio:proforma-create`**, **`oblio:proforma:create`** (`cognitive-node-catalog.ts` L1853–1854). | v2 (L4986). | — |
+| 2 | Etapă, familie, swimlane | E3; **`fiscal-execution`** (`cognitive-node-catalog.ts` L1857). | v2 (L4972–4979). | — |
+| 3 | Rol declarat | Proformă + tranziție + audit (`g39` L3–14, L146–218). | v2 interfațare API Oblio (L4983–4984). | CUI/client real: **placeholder** `leadId` (`g39` L137–138). |
+| 4 | NeuronType + SOFAI | **`MotorNeuron`** (`cognitive-node-catalog.ts` L1856). | v2 MotorNeuron (L4977). | — |
+| 5 | Criticitate | **`HIGH`** (`cognitive-node-catalog.ts` L1859). | v2 HIGH (L4980). | — |
+| 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.oblio.proforma-create` (L4991). | **Parțial aliniat**. |
+| 7 | Înveliș politică | Validări stare + items non-goale (`g39` L59–102). | v2 Tier 3, HITL la anomalii (L4981, L4989). | Fără HITL explicit în G39. |
+| 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
+| 9 | Guardrails | `CLOSING`, items, TVA 19% fix (`g39` L34–35, L113–119). | ADR-0007 țintă. | TVA fix poate diverge de politici tenant. |
+| 10 | Escaladare HITL | Nu în G39. | v2 politică HITL (L4989). | — |
+| 11 | Micro-OODA | OBSERVE — negociere/items; ORIENT — reguli sume; DECIDE — throw vs create; ACT — stub + insert + tranziție + audit (`g39` L55–224). | v2 OODA (L4987). | — |
+| 12 | Tier + de-escaladare | Fără praguri încredere în cod. | v2 Tier 3 (L4981). | — |
+| 13 | Stack (subset) | BullMQ, Drizzle, `oblioClient` STUB. | v2 §2.3. | Rate60/min menționat antet G39 L2 — verificare enforcement în cod = limită evidență. |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.oblio.proforma-create`.
+- **Cod:** `cognitive.nodeKey` **`e3:oblio:proforma-create`** — **parțial aliniat**.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Generator inițial:* înlocuit prin audit manual.

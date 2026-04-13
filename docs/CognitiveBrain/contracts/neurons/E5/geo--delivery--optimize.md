@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `geo:delivery:optimize`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** definește coada `geo:delivery:optimize` (L8121–8141). În **`queue-registry.ts`** **nu** există acest literal. **Cod:** proximitate și zone de acoperire sunt implementate separat: **`geo:proximity:calculate`** (C15) și **`geo:catchment:build`** (C19). Ambele sunt **pornite** în `workers/e5-nurturing/src/index.ts` (`push` L87–91).
 
 ## Metadata
 
@@ -8,62 +10,53 @@
 | --- | --- |
 | v2_queue | `geo:delivery:optimize` |
 | etapa | E5 |
-| familie (v2, prima instanță) | `geo` |
+| familie (v2) | `geo` |
 | contract_path | `contracts/neurons/E5/geo--delivery--optimize.md` |
 | ADR familie (indicativ) | [geo](../../adr/families/e5/geo.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Neuron geospațial pentru proximitate și teritorii. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**v2:** neuron geo `AssociativeNeuron`, Non-AI, OTel `cognitive.geo.delivery.optimize`. **Runtime:** două cozi distincte acoperă parțial intenția (scoruri proximitate + catchment), fără denumirea „delivery:optimize”.
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~8120 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — `### NEURON \`geo:delivery:optimize\`` (L8121–8141).
+- `packages/shared/src/cognitive-node-catalog.ts` — `e5:geo:proximity-calculate` / `geo:proximity:calculate` (L2891–2897); `e5:geo:catchment-build` / `geo:catchment:build` (L2927–2933).
+- `workers/shared/src/queue-registry.ts` — `E5_GEO_PROXIMITY_CALCULATE`, `E5_GEO_CATCHMENT_BUILD` (L544–552).
+- `workers/e5-nurturing/src/index.ts` — import + `push` C15, C19 (L36–40, L87, L91).
+- `workers/e5-nurturing/src/workers/c15-geo-proximity-calculate.ts` — `withCognitiveSpan("e5:geo:proximity-calculate", …)` (L56).
+- `workers/e5-nurturing/src/workers/c19-geo-catchment-build.ts` — `withCognitiveSpan("e5:geo:catchment-build", …)` (L47).
 
 ## Instanțe v2
 
-### Instanță 1 — `geo` (linia v2 ~8120)
+- —
 
-- **Stage:** E5
-- **Family:** geo
-- **Inferred neuron type:** AssociativeNeuron
-- **Inferred criticality:** MEDIUM
-- **Autonomy tier:** Tier 4 (fully autonomous)
-- **Contract evidence status:** graph-export-grounded + architecture-enhanced. Neuron type inferred from family classification. Queue name from graph export (not yet reconciled with runtime registry).
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read multi-source data. ORIENT: correlate patterns. DECIDE: match confidence. ACT: emit association + update graph.
-- **Model routing:** Non-AI neuron — deterministic processing.
-- **Guardrail/HITL policy:** No mandatory HITL. Audit log 90 days.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="AssociativeNeuron",stage="E5",swimlane="geo"}
-- **OTel span name:** cognitive.geo.delivery.optimize
+- **8 — Rutare model:** N/A — v2 Non-AI (L8137).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `geo:delivery:optimize`; Catalog nodeKey (v2 bloc): `—` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E5`, familie `geo`, swimlane `—` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Neuron geospațial pentru proximitate și teritorii.; analogie: Neuron asociativ cortical — corelează și integrează date | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`AssociativeNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `AssociativeNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `MEDIUM` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.geo.delivery.optimize`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 4 (fully autonomous)`; Guardrail/HITL policy (v2): No mandatory HITL. Audit log 90 days. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read multi-source data. ORIENT: correlate patterns. DECIDE: match confidence. ACT: emit association + update graph. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | **Fără** `geo:delivery:optimize` în registry. Cozi apropiate: **`geo:proximity:calculate`**, **`geo:catchment:build`** (L544–552). | v2 **Confirmed queue field** (L8135). | Un v2 → două cozi runtime; fără nume unic. |
+| 2 | Etapă, familie, swimlane | Catalog C15/C19: etapa 5, swimlane **`geo-analysis`** (L2894–2931). | v2 E5, familie `geo` (L8123–8124). | — |
+| 3 | Rol declarat | C15: KNN + `gold_proximity_scores`; C19: catchment (antete fișiere). | v2 scop geo generic (L8132–8134). | „Livrare optimizată” nu e numită în handler-e. |
+| 4 | NeuronType + SOFAI | `AssociativeNeuron` (L2894, L2930). | v2 `AssociativeNeuron` (L8128). | — |
+| 5 | Criticitate | C15 `MEDIUM`, C19 `LOW` (L2897, L2931). | v2 `MEDIUM` (L8130). | Nu o singură criticitate. |
+| 6 | Înveliș telemetrie | Span **`e5:geo:proximity-calculate`** (c15 L56); **`e5:geo:catchment-build`** (c19 L47). | v2 `cognitive.geo.delivery.optimize` (L8140). | OTel v2 ≠ span-uri C15/C19. |
+| 7 | Înveliș politică | Logică worker; fără Cedar/OPA în fișierele citite. | v2 Tier 4, fără HITL obligatoriu (L8131–8138). | — |
+| 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
+| 9 | Guardrails | PostGIS + formule în antet C15. | NeMo țintă ADR-0007. | — |
+| 10 | Escaladare HITL | — | v2 L8138. | — |
+| 11 | Micro-OODA | DB → scoruri / poligoane; fără rută livrare explicită. | v2 OODA (L8136). | — |
+| 12 | Tier + de-escaladare | — | Tier 4 (L8131). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ + Drizzle + PostGIS. | v2 §2.3 țintă platformă. | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.geo.delivery.optimize`.
+- **Cod:** `e5:geo:proximity-calculate` și `e5:geo:catchment-build` în `withCognitiveSpan`.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13; surse verificate în repo.*

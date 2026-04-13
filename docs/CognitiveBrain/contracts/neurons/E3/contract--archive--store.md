@@ -1,71 +1,73 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `contract:archive:store`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. v2 `Confirmed queue field` = `contract:archive:store`; **runtime** = `document:archive:store`, `nodeKey` = `e3:document:archive-store` (I55). Etapa **E3** (v2 L6443–6466); descrierea „E4” din unele propoziții v2 este **contradictorie** cu `Stage: E3` din același bloc — contractul urmează **E3**.
 
 ## Metadata
 
 | Câmp | Valoare |
 | --- | --- |
 | v2_queue | `contract:archive:store` |
+| coadă runtime | `document:archive:store` |
 | etapa | E3 |
-| familie (v2, prima instanță) | `contracts` |
+| familie (v2) | `contracts` |
 | contract_path | `contracts/neurons/E3/contract--archive--store.md` |
-| ADR familie (indicativ) | [contracts](../../adr/families/e3/contracts.md) |
+| ADR familie (indicativ) | [fiscal-docs](../../adr/families/e3/fiscal-docs.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Arhivare document final în S3/MinIO cu metadate auditabile și hash integritate. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+Arhivare documente fiscale Oblio cu lanț hash SHA-256 (`fiscal_audit_trail`), retenție declarată 10 ani, conținut trimis ca string în job; stocare obiect marcată în cod ca fază viitoare (`object-storage-phase-14` în datele de audit).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~6442 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- v2: [`v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — L6443–6466.
+- Catalog: [`cognitive-node-catalog.ts`](../../../../../packages/shared/src/cognitive-node-catalog.ts) — `e3:document:archive-store` (~L2000–2007).
+- Registry: [`queue-registry.ts`](../../../../../workers/shared/src/queue-registry.ts) — `E3_DOCUMENT_ARCHIVE_STORE` (~L302).
+- Handler: [`workers/e3-ai-sales/src/workers/i55-document-archive-store.ts`](../../../../../workers/e3-ai-sales/src/workers/i55-document-archive-store.ts).
+- Mapare workeri E3: [`workers/e3-ai-sales/src/main.ts`](../../../../../workers/e3-ai-sales/src/main.ts) — cheie `"document:archive:store"` ~L239.
+- Schema / checklist: [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `contracts` (linia v2 ~6442)
+### Instanță 1 — `contracts` (v2 L6443–6466)
 
-- **Stage:** E3
-- **Family:** contracts
-- **Catalog nodeKey:** e3:document:archive-store
-- **Neuron type:** MotorNeuron
-- **Swimlane:** fiscal-execution
-- **Criticality:** HIGH
-- **Autonomy tier:** Tier 3 (act with oversight)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+- **Catalog nodeKey:** `e3:document:archive-store`
+- **Neuron type:** `MotorNeuron`
+- **Swimlane:** `fiscal-execution`
+- **Criticitate:** HIGH
+- **Autonomy tier (v2):** Tier 3
+- **OODA (v2):** OBSERVE → ORIENT → DECIDE → ACT (comandă send/execute)
+- **Model routing:** Non-AI
+- **OTel span (v2):** `cognitive.e3.document.archive-store`
+- **Evidence status:** catalog-grounded
 
-### Extras câmpuri v2 (prima instanță)
+## N/A pe criterii
 
-- **OODA micro-cycle:** OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="MotorNeuron",stage="E3",swimlane="fiscal-execution"}, cerniq_neuron_duration_seconds{neuron_id="e3:document:archive-store"}, cerniq_neuron_confidence{neuron_id="e3:document:archive-store"}
-- **OTel span name:** cognitive.e3.document.archive-store
+- **8 — Rutare model:** N/A — Non-AI (v2 L6462).
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `nu`; catalog `n(` `nodeKey`: `— (gap)`. | v2: `contract:archive:store`; Catalog nodeKey (v2 bloc): `e3:document:archive-store` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E3`, familie `contracts`, swimlane `fiscal-execution` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Arhivare document final în S3/MinIO cu metadate auditabile și hash integritate; analogie: Neuron motor — execută acțiuni eferente spre exterior | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`MotorNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `MotorNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `HIGH` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e3.document.archive-store`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 3 (act with oversight)`; Guardrail/HITL policy (v2): HITL on anomaly (confidence < 0.80 or error rate > 2σ baseline). SLA: 4h. Post-hoc audit trail mandatory. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: receive send/execute command. ORIENT: validate payload + check quotas. DECIDE: send/defer/retry. ACT: execute external action (email/WA/API call) + log result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Coadă: `document:archive:store`. `nodeKey`: `e3:document:archive-store`. v2 etichetă: `contract:archive:store`. | v2 L6450, L6460. | Dublă denumire coadă (contract vs document). |
+| 2 | Etapă, familie, swimlane | Catalog: etapa 3, swimlane `fiscal-execution`. Worker în pachet `e3-ai-sales`. | v2: E3, familie `contracts`, swimlane `fiscal-execution`. | — |
+| 3 | Rol declarat | Hash SHA-256, chain `GENESIS`/prev, INSERT audit (i55 ~L72–100+). | v2 L6457–6459. | Comentariu i55 L8–9 menționează `ComplianceNeuron` — **nu** e tipul din catalog. |
+| 4 | NeuronType + SOFAI | `MotorNeuron` în catalog. | v2 L6451 — MotorNeuron. | — |
+| 5 | Criticitate | `HIGH` în catalog (~L2007). | v2 L6454. | — |
+| 6 | Înveliș telemetrie | i55 **nu** folosește `withCognitiveSpan` în fișierul citit. | v2 L6465 — span punctuat. | Span per-neuron: neimplementat pe I55 la audit. |
+| 7 | Înveliș politică | Validare tip document INVOICE/PROFORMA/CREDIT_NOTE (i55 ~L65–69). | v2 L6455, L6463. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
+| 9 | Guardrails | Hash chain determinist; refuz documente invalide. | v2 — integritate. | — |
+| 10 | Escaladare HITL | Neobservat în i55; erori → throw. | v2 L6463. | — |
+| 11 | Micro-OODA | Verificare document → hash → scriere audit (i55). | v2 L6461. | — |
+| 12 | Tier + de-escaladare | Fără prag încredere. | v2 Tier 3. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E3, Drizzle, crypto `node:crypto`. | Obiect storage: țintă (comentariu i55). | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e3.document.archive-store`.
+- **Cod:** fără `withCognitiveSpan` pe I55; convenția helper ar folosi `cognitive:${nodeKey}` cu `nodeKey` = `e3:document:archive-store` pentru aliniere viitoare.
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Audit manual 2026-04-13.*

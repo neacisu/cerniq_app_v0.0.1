@@ -1,6 +1,8 @@
+<!-- neuron-contract:author-complete -->
+
 # Neuron `sameday:awb:create`
 
-> **Status:** structură din v2 §6 (2026-04-11). Coloana «În cod (dovadă)» = **placeholder** până la research manual. După DOD, adăugați `<!-- neuron-contract:author-complete -->` ca să blocați regenerarea accidentală.
+> **Status:** audit manual **2026-04-13**. **v2** (L7139–L7162): coadă `sameday:awb:create`, `LogisticsNeuron`, `CRITICAL`, catalog-grounded. **Repo:** **E22** — `E4_SAMEDAY_AWB_CREATE` (`queue-registry.ts` L406), `samedayAwbCreateProcessor` (`e22-sameday-awb-create.ts`), worker `index.ts` L324–329. **Observație:** fișierul E22 citit **nu** apelează `withCognitiveSpan` — **fără** span `cognitive:e4:sameday:awb-create` din acest procesor (căutare în `e22-sameday-awb-create.ts`).
 
 ## Metadata
 
@@ -8,64 +10,54 @@
 | --- | --- |
 | v2_queue | `sameday:awb:create` |
 | etapa | E4 |
-| familie (v2, prima instanță) | `logistics` |
+| familie (v2) | `logistics` |
 | contract_path | `contracts/neurons/E4/sameday--awb--create.md` |
 | ADR familie (indicativ) | [logistics](../../adr/families/e4/logistics.md) |
 
 ## Scop în context real
 
-**Scop declarat în v2:** Creare AWB Sameday la order:ready — POST /api/awb + INSERT goldShipments. **Comportament în repo:** neaudit până la research manual (DOD 0): handler BullMQ/API, payload, teste — vezi `_CONTRACT_SCHEMA.md`. Acest text nu trebuie generat sau extins automat de scripturi; doar de autor după dovezi.
+**Cod:** creare AWB via `createSamedayAwb`, INSERT `goldShipments`, metrică `e4ShipmentsCreatedTotal` (header `e22-sameday-awb-create.ts` L1–11; implementare începe L29). Trigger: `order:ready` (comentariu L4).
 
 ## Surse audit
 
-- v2 §6: `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — linia ~7138 (`### NEURON`).
-- Schema: [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md).
-- Checklist: [`CONTRACT_AUTHORING_CHECKLIST.md`](CONTRACT_AUTHORING_CHECKLIST.md).
+- `docs/CognitiveBrain/v2_cerniq_cognitive_brain_master_implementation_plan.md` — L7139–L7162.
+- `workers/shared/src/queue-registry.ts` — L406.
+- `packages/shared/src/cognitive-node-catalog.ts` — L2433–L2440.
+- `workers/e4-postsale/src/workers/e22-sameday-awb-create.ts` — procesor E22.
+- `workers/e4-postsale/src/index.ts` — E22 L324–329.
+- `workers/e4-postsale/src/__tests__/e-workers.test.ts` — referințe cozi Sameday (ex. L142).
+- [`../_CONTRACT_SCHEMA.md`](../_CONTRACT_SCHEMA.md), [`../CONTRACT_AUTHORING_CHECKLIST.md`](../CONTRACT_AUTHORING_CHECKLIST.md).
 
 ## Instanțe v2
 
-### Instanță 1 — `logistics` (linia v2 ~7138)
+- —
 
-- **Stage:** E4
-- **Family:** logistics
-- **Catalog nodeKey:** e4:sameday:awb-create
-- **Neuron type:** LogisticsNeuron
-- **Swimlane:** logistics
-- **Criticality:** CRITICAL
-- **Autonomy tier:** Tier 2 (suggest to human)
-- **Contract evidence status:** catalog-grounded + research-enhanced, cross-referenced with `cognitive-node-catalog.ts`.
+## N/A pe criterii
 
-### Extras câmpuri v2 (prima instanță)
-
-- **OODA micro-cycle:** OBSERVE: read input. ORIENT: process per LogisticsNeuron logic. DECIDE: validate output. ACT: emit result.
-- **Model routing:** Non-AI neuron — deterministic processing, no LLM routing required.
-- **Guardrail/HITL policy:** HITL mandatory for irreversible actions. SLA: 2h. Auto-escalation on timeout. Approval via unified polymorphic HITL engine.
-- **Prometheus metrics:** cerniq_neuron_fires_total{neuron_type="LogisticsNeuron",stage="E4",swimlane="logistics"}, cerniq_neuron_duration_seconds{neuron_id="e4:sameday:awb-create"}, cerniq_neuron_confidence{neuron_id="e4:sameday:awb-create"}
-- **OTel span name:** cognitive.e4.sameday.awb-create
+- **8 — Rutare model:** N/A — v2 Non-AI (L7158).
 
 ## Tabel self-aware (13 criterii)
 
 | # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
-| 1 | Identitate canonică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. Indiciu mecanic (nu substituie citirea codului): registry literal `da`; catalog `n(` `nodeKey`: `e4:sameday:awb-create`. | v2: `sameday:awb:create`; Catalog nodeKey (v2 bloc): `e4:sameday:awb-create` | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 2 | Etapă, familie, swimlane | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Etapă `E4`, familie `logistics`, swimlane `logistics` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 3 | Rol declarat | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Funcție cognitivă: Creare AWB Sameday la order:ready — POST /api/awb + INSERT goldShipments; analogie: Cortex motor logistic — coordonare transport și expediere AWB | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 4 | NeuronType + SOFAI (`LogisticsNeuron`) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Tip `LogisticsNeuron` — mapare SOFAI: vezi v2 §2.1; nu forțați System1/2 fără sursă suplimentară. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 5 | Criticitate | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | `CRITICAL` (v2). | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 6 | Înveliș telemetrie | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OTel span (v2): `cognitive.e4.sameday.awb-create`; mapare `cognitive.nodeKey` vs `cognitive.neuron.*`: vezi ADR-0003 + `withCognitiveSpan`. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 7 | Înveliș politică | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Autonomy tier (v2): `Tier 2 (suggest to human)`; Guardrail/HITL policy (v2): HITL mandatory for irreversible actions. SLA: 2h. Auto-escalation on timeout. Approval via unified polymorphic HITL engine. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 8 | Rutare model (dacă AI) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Non-AI neuron — deterministic processing, no LLM routing required. | N/A — Non-AI în v2 |
-| 9 | Guardrails | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | NeMo / verificări deterministe; țintă ADR-0007; detaliu per-neuron numai cu cod. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 10 | Escaladare HITL | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Motor transversal: ADR-0008; cozi `human:*` / `hitl:*`: verificare registry la audit manual. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 11 | Micro-OODA | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | OBSERVE: read input. ORIENT: process per LogisticsNeuron logic. DECIDE: validate output. ACT: emit result. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 12 | Tier + de-escaladare | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | Trigger-e (încredere, 2σ, schemă API): invariant numai dacă apare în cod/test la audit. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
-| 13 | Stack v2 §2.3 (subset) | **TODO manual (DOD 0–4):** parcurgeți v2 → catalog → registry → handler/payload → teste; notați fișier + simbol sau «lipsă la audit». Interzis completarea din șabloane familie sau din script. | BullMQ, Kafka, SGLang, … — versiuni în v2 §2.3 + ADR-uri. | v2 §2.4 — completare «În cod» doar după citire cod/teste; fără presupuneri între neuroni. |
+| 1 | Identitate canonică | Coadă + catalog `e4:sameday:awb-create` aliniate. | v2 L7156. | — |
+| 2 | Etapă, familie, swimlane | `logistics` (L2437–L2438). | v2 L7149. | — |
+| 3 | Rol declarat | AWB + INSERT shipment. | v2 L7153–L7155. | — |
+| 4 | NeuronType + SOFAI | `LogisticsNeuron`. | v2 L7147. | — |
+| 5 | Criticitate | `CRITICAL` (L2440). | v2 L7150. | — |
+| 6 | Înveliș telemetrie | **Lipsește** `withCognitiveSpan` în E22 citit. | v2 `cognitive.e4.sameday.awb-create` (L7161). | Gap telemetrie cognitivă per-neuron în handler. |
+| 7 | Înveliș politică | — | v2 L7159. | — |
+| 8 | Rutare model (dacă AI) | **N/A** | L7158. | — |
+| 9 | Guardrails | Integrare API Sameday + DB. | — | — |
+| 10 | Escaladare HITL | — | v2 L7159. | — |
+| 11 | Micro-OODA | Flux determinist în E22. | v2 OODA generic (L7157). | — |
+| 12 | Tier + de-escaladare | — | Tier 2 (L7151). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ + client Sameday. | — | — |
 
 ### Mapare OTel
 
-- **v2 / plan:** pot menționa `cognitive.neuron.id`, `cognitive.processing.stage`, etc.
-- **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (vezi `workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** neînchis până la research; marcați *aliniat* / *migrare planificată* cu dovezi în tabel.
+- **v2:** `cognitive.e4.sameday.awb-create` (L7161).
+- **Cod:** procesorul E22 citit **nu** deschide span cognitiv standard; observabilitate suplimentară: `createServiceLogger` **absent** în primele linii din E22 (spre deosebire de E23).
 
 ---
-*Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`
+*Revizuire manuală:* dovezi repo 2026-04-13.
