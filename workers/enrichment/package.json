@@ -12,6 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cerniq/cognitive-brain-neurons": "workspace:*",
+    "@cerniq/e1-ingest-core": "workspace:*",
     "@cerniq/db": "workspace:*",
     "@cerniq/observability": "workspace:*",
     "@cerniq/shared-types": "workspace:*",

@@ -154,4 +154,25 @@ describe("buildCognitiveWorkerEventContext", () => {
     expect(ctx.correlationId).toBeNull();
     expect(ctx.batchId).toBe("batch-bbb");
   });
+
+  it("fără importExecution, propagă batchId top-level din job când correlation nu e UUID SSE (A1 CSV)", () => {
+    const jobData = {
+      tenantId: "t1",
+      batchId: "batch-csv-001",
+      correlationId: "human-corr",
+    };
+    const ctx = buildCognitiveWorkerEventContext("t1", jobData.correlationId, jobData);
+    expect(ctx.batchId).toBe("batch-csv-001");
+    expect(ctx.correlationId).toBe("human-corr");
+  });
+
+  it("fără importExecution, prioritizează UUID SSE față de batchId top-level", () => {
+    const sse = "11111111-1111-8111-8111-111111111111";
+    const jobData = {
+      batchId: "batch-csv-001",
+      correlationId: sse,
+    };
+    const ctx = buildCognitiveWorkerEventContext("t1", sse, jobData);
+    expect(ctx.batchId).toBe(sse);
+  });
 });

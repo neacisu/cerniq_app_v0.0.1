@@ -26,7 +26,11 @@ Muchia **`default`** plasează traseul **bronze-ingest-csv-parser** sub agregatu
 
 ## Sinapse dependență în același traseu
 
-[`bronze-ingest-csv-parser-silver-norm-address.md`](bronze-ingest-csv-parser-silver-norm-address.md), [`bronze-ingest-csv-parser-silver-norm-company-name.md`](bronze-ingest-csv-parser-silver-norm-company-name.md), [`bronze-ingest-csv-parser-silver-norm-email.md`](bronze-ingest-csv-parser-silver-norm-email.md), [`bronze-ingest-csv-parser-silver-norm-phone-e164.md`](bronze-ingest-csv-parser-silver-norm-phone-e164.md).
+[`bronze-ingest-csv-parser-silver-norm-address.md`](bronze-ingest-csv-parser-silver-norm-address.md), [`bronze-ingest-csv-parser-silver-norm-company-name.md`](bronze-ingest-csv-parser-silver-norm-company-name.md), [`bronze-ingest-csv-parser-silver-norm-email.md`](bronze-ingest-csv-parser-silver-norm-email.md), [`bronze-ingest-csv-parser-silver-norm-phone-e164.md`](bronze-ingest-csv-parser-silver-norm-phone-e164.md), [`bronze-ingest-csv-parser-bronze-anaf-enrichment.md`](bronze-ingest-csv-parser-bronze-anaf-enrichment.md).
+
+**ROUTING runtime (cozi / idempotency):** [`../../../../runtime/synapses/enrich-data/bronze-ingest-csv-parser/ROUTING.md`](../../../../runtime/synapses/enrich-data/bronze-ingest-csv-parser/ROUTING.md).
+
+**Nucleu cod downstream (normalize + ANAF bronze):** pachet [`@cerniq/e1-ingest-core`](../../../../../../packages/e1-ingest-core/package.json) — [`src/triggers.ts`](../../../../../../packages/e1-ingest-core/src/triggers.ts); workerii a2–a5 consumă aceleași simboluri prin re-export din `ingest-utils.ts`.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -38,7 +42,7 @@ Muchia **`default`** plasează traseul **bronze-ingest-csv-parser** sub agregatu
 | Domeniu | Status |
 | --- | --- |
 | Payload schema | Exportul curent **nu** encodează schemă de payload pentru această muchie. |
-| Retry policy | Exportul curent **nu** encodează politică de retry pentru această muchie. |
+| Retry policy | Exportul curent **nu** encodează politică de retry pentru familie; **dovadă runtime** pe muchiile membre: [`ROUTING.md`](../../../../runtime/synapses/enrich-data/bronze-ingest-csv-parser/ROUTING.md). |
 | Safety class | Exportul curent **nu** encodează clasă de siguranță pentru această muchie. |
 | Telemetrie | Exportul dovedește existența structurală în graful de planificare; **nu** dovedește singur telemetrie completă per-muchie în ramura rulată. |
 | Contract evidence | Export-grounded, conservative, non-inventive. |

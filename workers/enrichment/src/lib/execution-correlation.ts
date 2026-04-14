@@ -22,6 +22,20 @@ export function cognitiveBatchIdFromCorrelation(
   return COGNITIVE_SSE_BATCH_ID_RE.test(t) ? t : undefined;
 }
 
+/** `batchId` la nivel rădăcină pe payload job (ex. `CsvParserJobData`), fără `importExecution`. */
+function topLevelJobBatchId(jobData: unknown): string | undefined {
+  if (
+    jobData === undefined ||
+    jobData === null ||
+    typeof jobData !== "object" ||
+    Array.isArray(jobData)
+  ) {
+    return undefined;
+  }
+  const b = (jobData as Record<string, unknown>).batchId;
+  return typeof b === "string" && b.trim() ? b.trim() : undefined;
+}
+
 /**
  * Context `Partial<ImportExecutionContext>` pentru `withCognitiveSpan` / `emitCognitiveEvent`.
  *
@@ -30,7 +44,9 @@ export function cognitiveBatchIdFromCorrelation(
  *   `tenantId` din argument rămâne sursa de adevăr pentru workerul E1 curent.
  * - **Canal SSE Redis:** `batchId` pentru `cognitive:events:{batchId}` folosește UUID-ul din `correlationId`
  *   când respectă `COGNITIVE_SSE_BATCH_ID_RE`; altfel se păstrează `batchId` din import (fluxuri fără corelație SSE).
- * - **Fără import:** același comportament ca înainte — doar `tenantId`, opțional `correlationId` / `batchId` din corelație.
+ * - **Fără import:** `tenantId`, opțional `correlationId`; `batchId` pentru SSE ia UUID-ul din
+ *   `correlationId` când respectă `COGNITIVE_SSE_BATCH_ID_RE`, altfel **`batchId` de la rădăcina**
+ *   `jobData` (ex. ingest CSV) dacă există.
  */
 export function buildCognitiveWorkerEventContext(
   tenantId: string,
@@ -58,10 +74,13 @@ export function buildCognitiveWorkerEventContext(
     };
   }
 
+  const fallbackBatchId = topLevelJobBatchId(jobData);
+  const batchIdResolved = sseBatchId ?? fallbackBatchId;
+
   return {
     tenantId,
     ...(corrResolved ? { correlationId: corrResolved } : {}),
-    ...(sseBatchId ? { batchId: sseBatchId } : {}),
+    ...(batchIdResolved ? { batchId: batchIdResolved } : {}),
   };
 }
 

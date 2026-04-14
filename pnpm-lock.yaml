@@ -559,6 +559,37 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@opentelemetry/api@1.9.1(patch_hash=db45a99b47153ce60b0710d0b7bf9bcfabff1705ca7867df45d21b27e7b6f585))(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/cognitive-brain:
+    devDependencies:
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1(patch_hash=db45a99b47153ce60b0710d0b7bf9bcfabff1705ca7867df45d21b27e7b6f585))(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
+  packages/cognitive-brain-neurons:
+    dependencies:
+      '@cerniq/cognitive-brain':
+        specifier: workspace:*
+        version: link:../cognitive-brain
+      '@cerniq/e1-ingest-core':
+        specifier: workspace:*
+        version: link:../e1-ingest-core
+      '@cerniq/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@cerniq/worker-shared':
+        specifier: workspace:*
+        version: link:../../workers/shared
+      papaparse:
+        specifier: ^5.5.3
+        version: 5.5.3
+    devDependencies:
+      '@types/papaparse':
+        specifier: ^5.5.2
+        version: 5.5.2
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1(patch_hash=db45a99b47153ce60b0710d0b7bf9bcfabff1705ca7867df45d21b27e7b6f585))(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/config:
     devDependencies:
       '@stryker-mutator/core':
@@ -604,6 +635,22 @@ importers:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
+
+  packages/e1-ingest-core:
+    dependencies:
+      '@cerniq/db':
+        specifier: workspace:*
+        version: link:../db
+      '@cerniq/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@cerniq/worker-shared':
+        specifier: workspace:*
+        version: link:../../workers/shared
+    devDependencies:
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1(patch_hash=db45a99b47153ce60b0710d0b7bf9bcfabff1705ca7867df45d21b27e7b6f585))(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/integrations:
     dependencies:
@@ -877,9 +924,15 @@ importers:
 
   workers/enrichment:
     dependencies:
+      '@cerniq/cognitive-brain-neurons':
+        specifier: workspace:*
+        version: link:../../packages/cognitive-brain-neurons
       '@cerniq/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@cerniq/e1-ingest-core':
+        specifier: workspace:*
+        version: link:../../packages/e1-ingest-core
       '@cerniq/observability':
         specifier: workspace:*
         version: link:../../packages/observability

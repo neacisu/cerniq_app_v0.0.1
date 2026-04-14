@@ -48,6 +48,7 @@ describe("S2.PR8 integration - CSV -> Bronze", () => {
       triggerNormalizationForContacts,
       triggerAnafBronzeEnrichment,
       markImportBatchFailed,
+      verifyFileHash: vi.fn(async () => ({ valid: true })),
       shouldUseStreaming: vi.fn(async () => false),
       createFileReadStream: vi.fn(),
       detectEncoding: vi.fn(() => "utf8"),

@@ -34,7 +34,7 @@
 | Domeniu | Status |
 | --- | --- |
 | Payload schema | Exportul curent **nu** encodează schemă de payload pentru această muchie. |
-| Retry policy | Exportul curent **nu** encodează politică de retry pentru această muchie. |
+| Retry policy | Exportul curent **nu** encodează politică de retry pentru această muchie; **dovadă runtime** (încercări/backoff bulk): [`ROUTING.md`](../../../../runtime/synapses/enrich-data/bronze-ingest-csv-parser/ROUTING.md). |
 | Safety class | Exportul curent **nu** encodează clasă de siguranță pentru această muchie. |
 | Telemetrie | Exportul dovedește existența structurală în graful de planificare; **nu** dovedește singur telemetrie completă per-muchie în ramura rulată. |
 | Contract evidence | Export-grounded, conservative, non-inventive. |

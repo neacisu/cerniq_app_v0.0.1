@@ -1,0 +1,5 @@
+# Artefacte emise greșit dacă rulezi tsc pe rădăcina pachetului (păstrăm doar vitest.config.ts).
+/vitest.config.js
+/vitest.config.js.map
+/vitest.config.d.ts
+/vitest.config.d.ts.map

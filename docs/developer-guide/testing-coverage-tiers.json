@@ -93,6 +93,53 @@
       "notes": "Bootstrap (client.ts, migrate.ts, scheme masive) măsurat prin integrare + Tier B explicit în coverage.include; vezi ADR-0029."
     },
     {
+      "package": "@cerniq/e1-ingest-core",
+      "tier": "B",
+      "vitestConfigPath": "packages/e1-ingest-core/vitest.config.ts",
+      "coverageEnforcement": "vitest",
+      "enforceVitestThresholds": true,
+      "vitestThresholds": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+      "coverageIncludeGlobs": ["src/triggers.ts", "src/hooks.ts", "src/index.ts"],
+      "coverageExcludeGlobsNote": "Extinderi viitoare (bronze-insert) — adăugate incremental în coverage.include conform ADR-0009.",
+      "integrationTestScript": null,
+      "includeInVitestCi": true,
+      "owner": "workers",
+      "notes": "Nucleu ingest E1 — triggere normalizare/ANAF, hooks G7; vezi ADR-0009."
+    },
+    {
+      "package": "@cerniq/cognitive-brain",
+      "tier": "B",
+      "vitestConfigPath": "packages/cognitive-brain/vitest.config.ts",
+      "coverageEnforcement": "vitest",
+      "enforceVitestThresholds": true,
+      "vitestThresholds": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+      "coverageIncludeGlobs": ["src/index.ts"],
+      "coverageExcludeGlobsNote": "Pilot — suprafață minimală; extindere tipuri SSE conform ADR-0009.",
+      "integrationTestScript": null,
+      "includeInVitestCi": true,
+      "owner": "workers",
+      "notes": "Convenții CognitiveBrain — pilot CSV."
+    },
+    {
+      "package": "@cerniq/cognitive-brain-neurons",
+      "tier": "B",
+      "vitestConfigPath": "packages/cognitive-brain-neurons/vitest.config.ts",
+      "coverageEnforcement": "vitest",
+      "enforceVitestThresholds": true,
+      "vitestThresholds": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+      "coverageIncludeGlobs": [
+        "src/index.ts",
+        "src/neurons/e1/bronze-ingest-csv-parser/manifest.ts",
+        "src/neurons/e1/bronze-ingest-csv-parser/bronze-ingest-csv-parser-handler.ts",
+        "src/neurons/e1/bronze-ingest-csv-parser/synapses/normalization-queues.ts"
+      ],
+      "coverageExcludeGlobsNote": "Logica CSV în bronze-ingest-csv-parser-handler.ts; worker rămâne wiring BullMQ + deps DB.",
+      "integrationTestScript": null,
+      "includeInVitestCi": true,
+      "owner": "workers",
+      "notes": "Manifest + sinapse pilot bronze CSV ingest."
+    },
+    {
       "package": "@cerniq/api",
       "tier": "B",
       "vitestConfigPath": "apps/api/vitest.config.ts",

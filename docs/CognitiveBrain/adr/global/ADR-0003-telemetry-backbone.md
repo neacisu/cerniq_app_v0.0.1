@@ -21,6 +21,18 @@ Telemetria neuronală trebuie să rămână **compatibilă** cu stack-ul OpenTel
 - **Motiv (v2):** convențiile GenAI OTel definesc atribute și metrici standard pentru LLM; v2 propune în plus atribute `cognitive.*`, strategie de cardinalitate (agregări pe tip+etapă, evitarea `neuron_id` pe histograme frevente), recording rules și exemplare.
 - **Consecință:** îmbunătățiri viitoare trebuie să rămână aliniate către **același traseu collector** (OTLP HTTP/gRPC către backend-uri operaționale).
 
+## Messaging metrics (OTel semconv) vs implementare Cerniq (enrichment)
+
+**Sursă semconv (industrie):** [OpenTelemetry — Messaging metrics](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-metrics/) — acces **2026-04-14**.
+
+| Semconv / convenție (rezumat) | În `@cerniq/worker-enrichment` (audit repo) | Notă |
+| --- | --- | --- |
+| `messaging.client.*` / `messaging.consumer.*` (metrici coadă) | **Nu** găsit pattern `messaging.` pe meter în `workers/enrichment` la audit | Contoare proprii: `jobsProcessed`, `jobDuration`, `jobErrors` în [`worker-metrics.ts`](../../../../workers/enrichment/src/lib/worker-metrics.ts) |
+| Atribute span „messaging” standard | Span-urile cognitive folosesc prefix `cognitive:` + `nodeKey`, nu namespace `messaging.*` | [`withCognitiveSpan`](../../../../workers/shared/src/cognitive-helpers.ts) |
+| Corelare consum/producător cozi | Parțial prin `workerName` / etichete în `enqueueImportJobBulk` | [`triggers.ts`](../../../../packages/e1-ingest-core/src/triggers.ts) (`@cerniq/e1-ingest-core`); shim re-export în [`ingest-utils.ts`](../../../../workers/enrichment/src/workers/ingest-utils.ts) |
+
+**Decizie:** păstrăm **`cognitive:*` + metrici `worker.jobs.*` / contoare locale** ca sursă operațională; adoptarea semconv `messaging.*` rămâne **backlog** documentat (aliniere treptată la collector, fără a rupe dashboard-urile existente).
+
 ## Dovezi în implementarea Cerniq
 
 ### SDK și export OTLP
