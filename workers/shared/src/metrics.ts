@@ -134,6 +134,31 @@ export const importMutationTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+/** J1 `ai:structure:xai` — rezultat după LLM + reguli CUI/încredere (`outcome` cu cardinalitate fixă). */
+export const cognitiveAiStructureOutcomeTotal = new Counter({
+  name: "cerniq_cognitive_ai_structure_outcome_total",
+  help: "Outcomes for J1 AI structuring (auto_applied | hitl | error)",
+  labelNames: ["outcome"],
+  registers: [metricsRegistry],
+});
+
+/** Durata apelului LLM structurat în J1 (secunde). */
+export const cognitiveAiStructureLlmSeconds = new Histogram({
+  name: "cerniq_cognitive_ai_structure_llm_seconds",
+  help: "Duration of structured LLM call in J1 grok-structuring",
+  labelNames: [],
+  buckets: [0.25, 0.5, 1, 2, 5, 10, 30, 60, 120],
+  registers: [metricsRegistry],
+});
+
+/** L4 `agri:culturi` — rezultat clasificare (`outcome` cu cardinalitate fixă). */
+export const cognitiveAgriCulturiOutcomeTotal = new Counter({
+  name: "cerniq_cognitive_agri_culturi_outcome_total",
+  help: "Outcomes for L4 culturi classifier (success | not_found | error)",
+  labelNames: ["outcome"],
+  registers: [metricsRegistry],
+});
+
 // ── External API metrics ──────────────────────────────────────────────────────
 
 export const externalApiRequestsTotal = new Counter({

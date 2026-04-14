@@ -1,10 +1,33 @@
 import type { Processor } from "bullmq";
 import { createServiceLogger, enrichError } from "@cerniq/observability";
-import { withCognitiveSpan } from "@cerniq/worker-shared";
+import {
+  cognitiveAgriCulturiOutcomeTotal,
+  emitCognitiveEvent,
+  withCognitiveSpan,
+} from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 import { createJobLogger } from "../lib/job-logger.js";
+import { buildCognitiveWorkerEventContext } from "../lib/execution-correlation.js";
 
 const svcLog = createServiceLogger("l4-culturi-classifier", { etapa: "e1" });
+
+const L4_NODE_KEY = "e1:agri:culturi" as const;
+
+function l4EmitPhase(
+  ctx: ReturnType<typeof buildCognitiveWorkerEventContext>,
+  phase: string,
+  data: Record<string, unknown> = {},
+): void {
+  if (!ctx.tenantId) return;
+  void emitCognitiveEvent(
+    L4_NODE_KEY,
+    {
+      eventType: `phase_${phase}`,
+      data: { phase, worker: "L4:culturi-classifier", ...data },
+    },
+    ctx,
+  ).catch(() => undefined);
+}
 
 export type CulturiClassifierJobData = {
   tenantId: string;
@@ -34,6 +57,11 @@ function determineCategory(
 }
 
 export const culturiClassifierProcessor: Processor<CulturiClassifierJobData> = async (job) => {
+  const spanCtx = buildCognitiveWorkerEventContext(
+    job.data.tenantId,
+    job.data.correlationId,
+    job.data,
+  );
   return withCognitiveSpan(
     "e1:agri:culturi",
     async (_span) => {
@@ -52,11 +80,20 @@ export const culturiClassifierProcessor: Processor<CulturiClassifierJobData> = a
         await setSessionTenantId(job.data.tenantId);
         svcLog.info({ tenantId: job.data.tenantId, companyId: job.data.companyId }, "L4 culturi");
 
+        l4EmitPhase(spanCtx, "classify_start", {
+          jobId: String(job.id ?? ""),
+          progress: 15,
+        });
+
         const company = await db.query.silverCompanies.findFirst({
           where: (t, { and, eq }) =>
             and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
         });
-        if (!company) return { ok: false, status: "not_found" };
+        if (!company) {
+          l4EmitPhase(spanCtx, "not_found", { jobId: String(job.id ?? ""), progress: 100 });
+          cognitiveAgriCulturiOutcomeTotal.inc({ outcome: "not_found" });
+          return { ok: false, status: "not_found" };
+        }
 
         const effectiveCaen = job.data.codCaen ?? company.codCaenPrincipal ?? null;
         const fromCaen = effectiveCaen ? (CULTURES_MAP[effectiveCaen] ?? []) : [];
@@ -102,8 +139,16 @@ export const culturiClassifierProcessor: Processor<CulturiClassifierJobData> = a
           latencyMs: Date.now() - startedAt,
           fieldsExtracted: { cropCount: crops.length, category },
         });
+        l4EmitPhase(spanCtx, "metadata_persisted", {
+          jobId: String(job.id ?? ""),
+          progress: 100,
+          category,
+          cropCount: crops.length,
+        });
+        cognitiveAgriCulturiOutcomeTotal.inc({ outcome: "success" });
         return { ok: true, status: "success", crops: crops.length, category };
       } catch (error) {
+        cognitiveAgriCulturiOutcomeTotal.inc({ outcome: "error" });
         log.error(
           "fatal",
           `Culturi classifier eșuat: ${error instanceof Error ? error.message : String(error)}`,
@@ -118,6 +163,6 @@ export const culturiClassifierProcessor: Processor<CulturiClassifierJobData> = a
         throw error;
       }
     },
-    { tenantId: job.data.tenantId },
+    spanCtx,
   );
 };

@@ -57,3 +57,9 @@ Muchia **`default`** plasează traseul **enrich-ai-industry-classify** sub agreg
 ## Sursă canonică
 
 - [`../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — §7, bloc `SYNAPSE \`enrich-ai-industry-classify-family\``.
+
+## Reconciliere runtime (dovadă cod, 2026-04-14)
+
+- **CAEN / industrie (LLM):** aceeași coadă `ai:structure:xai` / J1 — extragere `cod_caen_principal`, `is_agricol` în schema JSON.
+- **Culturi (euristică):** coadă `agri:culturi` / L4 (`l4-culturi-classifier.ts`). **Trigger P1:** pentru `codCaenPrincipal` agricol (`01*`,`02*`,`03*`), `p1-orchestrate.ts` enfilează `agri:culturi` (în paralel cu `agri:apia`).
+- **Telemetrie L4:** `withCognitiveSpan("e1:agri:culturi", …)` + context SSE ca la J1.

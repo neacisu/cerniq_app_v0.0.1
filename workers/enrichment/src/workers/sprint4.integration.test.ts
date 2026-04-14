@@ -40,6 +40,7 @@ describe("S4 integration - quality rollup", () => {
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
+      getImportExecutionContext: vi.fn(() => null),
       createQueue: vi.fn(() => ({
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
@@ -96,6 +97,7 @@ describe("S4 integration - orchestrator", () => {
       sql,
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
+      getImportExecutionContext: vi.fn(() => null),
       validateJobData: vi.fn(),
       silverEnrichmentDurationSeconds: { observe: vi.fn() },
       silverEnrichmentErrorsTotal: { inc: vi.fn() },
@@ -116,6 +118,67 @@ describe("S4 integration - orchestrator", () => {
 
     expect(add).toHaveBeenCalled();
     expect(result).toMatchObject({ ok: true, status: "success", stage: "post_validation" });
+  });
+
+  it("p1 enfilează agri:culturi pentru companii cu CAEN agricol", async () => {
+    const sql = Object.assign((parts: TemplateStringsArray) => parts.join(""), {
+      raw: (value: string) => value,
+    });
+    const dbMock = {
+      query: {
+        silverCompanies: {
+          findFirst: vi.fn(async () => ({
+            id: "c1",
+            tenantId: "t1",
+            cui: "12345678",
+            cuiValidated: true,
+            codCaenPrincipal: "0111",
+            denumire: "Agro SRL",
+            adresa: "Str. Test",
+            localitate: "Braila",
+            judet: "BR",
+            metadata: {},
+          })),
+        },
+      },
+      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn(async () => undefined) })) })),
+    };
+
+    const add = vi.fn(async (_name: string, _payload: unknown) => undefined);
+    vi.doMock("@cerniq/db", () => ({
+      db: dbMock,
+      setSessionTenantId: vi.fn(async () => undefined),
+      silverCompanies: { id: "id" },
+      sql,
+    }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      getImportExecutionContext: vi.fn(() => null),
+      validateJobData: vi.fn(),
+      silverEnrichmentDurationSeconds: { observe: vi.fn() },
+      silverEnrichmentErrorsTotal: { inc: vi.fn() },
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
+    }));
+    vi.doMock("./pipeline-utils.js", () => ({ addQueueJob: add }));
+
+    const { pipelineOrchestratorProcessor } = await import("./p1-orchestrate.js");
+    await pipelineOrchestratorProcessor({
+      id: "j-agri",
+      data: {
+        tenantId: TENANT_ID,
+        companyId: COMPANY_ID,
+        stage: "post_validation",
+        correlationId: "corr-agri",
+      },
+    } as never);
+
+    const culturiCalls = add.mock.calls.filter((c) => c[0] === "agri:culturi");
+    expect(culturiCalls.length).toBe(1);
+    expect(culturiCalls[0]?.[1]).toMatchObject({
+      tenantId: TENANT_ID,
+      companyId: COMPANY_ID,
+      correlationId: "corr-agri",
+      codCaen: "0111",
+    });
   });
 });
 
@@ -138,6 +201,7 @@ describe("S4 integration - error handler replay", () => {
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
+      getImportExecutionContext: vi.fn(() => null),
       createQueue: vi.fn(() => ({
         add,
         close: vi.fn(async () => undefined),
@@ -235,6 +299,7 @@ describe("S4 integration - HITL resume worker", () => {
       patchCompanyMetadata,
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
+      getImportExecutionContext: vi.fn(() => null),
       validateJobData: vi.fn(),
       hitlTasksResolvedTotal: { inc: vi.fn() },
       hitlResolutionTimeSeconds: { observe: vi.fn() },

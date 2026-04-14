@@ -8,6 +8,7 @@ import {
   withCognitiveSpan,
 } from "@cerniq/worker-shared";
 import { createJobLogger } from "../lib/job-logger.js";
+import { buildCognitiveWorkerEventContext } from "../lib/execution-correlation.js";
 import { z } from "zod";
 import { addQueueJob } from "./pipeline-utils.js";
 
@@ -135,6 +136,13 @@ async function handlePostValidation(ctx: StageContext): Promise<string[]> {
   if (isAgricultural(company)) {
     await addQueueJob("agri:apia", basePayload);
     jobsTriggered.push("agri:apia");
+    await addQueueJob("agri:culturi", {
+      tenantId,
+      companyId,
+      correlationId,
+      codCaen: company.codCaenPrincipal ?? undefined,
+    });
+    jobsTriggered.push("agri:culturi");
   }
 
   // Always-run queues — website scraping and AI structuring
@@ -207,6 +215,11 @@ const stageHandlers: Record<
 // ---------------------------------------------------------------------------
 
 export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = async (job) => {
+  const spanCtx = buildCognitiveWorkerEventContext(
+    job.data.tenantId,
+    job.data.correlationId,
+    job.data,
+  );
   return withCognitiveSpan(
     "e1:pipeline:orchestrate",
     async (_span) => {
@@ -292,7 +305,7 @@ export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = asy
         throw error;
       }
     },
-    { tenantId: job.data.tenantId },
+    spanCtx,
   );
 };
 

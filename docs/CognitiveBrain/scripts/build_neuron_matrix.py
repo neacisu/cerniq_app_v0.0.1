@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Produce NEURON_MATRIX.csv și NEURON_MATRIX.md — un rând per bloc v2 §6 + catalog + registry + contract (metadata runtime)."""
+"""Produce NEURON_MATRIX.csv — un rând per bloc v2 (secțiunea 6) + catalog + registry + contract (metadata runtime).
+
+Documentarea cu «Scop în context real» / scop_rational: fișier editorial `docs/CognitiveBrain/NEURON_MATRIX.md` (nu este suprascris de acest script)."""
 from __future__ import annotations
 
 import csv
@@ -18,7 +20,6 @@ from neuron_code_evidence import CatalogEntry, load_catalog_index, reset_catalog
 ROOT = Path(__file__).resolve().parents[1]
 V2 = ROOT / "v2_cerniq_cognitive_brain_master_implementation_plan.md"
 OUT_CSV = ROOT / "NEURON_MATRIX.csv"
-OUT_MD = ROOT / "NEURON_MATRIX.md"
 REPO = ROOT.parent.parent
 REGISTRY = REPO / "workers" / "shared" / "src" / "queue-registry.ts"
 CATALOG = REPO / "packages" / "shared" / "src" / "cognitive-node-catalog.ts"
@@ -28,7 +29,8 @@ _METADATA_KEY_HINT = re.compile(
     re.I,
 )
 _NODEKEY_RE = re.compile(r"^e[1-5](?::[a-z0-9_-]+)+$", re.I)
-_QUEUEISH_RE = re.compile(r"^[a-zq][a-z\d_]*(?::[a-z\d_.-]+)+$", re.I)
+# Fără `\d` în aceeași clasă cu `a-z` (evită duplicate raportate de analizor pe clase).
+_QUEUEISH_RE = re.compile(r"^[a-z][a-z0-9_]*(?::[a-z0-9_.-]+)+$", re.I)
 
 
 def _metadata_body(md: str) -> str:
@@ -203,44 +205,6 @@ def _write_csv(rows: list[dict[str, str]]) -> None:
         w.writerows(rows)
 
 
-def _write_md(rows: list[dict[str, str]]) -> None:
-    md = [
-        "# NEURON_MATRIX",
-        "",
-        "Generat de `docs/CognitiveBrain/scripts/build_neuron_matrix.py`. Un rând per antet `### NEURON` din v2 §6.",
-        "",
-        f"- Rânduri: **{len(rows)}** (așteptat 324).",
-        "- `contract_path`: ținta unică per `(stage, slug)`; blocurile «duplicat #2» cu aceeași etapă și coadă împart fișierul.",
-        "- `catalog_nodekey_parsed`: nodeKey din catalog pentru `v2_queue` + cozi extrase din **Metadata** contract (rânduri runtime/coadă/cozi/mapare) + din rândul **Identitate canonică** (criteriul 1), dacă nu e gap «**Fără** coadă»; mai multe valori = `|`.",
-        "- `queue_in_registry`: `yes` dacă `v2_queue` **sau** vreo coadă extrasă din contract apare literal în `queue-registry.ts`.",
-        "",
-        "## Coloane",
-        "",
-        "| Coloană | Semnificație |",
-        "| --- | --- |",
-        "| v2_line | Linie aproximativă în v2 (antet NEURON) |",
-        "| v2_queue | Confirmed queue field / antet |",
-        "| contract_path | Fișier contract |",
-        "| catalog_nodekey_v2 | Câmp «Catalog nodeKey» din blocul v2 (dacă există) |",
-        "| catalog_nodekey_parsed | Rezolvare catalog + contract (vezi mai sus) |",
-        "| queue_in_registry | `yes` / `no` — v2 sau cozi din contract în registry |",
-        "",
-        "## Excerpt (primele 15 rânduri)",
-        "",
-    ]
-    excerpt_cols = ["v2_line", "v2_queue", "stage", "contract_path"]
-    excerpt = rows[:15]
-    if excerpt:
-        md.append("| " + " | ".join(excerpt_cols) + " |")
-        md.append("| " + " | ".join("---" for _ in excerpt_cols) + " |")
-        for r in excerpt:
-            md.append("| " + " | ".join(r[h] for h in excerpt_cols) + " |")
-    md.append("")
-    md.append("Fișier complet: [`NEURON_MATRIX.csv`](NEURON_MATRIX.csv).")
-    md.append("")
-    OUT_MD.write_text("\n".join(md), encoding="utf-8")
-
-
 def main() -> None:
     reset_catalog_cache()
     cat = load_catalog_index(CATALOG) if CATALOG.is_file() else {}
@@ -248,9 +212,8 @@ def main() -> None:
 
     rows, missing_contracts = build_matrix_rows(cat, reg_text)
     _write_csv(rows)
-    _write_md(rows)
 
-    print(f"Wrote {OUT_CSV} ({len(rows)} rows) and {OUT_MD}")
+    print(f"Wrote {OUT_CSV} ({len(rows)} rows)")
     if missing_contracts:
         print(f"WARNING: {len(missing_contracts)} contract paths missing on disk", file=sys.stderr)
         for p in missing_contracts[:20]:

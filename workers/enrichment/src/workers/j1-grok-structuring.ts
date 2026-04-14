@@ -1,25 +1,78 @@
 import type { Processor } from "bullmq";
 import { createHash } from "node:crypto";
 import { createServiceLogger, enrichError } from "@cerniq/observability";
-import { INFRAQ_REASONING_MODEL, withCognitiveSpan } from "@cerniq/worker-shared";
+import {
+  INFRAQ_REASONING_MODEL,
+  cognitiveAiStructureLlmSeconds,
+  cognitiveAiStructureOutcomeTotal,
+  emitCognitiveEvent,
+  withCognitiveSpan,
+} from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
 import { sanitizeCui, validateCuiModulo11 } from "../lib/cui-validation.js";
 import { infraqStructuredJson } from "../lib/infraq-structured-json.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
+import { buildCognitiveWorkerEventContext } from "../lib/execution-correlation.js";
 
 const svcLog = createServiceLogger("j1-grok-structuring", { etapa: "e1" });
+
+const J1_STRUCTURE_NODE_KEY = "e1:ai:structure-xai" as const;
+
+/** Faze granulare pentru SSE / `cognitive_events` (aliniat §5B plan E1). */
+function j1EmitProcessingPhase(
+  ctx: ReturnType<typeof buildCognitiveWorkerEventContext>,
+  phase: string,
+  data: Record<string, unknown> = {},
+): void {
+  if (!ctx.tenantId) return;
+  void emitCognitiveEvent(
+    J1_STRUCTURE_NODE_KEY,
+    {
+      eventType: `phase_${phase}`,
+      data: {
+        phase,
+        worker: "J1:grok-structuring",
+        ...data,
+      },
+    },
+    ctx,
+  ).catch(() => undefined);
+}
 
 function promptPrefixSha256(prompt: string): string {
   return createHash("sha256").update(prompt.slice(0, 500), "utf8").digest("hex");
 }
 
+/** Payload canonic cu snapshot brut pentru LLM. */
 export type GrokStructuringJobData = {
   tenantId: string;
   companyId: string;
-  rawData: Record<string, unknown>;
   correlationId?: string;
+  /** Dacă e setat, este trimis direct la LLM. */
+  rawData?: Record<string, unknown>;
+  /** Câmpuri plate din P1 (`basePayload`) — folosite când `rawData` lipsește. */
+  cui?: string | null;
+  adresa?: string | null;
+  localitate?: string | null;
 };
+
+const META_KEYS = new Set(["tenantId", "companyId", "correlationId", "rawData"]);
+
+/** Rezolvă obiectul „brut” pentru prompt: `rawData` sau restul payload-ului fără meta-câmpuri. */
+export function resolveGrokStructuringRawData(
+  data: GrokStructuringJobData,
+): Record<string, unknown> {
+  if (data.rawData && typeof data.rawData === "object" && !Array.isArray(data.rawData)) {
+    return data.rawData;
+  }
+  const rest: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+    if (META_KEYS.has(k)) continue;
+    if (v !== undefined) rest[k] = v;
+  }
+  return rest;
+}
 
 async function routeJ1StructuringToHitl(
   job: GrokStructuringJobData,
@@ -40,7 +93,7 @@ async function routeJ1StructuringToHitl(
     aiRecommendation: confidence >= 0.6 ? "review" : "reject",
     aiReasoning: JSON.stringify({ cuiValidation }),
     urgency: "medium",
-    metadata: { rawData: job.rawData, structured, cuiValidation },
+    metadata: { rawData: resolveGrokStructuringRawData(job), structured, cuiValidation },
     expiresInHours: 48,
   });
   log.info("ai", "Structurare HITL", {
@@ -48,6 +101,7 @@ async function routeJ1StructuringToHitl(
     latencyMs: Date.now() - startedAt,
     confidenceScore: confidence,
   });
+  cognitiveAiStructureOutcomeTotal.inc({ outcome: "hitl" });
   return { ok: true, status: "hitl_required", confidence };
 }
 
@@ -92,7 +146,7 @@ async function applyJ1StructuredDataToSilver(
     entityId: job.companyId,
     source: "ai_structuring",
     operation: "structure",
-    requestPayload: { rawData: job.rawData },
+    requestPayload: { rawData: resolveGrokStructuringRawData(job) },
     responsePayload: structured,
     fieldsUpdated: [
       "denumire",
@@ -116,12 +170,19 @@ async function applyJ1StructuredDataToSilver(
     latencyMs: Date.now() - startedAt,
     confidenceScore: confidence,
   });
+  cognitiveAiStructureOutcomeTotal.inc({ outcome: "auto_applied" });
   return { ok: true, status: "success", confidence };
 }
 
 export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async (job) => {
+  const rawData = resolveGrokStructuringRawData(job.data);
+  const spanCtx = buildCognitiveWorkerEventContext(
+    job.data.tenantId,
+    job.data.correlationId,
+    job.data,
+  );
   return withCognitiveSpan(
-    "e1:ai:structure-infraq",
+    "e1:ai:structure-xai",
     async (_span) => {
       const startedAt = Date.now();
       const log = createJobLogger({
@@ -145,21 +206,51 @@ export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async
         const systemPrompt =
           "Esti expert in structurarea datelor business din Romania. Returneaza strict JSON valid, fara text extra.";
         userPrompt = `Normalizeaza urmatorul payload brut de companie:\n${JSON.stringify(
-          job.data.rawData,
+          rawData,
           null,
           2,
         )}\nSchema JSON dorita: {"denumire":"","cui":"","adresa":"","localitate":"","judet":"","email":"","telefon":"","website":"","cod_caen_principal":"","is_agricol":false,"confidence":0.0}`;
 
+        j1EmitProcessingPhase(spanCtx, "llm_request", {
+          jobId: String(job.id ?? ""),
+          progress: 10,
+          model: INFRAQ_REASONING_MODEL,
+        });
+        const llmStarted = Date.now();
         const structured = await infraqStructuredJson(systemPrompt, userPrompt);
+        const llmMs = Date.now() - llmStarted;
+        cognitiveAiStructureLlmSeconds.observe(llmMs / 1000);
+        j1EmitProcessingPhase(spanCtx, "llm_response", {
+          jobId: String(job.id ?? ""),
+          progress: 40,
+          latencyMs: llmMs,
+        });
         const confidence = Number(structured.confidence ?? 0.5);
         const cleanedCui = sanitizeCui(String(structured.cui ?? ""));
         const cuiValidation = cleanedCui ? validateCuiModulo11(cleanedCui) : null;
 
         const canAutoApply =
           confidence >= 0.7 && (!cleanedCui || (cuiValidation?.isValid ?? false));
+        const jobDataForPersistence: GrokStructuringJobData = {
+          ...job.data,
+          rawData: Object.keys(rawData).length > 0 ? rawData : job.data.rawData,
+        };
+
+        j1EmitProcessingPhase(spanCtx, "validate_schema", {
+          jobId: String(job.id ?? ""),
+          progress: 60,
+          canAutoApply,
+          confidence,
+          cuiValid: cleanedCui ? (cuiValidation?.isValid ?? false) : true,
+        });
+
         if (!canAutoApply) {
+          j1EmitProcessingPhase(spanCtx, "hitl_queued", {
+            jobId: String(job.id ?? ""),
+            progress: 75,
+          });
           return await routeJ1StructuringToHitl(
-            job.data,
+            jobDataForPersistence,
             log,
             structured,
             confidence,
@@ -168,8 +259,12 @@ export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async
           );
         }
 
+        j1EmitProcessingPhase(spanCtx, "silver_write", {
+          jobId: String(job.id ?? ""),
+          progress: 90,
+        });
         return await applyJ1StructuredDataToSilver(
-          job.data,
+          jobDataForPersistence,
           log,
           String(job.id ?? ""),
           structured,
@@ -178,6 +273,7 @@ export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async
           startedAt,
         );
       } catch (error) {
+        cognitiveAiStructureOutcomeTotal.inc({ outcome: "error" });
         log.error(
           "fatal",
           `AI structuring eșuat: ${error instanceof Error ? error.message : String(error)}`,
@@ -194,6 +290,6 @@ export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async
         throw error;
       }
     },
-    { tenantId: job.data.tenantId },
+    spanCtx,
   );
 };

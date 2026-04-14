@@ -54,6 +54,12 @@ Muchia **`default`** plasează traseul **enrich-ai-contact-parse** sub agregatul
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
 - **Graf vs runtime:** eticheta `enrich:ai:contact-parse` **nu** implică automat un worker cu același nume — vezi contract neuron.
 
+## Reconciliere runtime (dovadă cod, 2026-04-14)
+
+- **Coadă executabilă:** `ai:structure:xai` → `grokStructuringProcessor` (`workers/enrichment/src/workers/j1-grok-structuring.ts`).
+- **Enqueue:** `p1-orchestrate.ts` (`handlePostValidation`) trimite `basePayload`; J1 acceptă `rawData` sau câmpuri plate (vezi `resolveGrokStructuringRawData`).
+- **OTel:** span `cognitive:e1:ai:structure-xai`; evenimente cognitive cu `batchId` când `correlationId` este UUID valid pentru contractul `emitCognitiveEvent` (`buildCognitiveWorkerEventContext`).
+
 ## Sursă canonică
 
 - [`../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — §7, bloc `SYNAPSE \`enrich-ai-contact-parse-family\``.

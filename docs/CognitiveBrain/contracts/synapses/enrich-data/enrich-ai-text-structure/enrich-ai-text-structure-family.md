@@ -52,7 +52,13 @@ Muchia **`default`** plasează traseul **enrich-ai-text-structure** sub agregatu
 ## Limite și reconcilieri
 
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
-- **Export-grounded:** nu afirma că `enrich-ai-text-structure` **este** `ai:structure:xai` fără ADR/mapare formală — vezi contract neuron.
+- **Export-grounded:** potrivirea semantică cu `ai:structure:xai` este documentată în contract neuron și ADR `ai-enrichment.md`; eticheta graf ≠ string coadă.
+
+## Reconciliere runtime (dovadă cod, 2026-04-14)
+
+- **Coadă:** `ai:structure:xai` → J1; `nodeKey` OTel **`e1:ai:structure-xai`**.
+- **Payload:** `rawData` sau câmpuri plate din P1 (`resolveGrokStructuringRawData`).
+- **Matrice CSV `e1:ai:structure-infraq`:** tratat ca alias documentar către același procesor — vezi ADR.
 
 ## Sursă canonică
 
