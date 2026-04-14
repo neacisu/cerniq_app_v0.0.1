@@ -1,9 +1,54 @@
 # Sinapsă `q-wa-phone-email-cold-campaign-create`
 
-> **Status:** placeholder — textul canonic complet este în `docs/cerniq_cognitive_brain_master_implementation_plan.md`, secțiunea *Complete synapse contract register*.
+## Identitate
 
 | Câmp | Valoare |
 | --- | --- |
 | Identificator sinapsă | `q-wa-phone-email-cold-campaign-create` |
+| Cale contract | `docs/CognitiveBrain/contracts/synapses/channels-outreach/q-wa-phone/q-wa-phone-email-cold-campaign-create.md` |
+| Areal sinaptic | `channels-outreach` |
+| Traseu sinaptic | `q-wa-phone` |
 
-Completează sursă, țintă, tip muchie, descriere și statusuri (payload, retry, siguranță, telemetrie) din planul master.
+## Capete (export graf planificat)
+
+| Rol | Nod în export | Mapare runtime și contracte |
+| --- | --- | --- |
+| Sursă | `q-wa-phone` | **Contract:** [`../../../neurons/E2/q--wa--phone_.md`](../../../neurons/E2/q--wa--phone_.md). **Runtime:** cozi `q:wa:phone-NN` — vezi contract. |
+| Destinație (graf) | `email-cold-campaign-create` | **Contract:** [`../../../neurons/E2/email--cold--campaign--create.md`](../../../neurons/E2/email--cold--campaign--create.md). **Semantic (ADR-0002):** `e2:email:cold-campaign-create`. |
+
+## Tip muchie (export)
+
+- **Export edge type:** `dependency`
+
+## Scop muchie (export-grounded)
+
+Traseul **WA generic** depinde în planificare de **crearea campaniei cold email** (structură de outreach multi-canal). v2: **„sinapsă canonică de pipeline”**; exportul nu descrie furnizor campanie sau parametri.
+
+## Semantica confirmată (registru v2 §7)
+
+- **Descriere confirmată:** sinapsă canonică de pipeline
+- **Nivel evidență:** graph-export exact field match.
+
+## Statusuri de evidență (conservative, din sursă canonică)
+
+| Domeniu | Status |
+| --- | --- |
+| Payload schema | Exportul curent **nu** encodează schemă de payload pentru această muchie. |
+| Retry policy | Exportul curent **nu** encodează politică de retry pentru această muchie. |
+| Safety class | Exportul curent **nu** encodează clasă de siguranță pentru această muchie. |
+| Telemetrie | Exportul dovedește existența structurală în graful de planificare; **nu** dovedește singur telemetrie completă per-muchie în ramura rulată. |
+| Contract evidence | Export-grounded, conservative, non-inventive. |
+
+## Mapare neuroni și triplă autoritate
+
+- **Runtime (ADR-0001):** vezi contract neuron pentru coada efectivă a operației „campaign create”.
+- **Semantic (ADR-0002):** orchestrare outreach: WA planificat înainte sau în paralel cu definirea campaniei email — sensul exact al ordinii este doar cel structural din graf.
+- **Planificare:** v2 §7 — `q-wa-phone` → `email-cold-campaign-create`.
+
+## Limite și reconcilieri
+
+- Dependența din export **nu** implică automat că un job WA blochează crearea campaniei în runtime — doar că planificatorul le ordonează în model.
+
+## Sursă canonică
+
+- [`../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — §7, bloc `SYNAPSE \`q-wa-phone-email-cold-campaign-create\``.

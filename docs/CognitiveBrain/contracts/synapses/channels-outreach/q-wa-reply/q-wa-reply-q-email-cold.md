@@ -1,9 +1,54 @@
 # Sinapsă `q-wa-reply-q-email-cold`
 
-> **Status:** placeholder — textul canonic complet este în `docs/cerniq_cognitive_brain_master_implementation_plan.md`, secțiunea *Complete synapse contract register*.
+## Identitate
 
 | Câmp | Valoare |
 | --- | --- |
 | Identificator sinapsă | `q-wa-reply-q-email-cold` |
+| Cale contract | `docs/CognitiveBrain/contracts/synapses/channels-outreach/q-wa-reply/q-wa-reply-q-email-cold.md` |
+| Areal sinaptic | `channels-outreach` |
+| Traseu sinaptic | `q-wa-reply` |
 
-Completează sursă, țintă, tip muchie, descriere și statusuri (payload, retry, siguranță, telemetrie) din planul master.
+## Capete (export graf planificat)
+
+| Rol | Nod în export | Mapare runtime și contracte |
+| --- | --- | --- |
+| Sursă | `q-wa-reply` | **Contract:** [`../../../neurons/E2/q--wa--reply.md`](../../../neurons/E2/q--wa--reply.md). **Runtime:** `q:wa:reply` — vezi contract neuron. |
+| Destinație (graf) | `q-email-cold` | **Contract:** [`../../../neurons/E2/q--email--cold.md`](../../../neurons/E2/q--email--cold.md). **Runtime (ADR-0001):** `q:email:cold`. |
+
+## Tip muchie (export)
+
+- **Export edge type:** `dependency`
+
+## Scop muchie (export-grounded)
+
+**Traseul `q-wa-reply`** depinde în planificare de **coada email cold**. v2: **„sinapsă canonică de pipeline”**; exportul nu descrie apeluri încrucișate între job-uri.
+
+## Semantica confirmată (registru v2 §7)
+
+- **Descriere confirmată:** sinapsă canonică de pipeline
+- **Nivel evidență:** graph-export exact field match.
+
+## Statusuri de evidență (conservative, din sursă canonică)
+
+| Domeniu | Status |
+| --- | --- |
+| Payload schema | Exportul curent **nu** encodează schemă de payload pentru această muchie. |
+| Retry policy | Exportul curent **nu** encodează politică de retry pentru această muchie. |
+| Safety class | Exportul curent **nu** encodează clasă de siguranță pentru această muchie. |
+| Telemetrie | Exportul dovedește existența structurală în graful de planificare; **nu** dovedește singur telemetrie completă per-muchie în ramura rulată. |
+| Contract evidence | Export-grounded, conservative, non-inventive. |
+
+## Mapare neuroni și triplă autoritate
+
+- **Runtime (ADR-0001):** cozi distincte în registry.
+- **Semantic (ADR-0002):** vezi contracte.
+- **Planificare:** dependență declarativă.
+
+## Limite și reconcilieri
+
+- Muchia este structurală.
+
+## Sursă canonică
+
+- [`../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — §7, bloc `SYNAPSE \`q-wa-reply-q-email-cold\``.
