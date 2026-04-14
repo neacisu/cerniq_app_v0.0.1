@@ -1,9 +1,53 @@
 # Sinapsă `referral-neighbor-approach-wa-send-reply`
 
-> **Status:** placeholder — textul canonic complet este în `docs/cerniq_cognitive_brain_master_implementation_plan.md`, secțiunea *Complete synapse contract register*.
+## Identitate
 
 | Câmp | Valoare |
 | --- | --- |
 | Identificator sinapsă | `referral-neighbor-approach-wa-send-reply` |
+| Cale contract | `docs/CognitiveBrain/contracts/synapses/lifecycle-growth/referral-neighbor-approach/referral-neighbor-approach-wa-send-reply.md` |
+| Areal sinaptic | `lifecycle-growth` |
+| Traseu sinaptic | `referral-neighbor-approach` |
 
-Completează sursă, țintă, tip muchie, descriere și statusuri (payload, retry, siguranță, telemetrie) din planul master.
+## Capete (export graf planificat)
+
+| Rol | Nod în export | Mapare runtime și contracte |
+| --- | --- | --- |
+| Sursă | `referral-neighbor-approach` | **Contract:** [`../../../neurons/E5/referral--neighbor--approach.md`](../../../neurons/E5/referral--neighbor--approach.md). |
+| Destinație (graf) | `wa-send-reply` | **Contract:** [`../../../neurons/E5/wa--send--reply.md`](../../../neurons/E5/wa--send--reply.md). |
+
+## Tip muchie (export)
+
+- **Export edge type:** `dependency`
+
+## Scop muchie (export-grounded)
+
+În planificare, traseul **referral-neighbor-approach** are dependență sintactică față de **wa-send-reply**. v2: **„sinapsă canonică de pipeline”**; exportul **nu** fixează payload sau ordinea operațională între job-uri.
+
+## Semantica confirmată (registru v2 §7)
+
+- **Descriere confirmată:** sinapsă canonică de pipeline
+- **Nivel evidență:** graph-export exact field match.
+
+## Statusuri de evidență (conservative, din sursă canonică)
+
+| Domeniu | Status |
+| --- | --- |
+| Payload schema | Exportul curent **nu** encodează schemă de payload pentru această muchie. |
+| Retry policy | Exportul curent **nu** encodează politică de retry pentru această muchie. |
+| Safety class | Exportul curent **nu** encodează clasă de siguranță pentru această muchie. |
+| Telemetrie | Exportul dovedește existența structurală în graful de planificare; **nu** dovedește singur telemetrie completă per-muchie în ramura rulată. |
+| Contract evidence | Export-grounded, conservative, non-inventive. |
+
+## Mapare neuroni și triplă autoritate
+
+- **Planificare:** v2 §7 — `referral-neighbor-approach` → `wa-send-reply`.
+- **Runtime / semantic:** E5 vs E2 — vezi [`../../../neurons/E2/wa--send--reply.md`](../../../neurons/E2/wa--send--reply.md).
+
+## Limite și reconcilieri
+
+- **Sursă:** gap traseu — vezi neuron.
+
+## Sursă canonică
+
+- [`../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md`](../../../../v2_cerniq_cognitive_brain_master_implementation_plan.md) — §7, bloc `SYNAPSE \`referral-neighbor-approach-wa-send-reply\``.
