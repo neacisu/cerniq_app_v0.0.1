@@ -4,6 +4,8 @@ Generat de `docs/CognitiveBrain/scripts/build_neuron_matrix.py`. Un rând per an
 
 - Rânduri: **324** (așteptat 324).
 - `contract_path`: ținta unică per `(stage, slug)`; blocurile «duplicat #2» cu aceeași etapă și coadă împart fișierul.
+- `catalog_nodekey_parsed`: nodeKey din catalog pentru `v2_queue` + cozi extrase din **Metadata** contract (rânduri runtime/coadă/cozi/mapare) + din rândul **Identitate canonică** (criteriul 1), dacă nu e gap «**Fără** coadă»; mai multe valori = `|`.
+- `queue_in_registry`: `yes` dacă `v2_queue` **sau** vreo coadă extrasă din contract apare literal în `queue-registry.ts`.
 
 ## Coloane
 
@@ -12,7 +14,9 @@ Generat de `docs/CognitiveBrain/scripts/build_neuron_matrix.py`. Un rând per an
 | v2_line | Linie aproximativă în v2 (antet NEURON) |
 | v2_queue | Confirmed queue field / antet |
 | contract_path | Fișier contract |
-| queue_in_registry | `yes` / `no` (căutare literală în queue-registry.ts) |
+| catalog_nodekey_v2 | Câmp «Catalog nodeKey» din blocul v2 (dacă există) |
+| catalog_nodekey_parsed | Rezolvare catalog + contract (vezi mai sus) |
+| queue_in_registry | `yes` / `no` — v2 sau cozi din contract în registry |
 
 ## Excerpt (primele 15 rânduri)
 

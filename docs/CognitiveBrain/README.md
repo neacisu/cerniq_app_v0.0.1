@@ -18,6 +18,9 @@ Acest director descompune conținutul din planul master într-o structură de co
 | [`overview/`](overview/) | §0–2, §8–9: dovezi, baseline factual, direcție arhitecturală, reconciliere runtime/graf, consecințe imediate. |
 | [`adr/global/`](adr/global/) | ADR-0001 … ADR-0008 — fișiere **complete** (2026-04-11), ancorate în v2 §3, cu dovezi repo + surse externe datate unde e cazul. |
 | [`adr/families/`](adr/families/) | 52 × ADR-FAMILY pe etapă (E1–E5). **E1–E5:** fișierele din [`adr/families/e1/`](adr/families/e1/) … [`e5/`](adr/families/e5/) sunt ADR-uri complete de documentare (2026-04-11), cu dovezi din [`queue-registry.ts`](../../workers/shared/src/queue-registry.ts) și [`cognitive-node-catalog.ts`](../../packages/shared/src/cognitive-node-catalog.ts), reconciliere față de **v2** și limite de evidență. |
+| [`governance/`](governance/) | Clase de sinapse și reguli tranzitorii (§5). |
+| [`contracts/neurons/`](contracts/neurons/) | **322** fișiere contract (pereche unică etapă + coadă v2 §6) + schema [`_CONTRACT_SCHEMA.md`](contracts/neurons/_CONTRACT_SCHEMA.md); **324** intrări `### NEURON` în v2 (două cozi au câte două instanțe în același fișier: `ai:intent:classify`, `hitl:task:resolve`). |
+| [`contracts/synapses/`](contracts/synapses/) | **2305** contracte sinapsă (registru §7), structură **areal sinaptic → traseu sinaptic → fișier** (+ `graph-plan/{stage,familyflow,cross}`): [`contracts/synapses/README.md`](contracts/synapses/README.md). |
 
 ## ADR-uri globale (0001–0008)
 
@@ -49,15 +52,18 @@ Acest director descompune conținutul din planul master într-o structură de co
 
 Înainte de a considera un ADR global «închis», verificați: **(1)** fiecare afirmație despre cozi/API/OTel are fișier citit sau `grep` relevant; **(2)** faptele externe (versiuni, spec) au URL + dată (≥ aprilie 2026); **(3)** există paragraf **Limită evidență**; **(4)** distincție clară între **recomandare v2/research** și **implementat în repo**; **(5)** contradicții v2 vs cod tabelate, nu ignorate. Canon extins: [plan-task-execution.mdc](../../.cursor/rules/plan-task-execution.mdc), [anti-hallucination-global.mdc](../../.cursor/rules/anti-hallucination-global.mdc).
 
-| [`governance/`](governance/) | Clase de sinapse și reguli tranzitorii (§5). |
-| [`contracts/neurons/`](contracts/neurons/) | **322** fișiere contract (pereche unică etapă + coadă v2 §6) + schema [`_CONTRACT_SCHEMA.md`](contracts/neurons/_CONTRACT_SCHEMA.md); **324** intrări `### NEURON` în v2 (două cozi au câte două instanțe în același fișier: `ai:intent:classify`, `hitl:task:resolve`). |
-| [`contracts/synapses/`](contracts/synapses/) | Un fișier placeholder per sinapsă din registrul §7. |
-
 ## Matrice neuron (v2 §6 × registry × catalog)
 
 - [`NEURON_MATRIX.csv`](NEURON_MATRIX.csv) — câte un rând per antet `### NEURON` (324 rânduri).
 - [`NEURON_MATRIX.md`](NEURON_MATRIX.md) — sumar + excerpt.
 - Generator: `python3 docs/CognitiveBrain/scripts/build_neuron_matrix.py`
+
+## Matrice sinapsă (structură contracte × registru §7)
+
+- [`SYNAPSE_MATRIX.csv`](SYNAPSE_MATRIX.csv) — câte un rând per fișier contract sinapsă (**2305** rânduri).
+- [`SYNAPSE_MATRIX.md`](SYNAPSE_MATRIX.md) — structura directoarelor, rezumat pe bucket, catalog areale / trasee sinaptice.
+- Generator: `python3 docs/CognitiveBrain/scripts/build_synapse_matrix.py`
+- Migrare în subdirectoare (idempotent, în ordine): `python3 docs/CognitiveBrain/scripts/migrate_synapse_contracts_to_family_dirs.py` apoi `python3 docs/CognitiveBrain/scripts/migrate_synapse_areal_layout.py`
 
 ## Regenerare contracte neuron/sinapsă
 

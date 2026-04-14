@@ -36,11 +36,11 @@ Research-ul și planul converg spre **OpenTelemetry** ca fundație de telemetrie
 ## Structură directoare și regenerare
 
 - **`neurons/E1` … `neurons/E5`** — **322** fișiere `.md` per pereche unică **(etapă, coadă v2 §6)**; **324** intrări `### NEURON` în v2 (două fișiere conțin câte **două** instanțe v2: `E2/ai--intent--classify.md`, `E4/hitl--task--resolve.md`). Schema: [`neurons/_CONTRACT_SCHEMA.md`](neurons/_CONTRACT_SCHEMA.md). Matrice: [`../NEURON_MATRIX.csv`](../NEURON_MATRIX.csv).
-- **`synapses/`** — câte un fișier `.md` per identificator de sinapsă din registrul §7 (2305 total).
+- **`synapses/`** — câte un fișier `.md` per identificator de sinapsă din registrul §7 (**2305** total), ierarhie **areal sinaptic → traseu sinaptic → fișier** (+ `graph-plan/` pentru topologie plan): vezi [`synapses/README.md`](synapses/README.md). Matrice index: [`../SYNAPSE_MATRIX.csv`](../SYNAPSE_MATRIX.csv), [`../SYNAPSE_MATRIX.md`](../SYNAPSE_MATRIX.md); regenerare index: `python3 docs/CognitiveBrain/scripts/build_synapse_matrix.py`.
 
 Numele fișierelor folosesc slug-uri sigure (ex. `:` → `--` în numele cozii).
 
-Regenerare contracte self-aware din v2: `python3 docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py --force --prune-orphans`. Placeholder-e simple: `python3 docs/CognitiveBrain/_generate_placeholders.py` (vezi `--force-neurons`, `--refresh-family-placeholders`). Matrice: `python3 docs/CognitiveBrain/scripts/build_neuron_matrix.py`.
+Regenerare contracte self-aware din v2: `python3 docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py --force --prune-orphans`. Placeholder-e simple: `python3 docs/CognitiveBrain/_generate_placeholders.py` (vezi `--force-neurons`, `--refresh-family-placeholders`). Matrice neuroni: `python3 docs/CognitiveBrain/scripts/build_neuron_matrix.py`.
 
 Migrare registry: [`../migration/wave1-registry-catalog.md`](../migration/wave1-registry-catalog.md).
 
