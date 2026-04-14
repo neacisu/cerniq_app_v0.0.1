@@ -41,7 +41,7 @@ Inițiere campanie winback (strategie pe revenue), persistență pași, pornire 
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | `enroll` graf vs `create` registry. | v2 L9146. | ADR winback L34. |
 | 2 | Etapă, familie, swimlane | Catalog: `winback-campaigns`. | v2 E5 `winback`. | — |

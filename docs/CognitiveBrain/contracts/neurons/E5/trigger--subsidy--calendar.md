@@ -43,7 +43,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Runtime: `alerts:apia:seasonal`. Graf: `trigger:subsidy:calendar`. | v2 L7548. | Două denumiri pentru același rol operațional. |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 5, swimlane `alerts-weather`. | v2 E5 `alerts`. | Swimlane diferită între catalog și etichetă familie graf. |

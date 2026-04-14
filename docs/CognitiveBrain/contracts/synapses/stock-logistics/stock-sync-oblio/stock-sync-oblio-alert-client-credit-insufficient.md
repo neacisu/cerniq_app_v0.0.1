@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-oblio` → `alert-client-credit-insufficient`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; țintă `alert:client:credit-insufficient` la **L179**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; **Destinație (coadă):** `alert:client:credit-insufficient` la **L179**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

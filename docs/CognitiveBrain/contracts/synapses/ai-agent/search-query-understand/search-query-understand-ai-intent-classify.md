@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-intent-classify` | [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md). **Runtime:** în `queue-registry.ts` există `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify` (L323); Matrix leagă și `e2:ai:intent-classify` — reconciliere etapă/cod în contractul neuron. |
+| Destinație (graf) | `ai-intent-classify` | [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md). **Runtime:** în `queue-registry.ts` există `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify` (L323); Matrix leagă și `e2:ai:intent-classify` — reconciliere etapă/cod în contractul neuron. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `search:query:rewrite`; țintă — coadă `intent:classify` (constantă E3 în registry; vezi comentariu J în `queue-registry.ts` L155).
+- **Runtime (ADR-0001):** sursă `search:query:rewrite`; destinație — coadă `intent:classify` (constantă E3 în registry; vezi comentariu J în `queue-registry.ts` L155).
 - **Semantic (ADR-0002):** contract neuron E2 + intrări catalog/Matrix pentru `e2:ai:intent-classify` / legături E3.
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-intent-classify`.
 

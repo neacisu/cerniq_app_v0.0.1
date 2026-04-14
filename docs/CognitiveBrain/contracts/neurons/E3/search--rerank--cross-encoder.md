@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**v2** (L5740–5760): reranking cu cross-encoder; **Contract evidence status** indică neconciliere cu registry. **Repo:** neimplementat ca atare; poziționare în pipeline rămâne **doar țintă arhitecturală** față de B10 (RRF ponderat vector/BM25).
+**v2** (L5740–5760): reranking cu cross-encoder; **Contract evidence status** indică neconciliere cu registry. **Repo:** neimplementat ca atare; poziționare în pipeline rămâne **doar destinație arhitecturală** față de B10 (RRF ponderat vector/BM25).
 
 ## Surse audit
 
@@ -56,7 +56,7 @@
 
 - **v2:** `cognitive.search.rerank.cross-encoder`.
 - **Cod:** **nu sunt emise** — fără `withCognitiveSpan` asociat acestui `nodeKey`.
-- **Stare:** **doar țintă documentară** în v2; reconciliere necesară la introducerea cozii / catalogului.
+- **Stare:** **doar destinație documentară** în v2; reconciliere necesară la introducerea cozii / catalogului.
 
 ---
 *Generator inițial:* înlocuit prin audit manual.

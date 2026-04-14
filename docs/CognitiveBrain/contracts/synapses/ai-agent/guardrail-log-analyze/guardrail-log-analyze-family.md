@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Planificare:** traseu în graf. **Matrix:** rând `guardrail:log:analyze` (E3, `guardrails`) → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Evidență repo:** la auditul din contractul neuron, **lipsesc** procesor BullMQ și literal **`guardrail:log:analyze`** în `queue-registry.ts`; **necesită reconciliere graf ↔ registry** înainte de a interpreta sursa ca execuție canonică pe această coadă. |
-| Țintă | `e3-guardrails` | Nod **agregat** de planificare pentru familia guardrail E3; nu este o coadă în registry. Vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
+| Destinație (graf) | `e3-guardrails` | Nod **agregat** de planificare pentru familia guardrail E3; nu este o coadă în registry. Vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
 
 ## Tip muchie (export)
 

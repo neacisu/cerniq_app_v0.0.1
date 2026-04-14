@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-trigger-subsidy` → `hitl-task-nps-followup`.
-- **Runtime:** sursă — vezi `winback--trigger--subsidy.md`; țintă — `hitl--task--nps-followup.md`.
+- **Runtime:** sursă — vezi `winback--trigger--subsidy.md`; destinație — `hitl--task--nps-followup.md`.
 
 ## Limite și reconcilieri
 
-- Noduri HITL: verificare registry/catalog în contractul țintă.
+- Noduri HITL: verificare registry/catalog în contractul destinație.
 
 ## Sursă canonică
 

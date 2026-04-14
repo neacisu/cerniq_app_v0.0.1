@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `monitor-phone-health` | Coadă executabilă **`monitor:phone:health`** (`QUEUES.MONITOR_PHONE_HEALTH`) — [`../../../neurons/E2/monitor--phone--health.md`](../../../neurons/E2/monitor--phone--health.md).  |
+| Destinație (graf) | `monitor-phone-health` | Coadă executabilă **`monitor:phone:health`** (`QUEUES.MONITOR_PHONE_HEALTH`) — [`../../../neurons/E2/monitor--phone--health.md`](../../../neurons/E2/monitor--phone--health.md).  |
 
 ## Tip muchie (export)
 

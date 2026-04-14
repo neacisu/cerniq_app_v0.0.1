@@ -41,7 +41,7 @@ Traseul **contract-sign-request** depinde în planificare de **inițierea returu
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** E4 logistică.
 - **Planificare:** v2 §7 — `contract-sign-request` → `sameday-return-initiate`.
 

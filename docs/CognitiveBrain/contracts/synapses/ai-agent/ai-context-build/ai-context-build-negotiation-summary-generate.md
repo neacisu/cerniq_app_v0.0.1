@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia de tip **dependency** leagă în planificare traseul `ai-context-build` de `negotiation-summary-generate`. v2 descrie sinapsa tot ca **„sinapsă canonică de pipeline”**, fără detalii de date. Din perspectivă business (declarativă), se exprimă intenția ca asamblarea contextului AI să preceadă sau să fie ordonată canonic față de generarea rezumatului de negociere; **fără** a afirma din export forma payloadului sau existența unui handler înregistrat pentruțintă.
+Muchia de tip **dependency** leagă în planificare traseul `ai-context-build` de `negotiation-summary-generate`. v2 descrie sinapsa tot ca **„sinapsă canonică de pipeline”**, fără detalii de date. Din perspectivă business (declarativă), se exprimă intenția ca asamblarea contextului AI să preceadă sau să fie ordonată canonic față de generarea rezumatului de negociere; **fără** a afirma din export forma payloadului sau existența unui handler înregistrat pentru destinație.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -41,8 +41,8 @@ Muchia de tip **dependency** leagă în planificare traseul `ai-context-build` d
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursa este executabilă în registry; ținta **nu** este dovedită în `queue-registry.ts` la audit — vezi contractul neuron țintă.
-- **Semantic (ADR-0002):** pentru sursă, `ai:context:build` există în catalog; pentru țintă, **lipsă** în catalog la audit — aliniere la contractul neuron și la limita declarată acolo.
+- **Runtime (ADR-0001):** sursa este executabilă în registry; ținta **nu** este dovedită în `queue-registry.ts` la audit — vezi contractul neuron destinație.
+- **Semantic (ADR-0002):** pentru sursă, `ai:context:build` există în catalog; pentru destinație, **lipsă** în catalog la audit — aliniere la contractul neuron și la limita declarată acolo.
 - **Planificare:** dependență declarată în graf între construirea contextului AI și generarea rezumatului de negociere.
 
 ## Limite și reconcilieri

@@ -41,7 +41,7 @@ Traseul **WA generic** depinde în planificare de **actualizare / citire status 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** integrare date lead între WA și cold email.
 - **Planificare:** v2 §7 — `q-wa-phone` → `email-cold-lead-status`.
 

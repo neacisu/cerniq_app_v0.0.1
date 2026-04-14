@@ -41,13 +41,13 @@ Traseul **credit-release-order** depinde în planificare de **cererea de semnare
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** credit E4 ↔ semnătură E4.
 - **Planificare:** v2 §7 — `credit-release-order` → `contract-sign-request`.
 
 ## Limite și reconcilieri
 
-- Detaliile semnăturii sunt în contractul neuron țintă, nu în sinapsă.
+- Detaliile semnăturii sunt în contractul neuron destinație, nu în sinapsă.
 
 ## Sursă canonică
 

@@ -41,13 +41,13 @@ Traseul **verificare credit la comandă** depinde în planificare de **traseul v
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** D19 sursă vs G35 țintă — registre separate; vezi contracte.
+- **Runtime (ADR-0001):** D19 sursă vs G35 destinație — registre separate; vezi contracte.
 - **Semantic (ADR-0002):** credit E4 ↔ contract status poll E4.
 - **Planificare:** v2 §7 — `credit-check-order` → `contract-sign-check-expiry`.
 
 ## Limite și reconcilieri
 
-- Nodul țintă este și **nume de subdirector** de sinapse; pentru comportament operațional folosiți contractul neuron, nu doar lista de fișiere din folder.
+- Nodul destinație este și **nume de subdirector** de sinapse; pentru comportament operațional folosiți contractul neuron, nu doar lista de fișiere din folder.
 
 ## Sursă canonică
 

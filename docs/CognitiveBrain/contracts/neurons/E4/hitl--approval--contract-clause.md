@@ -36,7 +36,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap:** fără registry / catalog / worker pentru coada v2. | `Confirmed queue field` (L6893). | v2 L6899 — nereconciliat cu registry. |
 | 2 | Etapă, familie, swimlane | Neconectat. | E4, `hitl`, metrică swimlane `hitl` (L6897). | Catalog HITL implementat folosește `human-oversight-e4` (ex. K49). |

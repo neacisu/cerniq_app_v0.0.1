@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `monitor-quota-usage` → `human-takeover-initiate`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L86**; țintă `human:takeover:initiate` la **L78**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L86**; **Destinație (coadă):** `human:takeover:initiate` la **L78**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

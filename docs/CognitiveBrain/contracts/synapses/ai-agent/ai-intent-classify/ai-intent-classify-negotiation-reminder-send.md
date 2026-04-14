@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; țintă: `QUEUES.E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md).
+- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; destinație: `QUEUES.E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md).
 - **Semantic:** `nodeKey` / swimlane — `cognitive-node-catalog.ts` + contractele neuron.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-intent-classify` precede `negotiation-reminder-send`; v2 confirmă doar „sinapsă canonică de pipeline”, fără semantica operațională suplimentară în registru.
 

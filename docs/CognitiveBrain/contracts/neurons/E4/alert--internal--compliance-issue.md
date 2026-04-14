@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**v2** (L6057–L6076): alertă internă, `AlertNeuron`, Tier 3, OODA cu decizie canal + urgență și țintă OTel `cognitive.alert.internal.compliance-issue`. **Repo:** procesorii I39–I44 loghează în `gold_audit_logs_etapa4`, incrementează `e4AlertsDispatchedTotal`; comentariu sursă: alertele sunt „internal” în faza curentă și **nu** se inventează canale WA/email/SMS (`i-alert-workers.ts` L14–17). Nu s-a găsit enqueue care să folosească exact `alert:internal:compliance-issue` ca nume de coadă BullMQ.
+**v2** (L6057–L6076): alertă internă, `AlertNeuron`, Tier 3, OODA cu decizie canal + urgență și destinație OTel `cognitive.alert.internal.compliance-issue`. **Repo:** procesorii I39–I44 loghează în `gold_audit_logs_etapa4`, incrementează `e4AlertsDispatchedTotal`; comentariu sursă: alertele sunt „internal” în faza curentă și **nu** se inventează canale WA/email/SMS (`i-alert-workers.ts` L14–17). Nu s-a găsit enqueue care să folosească exact `alert:internal:compliance-issue` ca nume de coadă BullMQ.
 
 ## Surse audit
 

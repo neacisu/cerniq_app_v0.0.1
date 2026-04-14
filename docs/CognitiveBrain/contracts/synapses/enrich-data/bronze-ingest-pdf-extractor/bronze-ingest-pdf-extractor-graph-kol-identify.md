@@ -41,7 +41,7 @@ Traseul **bronze-ingest-pdf-extractor** depinde în planificare de **identificar
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** ingest PDF (graf) ↔ analiză influență E5.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `graph-kol-identify`.
 

@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **`dependency`** leagă **`graph-full-built-at`** de **`geo-weather-correlate`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Corelația meteo ↔ entități geografice sau grafice nu este codificată în export; contractul neuron țintă și handlerii stabilesc semantica.
+Muchia **`dependency`** leagă **`graph-full-built-at`** de **`geo-weather-correlate`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Corelația meteo ↔ entități geografice sau grafice nu este codificată în export; contractul neuron destinație și handlerii stabilesc semantica.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -44,7 +44,7 @@ Muchia **`dependency`** leagă **`graph-full-built-at`** de **`geo-weather-corre
 | Autoritate | Observație |
 | --- | --- |
 | **Runtime (ADR-0001)** | Vezi registry și `geo--weather--correlate`; sursă rămâne plan-only pentru coadă dedicată conform neuron. |
-| **Semantic (ADR-0002)** | Swimlane / nodeKey din catalog pentru corelație meteo — în contract țintă. |
+| **Semantic (ADR-0002)** | Swimlane / nodeKey din catalog pentru corelație meteo — în contract destinație. |
 | **Planificare (export)** | v2 §7 — `graph-full-built-at` → `geo-weather-correlate`, tip `dependency`. |
 
 ## Traseu și vecini

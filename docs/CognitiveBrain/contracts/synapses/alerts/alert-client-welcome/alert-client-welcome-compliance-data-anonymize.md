@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-welcome` | **Matrix:** `alert:client:welcome` — [`../../../neurons/E5/alert--client--welcome.md`](../../../neurons/E5/alert--client--welcome.md). **Gap** registry pentru coada granulară. |
-| Țintă | `compliance-data-anonymize` | **Matrix:** `compliance:data:anonymize` (contract [`../../../neurons/E4/compliance--data--anonymize.md`](../../../neurons/E4/compliance--data--anonymize.md)). **Coadă executabilă în registry:** `audit:data:anonymize` (`E4_AUDIT_DATA_ANONYMIZE`, ex. `queue-registry.ts` L485) — **nealiniere** nume v2 `compliance:*` vs `audit:*` documentată în neuron. |
+| Destinație (graf) | `compliance-data-anonymize` | **Matrix:** `compliance:data:anonymize` (contract [`../../../neurons/E4/compliance--data--anonymize.md`](../../../neurons/E4/compliance--data--anonymize.md)). **Coadă executabilă în registry:** `audit:data:anonymize` (`E4_AUDIT_DATA_ANONYMIZE`, ex. `queue-registry.ts` L485) — **nealiniere** nume v2 `compliance:*` vs `audit:*` documentată în neuron. |
 
 ## Tip muchie (export)
 
@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Etapa sursă (E5) vs etapa țintă (E4) în Matrix; reconcilierea este semantică în graf, nu o garanție de ordonare runtime.
+- Etapa sursă (E5) vs etapa destinație (E4) în Matrix; reconcilierea este semantică în graf, nu o garanție de ordonare runtime.
 
 ## Sursă canonică
 

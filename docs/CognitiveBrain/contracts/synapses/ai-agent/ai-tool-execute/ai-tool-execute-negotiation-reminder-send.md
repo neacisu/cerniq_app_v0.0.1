@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-tool-execute` | **Planificare:** traseu `ai-tool-execute`. **Matrix:** `ai:tool:execute` → [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Gap** coadă dedicată în registry la audit; execuție tool modelată altfel în cod (C14). |
-| Țintă | `negotiation-reminder-send` | **Matrix:** `negotiation:reminder:send` → [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). **Registry:** `E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send`. **Catalog:** perechi documentate în contractul neuron. |
+| Destinație (graf) | `negotiation-reminder-send` | **Matrix:** `negotiation:reminder:send` → [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). **Registry:** `E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send`. **Catalog:** perechi documentate în contractul neuron. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența leagă în planificare traseul `ai-tool-execute` de trimiterea memento-urilor de negociere. Textul v2 rămâne la **„sinapsă canonică de pipeline”** — adică existența unei legături structurale, nu a unui contract de mesaj. Interpretare conservatoare: fluxul care include execuția tool-urilor agentului este declarat în dependență față de pasul de reminder; canalul și cronologia exacte stau în implementarea neuronului țintă.
+Dependența leagă în planificare traseul `ai-tool-execute` de trimiterea memento-urilor de negociere. Textul v2 rămâne la **„sinapsă canonică de pipeline”** — adică existența unei legături structurale, nu a unui contract de mesaj. Interpretare conservatoare: fluxul care include execuția tool-urilor agentului este declarat în dependență față de pasul de reminder; canalul și cronologia exacte stau în implementarea neuronului destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

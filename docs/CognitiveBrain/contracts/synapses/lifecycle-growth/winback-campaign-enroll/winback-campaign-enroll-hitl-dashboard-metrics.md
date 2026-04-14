@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-campaign-enroll` → `hitl-dashboard-metrics`.
-- **Runtime:** sursă — F32; țintă — vezi neuron `hitl-dashboard-metrics` (pot exista gap-uri registry — contractul neuronului).
+- **Runtime:** sursă — F32; destinație — vezi neuron `hitl-dashboard-metrics` (pot exista gap-uri registry — contractul neuronului).
 
 ## Limite și reconcilieri
 
-- Nodurile HITL din graf pot fi **parțial** sau **fără** mapare 1:1 la cozi în `queue-registry.ts` — vezi contractele țintă, nu presupunem execuție live din singur export.
+- Nodurile HITL din graf pot fi **parțial** sau **fără** mapare 1:1 la cozi în `queue-registry.ts` — vezi contractele destinație, nu presupunem execuție live din singur export.
 
 ## Sursă canonică
 

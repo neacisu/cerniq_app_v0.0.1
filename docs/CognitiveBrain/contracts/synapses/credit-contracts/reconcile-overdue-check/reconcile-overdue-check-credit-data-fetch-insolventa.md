@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-overdue-che
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă pe `payment:overdue:*`; țintă — audit neuron (posibil fără registry).
+- **Runtime:** sursă pe `payment:overdue:*`; destinație — audit neuron (posibil fără registry).
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

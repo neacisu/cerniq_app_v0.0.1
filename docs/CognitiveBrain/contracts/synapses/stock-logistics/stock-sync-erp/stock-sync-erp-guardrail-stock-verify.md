@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-erp` → `guardrail-stock-verify`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L176**; țintă `guardrail:stock:verify` la **L147**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L176**; **Destinație (coadă):** `guardrail:stock:verify` la **L147**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

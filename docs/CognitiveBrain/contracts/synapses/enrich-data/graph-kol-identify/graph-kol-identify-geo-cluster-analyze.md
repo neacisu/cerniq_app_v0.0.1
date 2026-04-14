@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-kol-identify`** de **`geo-cluster-analyz
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: `kol:identify` (vezi neuron); țintă: `cluster:implicit:detect`. |
+| **Runtime (ADR-0001)** | Sursă: `kol:identify` (vezi neuron); destinație: `cluster:implicit:detect`. |
 | **Semantic (ADR-0002)** | `e5:kol:identify` vs `e5:cluster:implicit-detect` — detalii în contractele respective. |
 | **Planificare (export)** | v2 §7 — `graph-kol-identify` → `geo-cluster-analyze`, tip `dependency`. |
 

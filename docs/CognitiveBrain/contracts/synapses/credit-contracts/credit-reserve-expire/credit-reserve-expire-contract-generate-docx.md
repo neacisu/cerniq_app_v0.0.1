@@ -41,13 +41,13 @@ Traseul **credit-reserve-expire** depinde în planificare de **generarea DOCX** 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** pipeline rezervări ↔ generare document E4.
 - **Planificare:** v2 §7 — `credit-reserve-expire` → `contract-generate-docx`.
 
 ## Limite și reconcilieri
 
-- Detaliile DOCX rămân în contractul neuron țintă.
+- Detaliile DOCX rămân în contractul neuron destinație.
 
 ## Sursă canonică
 

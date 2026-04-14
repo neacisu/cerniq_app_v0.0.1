@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența declară în graf ordonare canonică între traseul **OUAI** și **clasificare industrie (etichetă AI în plan)**. v2: **„sinapsă canonică de pipeline”**. În cod, semantica „industrie” apare fragmentat (ex. J1 / `agri:culturi`) — vezi contractul țintă; registrul sinapsei nu fixează maparea.
+Dependența declară în graf ordonare canonică între traseul **OUAI** și **clasificare industrie (etichetă AI în plan)**. v2: **„sinapsă canonică de pipeline”**. În cod, semantica „industrie” apare fragmentat (ex. J1 / `agri:culturi`) — vezi contractul destinație; registrul sinapsei nu fixează maparea.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între traseul **OUAI** și **c
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / semantic:** sursă non-AI OUAI; țintă AI — fără coadă v2 literală în registry.
+- **Runtime / semantic:** sursă non-AI OUAI; destinație AI — fără coadă v2 literală în registry.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-reserve-release` → `guardrail-price-check`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L175**; țintă `guardrail:price:check` la **L145**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L175**; **Destinație (coadă):** `guardrail:price:check` la **L145**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

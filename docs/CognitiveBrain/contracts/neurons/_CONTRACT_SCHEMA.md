@@ -40,7 +40,7 @@ Rând dedicat sau sub-tabel: convenții v2 (`cognitive.neuron.id`, …) vs imple
 | 4 | `NeuronType` + clasificare SOFAI (System1 vs 2) — raportată ca **clasificare din v2**, fără citări bibliografice neverify |
 | 5 | Criticitate |
 | 6 | Înveliș telemetrie (OTel / GenAI dacă e cazul) |
-| 7 | Înveliș politică (tier autonomie, praguri, Cedar/OPA țintă) |
+| 7 | Înveliș politică (tier autonomie, praguri, Cedar/OPA — destinație documentată) |
 | 8 | Rutare model (dacă AI) — comportament **numai** cu dovadă în cod |
 | 9 | Guardrails |
 | 10 | Escaladare HITL |

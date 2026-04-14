@@ -45,7 +45,7 @@
 | 6 | Înveliș telemetrie | `e5:cluster:implicit-detect` (L71). | v2 `cognitive.graph.relationship.infer` (L8564). | — |
 | 7 | Înveliș politică | — | v2 L8562–8563. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Timeout subprocess D24 (antet L36–37). | NeMo țintă. | — |
+| 9 | Guardrails | Timeout subprocess D24 (antet L36–37). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8563. | — |
 | 11 | Micro-OODA | Citire fișier graf → Leiden → UPSERT clustere. | v2 L8560. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8555). | — |

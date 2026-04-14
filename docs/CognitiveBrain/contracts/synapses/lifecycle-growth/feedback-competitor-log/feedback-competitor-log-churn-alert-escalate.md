@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `feedback-competitor-log` → `churn-alert-escalate`.
-- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron; reconcilieri slug/coadă pețintă — în neuron.
+- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron; reconcilieri slug/coadă pe destinație — în neuron.
 
 ## Limite și reconcilieri
 

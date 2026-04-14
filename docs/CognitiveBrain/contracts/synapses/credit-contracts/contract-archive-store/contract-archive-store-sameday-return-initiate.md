@@ -41,7 +41,7 @@ Dependență de planificare: **contract-archive-store** → **`sameday-return-in
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E3 arhivare → E4 SameDay return.
 - **Planificare:** `contract-archive-store` → `sameday-return-initiate`.
 

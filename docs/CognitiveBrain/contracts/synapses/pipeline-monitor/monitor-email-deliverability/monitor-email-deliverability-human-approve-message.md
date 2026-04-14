@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `monitor-email-deliverability` → `human-approve-message`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L84**; țintă `human:approve:message` la **L75**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L84**; **Destinație (coadă):** `human:approve:message` la **L75**.
 - **Runtime:** vezi neuronii; alinierea slug graf (`human-approve-message`) ↔ `human:approve:message` este cea din matrice/contracte.
 
 ## Limite și reconcilieri

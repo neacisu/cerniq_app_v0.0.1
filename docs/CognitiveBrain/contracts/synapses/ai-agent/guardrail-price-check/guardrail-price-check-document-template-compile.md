@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-price-check` | Coadă executabilă **`guardrail:price:check`** (`QUEUES.E3_GUARDRAIL_PRICE_CHECK`) — [`../../../neurons/E3/guardrail--price--check.md`](../../../neurons/E3/guardrail--price--check.md). |
-| Țintă | `document-template-compile` | Coadă executabilă **`document:template:compile`** (`QUEUES.E3_DOCUMENT_TEMPLATE_COMPILE`) — [`../../../neurons/E3/document--template--compile.md`](../../../neurons/E3/document--template--compile.md). |
+| Destinație (graf) | `document-template-compile` | Coadă executabilă **`document:template:compile`** (`QUEUES.E3_DOCUMENT_TEMPLATE_COMPILE`) — [`../../../neurons/E3/document--template--compile.md`](../../../neurons/E3/document--template--compile.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@ Dependența **`dependency`** leagă compilarea template-ului de document de tras
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_PRICE_CHECK`; `E3_DOCUMENT_TEMPLATE_COMPILE`.
-- **Semantic (ADR-0002):** țintă — `e3:document:template-compile` / `document:template:compile` — „Compilare template document Handlebars…” (~L1992–1998), ProceduralNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:document:template-compile` / `document:template:compile` — „Compilare template document Handlebars…” (~L1992–1998), ProceduralNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-price-check` → `document-template-compile`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `ai-agent-response-generate` | **Planificare:** nod de traseu în graf. **Matrix:** `ai:agent:response-generate` (E3, `ai-core`) → [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime (ADR-0001, `queue-registry.ts`):** coada executabilă în worker este **`ai:e3:response:generate`** (`QUEUES.E3_AI_RESPONSE_GENERATE`) — **nu** literalul din Matrix/v2 pentru același concept. **Catalog (ADR-0002):** intrare **`e3:ai:response-generate`**; în contractul neuron sunt notate diferențe față de ambele. Reconcilierea slug graf ↔ cozi este obligatorie înainte de a interpreta „sursa” ca un singur nume BullMQ. |
-| Țintă | `e3-ai-core` | Nod de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core` pentru neuroni E3. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă de graf. |
+| Destinație (graf) | `e3-ai-core` | Nod de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core` pentru neuroni E3. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă de graf. |
 
 ## Tip muchie (export)
 
@@ -43,7 +43,7 @@ Muchia **default** leagă traseul `ai-agent-response-generate` de agregatul de p
 
 - **Runtime (ADR-0001, `workers/shared/src/queue-registry.ts`):** execuția E3 pentru acest concept este documentată pe **`ai:e3:response:generate`**; a nu se confunda cu **`ai:response:generate`** (E2 outreach, altă intrare în registry). Pentru neuroni concreți din aceeași familie semantică, vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) (filtru etapă E3, swimlane `ai-core`).
 - **Semantic (ADR-0002, `packages/shared/src/cognitive-node-catalog.ts`):** `nodeKey` / etapă / swimlane — conform catalogului și contractului neuron; eticheta de graf `e3-ai-core` **nu** se echivalează automat cu un singur `nodeKey`.
-- **Planificare (graf exportat):** muchie de specializare a familiei; nu implică singură o mapare 1:1 la o coadă țintă.
+- **Planificare (graf exportat):** muchie de specializare a familiei; nu implică singură o mapare 1:1 la o coadă destinație.
 
 ## Limite și reconcilieri
 

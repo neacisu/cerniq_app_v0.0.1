@@ -41,7 +41,7 @@ Dependență de planificare: **contract-clause-assemble** → **`sameday-cod-pro
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E4 contracts → E4 SameDay COD.
 - **Planificare:** `contract-clause-assemble` → `sameday-cod-process`.
 

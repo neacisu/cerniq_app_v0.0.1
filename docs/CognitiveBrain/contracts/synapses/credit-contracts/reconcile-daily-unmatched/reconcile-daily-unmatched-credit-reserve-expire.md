@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-daily-unmat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** vezi mapare `reservation-expire` în neuron țintă.
+- **Runtime:** vezi mapare `reservation-expire` în neuron destinație.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

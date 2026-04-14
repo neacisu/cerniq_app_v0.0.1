@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-return-created` | **Matrix:** `alert:client:return-created` — [`../../../neurons/E4/alert--client--return-created.md`](../../../neurons/E4/alert--client--return-created.md). **Gap** registry pentru coada granulară; alerte generice `alert:*` în cod. |
-| Țintă | `audit-compliance-check` | **Matrix:** `audit:compliance:check` — [`../../../neurons/E4/audit--compliance--check.md`](../../../neurons/E4/audit--compliance--check.md). **Fără** coadă nominală în registry; apropiere implementată: **`audit:chain:verify`** (J46) — vezi contractul neuron, fără echivalență 1:1. |
+| Destinație (graf) | `audit-compliance-check` | **Matrix:** `audit:compliance:check` — [`../../../neurons/E4/audit--compliance--check.md`](../../../neurons/E4/audit--compliance--check.md). **Fără** coadă nominală în registry; apropiere implementată: **`audit:chain:verify`** (J46) — vezi contractul neuron, fără echivalență 1:1. |
 
 ## Tip muchie (export)
 

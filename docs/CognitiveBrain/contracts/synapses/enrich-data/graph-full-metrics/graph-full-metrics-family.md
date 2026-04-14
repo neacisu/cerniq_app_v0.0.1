@@ -53,7 +53,7 @@ Muchie planificată **Bronze → acest nod:** [`../bronze-ingest-pdf-extractor/b
 | --- | --- |
 | **Runtime (ADR-0001)** | Fără coadă `graph:full:metrics` în registry — vezi neuron; metrici histogramă/gauge în `e5-metrics.ts` sunt citate acolo. |
 | **Semantic (ADR-0002)** | **NEURON_MATRIX.csv** — intrare `graph:full:metrics`; `nodeKey`/`catalog` goale în matrice — vezi contract neuron. |
-| **Planificare (export)** | v2 §7 — sursă `graph-full-metrics` → țintă `e5-graph-community`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `graph-full-metrics` → destinație `e5-graph-community`, tip `default`. |
 
 ## Limite și reconcilieri
 

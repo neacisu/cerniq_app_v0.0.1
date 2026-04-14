@@ -47,7 +47,7 @@ Traseul **association-territory-infer** depinde în planificare de **găsire vec
 
 ## Limite și reconcilieri
 
-- Inferența teritoriu (sursă) și vecinătatea geo (țintă) sunt legate **doar** prin această muchie în registrul v2; fără extindere semantică dincolo de textul exportului.
+- Inferența teritoriu (sursă) și vecinătatea geo (destinație) sunt legate **doar** prin această muchie în registrul v2; fără extindere semantică dincolo de textul exportului.
 
 ## Sursă canonică
 

@@ -65,7 +65,7 @@
 | 8 | Rutare model (dacă AI) | **N/A** (fără LLM; vezi secțiunea N/A). | v2 Non-AI. | — |
 | 9 | Guardrails | Logică deterministă + praguri duplicate; fără NeMo. | v2 audit log 90 zile; ADR-0007. | NeMo **N/A** pentru flux determinist. |
 | 10 | Escaladare HITL | `dedupStatus: "hitl_pending"` pentru cazuri fără auto-merge (`m1-dedup-exact-hash.ts` L184–191). Nu enumeră cozi `human:*` în acest fișier. | ADR-0008; v2 „no mandatory HITL”. | Lanțul complet HITL (cozi) nu e trasat din M1 singur. |
-| 11 | Micro-OODA | **Observe:** citire `silverCompanies` + identificatori. **Orient:** căutare potriviri în DB. **Decide:** auto-merge vs pending. **Act:** update înregistrări + log (`m1-dedup-exact-hash.ts` L212–285). **Neo4j GraphRAG:** lipsă. | v2 OODA + țintă GraphRAG. | — |
+| 11 | Micro-OODA | **Observe:** citire `silverCompanies` + identificatori. **Orient:** căutare potriviri în DB. **Decide:** auto-merge vs pending. **Act:** update înregistrări + log (`m1-dedup-exact-hash.ts` L212–285). **Neo4j GraphRAG:** lipsă. | v2 OODA + destinație GraphRAG. | — |
 | 12 | Tier + de-escaladare | Tier operațional: auto-merge când condițiile sunt îndeplinite; altfel oprire la `hitl_pending`. Fără prag „încredere model <0.80” (nu e model). | v2 Tier 4. | „Tier 4” v2 vs HITL efectiv: tensiune documentată. |
 | 13 | Stack v2 §2.3 (subset) | BullMQ, Postgres/`@cerniq/db`, OpenTelemetry span helper. | v2 subset (BullMQ, …). | Kafka/Neo4j neaudit pentru M1. |
 

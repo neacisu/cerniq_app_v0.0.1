@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **asignarea lead-ului** și 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** ambele capete au mapare directă la cozi în registry (cu precizarea că intent-classify istoric este unificat parțial în sentiment — vezi contractul țintă).
+- **Runtime (ADR-0001):** ambele capete au mapare directă la cozi în registry (cu precizarea că intent-classify istoric este unificat parțial în sentiment — vezi contractul destinație).
 - **Semantic (ADR-0002):** `e2:lead:assign-user` și `e2:ai:sentiment-analyze`.
 - **Planificare:** dependență `dependency`.
 

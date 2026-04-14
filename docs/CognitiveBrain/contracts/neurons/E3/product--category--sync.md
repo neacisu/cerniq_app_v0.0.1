@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | Factory → `withCognitiveSpan` → `cognitive:e3:product:category-sync`. | v2 `cognitive.e3.product.category-sync` (L5555). | Convenție puncte vs `cognitive:nodeKey`. |
 | 7 | Înveliș politică | Fără OPA explicit în a5; erori → excepții BullMQ. | Tier 4; HITL la eșecuri repetate (v2 L5545, L5553). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI (L5552). | — |
-| 9 | Guardrails | Logică deterministă SQL/DB. | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Logică deterministă SQL/DB. | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | Fără enqueue `human:*` în a5 citit. | v2 L5553. | — |
 | 11 | Micro-OODA | Transformări deterministe pe payload categorii/produse. | OODA v2 L5551. | — |
 | 12 | Tier + de-escaladare | Fără prag confidență. | Tier 4 (v2 L5545). | — |

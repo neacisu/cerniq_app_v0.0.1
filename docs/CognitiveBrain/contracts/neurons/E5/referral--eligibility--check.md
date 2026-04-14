@@ -39,7 +39,7 @@ Verificare eligibilitate referral în sensul grafului v2; în cod există doar p
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | String coadă în A6/A8; **nu** în `QUEUES`. | v2 L8992. | Risc cozi orfane. |
 | 2 | Etapă, familie, swimlane | — | v2 E5 `referral`. | — |

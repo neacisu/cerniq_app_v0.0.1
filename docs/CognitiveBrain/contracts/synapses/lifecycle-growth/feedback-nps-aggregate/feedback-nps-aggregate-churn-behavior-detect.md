@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Detalii comportament detectare — contract neuron țintă.
+- Detalii comportament detectare — contract neuron destinație.
 
 ## Sursă canonică
 

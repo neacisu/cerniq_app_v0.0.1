@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `alert-client-account-blocked` | [`../../../neurons/E4/alert--client--account-blocked.md`](../../../neurons/E4/alert--client--account-blocked.md). **Runtime:** **gap** granular în `queue-registry.ts` la auditul documentat. |
-| Țintă | `audit-data-anonymize` | [`../../../neurons/E4/audit--data--anonymize.md`](../../../neurons/E4/audit--data--anonymize.md). **Runtime:** `audit:data:anonymize` (`QUEUES.E4_AUDIT_DATA_ANONYMIZE`, `queue-registry.ts` L485). |
+| Destinație (graf) | `audit-data-anonymize` | [`../../../neurons/E4/audit--data--anonymize.md`](../../../neurons/E4/audit--data--anonymize.md). **Runtime:** `audit:data:anonymize` (`QUEUES.E4_AUDIT_DATA_ANONYMIZE`, `queue-registry.ts` L485). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Anonimizarea datelor de audit este ordonată în planificare după traseul alert
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap granular; țintă — `audit:data:anonymize`.
+- **Runtime (ADR-0001):** sursă — gap granular; destinație — `audit:data:anonymize`.
 - **Semantic (ADR-0002):** `e4:audit:data-anonymize` (contract neuron).
 - **Planificare:** v2 §7 — `alert-client-account-blocked` → `audit-data-anonymize`.
 

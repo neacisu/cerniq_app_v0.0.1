@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În planificare, **enrich-anaf-address** depinde de **enrich-ai-text-structure**. v2: **„sinapsă canonică de pipeline”**. Neuronul țintă indică **potrivire semantică** spre J1 / **`ai:structure:xai`** fără mapare formală nume v2 ↔ coadă — se raportează aici ca **reconciliere**, nu ca fapt din registrul sinapsei.
+În planificare, **enrich-anaf-address** depinde de **enrich-ai-text-structure**. v2: **„sinapsă canonică de pipeline”**. Nodul destinație (graf) indică **potrivire semantică** spre J1 / **`ai:structure:xai`** fără mapare formală nume v2 ↔ coadă — se raportează aici ca **reconciliere**, nu ca fapt din registrul sinapsei.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** `ai:structure:xai` ca apropiere citată în neuron țintă; verificare în `queue-registry.ts`.
+- **Runtime (ADR-0001):** `ai:structure:xai` ca apropiere citată în neuron destinație; verificare în `queue-registry.ts`.
 - **Semantic (ADR-0002):** `e1:ai:structure-xai` — catalog (vezi neuron).
 - **Planificare:** v2 §7 — `enrich-anaf-address` → `enrich-ai-text-structure`.
 

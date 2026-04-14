@@ -48,7 +48,7 @@
 ## Limite și reconcilieri
 
 - **Sursă:** reconciliere obligatorie **graf ↔ registry** pentru merge contact.
-- **Destinație (reconciliere):** verificare explicită în neuronul țintă pentru runtime vs etichete v2.
+- **Destinație (reconciliere):** verificare explicită în neuronul destinație pentru runtime vs etichete v2.
 
 ## Sursă canonică
 

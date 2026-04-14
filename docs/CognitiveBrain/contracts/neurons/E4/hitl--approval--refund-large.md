@@ -39,7 +39,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Catalog `e4:hitl:refund-large`; registry L497. | v2 L6968. | — |
 | 2 | Etapă, familie, swimlane | Catalog `human-oversight-e4` (L2702). | v2 L6961. | — |

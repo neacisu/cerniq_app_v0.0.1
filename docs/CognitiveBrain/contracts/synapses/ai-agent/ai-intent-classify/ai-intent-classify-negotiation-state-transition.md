@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; țintă: `QUEUES.E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md).
+- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; destinație: `QUEUES.E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md).
 - **Semantic:** `nodeKey` / swimlane — `cognitive-node-catalog.ts` + contractele neuron.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-intent-classify` precede `negotiation-state-transition`; v2 confirmă doar „sinapsă canonică de pipeline”, fără semantica operațională suplimentară în registru.
 

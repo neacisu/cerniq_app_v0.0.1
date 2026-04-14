@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-v2: **„sinapsă canonică de pipeline”** între **reply WA** și **adăugare lead în campanie email rece** în planificare. Execuția concretă folosește cozi/mapări din contractul țintă E2, nu numele literal `email:cold:add-to-campaign` ca și coadă BullMQ.
+v2: **„sinapsă canonică de pipeline”** între **reply WA** și **adăugare lead în campanie email rece** în planificare. Execuția concretă folosește cozi/mapări din contractul destinație E2, nu numele literal `email:cold:add-to-campaign` ca și coadă BullMQ.
 
 ## Semantica confirmată (registru v2 §7)
 

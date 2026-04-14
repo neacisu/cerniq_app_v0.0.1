@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-resource-load` | **Coadă:** `mcp:resource:load` — [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md); **Registry:** `E3_MCP_RESOURCE_LOAD`. |
-| Țintă | `negotiation-expire-check` | **Coadă:** `negotiation:expire:check` — [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md); **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK`. |
+| Destinație (graf) | `negotiation-expire-check` | **Coadă:** `negotiation:expire:check` — [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md); **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În graf, **dependency** leagă traseul de încărcare resurse MCP de verificarea expirării negocierilor; v2 dă doar **„sinapsă canonică de pipeline”** — fără flux de date între cozi. Interpretare conservatoare: planificarea plasează infrastructura MCP (resurse) în același lanț conceptual cu operațiile de TTL/expirare negociere; detaliile (D23, abandon queue etc.) sunt în contractul neuron țintă, nu în registrul sinapsei.
+În graf, **dependency** leagă traseul de încărcare resurse MCP de verificarea expirării negocierilor; v2 dă doar **„sinapsă canonică de pipeline”** — fără flux de date între cozi. Interpretare conservatoare: planificarea plasează infrastructura MCP (resurse) în același lanț conceptual cu operațiile de TTL/expirare negociere; detaliile (D23, abandon queue etc.) sunt în contractul neuron destinație, nu în registrul sinapsei.
 
 ## Semantica confirmată (registru v2 §7)
 

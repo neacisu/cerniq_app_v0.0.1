@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-prompt-optimize` | [`../../../neurons/E3/ai--prompt--optimize.md`](../../../neurons/E3/ai--prompt--optimize.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:prompt:optimize` în `queue-registry.ts`; `queue_in_registry` = `no` în Matrix. |
+| Destinație (graf) | `ai-prompt-optimize` | [`../../../neurons/E3/ai--prompt--optimize.md`](../../../neurons/E3/ai--prompt--optimize.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:prompt:optimize` în `queue-registry.ts`; `queue_in_registry` = `no` în Matrix. |
 
 ## Tip muchie (export)
 
@@ -27,7 +27,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependență declarativă în planificare între înțelegerea interogării și optimizarea promptului. Fără mecanism executabil afirmat pentru țintă în registry la auditul documentat.
+Dependență declarativă în planificare între înțelegerea interogării și optimizarea promptului. Fără mecanism executabil afirmat pentru destinație în registry la auditul documentat.
 
 ## Statusuri de evidență (conservative, din sursă canonică)
 
@@ -41,7 +41,7 @@ Dependență declarativă în planificare între înțelegerea interogării și 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă ancorată; țintă — gap în `QUEUES` (contract neuron).
+- **Runtime (ADR-0001):** sursă ancorată; destinație — gap în `QUEUES` (contract neuron).
 - **Semantic (ADR-0002):** fără `nodeKey` stabil în catalog pentru `ai:prompt:optimize` (contract neuron).
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-prompt-optimize`.
 

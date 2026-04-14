@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: registry + contract channel WhatsApp; **țintă:** fără `QUEUES.*` dovedit pentru `human:notification:send`.
-- **Semantic:** sursă: `e3:channel:whatsapp-send`; țintă: absență catalog documentată în contractul neuron.
+- **Runtime:** sursă: registry + contract channel WhatsApp; **Destinație:** fără `QUEUES.*` dovedit pentru `human:notification:send`.
+- **Semantic:** sursă: `e3:channel:whatsapp-send`; destinație: absență catalog documentată în contractul neuron.
 - **Planificare:** muchie **`dependency`**: `channel-whatsapp-send` precede `human-notification-send` în export.
 
 ## Limite și reconcilieri

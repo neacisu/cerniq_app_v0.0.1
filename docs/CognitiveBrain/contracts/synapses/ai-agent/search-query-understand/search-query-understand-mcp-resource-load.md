@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `mcp-resource-load` | [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md). **Runtime:** `mcp:resource:load` (`QUEUES.E3_MCP_RESOURCE_LOAD`, `queue-registry.ts` L329). |
+| Destinație (graf) | `mcp-resource-load` | [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md). **Runtime:** `mcp:resource:load` (`QUEUES.E3_MCP_RESOURCE_LOAD`, `queue-registry.ts` L329). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `search:query:rewrite` → `mcp:resource:load`.
-- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:mcp:resource-load` (contract neuron țintă).
+- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:mcp:resource-load` (contract neuron destinație).
 - **Planificare:** v2 §7 — `search-query-understand` → `mcp-resource-load`.
 
 ## Limite și reconcilieri

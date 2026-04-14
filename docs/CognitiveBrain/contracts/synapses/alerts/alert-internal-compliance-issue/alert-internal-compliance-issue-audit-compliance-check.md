@@ -41,8 +41,8 @@ Verificarea de conformitate audit (nod `audit-compliance-check` în planificare)
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă granulară — gap; țintă nominală v2 — gap; apropiere: `audit:chain:verify` (J46).
-- **Semantic (ADR-0002):** `e4:audit:chain-verify` vs `audit:compliance:check` — contract neuron țintă.
+- **Runtime (ADR-0001):** sursă granulară — gap; destinație nominală v2 — gap; apropiere: `audit:chain:verify` (J46).
+- **Semantic (ADR-0002):** `e4:audit:chain-verify` vs `audit:compliance:check` — contract neuron destinație.
 - **Planificare:** v2 §7 — `alert-internal-compliance-issue` → `audit-compliance-check`.
 
 ## Limite și reconcilieri

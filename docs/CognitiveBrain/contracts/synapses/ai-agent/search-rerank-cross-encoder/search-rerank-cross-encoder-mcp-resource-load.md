@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `mcp-resource-load` | [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md). **Runtime:** `mcp:resource:load` (`QUEUES.E3_MCP_RESOURCE_LOAD`, `queue-registry.ts` L329). |
+| Destinație (graf) | `mcp-resource-load` | [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md). **Runtime:** `mcp:resource:load` (`QUEUES.E3_MCP_RESOURCE_LOAD`, `queue-registry.ts` L329). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `mcp:resource:load`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `mcp:resource:load`.
 - **Semantic (ADR-0002):** `e3:mcp:resource-load`; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `mcp-resource-load`.
 

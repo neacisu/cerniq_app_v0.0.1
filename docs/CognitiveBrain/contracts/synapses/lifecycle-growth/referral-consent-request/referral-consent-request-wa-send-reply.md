@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Răspuns vs inițiere — vezi neuronul țintă pentru contractul cozii.
+- Răspuns vs inițiere — vezi neuronul destinație pentru contractul cozii.
 
 ## Sursă canonică
 

@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă ancorată în registry; **țintă:** fără `QUEUES.*` dovedit pentru `human:notification:send` — vezi contractul neuron țintă.
-- **Semantic:** sursă: catalog + contract channel email; țintă: **nu** inventați `nodeKey` unde contractul marchează absență.
+- **Runtime:** sursă ancorată în registry; **Destinație:** fără `QUEUES.*` dovedit pentru `human:notification:send` — vezi contractul neuron destinație.
+- **Semantic:** sursă: catalog + contract channel email; destinație: **nu** inventați `nodeKey` unde contractul marchează absență.
 - **Planificare:** muchie **`dependency`**: în topologia exportată, `channel-email-send` precede `human-notification-send`; v2 nu precizează mecanismul HITL dincolo de descrierea canonică de pipeline.
 
 ## Limite și reconcilieri

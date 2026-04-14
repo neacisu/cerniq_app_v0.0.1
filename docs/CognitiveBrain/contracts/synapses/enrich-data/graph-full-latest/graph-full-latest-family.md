@@ -53,7 +53,7 @@ Muchie planificată **Bronze → acest nod:** [`../bronze-ingest-pdf-extractor/b
 | --- | --- |
 | **Runtime (ADR-0001)** | `graph:full:latest` (v2) vs absență literală în registry — vezi [`../../../neurons/E5/graph--full--latest.md`](../../../neurons/E5/graph--full--latest.md). |
 | **Semantic (ADR-0002)** | **NEURON_MATRIX.csv** — intrare `graph:full:latest`; `nodeKey`/`catalog` goale în matrice — vezi contract neuron, fără completări aici. |
-| **Planificare (export)** | v2 §7 — sursă `graph-full-latest` → țintă `e5-graph-community`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `graph-full-latest` → destinație `e5-graph-community`, tip `default`. |
 
 ## Limite și reconcilieri
 

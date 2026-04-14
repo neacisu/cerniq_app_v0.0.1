@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `monitor-email-deliverability` | Coadă executabilă **`monitor:email:deliverability`** (`QUEUES.MONITOR_EMAIL_DELIVERABILITY`) — [`../../../neurons/E2/monitor--email--deliverability.md`](../../../neurons/E2/monitor--email--deliverability.md).  |
+| Destinație (graf) | `monitor-email-deliverability` | Coadă executabilă **`monitor:email:deliverability`** (`QUEUES.MONITOR_EMAIL_DELIVERABILITY`) — [`../../../neurons/E2/monitor--email--deliverability.md`](../../../neurons/E2/monitor--email--deliverability.md).  |
 
 ## Tip muchie (export)
 

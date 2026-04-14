@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-reward-process` → `wa-send-reply`.
-- **Runtime:** sursă — E30/E31; țintă — vezi neuron `wa-send-reply`.
+- **Runtime:** sursă — E30/E31; destinație — vezi neuron `wa-send-reply`.
 
 ## Limite și reconcilieri
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `alert-bounce-high` | Traseu în graf; [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). **Runtime (ADR-0001):** `alert:bounce:high` (`QUEUES.ALERT_BOUNCE_HIGH`, `workers/shared/src/queue-registry.ts` L168). |
-| Țintă | `e2-monitoring` | Nod agregat **familie monitoring** E2 în planificare; nu este o singură coadă executabilă; vezi neuroni E2 monitoring în catalog. |
+| Destinație (graf) | `e2-monitoring` | Nod agregat **familie monitoring** E2 în planificare; nu este o singură coadă executabilă; vezi neuroni E2 monitoring în catalog. |
 
 ## Tip muchie (export)
 

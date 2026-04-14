@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă și țintă: constante `QUEUES.*` în `workers/shared/src/queue-registry.ts`; rânduri în [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
+- **Runtime:** sursă și destinație: constante `QUEUES.*` în `workers/shared/src/queue-registry.ts`; rânduri în [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
 - **Semantic:** `cognitive-node-catalog.ts` + contractele neuron ale capetelor.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `negotiation-expire-check` precede `pricing-competitor-check`; v2 confirmă doar „sinapsă canonică de pipeline”, fără motivație operațională suplimentară în registru.
 

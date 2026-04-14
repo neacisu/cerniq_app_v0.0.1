@@ -41,7 +41,7 @@ Traseul **credit-check-order** depinde în planificare de **selecția șablonulu
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** D19 sursă vs G33 țintă — vezi contracte.
+- **Runtime (ADR-0001):** D19 sursă vs G33 destinație — vezi contracte.
 - **Semantic (ADR-0002):** credit E4 ↔ clauses-select E4.
 - **Planificare:** v2 §7 — `credit-check-order` → `contract-template-select`.
 

@@ -37,13 +37,13 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă: `QUEUES.E3_PRICING_DISCOUNT_CALCULATE`; sursă: fără coadă canonică dovedită — contract neuron.
-- **Semantic:** țintă: catalog + contract; sursă: absență documentată în catalog pentru coada nominală.
+- **Runtime:** destinație: `QUEUES.E3_PRICING_DISCOUNT_CALCULATE`; sursă: fără coadă canonică dovedită — contract neuron.
+- **Semantic:** destinație: catalog + contract; sursă: absență documentată în catalog pentru coada nominală.
 - **Planificare:** muchie **`dependency`** în topologia exportată.
 
 ## Limite și reconcilieri
 
-- Decalaj **plan vs execuție** la sursă; **țintă** ancorată în registry. Fără presupuneri despre payload (absent din export).
+- Decalaj **plan vs execuție** la sursă; **destinație** ancorată în registry. Fără presupuneri despre payload (absent din export).
 
 ## Sursă canonică
 

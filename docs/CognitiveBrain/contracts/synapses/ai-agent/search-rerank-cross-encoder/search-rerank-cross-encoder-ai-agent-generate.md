@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | **Matrix** + [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** la auditul din contractul neuron, **fără** `search:rerank:cross-encoder` în `queue-registry.ts`; distinct de `search:rrf:fuse`. |
-| Țintă | `ai-agent-generate` | [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). **Runtime:** la auditul documentat în contract, **fără** intrare `ai:agent:generate` în `QUEUES`; flux efectiv mapat conceptual la C14/C15 — vezi neuron. |
+| Destinație (graf) | `ai-agent-generate` | [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). **Runtime:** la auditul documentat în contract, **fără** intrare `ai:agent:generate` în `QUEUES`; flux efectiv mapat conceptual la C14/C15 — vezi neuron. |
 
 ## Tip muchie (export)
 
@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap `search:rerank:cross-encoder`; țintă — gap `ai:agent:generate` (contract neuron).
-- **Semantic (ADR-0002):** vezi contractele neuroni sursă și țintă; fără `nodeKey` stabil pentru `ai:agent:generate` în catalog.
+- **Runtime (ADR-0001):** sursă — gap `search:rerank:cross-encoder`; destinație — gap `ai:agent:generate` (contract neuron).
+- **Semantic (ADR-0002):** vezi contractele neuroni sursă și destinație; fără `nodeKey` stabil pentru `ai:agent:generate` în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-agent-generate`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `search:rerank:cross-encoder` (`queue_in_registry` = `no`); `ai:agent:generate` (`queue_in_registry` = `no`).
 

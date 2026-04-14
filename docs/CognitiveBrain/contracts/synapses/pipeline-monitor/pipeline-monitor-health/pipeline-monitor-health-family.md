@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `pipeline-monitor-health` | Traseu în graf; [`../../../neurons/E1/pipeline--monitor--health.md`](../../../neurons/E1/pipeline--monitor--health.md). **v2 / matrice:** `pipeline:monitor:health`. **Runtime (ADR-0001):** **o singură** coadă executabilă `pipeline:monitor` (`QUEUES.PIPELINE_MONITOR`, `workers/shared/src/queue-registry.ts` ~L86); worker `p3-pipeline-monitor.ts` acoperă și «health» și (împreună cu rate-sync) aceeași coadă — vezi contractul neuron. |
-| Țintă | `e1-monitor` | Nod agregat **familie monitor** E1 în planificare; **nu** este o singură coadă executabilă; vezi [`../../../adr/families/e1/monitor.md`](../../../adr/families/e1/monitor.md). |
+| Destinație (graf) | `e1-monitor` | Nod agregat **familie monitor** E1 în planificare; **nu** este o singură coadă executabilă; vezi [`../../../adr/families/e1/monitor.md`](../../../adr/families/e1/monitor.md). |
 
 ## Tip muchie (export)
 

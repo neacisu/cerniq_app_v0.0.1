@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă; țintă — vezi gap.
-- **Semantic (ADR-0002):** vezi contract țintă.
+- **Runtime (ADR-0001):** sursă executabilă; destinație — vezi gap.
+- **Semantic (ADR-0002):** vezi contract destinație.
 - **Planificare:** chunk → tool execute (graf).
 
 ## Limite și reconcilieri

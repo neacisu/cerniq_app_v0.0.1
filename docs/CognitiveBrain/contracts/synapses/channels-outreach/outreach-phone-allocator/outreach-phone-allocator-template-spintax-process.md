@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ambele capete au cozi în registry — vezi contractele neuron pentru dovezi de handler.
-- **Semantic (ADR-0002):** E2 orchestrator (sursă) → E2 templates (țintă).
+- **Semantic (ADR-0002):** E2 orchestrator (sursă) → E2 templates (destinație).
 - **Planificare:** dependență declarativă `outreach-phone-allocator` → `template-spintax-process`.
 
 ## Limite și reconcilieri

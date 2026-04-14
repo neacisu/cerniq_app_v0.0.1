@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Canal WhatsApp — detalii cozi și span în neuronul țintă.
+- Canal WhatsApp — detalii cozi și span în neuronul destinație.
 
 ## Sursă canonică
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-oblio` → `alert-client-account-blocked`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; țintă `alert:client:account-blocked` la **L177**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; **Destinație (coadă):** `alert:client:account-blocked` la **L177**.
 - **Runtime:** vezi neuronii; aliniere slug graf ↔ `v2_queue` cu cratimă în matrice.
 
 ## Limite și reconcilieri

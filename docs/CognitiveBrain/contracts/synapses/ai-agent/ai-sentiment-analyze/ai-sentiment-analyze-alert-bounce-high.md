@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `alert-bounce-high` | Coadă executabilă **`alert:bounce:high`** (`QUEUES.ALERT_BOUNCE_HIGH`) — [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). |
+| Destinație (graf) | `alert-bounce-high` | Coadă executabilă **`alert:bounce:high`** (`QUEUES.ALERT_BOUNCE_HIGH`) — [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). |
 
 ## Tip muchie (export)
 

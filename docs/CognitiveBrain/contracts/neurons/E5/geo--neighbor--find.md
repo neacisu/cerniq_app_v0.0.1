@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | `e5:geo:neighbor-identify` (L50). | v2 `cognitive.geo.neighbor.find` (L8162). | Segment `identify` vs `find`. |
 | 7 | Înveliș politică | — | v2 L8158–8159. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Prag `NEIGHBOR_THRESHOLD` partajat cu C15 (`c16` L29). | NeMo țintă. | — |
+| 9 | Guardrails | Prag `NEIGHBOR_THRESHOLD` partajat cu C15 (`c16` L29). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8159. | — |
 | 11 | Micro-OODA | Citire scor proximitate → INSERT relații. | v2 L8156. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8153). | — |

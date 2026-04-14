@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `pipeline-outreach-health` | Coadă executabilă **`pipeline:outreach:health`** (`QUEUES.PIPELINE_OUTREACH_HEALTH`) — [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md).  |
+| Destinație (graf) | `pipeline-outreach-health` | Coadă executabilă **`pipeline:outreach:health`** (`QUEUES.PIPELINE_OUTREACH_HEALTH`) — [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md).  |
 
 ## Tip muchie (export)
 

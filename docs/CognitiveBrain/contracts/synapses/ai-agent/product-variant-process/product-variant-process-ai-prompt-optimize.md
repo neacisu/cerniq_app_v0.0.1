@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** A6 vs optimizare prompt — vezi gap-ul din contractul țintă.
+- **Runtime (ADR-0001):** A6 vs optimizare prompt — vezi gap-ul din contractul destinație.
 - **Semantic (ADR-0002):** product-search vs ai-core.
 - **Planificare:** dependență declarativă.
 

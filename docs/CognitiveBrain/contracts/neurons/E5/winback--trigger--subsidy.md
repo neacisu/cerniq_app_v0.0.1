@@ -41,7 +41,7 @@ Declanșator conceptual „subsidy” în subgraph winback v2; implementarea mon
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf `winback:trigger:subsidy` absent din `QUEUES`. | v2 L9193. | Mapare pe alerte, nu pe winback queue. |
 | 2 | Etapă, familie, swimlane | J54 catalog: `alerts-weather` / SensoryNeuron. | v2 E5 `winback`. | Familie diferită între graf și worker. |

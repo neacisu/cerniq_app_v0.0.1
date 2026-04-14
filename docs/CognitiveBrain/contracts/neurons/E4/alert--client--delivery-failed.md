@@ -46,7 +46,7 @@
 | 3 | Rol declarat | Infrastructură alert generică (audit + metrică); **fără** trigger dedicat pentru `alert:client:delivery-failed`. | Scop alertă client (v2). | — |
 | 4 | NeuronType + SOFAI | `AlertNeuron` pentru cozile generice (v2/plan I39–I44); **fără** intrare pentru `alert:client:delivery-failed`. | v2 `AlertNeuron` inferat. | — |
 | 5 | Criticitate | Neconectat pentru coada granulară. | `HIGH` în v2 (L5925–L5945). | — |
-| 6 | Înveliș telemetrie | I39–I44: `withCognitiveSpan("e4:alert:payment", …)` etc. (`i-alert-workers.ts` L67, L140–170) → span activ `cognitive:e4:alert:payment` … `cognitive:e4:alert:dispatch` (prefix din `cognitive-helpers.ts` L226). | v2 OTel `cognitive.alert.client.delivery-failed` (L5944). | **Fără** procesor pentru coada granulară → **fără** span dedicat în cod; doar țintă v2. |
+| 6 | Înveliș telemetrie | I39–I44: `withCognitiveSpan("e4:alert:payment", …)` etc. (`i-alert-workers.ts` L67, L140–170) → span activ `cognitive:e4:alert:payment` … `cognitive:e4:alert:dispatch` (prefix din `cognitive-helpers.ts` L226). | v2 OTel `cognitive.alert.client.delivery-failed` (L5944). | **Fără** procesor pentru coada granulară → **fără** span dedicat în cod; doar destinație v2. |
 | 7 | Înveliș politică | Comentariu: alerte „internal” în fază curentă (i-alert-workers L16). | HITL v2 în L5925–L5945. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
 | 9 | Guardrails | Inserare audit deterministă. | — | — |

@@ -49,7 +49,7 @@ Dependențe **pipeline-monitor →** `hitl-approval-credit-override` (v2 §7): [
 | --- | --- |
 | **Runtime (ADR-0001)** | Coadă `hitl:approval:credit-override` înregistrată; worker E4 — vezi contract neuron. |
 | **Semantic (ADR-0002)** | **NEURON_MATRIX.csv** — `hitl:approval:credit-override`, `e4:hitl:credit-override` complet. |
-| **Planificare (export)** | v2 §7 — sursă `hitl-approval-credit-override` → țintă `e4-hitl`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `hitl-approval-credit-override` → destinație `e4-hitl`, tip `default`. |
 
 ## Limite și reconcilieri
 

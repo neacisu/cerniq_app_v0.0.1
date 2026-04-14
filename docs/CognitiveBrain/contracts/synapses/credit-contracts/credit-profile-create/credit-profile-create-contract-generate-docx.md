@@ -41,7 +41,7 @@ Traseul **credit-profile-create** depinde în planificare de **generarea DOCX** 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** credit E4 ↔ generare document E4.
 - **Planificare:** v2 §7 — `credit-profile-create` → `contract-generate-docx`.
 

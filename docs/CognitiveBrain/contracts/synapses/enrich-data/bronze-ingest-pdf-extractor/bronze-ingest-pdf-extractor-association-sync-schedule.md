@@ -41,13 +41,13 @@ Traseul **bronze-ingest-pdf-extractor** depinde în planificare de **programare 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** ingest PDF (graf) ↔ orchestrare sync E5.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `association-sync-schedule`.
 
 ## Limite și reconcilieri
 
-- Politica de scheduling este în cod / contract neuron țintă, nu în sinapsă.
+- Politica de scheduling este în cod / contract neuron destinație, nu în sinapsă.
 
 ## Sursă canonică
 

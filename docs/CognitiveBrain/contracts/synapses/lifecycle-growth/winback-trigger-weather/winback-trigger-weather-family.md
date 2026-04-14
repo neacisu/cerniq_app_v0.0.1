@@ -26,7 +26,7 @@ Muchia **`default`** leagă traseul **winback-trigger-weather** de nucleul de fa
 
 ## Sinapse dependență în același traseu
 
-În acest director, muchiile **`dependency`** din v2 §7 leagă sursa `winback-trigger-weather` de neuroni HITL / dashboard (câte un fișier contract perțintă): `winback-trigger-weather-hitl-dashboard-metrics.md`, `winback-trigger-weather-hitl-dashboard-sync.md`, `winback-trigger-weather-hitl-task-create.md`, `winback-trigger-weather-hitl-task-expire-check.md`, `winback-trigger-weather-hitl-task-nps-followup.md`, `winback-trigger-weather-hitl-task-resolve.md`.
+În acest director, muchiile **`dependency`** din v2 §7 leagă sursa `winback-trigger-weather` de neuroni HITL / dashboard (câte un fișier contract per destinație): `winback-trigger-weather-hitl-dashboard-metrics.md`, `winback-trigger-weather-hitl-dashboard-sync.md`, `winback-trigger-weather-hitl-task-create.md`, `winback-trigger-weather-hitl-task-expire-check.md`, `winback-trigger-weather-hitl-task-nps-followup.md`, `winback-trigger-weather-hitl-task-resolve.md`.
 
 ## Semantica confirmată (registru v2 §7)
 

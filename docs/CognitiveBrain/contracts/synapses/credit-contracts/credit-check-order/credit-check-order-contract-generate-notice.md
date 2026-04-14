@@ -41,13 +41,13 @@ Traseul **credit-check-order** depinde în planificare de **generarea de notific
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă pentru coadă și dovezi cod.
-- **Semantic (ADR-0002):** E4 contracts (țintă) din perspectivă v2 familie.
+- **Runtime (ADR-0001):** vezi contract neuron destinație pentru coadă și dovezi cod.
+- **Semantic (ADR-0002):** E4 contracts (destinație) din perspectivă v2 familie.
 - **Planificare:** v2 §7 — `credit-check-order` → `contract-generate-notice`.
 
 ## Limite și reconcilieri
 
-- Dacă neuronul țintă marchează gap catalog, păstrați limba conservatoare din contractul neuron, fără completări noi aici.
+- Dacă neuronul destinație marchează gap catalog, păstrați limba conservatoare din contractul neuron, fără completări noi aici.
 
 ## Sursă canonică
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `document-whatsapp-send` | **Matrix:** `document:whatsapp:send` → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Registry:** `document:whatsapp:send`. |
-| ��intă | `channel-whatsapp-send` | **Matrix:** `channel:whatsapp:send` (E3, `channels`) → [`../../../neurons/E3/channel--whatsapp--send.md`](../../../neurons/E3/channel--whatsapp--send.md). **Registry:** `E3_CHANNEL_WHATSAPP_SEND` → `channel:whatsapp:send`. |
+| Destinație (graf) | `channel-whatsapp-send` | **Matrix:** `channel:whatsapp:send` (E3, `channels`) → [`../../../neurons/E3/channel--whatsapp--send.md`](../../../neurons/E3/channel--whatsapp--send.md). **Registry:** `E3_CHANNEL_WHATSAPP_SEND` → `channel:whatsapp:send`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă traseul **`document-whatsapp-send`** de **`channel-whatsapp-send`** în planificare. v2 confirmă **„sinapsă canonică de pipeline”**; nu distinge între trimiterea „document ca media” (I53) și trimiterea generică pe canal (J59). În repo există **delegare** documentată de la J59 către coada `document:whatsapp:send` cu posibil **decalaj de câmpuri** — vezi contractele sursă și țintă; muchia sinaptică nu rezolvă aceste detalii.
+Muchia **dependency** leagă traseul **`document-whatsapp-send`** de **`channel-whatsapp-send`** în planificare. v2 confirmă **„sinapsă canonică de pipeline”**; nu distinge între trimiterea „document ca media” (I53) și trimiterea generică pe canal (J59). În repo există **delegare** documentată de la J59 către coada `document:whatsapp:send` cu posibil **decalaj de câmpuri** — vezi contractele sursa si destinatia; muchia sinaptică nu rezolvă aceste detalii.
 
 ## Semantica confirmată (registru v2 §7)
 

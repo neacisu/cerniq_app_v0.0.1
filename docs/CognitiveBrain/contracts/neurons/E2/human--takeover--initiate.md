@@ -49,7 +49,7 @@
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
 | 9 | Guardrails | `UnrecoverableError` pe rânduri zero; idempotență operațională limitată. | ADR-0007. | — |
 | 10 | Escaladare HITL | `sequence_stop` + audit; parte din lanț HITL. | v2. | — |
-| 11 | Micro-OODA | Update journey + review + enqueue + audit. | v2 LangGraph/UI — **nu** în cod. | LangGraph: **țintă v2**. |
+| 11 | Micro-OODA | Update journey + review + enqueue + audit. | v2 LangGraph/UI — **nu** în cod. | LangGraph: **destinație v2**. |
 | 12 | Tier + de-escaladare | Eșec dur la date inconsistente. | v2 Tier 2. | — |
 | 13 | Stack | BullMQ, Postgres, coadă `sequence:stop`. | v2 §2.3. | — |
 

@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` din fabrică (etapa 3). | v2 `cognitive.e3.ai.agent-orchestrate`. | Verificare `withCognitiveSpan` în factory pentru `tenantId` în `job.data` (prezent în payload). |
 | 7 | Înveliș politică | Guard pre/post; return struct `guardBlocked` fără enqueue C15 dacă blocat (`c14` L101–136). | v2 HITL irreversible — parțial acoperit de guard. | — |
 | 8 | Rutare model (dacă AI) | `reasoningChat(systemPrompt, fullUserPrompt, { temperature, maxTokens, timeoutMs, tenantId })` (`c14` L116–121). | v2 QwQ-32B / SGLang — detalii în `llm-client.js`. | Versiuni exacte server: vezi `llm-client` + infra, nu numai v2. |
-| 9 | Guardrails | `e3ScanPromptBeforeLlm`, `e3ScanOutputAfterLlm` (`c14` L101–136). | ADR-0007 țintă. | — |
+| 9 | Guardrails | `e3ScanPromptBeforeLlm`, `e3ScanOutputAfterLlm` (`c14` L101–136). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în C14 direct; flux negociere / human în alte cozi E3. | v2 HITL mandatory — mapare parțială. | — |
 | 11 | Micro-OODA | OBSERVE: istoric + mesaj; ORIENT: guard + model; DECIDE: text + toolCalls; ACT: add C15. | v2 OODA. | v2 menționează FlowProducer DAG — în cod: enqueue simplu. |
 | 12 | Tier + de-escaladare | `attemptNumber`, `correctionNote` în payload (`c14` L79–80, L96–98). | v2 Tier 2. | — |

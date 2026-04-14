@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.oblio.stock-sync` (L5016). | **Parțial aliniat**. |
 | 7 | Înveliș politică | Izolare tenant `setSessionTenantId` (`g44` L33–35). | v2 Tier 3 (L5006). | — |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
-| 9 | Guardrails | Doar rânduri cu SKU; cantitate ≥ 0 (`g44` L52–58). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Doar rânduri cu SKU; cantitate ≥ 0 (`g44` L52–58). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în G44. | v2 (L5014). | — |
 | 11 | Micro-OODA | OBSERVE — inventar; ORIENT — disponibil; ACT — apel stub (`g44` L37–67). | v2 CRON OODA (L5012). | — |
 | 12 | Tier + de-escaladare | Fără în cod. | v2 Tier 3 (L5006). | — |

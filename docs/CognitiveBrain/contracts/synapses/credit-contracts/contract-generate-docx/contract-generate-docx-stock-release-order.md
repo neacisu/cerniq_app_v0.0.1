@@ -41,7 +41,7 @@ Dependență de planificare: **contract-generate-docx** → **`stock-release-ord
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E4 generare → E4 eliberare stoc comandă.
 - **Planificare:** `contract-generate-docx` → `stock-release-order`.
 

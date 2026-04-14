@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Analog traseului CSV pentru **țintă**; **sursă** diferă prin starea de implementare documentată în neuron.
+- Analog traseului CSV pentru **destinație**; **sursă** diferă prin starea de implementare documentată în neuron.
 
 ## Sursă canonică
 

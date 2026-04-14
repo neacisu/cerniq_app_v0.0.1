@@ -38,7 +38,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Catalog `e4:credit:score-calculate`; coadă `credit:score:calculate`; registry L390; `index.ts` L266–271. | `Confirmed queue field` (L6871). | — |
 | 2 | Etapă, familie, swimlane | Catalog etapa 4, swimlane `credit-decision` (L2389–2390). | Idem v2 (L6864–6865). | — |
@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:score:calculate", …)` (c17 L69) → span **`cognitive:e4:credit:score:calculate`**. Catalog `nodeKey` = **`e4:credit:score-calculate`**. | v2 `cognitive.e4.credit.score-calculate` (L6876). | **Divergență:** primul argument ≠ `nodeKey` catalog → `getNodeByKey` poate **nu** atașa atribute din catalog pe span (vezi `cognitive-helpers.ts` L225–233). |
 | 7 | Înveliș politică | `runCreditBorderlineConsensusIfNeeded` (c17 L39, import L39); fără Cedar/OPA în fișier. | HITL ireversibile, SLA 2h (v2 L6874). | Detaliu consensus: `credit-consensus-advisory.ts` — neexpandat aici. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Scoring determinist; fără NeMo în c17. | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Scoring determinist; fără NeMo în c17. | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | Lanț C18 + HITL K49 la limită mare (descris în catalog C18); nu în C17 direct. | v2 HITL engine (L6874). | — |
 | 11 | Micro-OODA | Observare copii flow → calcul → scriere DB → enqueue C18. | v2 L6872. | LangGraph în v2: **nu** verificat în C17. |
 | 12 | Tier + de-escaladare | Metrici distribuție/durată în c17. | Tier 2 (v2 L6866). | — |

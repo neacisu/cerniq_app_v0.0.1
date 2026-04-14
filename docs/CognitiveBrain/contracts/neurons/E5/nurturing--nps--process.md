@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `cognitive:e5:feedback:nps-process`. | `cognitive.e5.feedback.nps-process` (L8790). | Aliniat semantic. |
 | 7 | Înveliș politică | Fără Cedar în H44. | HITL on anomaly (L8788). | Logica H44 nu implementează prag de încredere LLM (nu există LLM). |
 | 8 | Rutare model (dacă AI) | **Implementare H44:** determinist, fără LLM. | PRIMARY/FALLBACK LLM (L8787). | Gap major v2 ↔ cod. |
-| 9 | Guardrails | Validare scor întreg 0–10 (H44 L78–82). | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Validare scor întreg 0–10 (H44 L78–82). | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | Downstream automat (churn / advocate), nu task HITL în H44. | v2 HITL anomaly (L8788). | — |
 | 11 | Micro-OODA | Validare → UPDATE DB → enqueue cozi. | OODA cu analiză LLM (L8786). | Doar parte „ACT” în cod. |
 | 12 | Tier + de-escaladare | — | Tier 3 v2 (L8781). | — |

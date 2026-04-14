@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** cozi WA per-telefon vs `q:email:cold` — distincte; legătura efectivă în cod nu e în câmpurile sinapsei.
-- **Semantic (ADR-0002):** vezi `e2:email:cold-send` în contractul țintă.
+- **Semantic (ADR-0002):** vezi `e2:email:cold-send` în contractul destinație.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

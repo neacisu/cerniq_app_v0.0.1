@@ -41,13 +41,13 @@ Traseul **credit-data-fetch-anaf** (în v2: ingest date fiscale ANAF pentru prof
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă — cozi distincte unde sunt declarate în registry.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație — cozi distincte unde sunt declarate în registry.
 - **Semantic (ADR-0002):** `e4:credit:data-fetch-anaf` ↔ etapa contracte E4 pentru selecție șablon — vezi `cognitive-node-catalog.ts` în contracte.
 - **Planificare:** v2 §7 — `credit-data-fetch-anaf` → `contract-template-select`.
 
 ## Limite și reconcilieri
 
-- Reconciliere denumiri coadă la țintă: obligatoriu [`../../../neurons/E4/contract--template--select.md`](../../../neurons/E4/contract--template--select.md).
+- Reconciliere denumiri coadă la destinație: obligatoriu [`../../../neurons/E4/contract--template--select.md`](../../../neurons/E4/contract--template--select.md).
 
 ## Sursă canonică
 

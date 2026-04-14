@@ -41,7 +41,7 @@ Exportul plasează o **dependency** de la pauza de campanie cold către traseul 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă pe `email:cold:campaign:pause`; țintă executabilă pentru trimitere warm pe **`q:email:warm`**.
+- **Runtime (ADR-0001):** sursă pe `email:cold:campaign:pause`; destinație executabilă pentru trimitere warm pe **`q:email:warm`**.
 - **Semantic (ADR-0002):** `e2:email:cold-campaign-pause` → `e2:email:warm-send` (catalog).
 - **Planificare:** `email-warm-send` ca nod graf.
 

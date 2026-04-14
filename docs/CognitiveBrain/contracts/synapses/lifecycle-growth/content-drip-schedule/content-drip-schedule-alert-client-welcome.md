@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Detalii canal alertă — contract neuron țintă.
+- Detalii canal alertă — contract neuron destinație.
 
 ## Sursă canonică
 

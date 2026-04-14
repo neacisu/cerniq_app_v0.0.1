@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**v2** (L5458–5481): vigilență prețuri vs concurență, `AttentionNeuron`, criticitate **MEDIUM**, Tier 4, OODA declarat ca observare praguri și alertă. **Cod:** `pricingCompetitorCheckProcessor` numără produse active (sau ID-uri trimise), loghează mesaj STUB și întoarce `note: "competitor-check-pending"` fără date competitive (`competitive: null`). Comentariul din fișier confirmă integrarea externă *pending*. Deci scopul v2 este **țintă**; implementarea curentă este **placeholder operațional** (fără pricing concurențial real).
+**v2** (L5458–5481): vigilență prețuri vs concurență, `AttentionNeuron`, criticitate **MEDIUM**, Tier 4, OODA declarat ca observare praguri și alertă. **Cod:** `pricingCompetitorCheckProcessor` numără produse active (sau ID-uri trimise), loghează mesaj STUB și întoarce `note: "competitor-check-pending"` fără date competitive (`competitive: null`). Comentariul din fișier confirmă integrarea externă *pending*. Deci scopul v2 este **destinație**; implementarea curentă este **placeholder operațional** (fără pricing concurențial real).
 
 ## Surse audit
 
@@ -47,13 +47,13 @@
 | 4 | NeuronType + SOFAI | Catalog: **`AttentionNeuron`** (L1789). | v2 `AttentionNeuron` (L5466). | Mapare explicită System1/2 pentru `AttentionNeuron`: v2 §2.1 nu detaliază în blocul citit — fără completare inventată. |
 | 5 | Criticitate | Catalog **`MEDIUM`** (L1792). | `MEDIUM` (v2 L5469). | — |
 | 6 | Înveliș telemetrie | Factory: pentru job cu `tenantId`, `withCognitiveSpan(nodeKey, …)` cu span **`cognitive:e3:pricing:competitor-check`** și atribute `cognitive.nodeKey`, `cognitive.neuronType`, etc. (`cognitive-helpers.ts` L226–233; `factory.ts` L98–106). Procesorul nu apelează direct `withCognitiveSpan`. | v2 OTel `cognitive.e3.pricing.competitor-check` (L5480) — convenție cu **puncte** vs **`cognitive:nodeKey` cu două puncte**. | **Migrare / aliniere denumire** span: convenții diferite; atribute reale = implementare worker-shared. |
-| 7 | Înveliș politică | STUB fără Cedar/OPA sau metadata HITL în procesor. | Tier 4; HITL la eșecuri repetate, SLA 8h (v2 L5470, L5478). | Politici v2 **țintă**; lipsă cod pentru HITL specific acestui neuron. |
+| 7 | Înveliș politică | STUB fără Cedar/OPA sau metadata HITL în procesor. | Tier 4; HITL la eșecuri repetate, SLA 8h (v2 L5470, L5478). | Politici v2 **destinație**; lipsă cod pentru HITL specific acestui neuron. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI (L5477). | — |
-| 9 | Guardrails | Doar logică STUB + `setSessionTenantId`; fără NeMo în fișier. | NeMo / determinist — țintă ADR-0007. | — |
+| 9 | Guardrails | Doar logică STUB + `setSessionTenantId`; fără NeMo în fișier. | NeMo / determinist — destinație ADR-0007. | — |
 | 10 | Escaladare HITL | Fără enqueue `human:*` în e32. | v2 HITL la erori repetate (L5478). | Motor `human:escalate` etc. există în același worker (`main.ts` L270–272) dar **nu** legat de acest procesor în codul citit. |
 | 11 | Micro-OODA | **Cod:** citire DB produse → log → return structură fixă; nu poll metrics externi. | OODA v2: observare praguri / alertă (L5476). | OODA din v2 **nu** e mapat operațional în STUB. |
 | 12 | Tier + de-escaladare | Fără praguri încredere / 2σ în procesor. | Tier 4 (v2 L5470). | — |
-| 13 | Stack v2 §2.3 (subset) | BullMQ procesor + Drizzle/`@cerniq/db` pentru `goldProducts`. | Kafka, SGLang etc. — v2 §2.3 ca țintă platformă. | Versiuni stack neuronal: nu extrase din acest fișier. |
+| 13 | Stack v2 §2.3 (subset) | BullMQ procesor + Drizzle/`@cerniq/db` pentru `goldProducts`. | Kafka, SGLang etc. — v2 §2.3 ca destinație platformă. | Versiuni stack neuronal: nu extrase din acest fișier. |
 
 ### Mapare OTel
 

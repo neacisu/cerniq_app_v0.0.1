@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **descoperire email** ș
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă în registry; țintă — `ai:structure:xai` ca apropiere în neuron.
+- **Runtime:** sursă în registry; destinație — `ai:structure:xai` ca apropiere în neuron.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

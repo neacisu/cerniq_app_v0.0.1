@@ -45,7 +45,7 @@
 | 6 | Înveliș telemetrie | — | v2 `cognitive.graph.communities.latest` (L8385). | — |
 | 7 | Înveliș politică | — | v2 L8383–8384. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | — | NeMo țintă. | — |
+| 9 | Guardrails | — | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8384. | — |
 | 11 | Micro-OODA | — | v2 L8381. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8376). | — |

@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_PRICING_COMPETITOR_CHECK` → `QUEUES.E3_STOCK_SYNC_ERP` — `workers/shared/src/queue-registry.ts`; [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
-- **Semantic:** contracte neuron sursă și țintă.
+- **Semantic:** contracte neuron sursă și destinație.
 - **Planificare:** muchie **`dependency`**: `pricing-competitor-check` precede `stock-sync-erp` în export; v2 nu detaliează sincronizarea ERP în registru.
 
 ## Limite și reconcilieri

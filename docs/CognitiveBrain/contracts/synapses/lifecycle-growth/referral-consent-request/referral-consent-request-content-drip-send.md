@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Execuție drip send (ex. I49) — doar unde este dovedit în neuronul țintă.
+- Execuție drip send (ex. I49) — doar unde este dovedit în neuronul destinație.
 
 ## Sursă canonică
 

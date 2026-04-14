@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat; distinct de `search:rrf:fuse`. |
-| Țintă | `ai-agent-orchestrate` | [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). **Runtime:** `ai:agent:orchestrate` (`QUEUES.E3_AI_AGENT_ORCHESTRATE`, `queue-registry.ts` L228). |
+| Destinație (graf) | `ai-agent-orchestrate` | [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). **Runtime:** `ai:agent:orchestrate` (`QUEUES.E3_AI_AGENT_ORCHESTRATE`, `queue-registry.ts` L228). |
 
 ## Tip muchie (export)
 
@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap `search:rerank:cross-encoder`; țintă — `ai:agent:orchestrate`.
-- **Semantic (ADR-0002):** `e3:ai:agent-orchestrate` (contract neuron țintă); sursă neconectată în catalog la auditul documentat.
+- **Runtime (ADR-0001):** sursă — gap `search:rerank:cross-encoder`; destinație — `ai:agent:orchestrate`.
+- **Semantic (ADR-0002):** `e3:ai:agent-orchestrate` (contract neuron destinație); sursă neconectată în catalog la auditul documentat.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-agent-orchestrate`.
 
 ## Limite și reconcilieri

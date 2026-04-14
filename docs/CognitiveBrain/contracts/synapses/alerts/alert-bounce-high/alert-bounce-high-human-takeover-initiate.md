@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `alert-bounce-high` | [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). **Runtime:** `alert:bounce:high` (`QUEUES.ALERT_BOUNCE_HIGH`, `queue-registry.ts` L168). |
-| Țintă | `human-takeover-initiate` | [`../../../neurons/E2/human--takeover--initiate.md`](../../../neurons/E2/human--takeover--initiate.md). **Runtime:** `human:takeover:initiate` (`QUEUES.HUMAN_TAKEOVER_INITIATE`, `queue-registry.ts` L173). |
+| Destinație (graf) | `human-takeover-initiate` | [`../../../neurons/E2/human--takeover--initiate.md`](../../../neurons/E2/human--takeover--initiate.md). **Runtime:** `human:takeover:initiate` (`QUEUES.HUMAN_TAKEOVER_INITIATE`, `queue-registry.ts` L173). |
 
 ## Tip muchie (export)
 

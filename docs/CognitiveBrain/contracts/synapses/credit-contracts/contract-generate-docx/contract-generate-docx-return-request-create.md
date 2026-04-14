@@ -41,7 +41,7 @@ Dependență de planificare: **contract-generate-docx** → **`return-request-cr
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E4 generare → E4 retur.
 - **Planificare:** `contract-generate-docx` → `return-request-create`.
 

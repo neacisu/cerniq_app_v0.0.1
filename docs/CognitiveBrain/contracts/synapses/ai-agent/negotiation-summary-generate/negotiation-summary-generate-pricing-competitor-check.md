@@ -37,13 +37,13 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** **țintă** ancorată în `QUEUES.E3_PRICING_COMPETITOR_CHECK`; **sursă:** fără `QUEUES.*` dovedit pentru `negotiation:summary:generate` — contract neuron.
-- **Semantic:** țintă: catalog + contract pricing; sursă: **nu** inventați `nodeKey` unde contractul marchează absență.
+- **Runtime:** **destinație** ancorată în `QUEUES.E3_PRICING_COMPETITOR_CHECK`; **sursă:** fără `QUEUES.*` dovedit pentru `negotiation:summary:generate` — contract neuron.
+- **Semantic:** destinație: catalog + contract pricing; sursă: **nu** inventați `nodeKey` unde contractul marchează absență.
 - **Planificare:** muchie **`dependency`**: `negotiation-summary-generate` precede `pricing-competitor-check` în export; v2: „sinapsă canonică de pipeline”.
 
 ## Limite și reconcilieri
 
-- Muchia leagă în **plan** două noduri; execuția capătului sursă rămâne **nedovedită** în registry la data contractului neuron. Pentru **țintă**: slug `pricing-competitor-check` ↔ **`pricing:competitor:check`**. Fără presupuneri despre payload (absent din export).
+- Muchia leagă în **plan** două noduri; execuția capătului sursă rămâne **nedovedită** în registry la data contractului neuron. Pentru **destinație**: slug `pricing-competitor-check` ↔ **`pricing:competitor:check`**. Fără presupuneri despre payload (absent din export).
 
 ## Sursă canonică
 

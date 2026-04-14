@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Rutare model / AI — doar dacă este afirmat în contractul neuronului țintă.
+- Rutare model / AI — doar dacă este afirmat în contractul neuronului destinație.
 
 ## Sursă canonică
 

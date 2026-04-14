@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **reply WA (E2 în model)** 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** cross-etapă E2 ↔ E5 — verificați registry și worker-ii E5 în contractul țintă.
+- **Runtime:** cross-etapă E2 ↔ E5 — verificați registry și worker-ii E5 în contractul destinație.
 - **Semantic:** whatsapp vs nurturing/content — catalog.
 - **Planificare:** `dependency`.
 

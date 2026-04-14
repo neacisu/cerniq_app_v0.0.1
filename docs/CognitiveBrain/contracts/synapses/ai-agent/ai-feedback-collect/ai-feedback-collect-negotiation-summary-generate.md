@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursa este ancorată în `QUEUES.E3_FEEDBACK_COLLECT` / worker K65 (vezi contract neuron sursă). **Capătul țintă** nu are încă ancoră executabilă dovedită în registry la data contractului neuron — păstrați distincția între **nod planificat** și **coadă înregistrată**.
-- **Semantic:** pentru sursă, `cognitive-node-catalog.ts` + contract; pentru țintă, catalog/registry lipsă în evidența din contractul neuron — **nu** inventați `nodeKey`.
+- **Runtime:** sursa este ancorată în `QUEUES.E3_FEEDBACK_COLLECT` / worker K65 (vezi contract neuron sursă). **Capătul destinație** nu are încă ancoră executabilă dovedită în registry la data contractului neuron — păstrați distincția între **nod planificat** și **coadă înregistrată**.
+- **Semantic:** pentru sursă, `cognitive-node-catalog.ts` + contract; pentru destinație, catalog/registry lipsă în evidența din contractul neuron — **nu** inventați `nodeKey`.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-feedback-collect` precede `negotiation-summary-generate`.
 
 ## Limite și reconcilieri

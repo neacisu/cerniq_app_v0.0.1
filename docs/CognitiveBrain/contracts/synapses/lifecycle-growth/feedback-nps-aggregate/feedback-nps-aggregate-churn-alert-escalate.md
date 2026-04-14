@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `feedback-nps-aggregate` → `churn-alert-escalate`.
-- **Runtime / semantic:** vezi neuronii; ținta graf `churn-alert-escalate` ↔ runtime **`churn:risk:escalate`** — vezi contractul țintă.
+- **Runtime / semantic:** vezi neuronii; ținta graf `churn-alert-escalate` ↔ runtime **`churn:risk:escalate`** — vezi contractul destinație.
 
 ## Limite și reconcilieri
 

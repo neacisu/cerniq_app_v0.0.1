@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `alert-bounce-high` | [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). **Runtime:** `alert:bounce:high` (`QUEUES.ALERT_BOUNCE_HIGH`, `queue-registry.ts` L168). |
-| Țintă | `human-approve-message` | [`../../../neurons/E2/human--approve--message.md`](../../../neurons/E2/human--approve--message.md). **Runtime:** `human:approve:message` (`QUEUES.HUMAN_APPROVE_MESSAGE`, `queue-registry.ts` L175). |
+| Destinație (graf) | `human-approve-message` | [`../../../neurons/E2/human--approve--message.md`](../../../neurons/E2/human--approve--message.md). **Runtime:** `human:approve:message` (`QUEUES.HUMAN_APPROVE_MESSAGE`, `queue-registry.ts` L175). |
 
 ## Tip muchie (export)
 

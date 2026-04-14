@@ -62,7 +62,7 @@
 | 6 | Înveliș telemetrie | **`createWorker`** + etapă 2 → span **`cognitive:e2:email:cold-analytics`** (`factory.ts`, `cognitive-helpers.ts`). **v2:** `cognitive.e2.email.cold-analytics`. | ADR-0003. | Notație puncte vs două puncte. |
 | 7 | Înveliș politică | **Fără** Cedar/OPA. Rutare internă după `sequenceId` în payload (`sequences.ts` L535–538). | v2: Tier 4, fără HITL. | — |
 | 8 | Rutare model (dacă AI) | N/A. | Non-AI. | — |
-| 9 | Guardrails | Validare implicită SQL + structuri job; **fără** NeMo. | v2 + ADR-0007. | NeMo: țintă. |
+| 9 | Guardrails | Validare implicită SQL + structuri job; **fără** NeMo. | v2 + ADR-0007. | NeMo: destinație documentată. |
 | 10 | Escaladare HITL | **Nu** enfilează `human:*` din aceste funcții. | v2: fără HITL. | — |
 | 11 | Micro-OODA | Observe (citire DB), Orient (agregare), Decide (returnare obiect rezultat), Act (fără enqueue obligatoriu în `executeSequenceStatsJob`; daily report returnează JSON). | v2 OODA citește „enqueue downstream” — **nu** observat în `executeSequenceStatsJob`. | Pasul „ACT: enqueue downstream” din v2 nu e mapat 1:1 în `executeSequenceStatsJob`. |
 | 12 | Tier + de-escaladare | Eșec = excepții DB / BullMQ retry implicit. **Fără** prag încredere. | v2 §2.2. | — |

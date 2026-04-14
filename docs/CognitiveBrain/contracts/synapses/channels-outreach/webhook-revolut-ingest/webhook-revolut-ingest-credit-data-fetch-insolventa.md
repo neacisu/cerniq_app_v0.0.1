@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **ingest Revolut** și **fet
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / Semantic:** E4 — vezi contract țintă.
+- **Runtime / Semantic:** E4 — vezi contract destinație.
 - **Planificare:** `dependency`.
 
 ## Limite și reconcilieri

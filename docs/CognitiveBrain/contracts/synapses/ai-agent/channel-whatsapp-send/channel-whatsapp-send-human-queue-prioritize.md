@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă ancorată în registry; **țintă:** fără coadă canonică dovedită sub `human:queue:prioritize`.
-- **Semantic:** sursă: contract channel WhatsApp; țintă: gap catalog în contractul neuron.
+- **Runtime:** sursă ancorată în registry; **Destinație:** fără coadă canonică dovedită sub `human:queue:prioritize`.
+- **Semantic:** sursă: contract channel WhatsApp; destinație: gap catalog în contractul neuron.
 - **Planificare:** muchie **`dependency`** în topologia exportată.
 
 ## Limite și reconcilieri

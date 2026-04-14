@@ -40,7 +40,7 @@ Alertă internă scădere NPS (graf). **Cod:** fără coadă dedicată; agregăr
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** runtime. | v2 L7526. | — |
 | 2 | Etapă, familie, swimlane | — | v2 E5. | — |

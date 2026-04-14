@@ -43,8 +43,8 @@ Muchia **`dependency`** leagă **`graph-path-find`** de **`geo-cluster-analyze`*
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: gap `graph:path:find`; țintă: `cluster:implicit:detect`. |
-| **Semantic (ADR-0002)** | Catalog vs etichete graf — contract țintă. |
+| **Runtime (ADR-0001)** | Sursă: gap `graph:path:find`; destinație: `cluster:implicit:detect`. |
+| **Semantic (ADR-0002)** | Catalog vs etichete graf — contract destinație. |
 | **Planificare (export)** | v2 §7 — `graph-path-find` → `geo-cluster-analyze`, tip `dependency`. |
 
 ## Traseu și vecini

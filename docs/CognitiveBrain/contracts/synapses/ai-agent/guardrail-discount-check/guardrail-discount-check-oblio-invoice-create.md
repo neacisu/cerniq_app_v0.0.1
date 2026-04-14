@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `oblio-invoice-create` | **Matrix:** `oblio:invoice:create` → [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). **Registry:** `E3_OBLIO_INVOICE_CREATE` → `oblio:invoice:create`. |
+| Destinație (graf) | `oblio-invoice-create` | **Matrix:** `oblio:invoice:create` → [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). **Registry:** `E3_OBLIO_INVOICE_CREATE` → `oblio:invoice:create`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă **`oblio-invoice-create`** de **`guardrail-discount-check`** în topologia exportată. v2: **„sinapsă canonică de pipeline”**; nu explică cum valorile de discount validate influențează emiterea facturii. Comportamentul Oblio este în contractul țintă.
+Muchia **dependency** leagă **`oblio-invoice-create`** de **`guardrail-discount-check`** în topologia exportată. v2: **„sinapsă canonică de pipeline”**; nu explică cum valorile de discount validate influențează emiterea facturii. Comportamentul Oblio este în contractul destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

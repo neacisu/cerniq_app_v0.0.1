@@ -41,7 +41,7 @@ Traseul **selecție clauze / șablon contract** depinde în planificare de **pro
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** cozi — contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** cozi — contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 `contracts` ↔ E4 `logistics`.
 - **Planificare:** v2 §7 — `contract-template-select` → `return-process-stock`.
 

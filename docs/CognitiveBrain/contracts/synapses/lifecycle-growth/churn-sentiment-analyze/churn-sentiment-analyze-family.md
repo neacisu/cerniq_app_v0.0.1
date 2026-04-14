@@ -49,7 +49,7 @@ Muchia **`default`** plasează traseul **churn-sentiment-analyze** sub agregatul
 | --- | --- |
 | **Runtime (ADR-0001)** | Execuție AI sentiment — vezi contract E2 și registry. |
 | **Semantic (ADR-0002)** | [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `churn:sentiment:analyze` la **L257** (fișier). |
-| **Planificare** | v2 §7 — sursă `churn-sentiment-analyze` → țintă `e5-churn`. |
+| **Planificare** | v2 §7 — sursă `churn-sentiment-analyze` → destinație `e5-churn`. |
 
 ## Limite și reconcilieri
 

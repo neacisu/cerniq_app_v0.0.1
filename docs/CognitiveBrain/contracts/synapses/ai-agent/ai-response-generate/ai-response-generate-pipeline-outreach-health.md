@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Contract sursă:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md). |
-| Țintă | `pipeline-outreach-health` | **Matrix:** `pipeline:outreach:health` (E2, `monitoring`) → [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md). **Registry:** `PIPELINE_OUTREACH_HEALTH` → `pipeline:outreach:health`. |
+| Destinație (graf) | `pipeline-outreach-health` | **Matrix:** `pipeline:outreach:health` (E2, `monitoring`) → [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md). **Registry:** `PIPELINE_OUTREACH_HEALTH` → `pipeline:outreach:health`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă în graf **`pipeline-outreach-health`** de traseul **`ai-response-generate`**. v2 oferă doar **„sinapsă canonică de pipeline”**; nu precizează indicatorii de „health” sau cum se calculează starea pipeline-ului de outreach relativ la răspunsurile generate. Contractul E2 țintă descrie implementarea; muchia documentează **topologia planificată**.
+Muchia **dependency** leagă în graf **`pipeline-outreach-health`** de traseul **`ai-response-generate`**. v2 oferă doar **„sinapsă canonică de pipeline”**; nu precizează indicatorii de „health” sau cum se calculează starea pipeline-ului de outreach relativ la răspunsurile generate. Contractul neuronului E2 de destinație descrie implementarea; muchia documentează **topologia planificată**.
 
 ## Semantica confirmată (registru v2 §7)
 

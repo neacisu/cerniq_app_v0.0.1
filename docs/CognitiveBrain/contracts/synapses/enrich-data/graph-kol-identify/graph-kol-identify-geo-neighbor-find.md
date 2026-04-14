@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-kol-identify`** de **`geo-neighbor-find`
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
 | **Semantic (ADR-0002)** | Vezi `geo--neighbor--find`. |
 | **Planificare (export)** | v2 §7 — `graph-kol-identify` → `geo-neighbor-find`, tip `dependency`. |
 

@@ -41,13 +41,13 @@ Procesarea opt-out din graf este dependentă de traseul alertei de preț competi
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — gap.
+- **Runtime (ADR-0001):** sursă — gap; destinație — gap.
 - **Semantic (ADR-0002):** vezi contracte neuroni.
 - **Planificare:** v2 §7 — `alert-internal-competitor-price` → `compliance-optout-process`.
 
 ## Limite și reconcilieri
 
-- Opt-out dispersat vs nod unic — contract neuron țintă.
+- Opt-out dispersat vs nod unic — contract neuron destinație.
 
 ## Sursă canonică
 

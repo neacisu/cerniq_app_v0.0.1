@@ -41,12 +41,12 @@ Dependența declară în graf ordonare canonică între **`reconcile-overdue-che
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă în registry; sursă — overdue detect/escalate.
+- **Runtime:** destinație în registry; sursă — overdue detect/escalate.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri
 
-- Vezi tensiuni `limit-release` în neuron țintă.
+- Vezi tensiuni `limit-release` în neuron destinație.
 
 ## Sursă canonică
 

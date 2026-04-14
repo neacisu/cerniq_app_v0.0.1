@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `document-whatsapp-send` | **Matrix:** `document:whatsapp:send` → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Registry:** `document:whatsapp:send`. |
+| Destinație (graf) | `document-whatsapp-send` | **Matrix:** `document:whatsapp:send` → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Registry:** `document:whatsapp:send`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** plasează **`document-whatsapp-send`** în dependență canonică față de **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**. Nodul **țintă** include starea stub/payload documentată în contractul neuron; **sursa** are gap în registry — interpretarea end-to-end cere reconciliere explicită.
+Muchia **dependency** plasează **`document-whatsapp-send`** în dependență canonică față de **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**. Nodul **destinație** include starea stub/payload documentată în contractul neuron; **sursa** are gap în registry — interpretarea end-to-end cere reconciliere explicită.
 
 ## Semantica confirmată (registru v2 §7)
 

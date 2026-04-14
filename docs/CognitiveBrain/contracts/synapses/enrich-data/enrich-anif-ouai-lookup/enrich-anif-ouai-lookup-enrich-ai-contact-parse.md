@@ -41,7 +41,7 @@ Dependența declară în graf că traseul **OUAI** este ordonat canonic față d
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă pe **`agri:ouai`**; țintă — reconciliere `enrich:ai:contact-parse` ↔ `ai:structure:xai` (apropiere semantică în neuron, nu identitate forțată).
+- **Runtime:** sursă pe **`agri:ouai`**; destinație — reconciliere `enrich:ai:contact-parse` ↔ `ai:structure:xai` (apropiere semantică în neuron, nu identitate forțată).
 - **Planificare:** topologie `enrichment` → `ai-enrichment` în export.
 
 ## Limite și reconcilieri

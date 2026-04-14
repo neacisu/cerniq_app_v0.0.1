@@ -41,7 +41,7 @@ Scrierea în jurnalul audit (nod `audit-log-write`) este dependentă în graf de
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `audit:log:write` (J45, concurrency 1 în config worker citit la auditul neuron).
+- **Runtime (ADR-0001):** sursă — gap; destinație — `audit:log:write` (J45, concurrency 1 în config worker citit la auditul neuron).
 - **Semantic (ADR-0002):** `e4:audit:log-write` — catalog; nealiniere posibilă cu string-ul span — vezi contract neuron.
 - **Planificare:** v2 §7 — `alert-internal-compliance-issue` → `audit-log-write`.
 

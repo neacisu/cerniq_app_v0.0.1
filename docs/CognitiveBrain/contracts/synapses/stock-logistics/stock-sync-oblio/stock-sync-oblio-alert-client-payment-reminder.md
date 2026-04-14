@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-oblio` → `alert-client-payment-reminder`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; țintă `alert:client:payment-reminder` la **L184**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; **Destinație (coadă):** `alert:client:payment-reminder` la **L184**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

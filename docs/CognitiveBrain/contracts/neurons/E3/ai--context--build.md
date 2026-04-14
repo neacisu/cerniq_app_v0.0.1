@@ -51,7 +51,7 @@
 | 6 | Înveliș telemetrie | Worker BullMQ prin `createWorker` + instrumentare cognitivă: `resolveNodeKeyFromQueueNameAndEtapa` + `withCognitiveSpan(nodeKey, …)` când `job.data.tenantId` e setat (`factory.ts` L90–107). | v2 span: `cognitive.e3.ai.context-build`. | Mapare exactă nume span OTel vs `cognitive.nodeKey` în exporter: verificare runtime / ADR-0003. |
 | 7 | Înveliș politică | Fără Cedar/OPA în C13; reguli comerciale în text prompt (`c13-ai-context-build.ts` L242–247). Tier autonomie nu e citit din cod în C13. | v2: Tier 2, HITL pentru acțiuni ireversibile. | Politici HITL concrete pe acest job: nu citite în C13. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi secțiunea N/A. | v2: QwQ / SGLang / fallback — aplicabil **C14+**, nu C13. | — |
-| 9 | Guardrails | **N/A** — vezi secțiunea N/A. | ADR-0007 țintă (NeMo etc.). | — |
+| 9 | Guardrails | **N/A** — vezi secțiunea N/A. | ADR-0007 — destinație (NeMo etc.). | — |
 | 10 | Escaladare HITL | Nu în C13; flux continuu spre coada `ai:agent:orchestrate` (`c13-ai-context-build.ts` L70, L187–202). | v2: motor HITL transversal (ADR-0008). | — |
 | 11 | Micro-OODA | **În cod:** OBSERVE — query-uri DB (lead, negociere, mesaje, tools) (`c13-ai-context-build.ts` L81–155); ORIENT/DECIDE — compunere string + trunchiere buget (L157–181); ACT — `orchestrateQueue.add` (L187–202). **Fără** LLM sau „confidence gating” în C13. | v2: OODA cu ORIENT/DECIDE pe LLM și prag 0.80 — **nu reflectă** implementarea C13. | Divergență documentată; nu presupunem comportament v2 în coloana «În cod». |
 | 12 | Tier + de-escaladare | Payload downstream include `attemptNumber: 1` (`c13-ai-context-build.ts` L199); fără logică tier în C13. | v2 Tier 2 + trigger-e încredere. | Trigger-e încredere: în C14/C15, nu aici. |

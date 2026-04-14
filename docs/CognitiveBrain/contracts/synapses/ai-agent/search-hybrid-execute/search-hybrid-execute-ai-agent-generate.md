@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă conceptuală agregată vs cozi atomice B7–B10; țintă — vezi gap în contract neuron.
+- **Runtime (ADR-0001):** sursă conceptuală agregată vs cozi atomice B7–B10; destinație — vezi gap în contract neuron.
 - **Semantic (ADR-0002):** product-search / hybrid-search vs ai-core.
 - **Planificare:** dependență declarativă către agent-generate.
 

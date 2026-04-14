@@ -42,7 +42,7 @@ Dependența declară în graf că **reconcilierea automată a plăților** este 
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ambele cozi apar în `queue-registry.ts` — verificați constantele exacte în sursă.
-- **Semantic (ADR-0002):** `e4:payment:reconcile-auto` →țintă conform catalogului din contractul `credit--check--order.md`.
+- **Semantic (ADR-0002):** `e4:payment:reconcile-auto` →destinație conform catalogului din contractul `credit--check--order.md`.
 - **Planificare:** dependență cash → credit în topologia exportată.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-monitor-health` | [`../../../neurons/E1/pipeline--monitor--health.md`](../../../neurons/E1/pipeline--monitor--health.md). **Runtime:** `pipeline:monitor` (`QUEUES.PIPELINE_MONITOR`, `workers/shared/src/queue-registry.ts` ~L86); span worker `e1:pipeline:monitor` — fără coadă separată `pipeline:monitor:health`. |
-| Țintă | `pipeline-approval-pending` | [`../../../neurons/E1/pipeline--approval--pending.md`](../../../neurons/E1/pipeline--approval--pending.md). **v2:** `pipeline:approval:pending`. **Runtime:** contractul neuron documentează **absența** cozii BullMQ cu acest nume; aprobări pending în Postgres + fluxuri `hitl:*`. |
+| Destinație (graf) | `pipeline-approval-pending` | [`../../../neurons/E1/pipeline--approval--pending.md`](../../../neurons/E1/pipeline--approval--pending.md). **v2:** `pipeline:approval:pending`. **Runtime:** contractul neuron documentează **absența** cozii BullMQ cu acest nume; aprobări pending în Postgres + fluxuri `hitl:*`. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** `pipeline:monitor` → **fără** coadă canonică `pipeline:approval:pending` în registry (vezi contract țintă).
+- **Runtime (ADR-0001):** `pipeline:monitor` → **fără** coadă canonică `pipeline:approval:pending` în registry (vezi contract destinație).
 - **Semantic (ADR-0002):** `e1:pipeline:monitor`; ținta **fără** `nodeKey` catalog pentru coada v2 la auditul neuronului.
 - **Planificare:** v2 §7 — `pipeline-monitor-health` → `pipeline-approval-pending`.
 

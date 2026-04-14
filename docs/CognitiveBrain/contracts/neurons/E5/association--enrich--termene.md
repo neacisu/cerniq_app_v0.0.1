@@ -45,11 +45,11 @@
 | 6 | Înveliș telemetrie | — | v2 `cognitive.association.enrich.termene` (L8228). | Fără `withCognitiveSpan` pentru acest nume în TS. |
 | 7 | Înveliș politică | — | v2 L8226–8227. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | — | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | — | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | — | v2 L8227. | — |
 | 11 | Micro-OODA | — | v2 L8224. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8219). | — |
-| 13 | Stack v2 §2.3 (subset) | — | v2 §2.3 țintă platformă. | — |
+| 13 | Stack v2 §2.3 (subset) | — | v2 §2.3 — destinație platformă. | — |
 
 ### Mapare OTel
 

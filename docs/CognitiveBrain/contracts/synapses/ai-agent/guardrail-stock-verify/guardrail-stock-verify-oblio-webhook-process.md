@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | **Gap runtime (documentat):** coada **`guardrail:stock:verify`** nu apare în `workers/shared/src/queue-registry.ts`; vezi [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md). Rând [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv): `queue_in_registry` = `no`. |
-| Țintă | `oblio-webhook-process` | Coadă executabilă **`oblio:webhook:process`** (`QUEUES.E3_OBLIO_WEBHOOK_PROCESS`) — [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). |
+| Destinație (graf) | `oblio-webhook-process` | Coadă executabilă **`oblio:webhook:process`** (`QUEUES.E3_OBLIO_WEBHOOK_PROCESS`) — [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). |
 
 ## Tip muchie (export)
 
@@ -42,9 +42,9 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`; `E3_OBLIO_WEBHOOK_PROCESS`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:webhook-process` / `oblio:webhook:process` — „Procesare webhook Oblio — actualizare status documente…” (~L1907–1913), SensoryNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:webhook-process` / `oblio:webhook:process` — „Procesare webhook Oblio — actualizare status documente…” (~L1907–1913), SensoryNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-stock-verify-oblio-webhook-process`.
-- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada țintă (`queue_in_registry` = `yes` în CSV).
+- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada destinație (`queue_in_registry` = `yes` în CSV).
 
 ## Limite și reconcilieri
 

@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi cozi în contractele neuron sursă/țintă; sinapsa v2 nu le leagă prin câmpuri suplimentare.
+- **Runtime (ADR-0001):** vezi cozi în contractele neuron sursă/destinație; sinapsa v2 nu le leagă prin câmpuri suplimentare.
 - **Semantic (ADR-0002):** E2 monitoring vs human pipeline.
 - **Planificare:** dependență declarativă.
 

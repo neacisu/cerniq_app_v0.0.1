@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă A6; țintă — vezi gap în contract neuron.
+- **Runtime (ADR-0001):** sursă executabilă A6; destinație — vezi gap în contract neuron.
 - **Semantic (ADR-0002):** product-search vs ai-core.
 - **Planificare:** dependență declarativă product-search → agent-generate.
 

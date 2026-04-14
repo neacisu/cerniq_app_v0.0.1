@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `oblio-webhook-process` → `channel-whatsapp-send`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L142**; țintă `channel:whatsapp:send` la **L132**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L142**; **Destinație (coadă):** `channel:whatsapp:send` la **L132**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

@@ -45,7 +45,7 @@ Analiză sentiment + intenție mesaje lead (outreach), scor, `requiresHuman`, ru
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | `ai:sentiment:analyze` + `e2:ai:sentiment-analyze`. Graf: `churn:sentiment:analyze`. | v2 L7686. | Familie graf „churn” vs coadă outreach. |
 | 2 | Etapă, familie, swimlane | E2, swimlane `ai-analysis` în catalog. | v2 E2, familie churn în antet. | — |

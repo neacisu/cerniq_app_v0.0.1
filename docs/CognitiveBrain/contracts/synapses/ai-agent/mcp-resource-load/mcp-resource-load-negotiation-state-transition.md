@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-resource-load` | **Coadă:** `mcp:resource:load` — [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md); **Registry:** `E3_MCP_RESOURCE_LOAD`. |
-| Țintă | `negotiation-state-transition` | **Coadă:** `negotiation:state:transition` — [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md); **Registry:** `E3_NEGOTIATION_STATE_TRANSITION`. |
+| Destinație (graf) | `negotiation-state-transition` | **Coadă:** `negotiation:state:transition` — [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md); **Registry:** `E3_NEGOTIATION_STATE_TRANSITION`. |
 
 ## Tip muchie (export)
 

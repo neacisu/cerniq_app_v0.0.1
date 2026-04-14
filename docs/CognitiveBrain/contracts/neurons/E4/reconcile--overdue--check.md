@@ -43,7 +43,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Graf:** `reconcile:overdue:check` (lipsă registry). **Runtime:** `payment:overdue:detect` + `e4:payment:overdue-detect` în catalog. | v2 L6413 — etichetă graf. | Două nume; contractul documentează maparea semantică. |
 | 2 | Etapă, familie, swimlane | B11/B12: swimlane `payment-processing` (catalog). | v2: E4, `cash`. | Swimlane v2 L6417 `cash` vs catalog `payment-processing`. |

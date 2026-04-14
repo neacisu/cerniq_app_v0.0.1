@@ -41,7 +41,7 @@ Traseul **verificare credit la comandă** depinde în planificare de **arhivare/
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** cozi distincte — contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** cozi distincte — contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** credit E4 → arhivare document E3.
 - **Planificare:** v2 §7 — `credit-check-order` → `contract-archive-store`.
 

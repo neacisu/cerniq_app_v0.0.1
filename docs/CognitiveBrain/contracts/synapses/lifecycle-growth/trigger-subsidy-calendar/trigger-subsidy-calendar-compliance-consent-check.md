@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `trigger-subsidy-calendar` → `compliance-consent-check`.
-- **Runtime:** sursă — J54; țintă — vezi neuron `compliance-consent-check`.
+- **Runtime:** sursă — J54; destinație — vezi neuron `compliance-consent-check`.
 
 ## Limite și reconcilieri
 

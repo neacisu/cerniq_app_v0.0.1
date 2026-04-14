@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | Apel explicit `withCognitiveSpan("e4:contract:clauses:select", …)` (L54–56). Catalog: **`e4:contract:clauses-select`**. | v2 `cognitive.contract.template.select` (L6619). | **Span vs catalog:** șirul din `withCognitiveSpan` folosește `:` în segmente; `nodeKey` catalog folosește `-` — posibil fără atribute din catalog la `getNodeByKey`. |
 | 7 | Înveliș politică | Logică deterministă pe `riskTier`; fără OPA în fișier. | Tier 4; fără HITL obligatoriu v2 (L6617). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Mapare fixă coduri clauze din plan (antet L15–16). | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Mapare fixă coduri clauze din plan (antet L15–16). | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | — | v2 L6617. | — |
 | 11 | Micro-OODA | DB → update contract → coadă următoare. | v2 L6615. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L6610). | — |

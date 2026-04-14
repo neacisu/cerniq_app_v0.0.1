@@ -41,8 +41,8 @@ Traseul **email warm** depinde în graf de **generarea / procesarea proformei** 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** cozi separate în registry — sursă și țintă au contracte neuron dedicate.
-- **Semantic (ADR-0002):** `e2:email:warm-proforma` / `email:warm:proforma` pentru țintă; sursa rămâne axată pe trimitere (`e2:email:warm-send`).
+- **Runtime (ADR-0001):** cozi separate în registry — sursă și destinație au contracte neuron dedicate.
+- **Semantic (ADR-0002):** `e2:email:warm-proforma` / `email:warm:proforma` pentru destinație; sursa rămâne axată pe trimitere (`e2:email:warm-send`).
 - **Planificare:** dependență declarativă `q-email-warm` → `email-warm-proforma`.
 
 ## Limite și reconcilieri

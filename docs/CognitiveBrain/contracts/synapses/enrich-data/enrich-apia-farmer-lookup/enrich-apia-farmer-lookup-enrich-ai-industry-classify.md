@@ -41,12 +41,12 @@ Dependența declară în graf ordonare canonică între **APIA farmer** și **cl
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / semantic:** vezi contracte; fără identitate 1:1 forțată pentru țintă.
+- **Runtime / semantic:** vezi contracte; fără identitate 1:1 forțată pentru destinație.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri
 
-- J1 / `agri:culturi` ca ramuri apropiate semantic — vezi neuron țintă.
+- J1 / `agri:culturi` ca ramuri apropiate semantic — vezi neuron destinație.
 
 ## Sursă canonică
 

@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `quota-guardian-check` → `outreach-wa-reschedule`.
 - **Semantic:** ambele **E2**.
-- **Runtime:** vezi neuronul țintă pentru gap registry.
+- **Runtime:** vezi neuronul destinație pentru gap registry.
 
 ## Sursă canonică
 

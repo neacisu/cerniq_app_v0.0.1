@@ -41,13 +41,13 @@ Dependența declară în graf că **reconcilierea automată** este ordonată can
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursa **`payment:reconcile:auto`** este în registry; pentru **țintă**, urmați auditul din contractul neuron (posibil nealiniat la `queue-registry.ts`).
+- **Runtime (ADR-0001):** sursa **`payment:reconcile:auto`** este în registry; pentru **destinație**, urmați auditul din contractul neuron (posibil nealiniat la `queue-registry.ts`).
 - **Semantic (ADR-0002):** vezi mapările documentate în `credit--data--fetch-insolventa.md`.
 - **Planificare:** muchie structurală graf → neuron; execuția efectivă necesită reconciliere.
 
 ## Limite și reconcilieri
 
-- **Gap potențial graf ↔ registry** la țintă: documentat la nivel de neuron/Matrix; acest contract sinapsă nu înlocuiește acel audit.
+- **Gap potențial graf ↔ registry** la destinație: documentat la nivel de neuron/Matrix; acest contract sinapsă nu înlocuiește acel audit.
 
 ## Sursă canonică
 

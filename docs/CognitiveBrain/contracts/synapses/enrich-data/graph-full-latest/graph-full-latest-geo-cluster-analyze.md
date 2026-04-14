@@ -43,8 +43,8 @@
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: gap `graph:full:latest`; țintă: `cluster:implicit:detect` — vezi contractele. |
-| **Semantic (ADR-0002)** | În catalog apare `e5:cluster:implicit-detect`; în graf apare `geo-cluster-analyze` — reconciliere în contractul țintă. |
+| **Runtime (ADR-0001)** | Sursă: gap `graph:full:latest`; destinație: `cluster:implicit:detect` — vezi contractele. |
+| **Semantic (ADR-0002)** | În catalog apare `e5:cluster:implicit-detect`; în graf apare `geo-cluster-analyze` — reconciliere în contractul destinație. |
 | **Planificare (export)** | v2 §7 — `graph-full-latest` → `geo-cluster-analyze`, tip `dependency`. |
 
 ## Traseu și vecini

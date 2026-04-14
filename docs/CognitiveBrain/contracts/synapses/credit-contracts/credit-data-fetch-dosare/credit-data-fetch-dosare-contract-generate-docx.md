@@ -47,7 +47,7 @@ Traseul **credit-data-fetch-dosare** depinde în planificare de **generarea fiș
 
 ## Limite și reconcilieri
 
-- Detaliile `contract:generate` vs etichete graf sunt în contractul neuron țintă, nu în sinapsă.
+- Detaliile `contract:generate` vs etichete graf sunt în contractul neuron destinație, nu în sinapsă.
 
 ## Sursă canonică
 

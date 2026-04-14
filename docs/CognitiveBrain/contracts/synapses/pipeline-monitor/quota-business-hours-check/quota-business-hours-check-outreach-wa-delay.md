@@ -43,11 +43,11 @@
 
 - **Planificare:** v2 §7 — `quota-business-hours-check` → `outreach-wa-delay`.
 - **Semantic:** ambele **E2**; ținta în **orchestrator** (matrice).
-- **Runtime:** reconciliere graf ↔ registry **parțială** pentru țintă — vezi contract neuron `outreach--wa--delay.md` și matrice rând **93**.
+- **Runtime:** reconciliere graf ↔ registry **parțială** pentru destinație — vezi contract neuron `outreach--wa--delay.md` și matrice rând **93**.
 
 ## Limite și reconcilieri
 
-- Prezența muchiei în graf **nu** implică singură o coadă înregistrată în `queue-registry.ts` pentru țintă; dovada este în matrice / neuron.
+- Prezența muchiei în graf **nu** implică singură o coadă înregistrată în `queue-registry.ts` pentru destinație; dovada este în matrice / neuron.
 
 ## Sursă canonică
 

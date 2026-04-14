@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `association-enrich-termene` → `geo-neighbor-find`.
 - **Runtime (ADR-0001):** vezi mapările din [`geo--neighbor--find.md`](../../../neurons/E5/geo--neighbor--find.md) și sursa.
-- **Semantic (ADR-0002):** E5 geo — vezi neuron țintă.
+- **Semantic (ADR-0002):** E5 geo — vezi neuron destinație.
 
 ## Limite și reconcilieri
 

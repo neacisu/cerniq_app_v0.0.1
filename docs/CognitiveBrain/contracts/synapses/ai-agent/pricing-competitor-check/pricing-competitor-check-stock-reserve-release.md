@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_PRICING_COMPETITOR_CHECK` → `QUEUES.E3_STOCK_RESERVE_RELEASE` — `queue-registry.ts`; matrice [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
-- **Semantic:** contracte neuron sursă și țintă.
+- **Semantic:** contracte neuron sursă și destinație.
 - **Planificare:** muchie **`dependency`**: `pricing-competitor-check` precede `stock-reserve-release` în export.
 
 ## Limite și reconcilieri

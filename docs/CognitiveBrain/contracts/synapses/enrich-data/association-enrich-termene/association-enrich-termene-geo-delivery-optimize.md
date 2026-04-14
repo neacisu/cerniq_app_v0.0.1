@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `association-enrich-termene` → `geo-delivery-optimize`.
 - **Runtime (ADR-0001):** vezi mapările din [`geo--delivery--optimize.md`](../../../neurons/E5/geo--delivery--optimize.md) și sursa.
-- **Semantic (ADR-0002):** E5 geo — vezi neuronul țintă și ADR geo.
+- **Semantic (ADR-0002):** E5 geo — vezi neuronul destinație și ADR geo.
 
 ## Limite și reconcilieri
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `oblio-invoice-cancel` → `channel-routing-decide`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L138**; țintă `channel:routing:decide` la **L131** (`catalog_nodekey_v2` gol în matrice — vezi contract neuron pentru `nodeKey` efectiv).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L138**; **Destinație (coadă):** `channel:routing:decide` la **L131** (`catalog_nodekey_v2` gol în matrice — vezi contract neuron pentru `nodeKey` efectiv).
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

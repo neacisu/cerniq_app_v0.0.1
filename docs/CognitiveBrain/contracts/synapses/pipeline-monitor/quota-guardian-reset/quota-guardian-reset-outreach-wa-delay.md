@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `quota-guardian-reset` → `outreach-wa-delay`.
 - **Semantic:** ambele **E2**.
-- **Runtime:** vezi neuronul țintă; matricea nu raportează registry pentru coada țintă pe acest rând.
+- **Runtime:** vezi neuronul destinație; matricea nu raportează registry pentru coada destinație pe acest rând.
 
 ## Sursă canonică
 

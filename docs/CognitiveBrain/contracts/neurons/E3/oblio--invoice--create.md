@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.oblio.invoice-create` (L4966). | **Parțial aliniat**. |
 | 7 | Înveliș politică | Fără HITL explicit în G41 (flux direct după validări DB). | v2 Tier 2 + HITL obligatoriu ireversibil (L4956, L4964). | **Divergență:** v2 cere HITL; codul nu implementează această poartă în G41. |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
-| 9 | Guardrails | Doar `PROFORMA` + `ACTIVE` (`g41` L72–80). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Doar `PROFORMA` + `ACTIVE` (`g41` L72–80). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în G41. | v2 HITL mandatory (L4964). | Vezi rând 7. |
 | 11 | Micro-OODA | OBSERVE — proformă; ORIENT — tip/stare; DECIDE — throw vs convert; ACT — stub API + DB + coadă tranziție + audit (`g41` L47–174). | v2 OODA send/execute (L4962). | — |
 | 12 | Tier + de-escaladare | Fără praguri încredere în cod. | v2 Tier 2 (L4956). | — |

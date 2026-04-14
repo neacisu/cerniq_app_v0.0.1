@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă cu gap vs K56 / cozi consent — vezi contract țintă.
+- **Runtime (ADR-0001):** sursă cu gap vs K56 / cozi consent — vezi contract destinație.
 - **Semantic (ADR-0002):** alerts E5 vs compliance.
 - **Planificare:** dependență declarativă.
 

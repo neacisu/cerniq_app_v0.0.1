@@ -42,7 +42,7 @@
 | 3 | Rol declarat | Lipsă handler. | v2 L5635–5637. | — |
 | 4 | NeuronType + SOFAI | Neconectat. | `KnowledgeNeuron` v2 (L5631). | — |
 | 5 | Criticitate | Neconectat. | `MEDIUM` (L5633). | — |
-| 6 | Înveliș telemetrie | Lipsă worker. | `cognitive.product.sync.shopify` (L5643). | Doar țintă. |
+| 6 | Înveliș telemetrie | Lipsă worker. | `cognitive.product.sync.shopify` (L5643). | Doar destinație documentată. |
 | 7 | Înveliș politică | — | v2 L5634, L5641. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
 | 9 | Guardrails | — | — | — |

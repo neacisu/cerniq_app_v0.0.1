@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Contract sursă:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md) — dualitate E3 (`ai:e3:response:generate`) / E2 + catalog (`ai:response:generate`). |
-| Țintă | `alert-phone-offline` | **Matrix:** `alert:phone:offline` (E2, `monitoring`) → [`../../../neurons/E2/alert--phone--offline.md`](../../../neurons/E2/alert--phone--offline.md). **Registry:** `ALERT_PHONE_OFFLINE` → `alert:phone:offline`. |
+| Destinație (graf) | `alert-phone-offline` | **Matrix:** `alert:phone:offline` (E2, `monitoring`) → [`../../../neurons/E2/alert--phone--offline.md`](../../../neurons/E2/alert--phone--offline.md). **Registry:** `ALERT_PHONE_OFFLINE` → `alert:phone:offline`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** poziționează **`alert-phone-offline`** în dependență canonică față de **`ai-response-generate`**. Descrierea v2 este **„sinapsă canonică de pipeline”**; nu există în export detalii despre condițiile de offline sau despre legătura cauzală cu pasul de răspuns. Implementarea alertei offline este în worker-ul / contractul E2 țintă.
+Muchia **dependency** poziționează **`alert-phone-offline`** în dependență canonică față de **`ai-response-generate`**. Descrierea v2 este **„sinapsă canonică de pipeline”**; nu există în export detalii despre condițiile de offline sau despre legătura cauzală cu pasul de răspuns. Implementarea alertei offline este în worker-ul / contractul neuronului E2 de destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

@@ -15,7 +15,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `e3-stock` | Etichetă **swimlane / subgraf** în planificare; **nu** este prin ea însăși un `v2_queue` unic. **Necesită reconciliere graf ↔** [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **/ contracte neuroni / registry** pentru fiecare neuron concret din swimlane. |
-| Țintă | `e3` | Nod **agregat etapă** E3 în export; fără rând dedicat „coadă `e3`” în matrice. |
+| Destinație (graf) | `e3` | Nod **agregat etapă** E3 în export; fără rând dedicat „coadă `e3`” în matrice. |
 
 ## Tip muchie (export)
 

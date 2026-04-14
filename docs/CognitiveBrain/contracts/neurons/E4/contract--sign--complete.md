@@ -41,7 +41,7 @@ Download PDF combinat din DocuSign, stocare locală semnată, UPDATE `gold_contr
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă: `contract:signed:process`. Catalog: `e4:contract:signed-process`. Graf: `contract:sign:complete`. | v2 L6570. | — |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 4, `contract-execution`. | v2: E4, `contracts`. | — |

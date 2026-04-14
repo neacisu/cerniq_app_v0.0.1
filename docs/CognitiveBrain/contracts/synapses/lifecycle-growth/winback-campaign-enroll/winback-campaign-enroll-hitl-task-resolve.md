@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-campaign-enroll` → `hitl-task-resolve`.
-- **Runtime:** sursă — F32 (E5); țintă — **`hitl:task:resolve`**, worker E4 (K52) — vezi neuron pentru nealiniere posibilă catalog vs span.
+- **Runtime:** sursă — F32 (E5); destinație — **`hitl:task:resolve`**, worker E4 (K52) — vezi neuron pentru nealiniere posibilă catalog vs span.
 
 ## Limite și reconcilieri
 
-- **E5 în graf (sursă) vs E4 în cod (rezolvare task):** muchia leagă noduri de planificare; etapa efectivă a workerului țintă poate diferi — documentat în `hitl--task--resolve.md`.
+- **E5 în graf (sursă) vs E4 în cod (rezolvare task):** muchia leagă noduri de planificare; etapa efectivă a workerului destinație poate diferi — documentat în `hitl--task--resolve.md`.
 
 ## Sursă canonică
 

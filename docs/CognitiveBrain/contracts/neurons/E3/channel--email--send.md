@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` (când tenant valid) — `factory.ts`. | v2: span `cognitive.e3.channel.email-send` (L4744). | **Parțial aliniat:** cod folosește `cognitive.nodeKey` etc.; v2 nume punctat — ADR-0003. |
 | 7 | Înveliș politică | Fără Cedar/OPA; lipsă `RESEND_API_KEY` → throw (`j60` L153–155); email invalid → `sent: false` fără throw (L142–147). | v2: Tier 4, HITL la eșecuri repetate (L4734, L4742). | Fără contor „3+ erori” în J60; retry BullMQ la throw. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | Validare regex email; `callExternalApi` pentru rate limit/circuit breaker (comentariu L175). | NeMo / ADR-0007 — țintă. | — |
+| 9 | Guardrails | Validare regex email; `callExternalApi` pentru rate limit/circuit breaker (comentariu L175). | NeMo / ADR-0007 — destinație documentată. | — |
 | 10 | Escaladare HITL | Nu în J60; lantul handover vine din J57→J58; HITL la „fără contact” e în J58 (`j58` L262–274). | v2: politică HITL la eșecuri repetate (L4742). | Escaladare pre-trimitere email, nu în workerul de send. |
 | 11 | Micro-OODA | OBSERVE — payload job; ORIENT — validare + env Resend; DECIDE — trimite / skip invalid; ACT — Resend + log (`j60` L131–201). | v2 OODA generic send/defer/retry (L4740). | Aliniat operațional; fără „quota” explicită în J60 (spre deosebire de comentarii J59 pentru WA). |
 | 12 | Tier + de-escaladare | Fără scor încredere sau tier în cod. | v2 Tier 4 (L4734). | — |

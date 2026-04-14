@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-trigger-subsidy` → `hitl-task-resolve`.
-- **Runtime:** țintă — **`hitl:task:resolve`** (E4, K52) — vezi `hitl--task--resolve.md`.
+- **Runtime:** destinație — **`hitl:task:resolve`** (E4, K52) — vezi `hitl--task--resolve.md`.
 
 ## Limite și reconcilieri
 

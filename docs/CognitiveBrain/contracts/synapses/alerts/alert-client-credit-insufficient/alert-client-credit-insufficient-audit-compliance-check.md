@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-credit-insufficient` | **Matrix:** `alert:client:credit-insufficient` — [`../../../neurons/E4/alert--client--credit-insufficient.md`](../../../neurons/E4/alert--client--credit-insufficient.md). **Gap** registry pentru coada granulară; alerte generice `alert:*` în cod. |
-| Țintă | `audit-compliance-check` | **Matrix:** `audit:compliance:check` — [`../../../neurons/E4/audit--compliance--check.md`](../../../neurons/E4/audit--compliance--check.md). Contractul neuron: **fără** coadă nominală în registry; fluxul cel mai apropiat implementat este **`audit:chain:verify`** (J46) — reconciliere explicită necesară, fără echivalență 1:1. |
+| Destinație (graf) | `audit-compliance-check` | **Matrix:** `audit:compliance:check` — [`../../../neurons/E4/audit--compliance--check.md`](../../../neurons/E4/audit--compliance--check.md). Contractul neuron: **fără** coadă nominală în registry; fluxul cel mai apropiat implementat este **`audit:chain:verify`** (J46) — reconciliere explicită necesară, fără echivalență 1:1. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența plasează în graf traseul de alertă credit insuficient în raport cu verificarea de conformitate audit. v2 pentru sinapsă: **„sinapsă canonică de pipeline”** — fără schemă de mesaj. Interpretare conservatoare: planificarea leagă emisia/fluxul de alertă de lanțul de control conformitate asupra jurnalului audit; implementarea efectivă a „compliance check” poate fi **alt nume de coadă** (J46), vezi contractul neuron țintă.
+Dependența plasează în graf traseul de alertă credit insuficient în raport cu verificarea de conformitate audit. v2 pentru sinapsă: **„sinapsă canonică de pipeline”** — fără schemă de mesaj. Interpretare conservatoare: planificarea leagă emisia/fluxul de alertă de lanțul de control conformitate asupra jurnalului audit; implementarea efectivă a „compliance check” poate fi **alt nume de coadă** (J46), vezi contractul neuron destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

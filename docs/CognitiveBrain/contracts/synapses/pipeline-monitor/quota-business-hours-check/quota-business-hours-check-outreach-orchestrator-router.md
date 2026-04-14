@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Slug graf cu cratimă ↔ `v2_queue` cu `:` — vezi matrice și contracte neuron pentru țintă.
+- Slug graf cu cratimă ↔ `v2_queue` cu `:` — vezi matrice și contracte neuron pentru destinație.
 
 ## Sursă canonică
 

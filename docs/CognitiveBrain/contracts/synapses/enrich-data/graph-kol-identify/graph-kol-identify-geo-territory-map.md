@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-kol-identify`** de **`geo-territory-map`
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
 | **Semantic (ADR-0002)** | Vezi `geo--territory--map`. |
 | **Planificare (export)** | v2 §7 — `graph-kol-identify` → `geo-territory-map`, tip `dependency`. |
 

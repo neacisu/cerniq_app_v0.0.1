@@ -40,7 +40,7 @@ v2: etichetare potențial referral. Cod: detectare din mesaj + inserție referra
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf ≠ `referral:detect`; runtime pentru „tag” = detect. | v2 L9036. | Două denumiri. |
 | 2 | Etapă, familie, swimlane | Catalog: `referral-management`. | v2 E5. | — |

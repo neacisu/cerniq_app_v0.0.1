@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **reply WA** și **actualiza
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / Semantic:** contract țintă + registry.
+- **Runtime / Semantic:** contract destinație + registry.
 - **Planificare:** `dependency`.
 
 ## Limite și reconcilieri

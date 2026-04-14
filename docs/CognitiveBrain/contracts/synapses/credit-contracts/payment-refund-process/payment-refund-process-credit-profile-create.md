@@ -41,7 +41,7 @@ Dependența declară în graf că **procesarea rambursării** este ordonată can
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă Revolut; țintă profil credit.
+- **Runtime:** sursă Revolut; destinație profil credit.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

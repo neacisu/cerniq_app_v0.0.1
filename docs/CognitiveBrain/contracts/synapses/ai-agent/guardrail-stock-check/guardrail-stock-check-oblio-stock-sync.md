@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-check` | Coadă executabilă **`guardrail:stock:check`** (`QUEUES.E3_GUARDRAIL_STOCK_CHECK`) — [`../../../neurons/E3/guardrail--stock--check.md`](../../../neurons/E3/guardrail--stock--check.md). |
-| Țintă | `oblio-stock-sync` | Coadă executabilă **`oblio:stock:sync`** (`QUEUES.E3_OBLIO_STOCK_SYNC`) — [`../../../neurons/E3/oblio--stock--sync.md`](../../../neurons/E3/oblio--stock--sync.md). |
+| Destinație (graf) | `oblio-stock-sync` | Coadă executabilă **`oblio:stock:sync`** (`QUEUES.E3_OBLIO_STOCK_SYNC`) — [`../../../neurons/E3/oblio--stock--sync.md`](../../../neurons/E3/oblio--stock--sync.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_STOCK_CHECK`; `E3_OBLIO_STOCK_SYNC`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:stock-sync` / `oblio:stock:sync` — „Sincronizare stoc Oblio cu stocul intern după emitere factură” (~L1898–1904), AutonomicNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:stock-sync` / `oblio:stock:sync` — „Sincronizare stoc Oblio cu stocul intern după emitere factură” (~L1898–1904), AutonomicNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-stock-check` → `oblio-stock-sync`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

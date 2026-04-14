@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-daily-unmat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă în registry; sursă — reconciliere graf.
+- **Runtime:** destinație în registry; sursă — reconciliere graf.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

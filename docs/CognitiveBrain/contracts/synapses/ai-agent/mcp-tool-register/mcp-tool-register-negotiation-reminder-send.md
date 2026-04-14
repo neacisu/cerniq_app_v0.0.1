@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-tool-register` | **Coadă:** `mcp:tool:register` — [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md); **Registry:** `E3_MCP_TOOL_REGISTER`. |
-| Țintă | `negotiation-reminder-send` | **Coadă:** `negotiation:reminder:send` — [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md); **Registry:** `E3_NEGOTIATION_REMINDER_SEND`. |
+| Destinație (graf) | `negotiation-reminder-send` | **Coadă:** `negotiation:reminder:send` — [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md); **Registry:** `E3_NEGOTIATION_REMINDER_SEND`. |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** cozi documentate.
-- **Semantic (ADR-0002):** conform contractelor neuron sursă și țintă.
+- **Semantic (ADR-0002):** conform contractelor neuron sursă și destinație.
 - **Planificare:** dependență declarată.
 
 ## Limite și reconcilieri

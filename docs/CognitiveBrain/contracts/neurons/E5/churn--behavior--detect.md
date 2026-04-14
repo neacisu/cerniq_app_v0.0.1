@@ -46,7 +46,7 @@ Detectare pattern „behavioral decay” (frecvență comenzi + engagement) — 
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă: `decay:behavior:detect`. Graf: `churn:behavior:detect`. | v2 L7617 vs L7607. | **Nealiniere** între „Confirmed queue” graf și catalog. |
 | 2 | Etapă, familie, swimlane | Etapa 5, `churn-detection`. | v2 E5 churn. | — |

@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă — reconciliere graf vs cozi.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație — reconciliere graf vs cozi.
 - **Semantic (ADR-0002):** ingest (graf) ↔ normalizare companie E1.
 - **Planificare:** v2 §7 — `bronze-ingest-json-parser` → `silver-norm-company-name`.
 

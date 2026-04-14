@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — cozi `q:wa:phone-*`; țintă — vezi limită din contract E5.
+- **Runtime (ADR-0001):** sursă — cozi `q:wa:phone-*`; destinație — vezi limită din contract E5.
 - **Semantic (ADR-0002):** alertă E5 / nurturing — CSV.
 - **Planificare:** capete din export.
 

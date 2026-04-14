@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | Factory + `withCognitiveSpan`: span **`cognitive:e3:product:index-rebuild`** când `tenantId` în job. | v2 `cognitive.e3.product.index-rebuild` (L5715). | Convenție puncte (v2) vs `cognitive:nodeKey` în cod. |
 | 7 | Înveliș politică | Singleton, concurrency 1 (antet a4 L2). | Tier 3; HITL anomalii (v2 L5705, L5713). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Actualizare SQL deterministă. | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Actualizare SQL deterministă. | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | — | v2 L5713. | — |
 | 11 | Micro-OODA | Job BullMQ → UPDATE filtrat pe tenant / produs. | v2 L5711 (cron/timer). | Declanșator cron nu e citit în A4; doar procesarea job-ului. |
 | 12 | Tier + de-escaladare | — | Tier 3 (v2 L5705). | — |

@@ -41,7 +41,7 @@ Dependența declară în graf că **procesarea rambursării** este ordonată can
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** vezi maparea `reservation-expire` în contract neuron țintă.
+- **Runtime:** vezi maparea `reservation-expire` în contract neuron destinație.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

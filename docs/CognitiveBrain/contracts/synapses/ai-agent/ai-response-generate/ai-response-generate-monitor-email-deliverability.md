@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Contract sursă:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md) — `ai:e3:response:generate` (E3) și `ai:response:generate` (E2); reconciliere obligatorie. |
-| Țintă | `monitor-email-deliverability` | **Matrix:** `monitor:email:deliverability` (E2, `monitoring`) → [`../../../neurons/E2/monitor--email--deliverability.md`](../../../neurons/E2/monitor--email--deliverability.md). **Registry:** `MONITOR_EMAIL_DELIVERABILITY` → `monitor:email:deliverability`. |
+| Destinație (graf) | `monitor-email-deliverability` | **Matrix:** `monitor:email:deliverability` (E2, `monitoring`) → [`../../../neurons/E2/monitor--email--deliverability.md`](../../../neurons/E2/monitor--email--deliverability.md). **Registry:** `MONITOR_EMAIL_DELIVERABILITY` → `monitor:email:deliverability`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă în planificare traseul **`ai-response-generate`** de **`monitor-email-deliverability`**. v2 confirmă **„sinapsă canonică de pipeline”**; nu descrie frecvența monitorizării, pragurile sau cum se corelează cu mesajele generate. Implementarea monitorului (E2) este în contractul țintă; muchia rămâne **structură de graf exportat**.
+Muchia **dependency** leagă în planificare traseul **`ai-response-generate`** de **`monitor-email-deliverability`**. v2 confirmă **„sinapsă canonică de pipeline”**; nu descrie frecvența monitorizării, pragurile sau cum se corelează cu mesajele generate. Implementarea monitorului (E2) este în contractul destinație; muchia rămâne **structură de graf exportat**.
 
 ## Semantica confirmată (registru v2 §7)
 

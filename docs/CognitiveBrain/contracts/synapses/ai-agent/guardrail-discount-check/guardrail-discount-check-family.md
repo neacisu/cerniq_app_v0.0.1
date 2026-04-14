@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Planificare:** traseu în graf. **Matrix:** `guardrail:discount:check` (E3, `guardrails`) → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Runtime (ADR-0001):** `QUEUES.E3_GUARDRAIL_DISCOUNT_CHECK` → **`guardrail:discount:check`**. |
-| ��intă | `e3-guardrails` | Nod **agregat** de planificare pentru familia guardrail E3; nu este o coadă executabilă unică. Pentru neuroni `guardrails`, vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
+| Destinație (graf) | `e3-guardrails` | Nod **agregat** de planificare pentru familia guardrail E3; nu este o coadă executabilă unică. Pentru neuroni `guardrails`, vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
 
 ## Tip muchie (export)
 

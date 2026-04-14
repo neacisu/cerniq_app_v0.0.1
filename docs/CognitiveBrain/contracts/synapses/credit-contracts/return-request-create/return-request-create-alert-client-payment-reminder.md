@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `return-request-create` | **Contract:** [`../../../neurons/E4/return--request--create.md`](../../../neurons/E4/return--request--create.md). **Runtime (ADR-0001):** vezi neuron — mapare v2 `return:request:create` ↔ **`return:initiate`**. |
-| Destinație (graf) | `alert-client-payment-reminder` | **Contract:** [`../../../neurons/E4/alert--client--payment-reminder.md`](../../../neurons/E4/alert--client--payment-reminder.md). Alerte granulare v2 vs cozi generice `alert:*`: vezi neuron țintă. |
+| Destinație (graf) | `alert-client-payment-reminder` | **Contract:** [`../../../neurons/E4/alert--client--payment-reminder.md`](../../../neurons/E4/alert--client--payment-reminder.md). Alerte granulare v2 vs cozi generice `alert:*`: vezi neuron destinație. |
 
 ## Tip muchie (export)
 

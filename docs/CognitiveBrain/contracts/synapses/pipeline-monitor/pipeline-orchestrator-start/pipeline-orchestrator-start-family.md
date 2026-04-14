@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `pipeline-orchestrator-start` | Traseu în graf; [`../../../neurons/E1/pipeline--orchestrator--start.md`](../../../neurons/E1/pipeline--orchestrator--start.md). **v2 / matrice:** `pipeline:orchestrator:start`. **Runtime (ADR-0001):** **`pipeline:orchestrate`** (`QUEUES.PIPELINE_ORCHESTRATE`, `workers/shared/src/queue-registry.ts` ~L83); semantica «start» legată de `post_validation` în procesor — vezi contractul neuron. |
-| Țintă | `e1-orchestrator` | Nod agregat **familie orchestrator** E1; **nu** este o singură coadă executabilă; [`../../../adr/families/e1/orchestrator.md`](../../../adr/families/e1/orchestrator.md). |
+| Destinație (graf) | `e1-orchestrator` | Nod agregat **familie orchestrator** E1; **nu** este o singură coadă executabilă; [`../../../adr/families/e1/orchestrator.md`](../../../adr/families/e1/orchestrator.md). |
 
 ## Tip muchie (export)
 

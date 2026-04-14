@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-campaign-enroll` → `hitl-dashboard-sync`.
-- **Runtime:** sursă — F32; țintă — vezi neuron `hitl-dashboard-sync`.
+- **Runtime:** sursă — F32; destinație — vezi neuron `hitl-dashboard-sync`.
 
 ## Limite și reconcilieri
 
-- Noduri HITL: posibile gap-uri față de registry — vezi contractul neuronului țintă.
+- Noduri HITL: posibile gap-uri față de registry — vezi contractul neuronului destinație.
 
 ## Sursă canonică
 

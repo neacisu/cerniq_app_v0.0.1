@@ -39,7 +39,7 @@ v2: emiterea cererii/reach-out către prospect după etapa de pregătire. Cod: n
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf `send` vs coadă `outreach:prospect`. | v2 L9080. | — |
 | 2 | Etapă, familie, swimlane | E28: `referral-management`. | v2 E5. | — |

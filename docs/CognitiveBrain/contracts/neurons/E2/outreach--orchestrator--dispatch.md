@@ -47,9 +47,9 @@
 | 4 | NeuronType + SOFAI | Catalog: `ExecutiveNeuron`. | v2 System2 (clasificare v2 §2.1). | — |
 | 5 | Criticitate | Catalog / v2: `CRITICAL`. | v2. | — |
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e2:outreach:orchestrator-dispatch")` (L100) + strat `createWorker` (`factory.ts` L90–107). | Span v2. | Posibil span dublu imbricat dacă ambele straturi active. |
-| 7 | Înveliș politică | Filtre `requiresHumanReview` / `isHumanControlled`; DNC pe `gold_companies`. | v2 tier 2 + HITL țintă. | Fără Cedar/OPA în acest fișier. |
+| 7 | Înveliș politică | Filtre `requiresHumanReview` / `isHumanControlled`; DNC pe `gold_companies`. | v2 tier 2 + HITL — destinație v2. | Fără Cedar/OPA în acest fișier. |
 | 8 | Rutare model (dacă AI) | N/A | v2 declară LLM — neimplementat în handler. | N/A |
-| 9 | Guardrails | Reguli SQL + skip DNC. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Reguli SQL + skip DNC. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Exclude lead-uri cu `requiresHumanReview`. | v2 HITL. | Nu enfilează cozi `human:*` aici. |
 | 11 | Micro-OODA | OBSERVE: query eligibili; ORIENT: DNC set; DECIDE: loop enqueue; ACT: `phoneAllocatorQueue.add`. | v2 OODA + FlowProducer — cod fără FlowProducer. | v2 menționează DAG; BullMQ simplu. |
 | 12 | Tier + de-escaladare | Eșecuri DB/BullMQ → excepții BullMQ. | v2 trigger-e încredere — fără în cod. | — |

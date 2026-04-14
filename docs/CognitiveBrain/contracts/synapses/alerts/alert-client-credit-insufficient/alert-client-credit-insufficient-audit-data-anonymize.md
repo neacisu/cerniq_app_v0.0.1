@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-credit-insufficient` | **Matrix:** `alert:client:credit-insufficient` — [`../../../neurons/E4/alert--client--credit-insufficient.md`](../../../neurons/E4/alert--client--credit-insufficient.md). **Gap** registry pentru coada granulară. |
-| Țintă | `audit-data-anonymize` | **Coadă:** `audit:data:anonymize` — [`../../../neurons/E4/audit--data--anonymize.md`](../../../neurons/E4/audit--data--anonymize.md). **Registry:** `QUEUES.E4_AUDIT_DATA_ANONYMIZE` (`queue-registry.ts`, ex. L485). |
+| Destinație (graf) | `audit-data-anonymize` | **Coadă:** `audit:data:anonymize` — [`../../../neurons/E4/audit--data--anonymize.md`](../../../neurons/E4/audit--data--anonymize.md). **Registry:** `QUEUES.E4_AUDIT_DATA_ANONYMIZE` (`queue-registry.ts`, ex. L485). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ținta verificabilă în registry; sursa: vezi gap în contractul neuron alertă.
-- **Semantic (ADR-0002):** pentru țintă, catalog + posibilă nealiniere `nodeKey` span vs catalog — vezi contractul neuron J47.
+- **Semantic (ADR-0002):** pentru destinație, catalog + posibilă nealiniere `nodeKey` span vs catalog — vezi contractul neuron J47.
 - **Planificare:** dependență declarată în export.
 
 ## Limite și reconcilieri

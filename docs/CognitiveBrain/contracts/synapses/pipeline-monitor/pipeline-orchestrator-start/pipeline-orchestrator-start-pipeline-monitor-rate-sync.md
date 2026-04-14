@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-orchestrator-start` | [`../../../neurons/E1/pipeline--orchestrator--start.md`](../../../neurons/E1/pipeline--orchestrator--start.md). **Runtime:** `pipeline:orchestrate` (`QUEUES.PIPELINE_ORCHESTRATE`, `queue-registry.ts` ~L83). |
-| Țintă | `pipeline-monitor-rate-sync` | [`../../../neurons/E1/pipeline--monitor--rate-sync.md`](../../../neurons/E1/pipeline--monitor--rate-sync.md). **Runtime:** `pipeline:monitor` (secțiune rate/backlog; fără coadă dedicată). |
+| Destinație (graf) | `pipeline-monitor-rate-sync` | [`../../../neurons/E1/pipeline--monitor--rate-sync.md`](../../../neurons/E1/pipeline--monitor--rate-sync.md). **Runtime:** `pipeline:monitor` (secțiune rate/backlog; fără coadă dedicată). |
 
 ## Tip muchie (export)
 
@@ -27,7 +27,7 @@
 
 ## Scop muchie (export-grounded)
 
-**Orchestrator start** depinde în graf de **rate-sync**. Semantica operațională exactă nu este în export; nu o inventăm. Paralel cu muchia «advance» către același tip de țintă graf.
+**Orchestrator start** depinde în graf de **rate-sync**. Semantica operațională exactă nu este în export; nu o inventăm. Paralel cu muchia «advance» către același tip de destinație (graf).
 
 ## Statusuri de evidență (conservative, din sursă canonică)
 

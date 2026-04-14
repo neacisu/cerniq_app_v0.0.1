@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-tool-execute` | [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:tool:execute` în `queue-registry.ts`; `queue_in_registry` = `no` în [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
+| Destinație (graf) | `ai-tool-execute` | [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:tool:execute` în `queue-registry.ts`; `queue_in_registry` = `no` în [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `search:query:rewrite`; țintă — gap în `QUEUES` (contract neuron).
+- **Runtime (ADR-0001):** sursă `search:query:rewrite`; destinație — gap în `QUEUES` (contract neuron).
 - **Semantic (ADR-0002):** fără `nodeKey` stabil în catalog pentru `ai:tool:execute` (contract neuron).
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-tool-execute`.
 

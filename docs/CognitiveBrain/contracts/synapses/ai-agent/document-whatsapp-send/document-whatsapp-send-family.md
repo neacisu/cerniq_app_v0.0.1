@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `document-whatsapp-send` | **Planificare:** nod de traseu în graf. **Matrix:** `document:whatsapp:send` (E3, `fiscal-docs`) → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Runtime (ADR-0001):** `QUEUES.E3_DOCUMENT_WHATSAPP_SEND` → **`document:whatsapp:send`**. |
-| ��intă | `e3-fiscal-docs` | Nod **agregat** de planificare pentru familia documentelor fiscale E3 în topologia exportată; nu este o singură coadă BullMQ și nu există un fișier `contracts/neurons/...` unic pentru această etichetă. Pentru neuroni concreți din `fiscal-docs`, vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) (filtru etapă E3, coloana familie). |
+| Destinație (graf) | `e3-fiscal-docs` | Nod **agregat** de planificare pentru familia documentelor fiscale E3 în topologia exportată; nu este o singură coadă BullMQ și nu există un fișier `contracts/neurons/...` unic pentru această etichetă. Pentru neuroni concreți din `fiscal-docs`, vezi [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) (filtru etapă E3, coloana familie). |
 
 ## Tip muchie (export)
 
@@ -23,6 +23,10 @@
 ## Scop muchie (export-grounded)
 
 Muchia **default** leagă traseul `document-whatsapp-send` de agregatul `e3-fiscal-docs`. Descrierea confirmată în v2 este **„specializează familia”**: exportul indică o relație de specializare în familia de documente fiscale E3, **fără** payload, handler unic sau ordine de joburi. În repo, neuronul sursă I53 este documentat ca **stub** pentru trimitere WhatsApp reală, cu **decalaj de payload** față de enfileuirea din J59 — vezi contractul sursă; aceste detalii **nu** provin din câmpurile muchiei v2.
+
+## Sinapse dependență în același traseu
+
+[`document-whatsapp-send-channel-email-send.md`](document-whatsapp-send-channel-email-send.md), [`document-whatsapp-send-channel-routing-decide.md`](document-whatsapp-send-channel-routing-decide.md), [`document-whatsapp-send-channel-whatsapp-send.md`](document-whatsapp-send-channel-whatsapp-send.md) — muchii **dependency** către neuroni de canal (v2 §7).
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -41,7 +45,7 @@ Muchia **default** leagă traseul `document-whatsapp-send` de agregatul `e3-fisc
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001, `workers/shared/src/queue-registry.ts`):** sursa executabilă pe **`document:whatsapp:send`** (constantă `E3_DOCUMENT_WHATSAPP_SEND`). Nodul **țintă** din graf (`e3-fiscal-docs`) nu este cheie în registry.
+- **Runtime (ADR-0001, `workers/shared/src/queue-registry.ts`):** sursa executabilă pe **`document:whatsapp:send`** (constantă `E3_DOCUMENT_WHATSAPP_SEND`). Destinatia din graf (`e3-fiscal-docs`) nu este cheie în registry.
 - **Semantic (ADR-0002, `packages/shared/src/cognitive-node-catalog.ts`):** `e3:document:whatsapp-send` — vezi contractul neuron; agregatul de graf se rezolvă prin familie, nu printr-un singur `nodeKey`.
 - **Planificare:** muchie de specializare a familiei; nu implică automat același proces sau același mesaj de coadă pentru toți neuroni `fiscal-docs`.
 

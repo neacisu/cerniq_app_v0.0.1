@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `oblio-webhook-process` | **Matrix:** `oblio:webhook:process` → [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). **Registry:** `E3_OBLIO_WEBHOOK_PROCESS` → `oblio:webhook:process`. |
+| Destinație (graf) | `oblio-webhook-process` | **Matrix:** `oblio:webhook:process` → [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). **Registry:** `E3_OBLIO_WEBHOOK_PROCESS` → `oblio:webhook:process`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară că procesarea webhook Oblio (`oblio-webhook-process`) este canonic legată de **`guardrail-discount-check`** în graf. v2: **„sinapsă canonică de pipeline”**; nu specifică evenimente webhook sau filtre. Contractul neuron țintă descrie comportamentul.
+Muchia **dependency** declară că procesarea webhook Oblio (`oblio-webhook-process`) este canonic legată de **`guardrail-discount-check`** în graf. v2: **„sinapsă canonică de pipeline”**; nu specifică evenimente webhook sau filtre. Contractul neuron destinație descrie comportamentul.
 
 ## Semantica confirmată (registru v2 §7)
 

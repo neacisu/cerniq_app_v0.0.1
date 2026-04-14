@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-session-manage` | **Coadă:** `mcp:session:manage` — [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md); **Registry:** `E3_MCP_SESSION_MANAGE`. |
-| Țintă | `negotiation-reminder-send` | **Coadă:** `negotiation:reminder:send` — [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md); **Registry:** `E3_NEGOTIATION_REMINDER_SEND`. |
+| Destinație (graf) | `negotiation-reminder-send` | **Coadă:** `negotiation:reminder:send` — [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md); **Registry:** `E3_NEGOTIATION_REMINDER_SEND`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În graf, traseul de management sesiune MCP este în **dependency** față de trimiterea memento-urilor. v2 oferă doar eticheta **„sinapsă canonică de pipeline”**. Interpretare conservatoare: planificarea grupează mentenanța sesiunii (inclusiv legată de MCP) cu comunicările de urmărire în negociere; mecanismul exact e în workerul țintă, nu în export.
+În graf, traseul de management sesiune MCP este în **dependency** față de trimiterea memento-urilor. v2 oferă doar eticheta **„sinapsă canonică de pipeline”**. Interpretare conservatoare: planificarea grupează mentenanța sesiunii (inclusiv legată de MCP) cu comunicările de urmărire în negociere; mecanismul exact e în workerul destinație, nu în export.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** cozi documentate în registry.
-- **Semantic (ADR-0002):** din catalog — vezi contractele neuron sursă și țintă.
+- **Semantic (ADR-0002):** din catalog — vezi contractele neuron sursă și destinație.
 - **Planificare:** dependență declarată în export.
 
 ## Limite și reconcilieri

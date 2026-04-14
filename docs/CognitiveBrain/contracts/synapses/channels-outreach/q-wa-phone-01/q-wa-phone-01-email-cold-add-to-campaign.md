@@ -41,7 +41,7 @@ Traseul **WA linia 01** depinde în planificare de **adăugarea lead-urilor în 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă instanțiată `q:wa:phone-01`; țintă prin `q:email:cold` — vezi contracte.
+- **Runtime (ADR-0001):** sursă instanțiată `q:wa:phone-01`; destinație prin `q:email:cold` — vezi contracte.
 - **Semantic (ADR-0002):** orchestrare multi-canal la E2.
 - **Planificare:** v2 §7 — `q-wa-phone-01` → `email-cold-add-to-campaign`.
 

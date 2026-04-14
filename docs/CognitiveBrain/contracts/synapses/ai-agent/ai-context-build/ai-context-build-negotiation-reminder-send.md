@@ -41,7 +41,7 @@ Muchia de tip **dependency** din export plasează traseul `ai-context-build` în
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** ambele capete au intrări în `queue-registry.ts` la momentul auditului (sursă: `ai:context:build`; țintă: `negotiation:reminder:send`). Orice rută efectivă între joburi rămâne de verificat în codul workerilor — muchia din graf este **planificare**, nu dovadă de enfileuire directă.
+- **Runtime (ADR-0001):** ambele capete au intrări în `queue-registry.ts` la momentul auditului (sursă: `ai:context:build`; destinație: `negotiation:reminder:send`). Orice rută efectivă între joburi rămâne de verificat în codul workerilor — muchia din graf este **planificare**, nu dovadă de enfileuire directă.
 - **Semantic (ADR-0002):** `nodeKey`/swimlane — din `cognitive-node-catalog.ts` și contractele neuron de mai sus.
 - **Planificare:** dependență declarată în graf între construirea contextului AI și trimiterea memento-ului de negociere.
 

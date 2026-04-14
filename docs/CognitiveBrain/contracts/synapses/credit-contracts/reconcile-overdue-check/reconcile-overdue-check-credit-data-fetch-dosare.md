@@ -45,7 +45,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-overdue-che
 
 ## Limite și reconcilieri
 
-- Mapare dosare ↔ BPI — neuron țintă.
+- Mapare dosare ↔ BPI — neuron destinație.
 
 ## Sursă canonică
 

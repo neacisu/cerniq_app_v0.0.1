@@ -45,7 +45,7 @@
 | 6 | Înveliș telemetrie | — | v2 `cognitive.association.pdf.ingest` (L8272). | — |
 | 7 | Înveliș politică | — | v2 L8270–8271. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | — | NeMo țintă. | — |
+| 9 | Guardrails | — | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8271. | — |
 | 11 | Micro-OODA | — | v2 L8268. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8263). | — |

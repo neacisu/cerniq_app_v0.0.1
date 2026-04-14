@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-step-execute` → `hitl-dashboard-metrics`.
-- **Runtime:** sursă — F33; țintă — vezi neuron `hitl-dashboard-metrics`.
+- **Runtime:** sursă — F33; destinație — vezi neuron `hitl-dashboard-metrics`.
 
 ## Limite și reconcilieri
 
-- Noduri HITL: posibile gap-uri față de registry — vezi contractul țintă.
+- Noduri HITL: posibile gap-uri față de registry — vezi contractul destinație.
 
 ## Sursă canonică
 

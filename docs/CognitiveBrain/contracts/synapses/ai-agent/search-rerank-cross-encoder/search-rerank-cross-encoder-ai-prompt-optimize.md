@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `ai-prompt-optimize` | [`../../../neurons/E3/ai--prompt--optimize.md`](../../../neurons/E3/ai--prompt--optimize.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:prompt:optimize` în `queue-registry.ts`; `queue_in_registry` = `no` în Matrix. |
+| Destinație (graf) | `ai-prompt-optimize` | [`../../../neurons/E3/ai--prompt--optimize.md`](../../../neurons/E3/ai--prompt--optimize.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:prompt:optimize` în `queue-registry.ts`; `queue_in_registry` = `no` în Matrix. |
 
 ## Tip muchie (export)
 
@@ -41,13 +41,13 @@ Dependență declarativă între rerank (etichetă graf) și optimizarea promptu
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — gap în `QUEUES` (contract neuron).
+- **Runtime (ADR-0001):** sursă — gap; destinație — gap în `QUEUES` (contract neuron).
 - **Semantic (ADR-0002):** fără `nodeKey` stabil pentru `ai:prompt:optimize`; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-prompt-optimize`.
 
 ## Limite și reconcilieri
 
-- Dublu gap sursă și țintă față de registry la auditul documentat.
+- Dublu gap sursă și destinație față de registry la auditul documentat.
 
 ## Sursă canonică
 

@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `product:chunk`; țintă — vezi contract neuron.
+- **Runtime (ADR-0001):** sursă `product:chunk`; destinație — vezi contract neuron.
 - **Semantic (ADR-0002):** product-search vs ai-core.
 - **Planificare:** dependență declarativă.
 

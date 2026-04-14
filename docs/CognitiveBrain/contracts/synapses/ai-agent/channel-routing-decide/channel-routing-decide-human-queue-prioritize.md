@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_CHANNEL_ROUTE_DECIDE`; **țintă:** fără coadă canonică dovedită sub `human:queue:prioritize`.
-- **Semantic:** sursă: catalog `e3:channel:route-decide`; țintă: absență documentată în catalog pentru coada nominală.
+- **Runtime:** sursă: `QUEUES.E3_CHANNEL_ROUTE_DECIDE`; **Destinație:** fără coadă canonică dovedită sub `human:queue:prioritize`.
+- **Semantic:** sursă: catalog `e3:channel:route-decide`; destinație: absență documentată în catalog pentru coada nominală.
 - **Planificare:** muchie **`dependency`** în topologia exportată; v2 nu detaliează prioritizarea HITL în registru.
 
 ## Limite și reconcilieri

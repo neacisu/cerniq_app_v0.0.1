@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Muchia traversează etichete E5 (sursă) și execuție E4 (țintă); nu presupunem un singur worker E5 pentru anonimizare.
+- Muchia traversează etichete E5 (sursă) și execuție E4 (destinație); nu presupunem un singur worker E5 pentru anonimizare.
 
 ## Sursă canonică
 

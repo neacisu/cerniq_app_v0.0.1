@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Matrix / contract:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md) — `ai:response:generate` vs `ai:e3:response:generate` vs E2 outreach pe același literal de catalog; reconciliere obligatorie. |
-| Țintă | `alert-phone-banned` | **Matrix:** `alert:phone:banned` (E2, `monitoring`) → [`../../../neurons/E2/alert--phone--banned.md`](../../../neurons/E2/alert--phone--banned.md). **Registry:** `ALERT_PHONE_BANNED` → `alert:phone:banned`. |
+| Destinație (graf) | `alert-phone-banned` | **Matrix:** `alert:phone:banned` (E2, `monitoring`) → [`../../../neurons/E2/alert--phone--banned.md`](../../../neurons/E2/alert--phone--banned.md). **Registry:** `ALERT_PHONE_BANNED` → `alert:phone:banned`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară în planificare că **`alert-phone-banned`** este canonic legat de traseul **`ai-response-generate`**. v2 oferă doar eticheta **„sinapsă canonică de pipeline”**; nu precizează cum un pas de generare răspuns declanșează sau consumă alerta de telefon interzis. Comportamentul operațional al alertei este în contractul E2 țintă.
+Muchia **dependency** declară în planificare că **`alert-phone-banned`** este canonic legat de traseul **`ai-response-generate`**. v2 oferă doar eticheta **„sinapsă canonică de pipeline”**; nu precizează cum un pas de generare răspuns declanșează sau consumă alerta de telefon interzis. Comportamentul operațional al alertei este în contractul neuronului E2 de destinație.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -42,7 +42,7 @@ Muchia **dependency** declară în planificare că **`alert-phone-banned`** este
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ținta **`alert:phone:banned`**. Sursa: cozi documentate în [`ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md).
-- **Semantic (ADR-0002):** `nodeKey` pentru țintă — vezi catalog (ex. `e2:alert:phone-banned` în contractul neuron).
+- **Semantic (ADR-0002):** `nodeKey` pentru destinație — vezi catalog (ex. `e2:alert:phone-banned` în contractul neuron).
 - **Planificare:** dependență structurală în graf între generarea răspunsului (traseu) și alerta de telefon banat.
 
 ## Limite și reconcilieri

@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `quota-guardian-check` → `outreach-wa-send`.
 - **Semantic:** ambele **E2**.
-- **Runtime:** sursa are coadă în registry; pentru țintă vezi gap în matrice — nu inversa concluziile.
+- **Runtime:** sursa are coadă în registry; pentru destinație vezi gap în matrice — nu inversa concluziile.
 
 ## Sursă canonică
 

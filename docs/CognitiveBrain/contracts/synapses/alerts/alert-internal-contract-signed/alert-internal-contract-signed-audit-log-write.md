@@ -41,7 +41,7 @@ Scrierea în jurnalul audit este dependentă în graf de traseul alertei „cont
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `audit:log:write` (J45).
+- **Runtime (ADR-0001):** sursă — gap; destinație — `audit:log:write` (J45).
 - **Semantic (ADR-0002):** `e4:audit:log-write` — catalog; vezi contract neuron pentru span vs catalog.
 - **Planificare:** v2 §7 — `alert-internal-contract-signed` → `audit-log-write`.
 

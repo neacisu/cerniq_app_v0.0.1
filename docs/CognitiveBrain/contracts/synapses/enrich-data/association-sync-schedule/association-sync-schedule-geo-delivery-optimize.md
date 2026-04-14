@@ -41,13 +41,13 @@ Traseul **association-sync-schedule** depinde în graf de **optimizare livrare g
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi neuronțintă și `workers/shared/src/queue-registry.ts`.
+- **Runtime (ADR-0001):** vezi neuron destinație și `workers/shared/src/queue-registry.ts`.
 - **Semantic (ADR-0002):** etapă E5 / familie geo — contract neuron.
 - **Planificare:** v2 §7 — `association-sync-schedule` → `geo-delivery-optimize`.
 
 ## Limite și reconcilieri
 
-- Dacă neuronul țintă notează diferențe slug v2 ↔ coadă, acestea prevalează pentru execuție față de eticheta simplă din graf.
+- Dacă neuronul destinație notează diferențe slug v2 ↔ coadă, acestea prevalează pentru execuție față de eticheta simplă din graf.
 
 ## Sursă canonică
 

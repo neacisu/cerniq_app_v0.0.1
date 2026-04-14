@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `ai-tool-execute` | [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:tool:execute` în `queue-registry.ts`; `queue_in_registry` = `no` în Matrix. |
+| Destinație (graf) | `ai-tool-execute` | [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Runtime:** la auditul din contractul neuron, **fără** `ai:tool:execute` în `queue-registry.ts`; `queue_in_registry` = `no` în Matrix. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Execuția tool-urilor este planificată ca dependentă de traseul rerank cross-e
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — gap.
+- **Runtime (ADR-0001):** sursă — gap; destinație — gap.
 - **Semantic (ADR-0002):** vezi contracte neuroni; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-tool-execute`.
 

@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + span cognitiv condiționat (`factory.ts`). | Span v2. | — |
 | 7 | Înveliș politică | Notificare prin `dispatchNotification`; fără Cedar în handler. | v2 tier3. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Try/catch în jurul `dispatchNotification` (L111–132). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Try/catch în jurul `dispatchNotification` (L111–132). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu coadă `human:*` directă. | v2. | — |
 | 11 | Micro-OODA | OBSERVE payload offline; ACT persist + notify. | v2. | — |
 | 12 | Tier + de-escaladare | Eșec notificare → log error, job reușit cu `{ logged: true }`. | v2. | — |

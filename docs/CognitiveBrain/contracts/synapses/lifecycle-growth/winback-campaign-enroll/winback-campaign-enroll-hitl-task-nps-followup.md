@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-campaign-enroll` → `hitl-task-nps-followup`.
-- **Runtime:** sursă — F32; țintă — vezi neuron `hitl-task-nps-followup`.
+- **Runtime:** sursă — F32; destinație — vezi neuron `hitl-task-nps-followup`.
 
 ## Limite și reconcilieri
 
-- Noduri HITL: verificare registry/catalog în contractul țintă.
+- Noduri HITL: verificare registry/catalog în contractul destinație.
 
 ## Sursă canonică
 

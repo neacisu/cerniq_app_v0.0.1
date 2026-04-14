@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** cozi concrete — din contractele neuron sursă și țintă; **nu** din label-ul muchiei.
+- **Runtime (ADR-0001):** cozi concrete — din contractele neuron sursă și destinație; **nu** din label-ul muchiei.
 - **Semantic (ADR-0002):** E4 `contracts` ↔ E4 `logistics` (familii v2).
 - **Planificare:** v2 §7 — `contract-sign-check-expiry` → `return-process-stock`.
 

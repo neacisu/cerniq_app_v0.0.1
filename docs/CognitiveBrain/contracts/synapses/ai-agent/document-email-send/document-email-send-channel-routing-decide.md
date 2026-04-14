@@ -41,7 +41,7 @@ Dependența leagă traseul de **document email** de **decizia de rutare pe canal
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** pentruțintă, coada executată este **`channel:route:decide`**, nu literalul `channel:routing:decide` din v2/Matrix — vezi contractul neuron.
+- **Runtime (ADR-0001):** pentru destinație, coada executată este **`channel:route:decide`**, nu literalul `channel:routing:decide` din v2/Matrix — vezi contractul neuron.
 - **Semantic (ADR-0002):** `e3:channel:route-decide` în catalog; fără intrare pentru string-ul `channel:routing:decide` (citire în contract neuron).
 - **Planificare:** dependență declarativă între trimiterea documentului pe email și decizia de rutare canal.
 

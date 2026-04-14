@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă ancorată în `QUEUES.E3_CHANNEL_ROUTE_DECIDE`; **țintă:** fără `QUEUES.*` dovedit pentru `human:notification:send`.
-- **Semantic:** sursă: `e3:channel:route-decide`; țintă: fără `nodeKey` demonstrat în catalog pentru coada nominală (contract neuron).
+- **Runtime:** sursă ancorată în `QUEUES.E3_CHANNEL_ROUTE_DECIDE`; **Destinație:** fără `QUEUES.*` dovedit pentru `human:notification:send`.
+- **Semantic:** sursă: `e3:channel:route-decide`; destinație: fără `nodeKey` demonstrat în catalog pentru coada nominală (contract neuron).
 - **Planificare:** muchie **`dependency`**: `channel-routing-decide` precede `human-notification-send` în export; fără semantica operațională suplimentară în v2.
 
 ## Limite și reconcilieri

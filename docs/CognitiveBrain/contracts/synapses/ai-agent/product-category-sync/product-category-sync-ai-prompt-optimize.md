@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă; țintă nealiniată la registry în auditul documentat.
-- **Semantic (ADR-0002):** gap catalog pentru țintă — vezi contract.
+- **Runtime (ADR-0001):** sursă executabilă; destinație nealiniată la registry în auditul documentat.
+- **Semantic (ADR-0002):** gap catalog pentru destinație — vezi contract.
 - **Planificare:** product-search → prompt-optimize (declarativ).
 
 ## Limite și reconcilieri

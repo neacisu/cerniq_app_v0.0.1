@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `geo-weather-correlate` → `nurturing-state-transition`.
-- **Runtime (ADR-0001):** sursă E5; țintă **E2** — vezi contractul țintă.
+- **Runtime (ADR-0001):** sursă E5; destinație **E2** — vezi contractul destinație.
 - **Semantic (ADR-0002):** traversare **E5 → E2** — **necesită reconciliere** explicită; vezi ADR `lifecycle` și contract E2.
 
 ## Limite și reconcilieri

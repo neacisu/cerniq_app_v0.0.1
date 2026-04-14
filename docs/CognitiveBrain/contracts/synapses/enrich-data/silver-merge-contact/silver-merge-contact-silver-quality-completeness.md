@@ -42,13 +42,13 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `silver-merge-contact` → `silver-quality-completeness`.
-- **Runtime (ADR-0001):** sursă — vezi gap în neuron; ținta — `score:completeness` / `e1:score:completeness` în contractul țintă.
+- **Runtime (ADR-0001):** sursă — vezi gap în neuron; ținta — `score:completeness` / `e1:score:completeness` în contractul destinație.
 - **Semantic (ADR-0002):** E1 — familii `merge` și `quality`.
 
 ## Limite și reconcilieri
 
 - **Sursă:** reconciliere obligatorie **graf ↔ registry** pentru merge contact.
-- **Destinație (reconciliere):** denumiri v2 vs cozi runtime (`silver:quality:*` vs `score:*`) — vezi neuronul țintă.
+- **Destinație (reconciliere):** denumiri v2 vs cozi runtime (`silver:quality:*` vs `score:*`) — vezi neuronul destinație.
 
 ## Sursă canonică
 

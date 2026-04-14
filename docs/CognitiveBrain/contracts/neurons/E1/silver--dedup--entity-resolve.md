@@ -65,7 +65,7 @@
 | 8 | Rutare model (dacă AI) | **N/A** (vezi N/A). | v2 Non-AI. | — |
 | 9 | Guardrails | Reguli SQL + praguri duplicate; fără NeMo. | v2 audit 90 zile. | NeMo N/A. |
 | 10 | Escaladare HITL | Stare `hitl_pending` + încredere 0.7/0.8 (`m1-dedup-exact-hash.ts` L187–189). | ADR-0008. | Lanț cozi `human:*` neextras din M1. |
-| 11 | Micro-OODA | Citire companie → căutare potriviri → decizie merge/pending → persistență (M1). Neo4j GraphRAG: lipsă. | v2 OODA + țintă GraphRAG. | — |
+| 11 | Micro-OODA | Citire companie → căutare potriviri → decizie merge/pending → persistență (M1). Neo4j GraphRAG: lipsă. | v2 OODA + destinație GraphRAG. | — |
 | 12 | Tier + de-escaladare | Auto-merge vs `hitl_pending` după reguli cod. | v2 Tier 4. | Tensiune Tier 4 vs HITL (ca la `bronze:dedup:hash-checker`). |
 | 13 | Stack v2 §2.3 (subset) | BullMQ, Postgres, OTel helper. | v2 subset. | Kafka/Neo4j neaudit. |
 

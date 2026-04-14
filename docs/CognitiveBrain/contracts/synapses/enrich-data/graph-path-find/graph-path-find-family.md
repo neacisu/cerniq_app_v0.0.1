@@ -53,7 +53,7 @@ Muchie planificată **Bronze → acest nod:** [`../bronze-ingest-pdf-extractor/b
 | --- | --- |
 | **Runtime (ADR-0001)** | Gap documentat pentru `graph:path:find` — vezi [`../../../neurons/E5/graph--path--find.md`](../../../neurons/E5/graph--path--find.md). |
 | **Semantic (ADR-0002)** | **NEURON_MATRIX.csv** — intrare `graph:path:find`; `nodeKey`/`catalog` goale în matrice — vezi contract neuron. |
-| **Planificare (export)** | v2 §7 — sursă `graph-path-find` → țintă `e5-graph-community`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `graph-path-find` → destinație `e5-graph-community`, tip `default`. |
 
 ## Limite și reconcilieri
 

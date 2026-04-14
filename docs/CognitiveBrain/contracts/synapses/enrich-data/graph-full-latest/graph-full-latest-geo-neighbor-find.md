@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-neighbor-find`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”; semantica vecinătății în contractul neuron țintă.
+Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-neighbor-find`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”; semantica vecinătății în contractul neuron destinație.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-neighbor-find`*
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
 | **Semantic (ADR-0002)** | Vezi `geo--neighbor--find`. |
 | **Planificare (export)** | v2 §7 — `graph-full-latest` → `geo-neighbor-find`, tip `dependency`. |
 

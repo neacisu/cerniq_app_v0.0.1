@@ -41,7 +41,7 @@ Traseul **operațional WhatsApp (etichetă generică în graf)** depinde în pla
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** reconciliere obligatorie graf `email-cold-add-to-campaign` vs `q:email:cold` — vezi contract țintă.
+- **Runtime (ADR-0001):** reconciliere obligatorie graf `email-cold-add-to-campaign` vs `q:email:cold` — vezi contract destinație.
 - **Semantic (ADR-0002):** legătură între familia WhatsApp (sursă planificată) și motorii cold email.
 - **Planificare:** v2 §7 — `q-wa-phone` → `email-cold-add-to-campaign`.
 

@@ -43,7 +43,7 @@ Escalare risc churn CRITICAL/HIGH: creare task HITL (`hitl:churn:intervention`),
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | `churn:risk:escalate` + `e5:churn:risk-escalate`. Graf: `churn:alert:escalate`. | v2 L7592. | Denumire alert vs risk. |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 5, `churn-detection`. | v2 E5 churn. | — |

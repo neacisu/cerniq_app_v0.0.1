@@ -41,13 +41,13 @@ Traseul **credit-data-fetch-bilant** depinde în planificare de **generarea fiș
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 credit ↔ E4 generare DOCX — vezi catalog în contracte.
 - **Planificare:** v2 §7 — `credit-data-fetch-bilant` → `contract-generate-docx`.
 
 ## Limite și reconcilieri
 
-- Detaliile `contract:generate` vs etichete graf sunt în contractul neuron țintă, nu în sinapsă.
+- Detaliile `contract:generate` vs etichete graf sunt în contractul neuron destinație, nu în sinapsă.
 
 ## Sursă canonică
 

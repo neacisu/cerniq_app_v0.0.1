@@ -50,7 +50,7 @@
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
 | 9 | Guardrails | Normalizare motiv `AI_FLAGGED` → `AI_UNCERTAIN` (`toPersistedReviewReason`). | ADR-0007. | — |
 | 10 | Escaladare HITL | Enqueue `hitl:sla:enforce`; escaladare ulterioară în alți workeri. | v2 + ADR-0008. | — |
-| 11 | Micro-OODA | OBSERVE/ORIENT/DECIDE/ACT în jurul creării review + journey update. | v2 menționează LangGraph checkpoint — **absent** în handler. | ORIENT „LangGraph”: **țintă v2**, fără cod. |
+| 11 | Micro-OODA | OBSERVE/ORIENT/DECIDE/ACT în jurul creării review + journey update. | v2 menționează LangGraph checkpoint — **absent** în handler. | ORIENT „LangGraph”: **destinație v2**, fără cod. |
 | 12 | Tier + de-escaladare | Eșec → `UnrecoverableError` / throw pe erori tranzacție. | v2. | — |
 | 13 | Stack | BullMQ, Postgres (`humanReviewQueue`, `leadJourney`), coadă `hitl:sla:enforce`. | v2 §2.3. | — |
 

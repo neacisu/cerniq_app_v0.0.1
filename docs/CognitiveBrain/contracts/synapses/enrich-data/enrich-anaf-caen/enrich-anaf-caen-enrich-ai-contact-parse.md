@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Reconciliere `enrich:ai:*` / `ai:*` obligatorie prin ADR și neuronul țintă.
+- Reconciliere `enrich:ai:*` / `ai:*` obligatorie prin ADR și neuronul destinație.
 
 ## Sursă canonică
 

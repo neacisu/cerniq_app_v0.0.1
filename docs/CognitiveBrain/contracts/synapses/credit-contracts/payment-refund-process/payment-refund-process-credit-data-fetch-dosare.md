@@ -41,7 +41,7 @@ Dependența declară în graf că **procesarea rambursării** este ordonată can
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** reconciliere sursă Revolut vs etichetă graf; țintă conform neuron.
+- **Runtime:** reconciliere sursă Revolut vs etichetă graf; destinație conform neuron.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

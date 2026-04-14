@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `monitor-quota-usage` | Coadă executabilă **`monitor:quota:usage`** (`QUEUES.MONITOR_QUOTA_USAGE`) — [`../../../neurons/E2/monitor--quota--usage.md`](../../../neurons/E2/monitor--quota--usage.md). |
+| Destinație (graf) | `monitor-quota-usage` | Coadă executabilă **`monitor:quota:usage`** (`QUEUES.MONITOR_QUOTA_USAGE`) — [`../../../neurons/E2/monitor--quota--usage.md`](../../../neurons/E2/monitor--quota--usage.md). |
 
 ## Tip muchie (export)
 

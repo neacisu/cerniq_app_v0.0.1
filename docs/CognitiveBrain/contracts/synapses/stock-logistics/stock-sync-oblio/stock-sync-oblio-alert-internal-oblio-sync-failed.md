@@ -42,12 +42,12 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-oblio` → `alert-internal-oblio-sync-failed`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; țintă `alert:internal:oblio-sync-failed` la **L192**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; **Destinație (coadă):** `alert:internal:oblio-sync-failed` la **L192**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri
 
-- Condițiile concrete de eșec și retry: în implementare; matricea indică `queue_in_registry` = `no` pentru țintă — vezi contract neuron.
+- Condițiile concrete de eșec și retry: în implementare; matricea indică `queue_in_registry` = `no` pentru destinație — vezi contract neuron.
 
 ## Sursă canonică
 

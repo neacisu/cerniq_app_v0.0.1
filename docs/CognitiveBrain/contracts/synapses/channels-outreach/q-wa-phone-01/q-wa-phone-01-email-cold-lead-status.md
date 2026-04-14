@@ -41,7 +41,7 @@ Traseul **WA linia 01** depinde în planificare de **status lead în cold email*
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** date lead comune E2.
 - **Planificare:** v2 §7 — `q-wa-phone-01` → `email-cold-lead-status`.
 

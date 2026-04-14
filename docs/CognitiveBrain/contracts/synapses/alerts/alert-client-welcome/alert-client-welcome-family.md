@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `alert-client-welcome` | Traseu în graf; **Matrix:** coadă v2 `alert:client:welcome` (E5, `alerts`) — [`../../../neurons/E5/alert--client--welcome.md`](../../../neurons/E5/alert--client--welcome.md). **Gap** registry: literalul **nu** apare în `queue-registry.ts` la auditul neuronului; vezi ADR `e5/alerts.md`. |
-| Țintă | `e5-alerts` | Nod agregat de familie **alerts** E5 în planificare; nu este o singură coadă BullMQ și nu există contract neuron unic pentru această etichetă. |
+| Destinație (graf) | `e5-alerts` | Nod agregat de familie **alerts** E5 în planificare; nu este o singură coadă BullMQ și nu există contract neuron unic pentru această etichetă. |
 
 ## Tip muchie (export)
 

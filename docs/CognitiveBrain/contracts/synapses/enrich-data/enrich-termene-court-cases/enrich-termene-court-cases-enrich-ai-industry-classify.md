@@ -43,9 +43,9 @@ Muchia **`dependency`** plasează traseul dosarelor Termene în dependență fa�
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi maparea sursei în contractul `enrich--termene--court-cases`. Pentru țintă: lipsă literal `enrich:ai:industry-classify` în registry — vezi contract neuron. |
+| **Runtime (ADR-0001)** | Vezi maparea sursei în contractul `enrich--termene--court-cases`. Pentru destinație: lipsă literal `enrich:ai:industry-classify` în registry — vezi contract neuron. |
 | **Semantic (ADR-0002)** | Instrumentare E1 conform familiilor din v2. |
-| **Planificare** | v2 §7 — sursă / țintă / `dependency` ca mai sus. |
+| **Planificare** | v2 §7 — sursă / destinație (graf) / `dependency` ca mai sus. |
 
 ## Limite și reconcilieri
 

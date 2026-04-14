@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `payment-refund-process` | **Runtime:** **`revolut:refund:process`**. **Contract:** [`../../../neurons/E4/payment--refund--process.md`](../../../neurons/E4/payment--refund--process.md). |
-| Destinație (graf) | `credit-data-fetch-insolventa` | **Contract:** [`../../../neurons/E4/credit--data--fetch-insolventa.md`](../../../neurons/E4/credit--data--fetch-insolventa.md). **Matrix:** `queue_in_registry` = **no** pentru `credit:data:fetch-insolventa` — execuția țintă necesită audit neuron, nu inferență din graf. |
+| Destinație (graf) | `credit-data-fetch-insolventa` | **Contract:** [`../../../neurons/E4/credit--data--fetch-insolventa.md`](../../../neurons/E4/credit--data--fetch-insolventa.md). **Matrix:** `queue_in_registry` = **no** pentru `credit:data:fetch-insolventa` — implementarea destinației necesită audit neuron, nu inferență din graf. |
 
 ## Tip muchie (export)
 

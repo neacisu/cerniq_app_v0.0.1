@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-price-check` | Coadă executabilă **`guardrail:price:check`** (`QUEUES.E3_GUARDRAIL_PRICE_CHECK`) — [`../../../neurons/E3/guardrail--price--check.md`](../../../neurons/E3/guardrail--price--check.md). |
-| Țintă | `oblio-webhook-process` | Coadă executabilă **`oblio:webhook:process`** (`QUEUES.E3_OBLIO_WEBHOOK_PROCESS`) — [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). |
+| Destinație (graf) | `oblio-webhook-process` | Coadă executabilă **`oblio:webhook:process`** (`QUEUES.E3_OBLIO_WEBHOOK_PROCESS`) — [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_PRICE_CHECK`; `E3_OBLIO_WEBHOOK_PROCESS`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:webhook-process` / `oblio:webhook:process` — „Procesare webhook Oblio — actualizare status documente…” (~L1907–1913), SensoryNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:webhook-process` / `oblio:webhook:process` — „Procesare webhook Oblio — actualizare status documente…” (~L1907–1913), SensoryNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-price-check-oblio-webhook-process`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

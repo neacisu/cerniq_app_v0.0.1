@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Nu confunda **business-hours scheduler** (sursă) cu **wa-reschedule** (țintă): sunt neuroni distincți; legătura este doar cea declarată în export.
+- Nu confunda **business-hours scheduler** (sursă) cu **wa-reschedule** (destinație): sunt neuroni distincți; legătura este doar cea declarată în export.
 
 ## Sursă canonică
 

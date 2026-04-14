@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **APIA farmer** și **st
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă `agri:apia`; țintă — `ai:structure:xai` ca apropiere documentată în neuron.
+- **Runtime:** sursă `agri:apia`; destinație — `ai:structure:xai` ca apropiere documentată în neuron.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

@@ -51,7 +51,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan` via factory worker. | v2: `cognitive.channel.routing.decide` (L4766) — fără prefix `e3` în nume. | **Parțial aliniat:** convenții span diferite; cod `cognitive.nodeKey`. |
 | 7 | Înveliș politică | Logică deterministă + HITL queue la `HITL`/`PHONE` (`j58` L242–274); fără Cedar. | v2: Tier 4, fără HITL obligatoriu (L4757, L4764). | PHONE log + HITL — mai strict decât „no mandatory HITL” pentru unele ramuri. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | E.164 WA, blackout, prag RON 50k (`j58` L30, L33, L56–60, L189–206); preferințe `preferredChannel`. | ADR-0007 — țintă. | — |
+| 9 | Guardrails | E.164 WA, blackout, prag RON 50k (`j58` L30, L33, L56–60, L189–206); preferințe `preferredChannel`. | ADR-0007 — destinație documentată. | — |
 | 10 | Escaladare HITL | `QUEUES.HITL_ESCALATION` pentru `PHONE` și `HITL` (`j58` L66, L248–274). | ADR-0008; v2 „no mandatory HITL” (L4764). | Implementare concretă de escaladare la lipsă contact / telefon. |
 | 11 | Micro-OODA | OBSERVE — context handover; ORIENT — blackout, contact, valoare; DECIDE — `resolveChannel`; ACT — `add` job pe cozi (`j58` L177–277). | v2 OODA generic (L4762). | Aliniat; „quotas” v2 nu apar ca Redis explicit — delegare la cozi downstream. |
 | 12 | Tier + de-escaladare | Fără scor încredere în J58. | v2 Tier 4 (L4757). | — |

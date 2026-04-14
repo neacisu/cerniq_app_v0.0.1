@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `document-email-send` | **Matrix:** `document:email:send` (E3, `fiscal-docs`) → [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). **Registry:** `E3_DOCUMENT_EMAIL_SEND` → `document:email:send`. |
+| Destinație (graf) | `document-email-send` | **Matrix:** `document:email:send` (E3, `fiscal-docs`) → [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). **Registry:** `E3_DOCUMENT_EMAIL_SEND` → `document:email:send`. |
 
 ## Tip muchie (export)
 

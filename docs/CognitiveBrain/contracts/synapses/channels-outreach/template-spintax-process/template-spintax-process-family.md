@@ -51,7 +51,7 @@ Muchia **`default`** plasează traseul **procesare spintax pe șabloane** sub ag
 
 ## Limite și reconcilieri
 
-- Dependențele către cozi WA din același folder exprimă **planificarea** din v2; execuția reală folosește adesea `q:wa:phone-NN`, `:followup` sau cozi auxiliare — vezi contractele neuron țintă.
+- Dependențele către cozi WA din același folder exprimă **planificarea** din v2; execuția reală folosește adesea `q:wa:phone-NN`, `:followup` sau cozi auxiliare — vezi contractele neuron destinație.
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
 
 ## Sursă canonică

@@ -41,7 +41,7 @@ Polling zilnic contracte `SENT_DOCUSIGN` cu `expiresAt` în viitor: interogare D
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă: `contract:status:poll`. Catalog: `e4:contract:status-poll`. Graf: `contract:sign:check-expiry`. | v2 L6548. | — |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 4, `contract-execution`. | v2: E4, `contracts`. | — |

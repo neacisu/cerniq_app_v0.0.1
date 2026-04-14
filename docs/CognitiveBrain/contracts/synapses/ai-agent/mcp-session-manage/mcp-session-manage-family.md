@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `mcp-session-manage` | Traseu în graf; **Matrix** + registry: coada **`mcp:session:manage`**, contract [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md). **Runtime (ADR-0001):** `QUEUES.E3_MCP_SESSION_MANAGE` în `workers/shared/src/queue-registry.ts` (ex. L331). |
-| Țintă | `e3-ai-core` | Nod agregat E3 / familie **ai-core** în planificare; nu este o singură coadă BullMQ. |
+| Destinație (graf) | `e3-ai-core` | Nod agregat E3 / familie **ai-core** în planificare; nu este o singură coadă BullMQ. |
 
 ## Tip muchie (export)
 

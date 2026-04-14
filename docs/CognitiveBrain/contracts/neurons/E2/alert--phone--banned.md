@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` condiționat de `tenantId` (`factory.ts`). | Span v2. | — |
 | 7 | Înveliș politică | Fără Cedar/OPA în handler; quarantine pe altă coadă. | v2 tier2 + HITL. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Validare `isPhoneBannedAlertPayload` / legacy detect. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Validare `isPhoneBannedAlertPayload` / legacy detect. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu enfilează `human:*` din acest worker; quarantine declanșat din `phone-monitoring`. | v2. | — |
 | 11 | Micro-OODA | OBSERVE job; DECIDE legacy vs valid; ACT log sau forward. | v2. | — |
 | 12 | Tier + de-escaladare | Payload invalid → `throw` (retry BullMQ). | v2. | — |

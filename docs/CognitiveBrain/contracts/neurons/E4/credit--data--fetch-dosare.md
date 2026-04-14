@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:data:fetch-bpi", …)` (c16 L54–55). | v2 `cognitive.credit.data.fetch-dosare` (L6713). | OTel v2 nu reflectă numele cozii BPI. |
 | 7 | Înveliș politică | — | v2 L6711. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | `sanitizeCui`, client Termene (c16). | NeMo țintă. | — |
+| 9 | Guardrails | `sanitizeCui`, client Termene (c16). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6711. | — |
 | 11 | Micro-OODA | Child paralel C13 → input C17. | v2 L6709. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6704). | — |

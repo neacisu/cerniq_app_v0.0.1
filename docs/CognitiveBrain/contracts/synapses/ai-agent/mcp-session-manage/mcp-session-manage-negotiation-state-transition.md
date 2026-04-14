@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-session-manage` | **Coadă:** `mcp:session:manage` — [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md); **Registry:** `E3_MCP_SESSION_MANAGE`. |
-| Țintă | `negotiation-state-transition` | **Coadă:** `negotiation:state:transition` — [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md); **Registry:** `E3_NEGOTIATION_STATE_TRANSITION`. |
+| Destinație (graf) | `negotiation-state-transition` | **Coadă:** `negotiation:state:transition` — [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md); **Registry:** `E3_NEGOTIATION_STATE_TRANSITION`. |
 
 ## Tip muchie (export)
 

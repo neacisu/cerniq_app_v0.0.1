@@ -50,7 +50,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` când `tenantId` valid (`factory.ts` L90–107). | v2: `cognitive.e3.mcp.resource-load`. | Nume span export vs `nodeKey`: ADR-0003. |
 | 7 | Înveliș politică | Fără Cedar/OPA în L66; validare URI strictă (eroare dacă invalid — `l66` L186–193). | v2: Tier 3; text HITL cu „confidence” — **decalaj** (neuron non-LLM). | v2 menționează încredere; L66 nu are scor încredere. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI (L4641). | — |
-| 9 | Guardrails | Validare structură URI + tipuri resursă; fără NeMo. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Validare structură URI + tipuri resursă; fără NeMo. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în L66. | v2 / ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE — job + URI; ORIENT — cache; DECIDE — HIT/MISS; ACT — DB/Redis (`l66` L205–234). Aliniat pragmatic cu v2 fără API extern. | v2: „API call vs cache hit” — aici DB intern, nu HTTP extern. | — |
 | 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 3. | — |

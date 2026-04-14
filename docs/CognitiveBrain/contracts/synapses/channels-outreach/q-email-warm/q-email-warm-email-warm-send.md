@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `q-email-warm` | **Contract:** [`../../../neurons/E2/q--email--warm.md`](../../../neurons/E2/q--email--warm.md). **Runtime (ADR-0001):** trimiterea warm este implementată pe **`q:email:warm`** (`QUEUES.EMAIL_WARM`). |
-| Destinație (graf) | `email-warm-send` | **Contract:** [`../../../neurons/E2/email--warm--send.md`](../../../neurons/E2/email--warm--send.md). **Runtime (ADR-0001):** **nu** există coadă literală `email:warm:send` în `queue-registry.ts`; reconcilierea graf ↔ runtime este documentată în contractul neuron țintă (equiv. `q:email:warm` + `e2:email:warm-send`). |
+| Destinație (graf) | `email-warm-send` | **Contract:** [`../../../neurons/E2/email--warm--send.md`](../../../neurons/E2/email--warm--send.md). **Runtime (ADR-0001):** **nu** există coadă literală `email:warm:send` în `queue-registry.ts`; reconcilierea graf ↔ runtime este documentată în contractul neuron destinație (equiv. `q:email:warm` + `e2:email:warm-send`). |
 
 ## Tip muchie (export)
 

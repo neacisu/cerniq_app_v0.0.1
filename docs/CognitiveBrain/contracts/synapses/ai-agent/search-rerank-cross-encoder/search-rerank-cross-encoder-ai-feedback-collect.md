@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `ai-feedback-collect` | [`../../../neurons/E3/ai--feedback--collect.md`](../../../neurons/E3/ai--feedback--collect.md). **Runtime:** `feedback:collect` (`QUEUES.E3_FEEDBACK_COLLECT`, `queue-registry.ts` L326). |
+| Destinație (graf) | `ai-feedback-collect` | [`../../../neurons/E3/ai--feedback--collect.md`](../../../neurons/E3/ai--feedback--collect.md). **Runtime:** `feedback:collect` (`QUEUES.E3_FEEDBACK_COLLECT`, `queue-registry.ts` L326). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Colectarea feedback-ului AI este ordonată în planificare după traseul `search
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `feedback:collect`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `feedback:collect`.
 - **Semantic (ADR-0002):** `e3:feedback:collect` (Matrix / contract); sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-feedback-collect`.
 

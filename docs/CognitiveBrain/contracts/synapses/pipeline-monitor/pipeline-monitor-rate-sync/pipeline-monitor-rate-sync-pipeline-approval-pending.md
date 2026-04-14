@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-monitor-rate-sync` | [`../../../neurons/E1/pipeline--monitor--rate-sync.md`](../../../neurons/E1/pipeline--monitor--rate-sync.md). **Runtime:** `pipeline:monitor` (`QUEUES.PIPELINE_MONITOR`, ~L86); fără coadă dedicată `pipeline:monitor:rate-sync`. |
-| Țintă | `pipeline-approval-pending` | [`../../../neurons/E1/pipeline--approval--pending.md`](../../../neurons/E1/pipeline--approval--pending.md). **Runtime:** fără coadă `pipeline:approval:pending` în registry; model alternativ în contractul neuron. |
+| Destinație (graf) | `pipeline-approval-pending` | [`../../../neurons/E1/pipeline--approval--pending.md`](../../../neurons/E1/pipeline--approval--pending.md). **Runtime:** fără coadă `pipeline:approval:pending` în registry; model alternativ în contractul neuron. |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `pipeline:monitor` vs **absență** cozii `pipeline:approval:pending` în `QUEUES`.
-- **Semantic (ADR-0002):** `e1:pipeline:monitor`; țintă fără aliniere catalog simplă pentru coada v2 (vezi neuron).
+- **Semantic (ADR-0002):** `e1:pipeline:monitor`; destinație fără aliniere catalog simplă pentru coada v2 (vezi neuron).
 - **Planificare:** v2 §7 — `pipeline-monitor-rate-sync` → `pipeline-approval-pending`.
 
 ## Limite și reconcilieri

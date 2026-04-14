@@ -58,7 +58,7 @@
 
 - **v2 (antet `email:warm:send`):** `cognitive.email.warm.send`.
 - **v2 (bloc `q:email:warm`):** `cognitive.e2.email.warm-send`.
-- **Cod:** `cognitive:e2:email:warm-send` — **aliniat** cu catalog + contract `q:email:warm`; numele `cognitive.email.warm.send` tratat ca **țintă / dublură document** până la unificare.
+- **Cod:** `cognitive:e2:email:warm-send` — **aliniat** cu catalog + contract `q:email:warm`; numele `cognitive.email.warm.send` tratat ca **destinație / dublură document** până la unificare.
 
 ---
 *Generator inițial:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py` — înlocuit prin audit manual.

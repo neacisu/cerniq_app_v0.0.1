@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `mcp-tool-register` | Traseu în graf; **Matrix** + registry: coada **`mcp:tool:register`**, contract [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md). **Runtime (ADR-0001):** `QUEUES.E3_MCP_TOOL_REGISTER` în `workers/shared/src/queue-registry.ts` (ex. L330). |
-| Țintă | `e3-ai-core` | Nod agregat E3 / familie **ai-core** în planificare; nu este o singură coadă BullMQ. |
+| Destinație (graf) | `e3-ai-core` | Nod agregat E3 / familie **ai-core** în planificare; nu este o singură coadă BullMQ. |
 
 ## Tip muchie (export)
 

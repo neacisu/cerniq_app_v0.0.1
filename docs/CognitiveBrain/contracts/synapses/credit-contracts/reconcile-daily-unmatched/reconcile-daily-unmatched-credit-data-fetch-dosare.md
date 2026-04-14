@@ -41,12 +41,12 @@ Dependența declară în graf ordonare canonică între **`reconcile-daily-unmat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă conform registry; sursă — reconciliere neuron.
+- **Runtime:** destinație conform registry; sursă — reconciliere neuron.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri
 
-- Mapare dosare ↔ BPI posibilă — vezi neuron țintă.
+- Mapare dosare ↔ BPI posibilă — vezi neuron destinație.
 
 ## Sursă canonică
 

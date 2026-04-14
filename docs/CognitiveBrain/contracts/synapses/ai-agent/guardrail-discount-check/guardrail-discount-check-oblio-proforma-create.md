@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `oblio-proforma-create` | **Matrix:** `oblio:proforma:create` → [`../../../neurons/E3/oblio--proforma--create.md`](../../../neurons/E3/oblio--proforma--create.md). **Registry:** `E3_OBLIO_PROFORMA_CREATE` → `oblio:proforma:create`. |
+| Destinație (graf) | `oblio-proforma-create` | **Matrix:** `oblio:proforma:create` → [`../../../neurons/E3/oblio--proforma--create.md`](../../../neurons/E3/oblio--proforma--create.md). **Registry:** `E3_OBLIO_PROFORMA_CREATE` → `oblio:proforma:create`. |
 
 ## Tip muchie (export)
 

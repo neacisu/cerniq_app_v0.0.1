@@ -39,7 +39,7 @@ Alertă internă cluster livrări (graf). **Cod:** fără coadă BullMQ cu acest
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** runtime. | v2 L7504. | — |
 | 2 | Etapă, familie, swimlane | — | v2 E5. | — |

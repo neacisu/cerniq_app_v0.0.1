@@ -40,7 +40,7 @@ Emitere și notificare recompensă referral după conversie; v2 agregă într-un
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf agregat vs două cozi registry. | v2 L9124. | — |
 | 2 | Etapă, familie, swimlane | `referral-management` în catalog pentru E30/E31. | v2 E5. | — |

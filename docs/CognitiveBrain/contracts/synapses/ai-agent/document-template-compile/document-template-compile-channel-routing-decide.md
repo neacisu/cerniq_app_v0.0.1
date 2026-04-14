@@ -41,7 +41,7 @@ După **compilarea template-ului**, planificarea prevede legătură canonică cu
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă template compile; țintă `channel:route:decide`.
+- **Runtime (ADR-0001):** sursă template compile; **Destinație (coadă):** `channel:route:decide`.
 - **Semantic (ADR-0002):** vezi contracte I54 și J58.
 - **Planificare:** dependență declarativă compilare → rutare.
 

@@ -41,8 +41,8 @@ Generarea auditului de conformitate (`compliance-audit-generate`) este dependent
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — gap `compliance:audit:generate`.
-- **Semantic (ADR-0002):** vezi contracte neuroni sursă și țintă.
+- **Runtime (ADR-0001):** sursă — gap; destinație — gap `compliance:audit:generate`.
+- **Semantic (ADR-0002):** vezi contracte neuroni sursă și destinație.
 - **Planificare:** v2 §7 — `alert-internal-churn-daily` → `compliance-audit-generate`.
 
 ## Limite și reconcilieri

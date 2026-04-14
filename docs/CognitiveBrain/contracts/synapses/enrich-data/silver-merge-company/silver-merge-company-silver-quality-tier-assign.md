@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `silver-merge-company` | **Contract:** [`../../../neurons/E1/silver--merge--company.md`](../../../neurons/E1/silver--merge--company.md). **Runtime (ADR-0001):** gap pentru literal v2 — vezi neuron. |
-| Destinație (graf) | `silver-quality-tier-assign` | **Contract:** [`../../../neurons/E1/silver--quality--tier-assign.md`](../../../neurons/E1/silver--quality--tier-assign.md). E1 — vezi contractul neuronului țintă. |
+| Destinație (graf) | `silver-quality-tier-assign` | **Contract:** [`../../../neurons/E1/silver--quality--tier-assign.md`](../../../neurons/E1/silver--quality--tier-assign.md). E1 — vezi contractul neuronului destinație. |
 
 ## Tip muchie (export)
 

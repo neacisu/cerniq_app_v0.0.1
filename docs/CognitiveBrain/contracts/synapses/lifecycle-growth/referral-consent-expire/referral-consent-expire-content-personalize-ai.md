@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-consent-expire` → `content-personalize-ai`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; țintă `content:personalize:ai` la **L265** (fișier).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; **Destinație (coadă):** `content:personalize:ai` la **L265** (fișier).
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

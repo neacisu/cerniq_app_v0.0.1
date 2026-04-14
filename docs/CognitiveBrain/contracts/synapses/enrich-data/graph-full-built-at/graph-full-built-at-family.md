@@ -53,7 +53,7 @@ Muchie planificată **Bronze → acest nod:** [`../bronze-ingest-pdf-extractor/b
 | --- | --- |
 | **Runtime (ADR-0001)** | `graph:full:built_at` (v2) vs absență în `queue-registry.ts` — vezi [`../../../neurons/E5/graph--full--built_at.md`](../../../neurons/E5/graph--full--built_at.md) și [`../../../../adr/families/e5/graph-community.md`](../../../../adr/families/e5/graph-community.md). |
 | **Semantic (ADR-0002)** | **NEURON_MATRIX.csv** — intrare `graph:full:built_at` → același contract neuron; coloanele `nodeKey`/`catalog` goale în matrice pentru acest rând reflectă gap-ul semantic față de catalog, nu se completează aici. |
-| **Planificare (export)** | v2 §7 — sursă `graph-full-built-at` → țintă `e5-graph-community`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `graph-full-built-at` → destinație `e5-graph-community`, tip `default`. |
 
 ## Limite și reconcilieri
 

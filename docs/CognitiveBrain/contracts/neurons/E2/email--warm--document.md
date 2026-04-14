@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + etapa 2 → span `cognitive:e2:email:warm-document` (pattern worker-shared). | v2 `cognitive.e2.email.warm-document`. | Mapare atribut `cognitive.neuron.*` vs `cognitive.nodeKey`: **migrare planificată** fără dovadă per-linie în acest fișier. |
 | 7 | Înveliș politică | Fără Cedar/OPA în handler; actualizare DB condiționată de `tenantId` + `externalMessageId`. | v2 Tier 4 + HITL la eșecuri repetate — comportament HITL **nu** apare în acest worker. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Idempotență parțială prin update pe chei naturale; fără NeMo în cod. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Idempotență parțială prin update pe chei naturale; fără NeMo în cod. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu din acest procesor. | v2. | — |
 | 11 | Micro-OODA | OBSERVE: job tracking; ORIENT: mapare `eventType` → status; DECIDE: update; ACT: SQL + counters journey. | v2 OODA pentru „send” — **nu** se potrivește literal; OODA operațional = tracking. | — |
 | 12 | Tier + de-escaladare | Eșec job → retry BullMQ standard; fără prag de încredere în cod. | v2 trigger-e — fără dovadă în handler. | — |

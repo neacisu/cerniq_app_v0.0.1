@@ -13,7 +13,7 @@
 
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
-| Sursă | `association-sync-schedule` | Traseu în graf; contract neuron: [`../../../neurons/E5/association--sync--schedule.md`](../../../neurons/E5/association--sync--schedule.md). **Runtime (ADR-0001):** neuronul documentează **gap** — fără coadă `association:sync:schedule` în `queue-registry.ts` la auditul din contract. **Semantic (ADR-0002):** aliniere țintă cu etapa E5 / familie `graph-community` — vezi catalog și contract neuron. |
+| Sursă | `association-sync-schedule` | Traseu în graf; contract neuron: [`../../../neurons/E5/association--sync--schedule.md`](../../../neurons/E5/association--sync--schedule.md). **Runtime (ADR-0001):** neuronul documentează **gap** — fără coadă `association:sync:schedule` în `queue-registry.ts` la auditul din contract. **Semantic (ADR-0002):** aliniere destinație cu etapa E5 / familie `graph-community` — vezi catalog și contract neuron. |
 | Destinație (graf) | `e5-graph-community` | Agregat **familie graph-community E5** în planificare; nu este o singură coadă executabilă. Vezi [`../../../adr/families/e5/graph-community.md`](../../../adr/families/e5/graph-community.md). |
 
 ## Tip muchie (export)

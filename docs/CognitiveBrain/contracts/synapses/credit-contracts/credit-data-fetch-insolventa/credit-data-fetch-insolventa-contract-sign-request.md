@@ -47,7 +47,7 @@ Traseul **credit-data-fetch-insolventa** depinde în planificare de **cererea de
 
 ## Limite și reconcilieri
 
-- Integrarea DocuSign și identitățile semnatarilor sunt în contractul neuron țintă, nu în registrul sinapsei.
+- Integrarea DocuSign și identitățile semnatarilor sunt în contractul neuron destinație, nu în registrul sinapsei.
 
 ## Sursă canonică
 

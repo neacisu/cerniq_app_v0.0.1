@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `oblio-invoice-cancel` → `channel-email-send`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L138**; țintă `channel:email:send` la **L130**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L138**; **Destinație (coadă):** `channel:email:send` la **L130**.
 - **Runtime:** vezi neuronii; aliniere slug graf `channel-email-send` ↔ `channel:email:send`.
 
 ## Limite și reconcilieri

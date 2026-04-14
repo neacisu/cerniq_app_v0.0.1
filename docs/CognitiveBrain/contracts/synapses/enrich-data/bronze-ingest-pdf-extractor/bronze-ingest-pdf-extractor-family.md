@@ -46,7 +46,7 @@ Muchia **`default`** plasează traseul **bronze-ingest-pdf-extractor** sub agreg
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `e1-ingest` agregat vs **fără** coadă literală pentru PDF bronze în registry — vezi contracte sursă.
-- **Semantic (ADR-0002):** ingest (graf) + ramuri **E5** graf/asociații pentru dependențele listate — vezi contracte țintă.
+- **Semantic (ADR-0002):** ingest (graf) + ramuri **E5** graf/asociații pentru dependențele listate — vezi contractele de destinație.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `e1-ingest`.
 
 ## Limite și reconcilieri

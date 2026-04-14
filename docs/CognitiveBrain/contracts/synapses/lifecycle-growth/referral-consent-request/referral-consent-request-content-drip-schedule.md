@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-consent-request` → `content-drip-schedule`.
-- **Runtime / semantic:** cozi și `nodeKey` — contractele neuronilor sursă și țintă, nu inferate din muchie.
+- **Runtime / semantic:** cozi și `nodeKey` — contractele neuronilor sursă și destinație, nu inferate din muchie.
 
 ## Limite și reconcilieri
 
-- Slug graf `content-drip-schedule` ↔ coadă **`content:drip:schedule`** — vezi neuronul țintă.
+- Slug graf `content-drip-schedule` ↔ coadă **`content:drip:schedule`** — vezi neuronul destinație.
 
 ## Sursă canonică
 

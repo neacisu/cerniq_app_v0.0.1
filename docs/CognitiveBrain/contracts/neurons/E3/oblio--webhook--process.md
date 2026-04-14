@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.oblio.webhook-process` (L5041). | **Parțial aliniat**. |
 | 7 | Înveliș politică | Idempotență explicită (`g45` L14–16, L81–87). | v2 Tier 4 (L5031). | — |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
-| 9 | Guardrails | Evenimente necunoscute → `processed: false` (`g45` L89–94). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Evenimente necunoscute → `processed: false` (`g45` L89–94). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în G45. | v2 (L5038). | — |
 | 11 | Micro-OODA | OBSERVE — job webhook; ORIENT — document + terminal; DECIDE — skip/update; ACT — DB + audit (`g45` L55–139). | v2 ACT: enqueue downstream (L5037). | **Divergență:** G45 nu enfilează alt worker; actualizează direct DB. |
 | 12 | Tier + de-escaladare | Fără în cod. | v2 Tier 4 (L5031). | — |

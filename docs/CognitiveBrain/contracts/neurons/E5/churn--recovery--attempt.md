@@ -36,11 +36,11 @@
 
 ## N/A pe criterii
 
-- **8 — Rutare model:** N/A până la existența handlerului — sau marcat „țintă v2” fără cod.
+- **8 — Rutare model:** N/A până la existența handlerului — sau marcat „destinație v2” fără cod.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** runtime. | v2 L7639. | — |
 | 2 | Etapă, familie, swimlane | — | v2 E5. | — |
@@ -49,7 +49,7 @@
 | 5 | Criticitate | — | MEDIUM inferat. | — |
 | 6 | Înveliș telemetrie | — | v2 L7644. | — |
 | 7 | Înveliș politică | — | v2 L7642. | — |
-| 8 | Rutare model (dacă AI) | Fără handler → **țintă v2** L7641. | v2 LLM. | Fără dovadă implementare. |
+| 8 | Rutare model (dacă AI) | Fără handler → **destinație v2** L7641. | v2 LLM. | Fără dovadă implementare. |
 | 9 | Guardrails | — | — | — |
 | 10 | Escaladare HITL | — | v2 L7642. | — |
 | 11 | Micro-OODA | — | v2 L7640. | — |

@@ -43,7 +43,7 @@ Dependența leagă în **graf** traseul escalării churn de traseul **referral-c
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Pentru țintă: posibil gap în registry — vezi audit neuron. |
+| **Runtime (ADR-0001)** | Pentru destinație: posibil gap în registry — vezi audit neuron. |
 | **Semantic (ADR-0002)** | Familii `churn` vs `referral` în v2; ambele în zona E5 în contracte. |
 | **Planificare** | v2 §7 — capete și `dependency`. |
 

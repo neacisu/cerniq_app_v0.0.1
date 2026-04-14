@@ -41,7 +41,7 @@ Traseul **enrich-ai-text-structure** depinde în planificare de **deduplicare fu
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** structurare AI (graf) ↔ dedup fuzzy E1.
 - **Planificare:** v2 §7 — `enrich-ai-text-structure` → `silver-dedup-fuzzy-match`.
 

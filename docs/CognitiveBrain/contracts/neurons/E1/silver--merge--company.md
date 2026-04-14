@@ -39,7 +39,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă�intă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** `silver:merge:company`. **Semnale:** `e1:pipeline:promote-bronze-silver`, `e1:ai:merge-infraq` (runtime J2) vs catalog `e1:ai:merge-xai`. | v2 canonic. | Migrare aliniere `nodeKey` J2 ↔ catalog. |
 | 2 | Etapă, familie, swimlane | E1; promovare în worker enrichment; J2 în `ai-analysis` (catalog). | v2 merge / swimlane merge în metrică. | — |

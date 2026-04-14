@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă `stock:realtime:check`; țintă — vezi gap în contract neuron.
+- **Runtime (ADR-0001):** sursă executabilă `stock:realtime:check`; destinație — vezi gap în contract neuron.
 - **Semantic (ADR-0002):** product-search (F33) vs ai-core — familii distincte.
 - **Planificare:** dependență declarativă product-search → traseu agent-generate.
 

@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `e5:geo:territory-calculate`; `e5:association:coverage-update`. | v2 `cognitive.association.territory.infer` (L8316). | — |
 | 7 | Înveliș politică | — | v2 L8314–8315. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | PostGIS / SQL în worker-e. | NeMo țintă. | — |
+| 9 | Guardrails | PostGIS / SQL în worker-e. | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8315. | — |
 | 11 | Micro-OODA | C17 activ în bootstrap; G42 doar dacă worker pornit. | v2 L8312. | G42 neînregistrat în bootstrap citit. |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8307). | — |

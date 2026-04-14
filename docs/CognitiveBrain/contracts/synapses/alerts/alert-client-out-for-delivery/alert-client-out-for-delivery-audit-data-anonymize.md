@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-out-for-delivery` | **Matrix:** `alert:client:out-for-delivery` — [`../../../neurons/E4/alert--client--out-for-delivery.md`](../../../neurons/E4/alert--client--out-for-delivery.md). **Gap** registry pentru coada granulară. |
-| Țintă | `audit-data-anonymize` | **Coadă:** `audit:data:anonymize` — [`../../../neurons/E4/audit--data--anonymize.md`](../../../neurons/E4/audit--data--anonymize.md). **Registry:** `QUEUES.E4_AUDIT_DATA_ANONYMIZE` (`queue-registry.ts`, ex. L485). |
+| Destinație (graf) | `audit-data-anonymize` | **Coadă:** `audit:data:anonymize` — [`../../../neurons/E4/audit--data--anonymize.md`](../../../neurons/E4/audit--data--anonymize.md). **Registry:** `QUEUES.E4_AUDIT_DATA_ANONYMIZE` (`queue-registry.ts`, ex. L485). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ținta verificabilă în registry; sursa: gap în contractul neuron alertă.
-- **Semantic (ADR-0002):** pentru țintă, vezi contractul neuron J47 și posibila nealiniere span/catalog.
+- **Semantic (ADR-0002):** pentru destinație, vezi contractul neuron J47 și posibila nealiniere span/catalog.
 - **Planificare:** dependență declarată în export.
 
 ## Limite și reconcilieri

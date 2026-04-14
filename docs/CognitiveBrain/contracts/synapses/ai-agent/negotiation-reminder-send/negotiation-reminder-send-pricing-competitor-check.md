@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă și țintă în `workers/shared/src/queue-registry.ts`; [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
-- **Semantic:** contracte neuron sursă și țintă.
+- **Runtime:** sursă și destinație în `workers/shared/src/queue-registry.ts`; [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
+- **Semantic:** contracte neuron sursă și destinație.
 - **Planificare:** muchie **`dependency`**: `negotiation-reminder-send` precede `pricing-competitor-check` în export; v2: „sinapsă canonică de pipeline”.
 
 ## Limite și reconcilieri

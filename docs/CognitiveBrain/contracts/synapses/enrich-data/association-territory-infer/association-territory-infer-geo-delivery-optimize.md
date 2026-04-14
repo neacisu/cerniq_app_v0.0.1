@@ -41,7 +41,7 @@ Traseul **association-territory-infer** depinde în planificare de **optimizare 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi neuroni sursă/țintă.
+- **Runtime (ADR-0001):** vezi neuroni sursă/destinație.
 - **Semantic (ADR-0002):** E5 — contracte neuron.
 - **Planificare:** v2 §7 — `association-territory-infer` → `geo-delivery-optimize`.
 

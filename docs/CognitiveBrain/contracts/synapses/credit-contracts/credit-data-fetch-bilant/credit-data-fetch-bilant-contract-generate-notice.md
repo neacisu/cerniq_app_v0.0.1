@@ -41,7 +41,7 @@ Traseul **credit-data-fetch-bilant** depinde în planificare de **generarea de n
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 credit ↔ E4 notificări contract — vezi catalog.
 - **Planificare:** v2 §7 — `credit-data-fetch-bilant` → `contract-generate-notice`.
 

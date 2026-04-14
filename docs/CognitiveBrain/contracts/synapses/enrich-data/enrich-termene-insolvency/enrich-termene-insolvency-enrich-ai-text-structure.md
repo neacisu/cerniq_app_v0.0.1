@@ -43,7 +43,7 @@ Dependența **`dependency`** conectează traseul «insolvency» de **enrich-ai-t
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Potrivire posibilă a țintei spre `ai:structure:xai` numai unde documentează contractul neuron țintă. |
+| **Runtime (ADR-0001)** | Potrivire posibilă a țintei spre `ai:structure:xai` numai unde documentează contractul neuron destinație. |
 | **Semantic (ADR-0002)** | E1. |
 | **Planificare** | v2 §7 — muchie canonică. |
 

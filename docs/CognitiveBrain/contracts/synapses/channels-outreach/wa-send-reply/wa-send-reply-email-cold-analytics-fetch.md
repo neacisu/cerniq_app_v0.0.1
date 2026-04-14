@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **reply WA** și **fetch ana
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / Semantic:** contract neuron țintă + registry.
+- **Runtime / Semantic:** contract neuron destinație + registry.
 - **Planificare:** `dependency`.
 
 ## Limite și reconcilieri

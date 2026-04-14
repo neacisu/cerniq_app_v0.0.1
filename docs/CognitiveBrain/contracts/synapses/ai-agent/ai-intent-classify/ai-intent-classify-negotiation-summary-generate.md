@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify` — [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md). **Capăt țintă:** nu există încă constantă `QUEUES.*` dovedită în registry pentru `negotiation:summary:generate` (vezi contractul neuron țintă); păstrați distincția nod planificat vs coadă înregistrată.
-- **Semantic:** sursă: catalog `e3:intent:classify` / `intent:classify`; țintă: **nu** inventați `nodeKey` acolo unde contractul neuron marchează absență din catalog.
+- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify` — [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md). **Capăt destinație:** nu există încă constantă `QUEUES.*` dovedită în registry pentru `negotiation:summary:generate` (vezi contractul neuron destinație); păstrați distincția nod planificat vs coadă înregistrată.
+- **Semantic:** sursă: catalog `e3:intent:classify` / `intent:classify`; destinație: **nu** inventați `nodeKey` acolo unde contractul neuron marchează absență din catalog.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-intent-classify` precede `negotiation-summary-generate`; v2 confirmă doar „sinapsă canonică de pipeline”, fără semantica operațională suplimentară în registru.
 
 ## Limite și reconcilieri

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-response-process` → `email-cold-add-to-campaign`.
-- **Runtime:** sursă — E27; țintă — vezi neuron `email-cold-add-to-campaign`.
+- **Runtime:** sursă — E27; destinație — vezi neuron `email-cold-add-to-campaign`.
 
 ## Limite și reconcilieri
 

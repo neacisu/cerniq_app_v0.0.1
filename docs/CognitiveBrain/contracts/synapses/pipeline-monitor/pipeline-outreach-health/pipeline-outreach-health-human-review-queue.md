@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-outreach-health` | [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md). **Runtime:** `pipeline:outreach:health` (`QUEUES.PIPELINE_OUTREACH_HEALTH`, `queue-registry.ts` ~L182). |
-| Țintă | `human-review-queue` | [`../../../neurons/E2/human--review--queue.md`](../../../neurons/E2/human--review--queue.md). **Runtime:** `human:review:queue` (`QUEUES.HUMAN_REVIEW_QUEUE`, `queue-registry.ts` ~L171). |
+| Destinație (graf) | `human-review-queue` | [`../../../neurons/E2/human--review--queue.md`](../../../neurons/E2/human--review--queue.md). **Runtime:** `human:review:queue` (`QUEUES.HUMAN_REVIEW_QUEUE`, `queue-registry.ts` ~L171). |
 
 ## Tip muchie (export)
 

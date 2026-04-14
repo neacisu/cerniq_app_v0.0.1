@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**v2** (L5326–5346): neuron listat ca soluție în subgraful `ops` — din denumire și etichetă graf (`metrics / llm-usage / aggregate`) se înțelege **rol țintă** de agregare a utilizării LLM (metrici operaționale), nu neapărat apel LLM în handler. Tip `AutonomicNeuron`, **MEDIUM**, Tier 4, OODA generic mentenanță/cron, **Model routing: Non-AI**. **Contract evidence status:** același tip ca alți neuroni ops din export graf — *not yet reconciled with runtime registry*. **Repo la 2026-04-11:** nu există coadă BullMQ sau worker mapat explicit la `metrics:llm-usage:aggregate`; agregările LLM pot exista în alte căi (ex. observabilitate) dar **nu** sub acest `queueName` verificat.
+**v2** (L5326–5346): neuron listat ca soluție în subgraful `ops` — din denumire și etichetă graf (`metrics / llm-usage / aggregate`) se înțelege **rol de destinație documentară** de agregare a utilizării LLM (metrici operaționale), nu neapărat apel LLM în handler. Tip `AutonomicNeuron`, **MEDIUM**, Tier 4, OODA generic mentenanță/cron, **Model routing: Non-AI**. **Contract evidence status:** același tip ca alți neuroni ops din export graf — *not yet reconciled with runtime registry*. **Repo la 2026-04-11:** nu există coadă BullMQ sau worker mapat explicit la `metrics:llm-usage:aggregate`; agregările LLM pot exista în alte căi (ex. observabilitate) dar **nu** sub acest `queueName` verificat.
 
 ## Surse audit
 
@@ -44,20 +44,20 @@
 | 3 | Rol declarat | **Lipsă handler** pentru această coadă. | Scop ops + agregare metrici (inferat din etichetă graf L5331). | — |
 | 4 | NeuronType + SOFAI | **Neconectat.** | `AutonomicNeuron` → System1 (v2 §2.1). | — |
 | 5 | Criticitate | **Neconectat.** | `MEDIUM` (L5335). | — |
-| 6 | Înveliș telemetrie | **Lipsă** worker. | Span `cognitive.metrics.llm-usage.aggregate` (L5345). | Doar țintă. |
-| 7 | Înveliș politică | **Lipsă** în cod. | Tier 4; audit log 90d; fără HITL obligatoriu (L5336, L5343). | ADR-0007țintă. |
+| 6 | Înveliș telemetrie | **Lipsă** worker. | Span `cognitive.metrics.llm-usage.aggregate` (L5345). | Doar destinație documentată. |
+| 7 | Înveliș politică | **Lipsă** în cod. | Tier 4; audit log 90d; fără HITL obligatoriu (L5336, L5343). | ADR-0007 — destinație. |
 | 8 | Rutare model (dacă AI) | **N/A** | Non-AI (L5342). | — |
 | 9 | Guardrails | **Lipsă** per-neuron. | ADR-0007. | — |
 | 10 | Escaladare HITL | **Lipsă** coadă. | Fără HITL obligatoriu în bloc (L5343). | ADR-0008. |
 | 11 | Micro-OODA | **Lipsă** implementare. | OODA cron/maintenance (L5341). | — |
 | 12 | Tier + de-escaladare | **Lipsă** cod. | Tier 4 (L5336). | — |
-| 13 | Stack v2 §2.3 | **Neaplicabil** până la worker. | BullMQ țintă pentru job queue. | — |
+| 13 | Stack v2 §2.3 | **Neaplicabil** până la worker. | BullMQ — destinație pentru job queue. | — |
 
 ### Mapare OTel
 
 - **v2:** `cognitive.metrics.llm-usage.aggregate`.
 - **Cod:** `withCognitiveSpan` — atribute `cognitive.nodeKey`, etc.
-- **Stare 2026-04-11:** **doar țintă** — fără dovadă runtime pentru această coadă.
+- **Stare 2026-04-11:** **doar destinație documentată** — fără dovadă runtime pentru această coadă.
 
 ---
 *Generator inițial:* înlocuit prin audit manual.

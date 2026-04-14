@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă și țintă sunt aliniabile la rândurile din [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) pentru `feedback:collect` / `ai:feedback:collect` (documentare) și `negotiation:reminder:send`; confirmare cozi în `workers/shared/src/queue-registry.ts` (`E3_FEEDBACK_COLLECT`, `E3_NEGOTIATION_REMINDER_SEND`).
+- **Runtime:** sursă și destinație sunt aliniabile la rândurile din [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) pentru `feedback:collect` / `ai:feedback:collect` (documentare) și `negotiation:reminder:send`; confirmare cozi în `workers/shared/src/queue-registry.ts` (`E3_FEEDBACK_COLLECT`, `E3_NEGOTIATION_REMINDER_SEND`).
 - **Semantic:** `nodeKey` / swimlane — din `cognitive-node-catalog.ts` și contractele neuron de mai sus.
 - **Planificare:** muchie **`dependency`**: în topologia exportată, `ai-feedback-collect` precede `negotiation-reminder-send`. v2 nu precizează conținut mesaj sau declanșatori dincolo de registru.
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-prompt-optimize` | **Planificare:** traseu `ai-prompt-optimize`. **Matrix:** `ai:prompt:optimize` → [`../../../neurons/E3/ai--prompt--optimize.md`](../../../neurons/E3/ai--prompt--optimize.md). **Gap registry** pentru coada nominală — vezi contractul neuron. |
-| Destinație (graf) | `negotiation-summary-generate` | **Contract neuron (gap runtime țintă):** [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md) — `negotiation:summary:generate` **nu** apare în `queue-registry.ts` la auditul din acel contract; **fără** `nodeKey` în `cognitive-node-catalog.ts` (căutare `summary` în catalog: zero la auditul neuronului). **Matrix:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — pentru `negotiation:summary:generate`, coloana **`queue_in_registry`** este `no`. **Consecință:** ambele capete sunt ancorate în v2/plan, dar **nu** ambele în ADR-0001 în starea documentată — **necesită reconciliere graf ↔ registry** înainte de interpretare executabilă. |
+| Destinație (graf) | `negotiation-summary-generate` | **Contract neuron (gap runtime destinație):** [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md) — `negotiation:summary:generate` **nu** apare în `queue-registry.ts` la auditul din acel contract; **fără** `nodeKey` în `cognitive-node-catalog.ts` (căutare `summary` în catalog: zero la auditul neuronului). **Matrix:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — pentru `negotiation:summary:generate`, coloana **`queue_in_registry`** este `no`. **Consecință:** ambele capete sunt ancorate în v2/plan, dar **nu** ambele în ADR-0001 în starea documentată — **necesită reconciliere graf ↔ registry** înainte de interpretare executabilă. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Muchia **dependency** leagă declarativ `ai-prompt-optimize` de `negotiation-sum
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă și țintă — ambele cu gap documentat în contractele neuron respective la audit; nu inventați cozi în registry.
+- **Runtime (ADR-0001):** sursă și destinație — ambele cu gap documentat în contractele neuron respective la audit; nu inventați cozi în registry.
 - **Semantic (ADR-0002):** gap pentru ambele capete la auditul citit în contracte.
 - **Planificare:** dependență declarată între optimizarea promptului și generarea rezumatului de negociere.
 

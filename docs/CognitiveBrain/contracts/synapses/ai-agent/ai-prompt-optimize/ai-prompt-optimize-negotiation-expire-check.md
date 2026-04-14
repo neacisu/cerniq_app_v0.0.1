@@ -42,7 +42,7 @@ Muchia **dependency** plasează în planificare traseul `ai-prompt-optimize` în
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ținta este executabilă în registry; sursa **nu** este dovedită în registry la auditul din contractul neuron — muchia rămâne **declarativă** până la reconciliere.
-- **Semantic (ADR-0002):** pentru țintă, catalog + contract; pentru sursă, gap catalog documentat în contractul neuron.
+- **Semantic (ADR-0002):** pentru destinație, catalog + contract; pentru sursă, gap catalog documentat în contractul neuron.
 - **Planificare:** dependență declarată între traseul de optimizare prompt și verificarea expirării negocierii.
 
 ## Limite și reconcilieri

@@ -47,9 +47,9 @@
 | 4 | NeuronType + SOFAI | Catalog: `AttentionNeuron`. | v2. | — |
 | 5 | Criticitate | Catalog / v2: `HIGH`. | v2. | — |
 | 6 | Înveliș telemetrie | `createWorker` + `resolveNodeKeyFromQueueNameAndEtapa` → `withCognitiveSpan` când există `tenantId` în job (`factory.ts` L90–107). | Span v2: `cognitive.e2.alert.bounce-high`. | Dacă `tenantId` lipsește, instrumentarea cognitivă sare peste span (L103–105). |
-| 7 | Înveliș politică | Fără Cedar/OPA în handler; Redis + insert condiționat. | v2 tier3 + HITL policy = țintă. | — |
+| 7 | Înveliș politică | Fără Cedar/OPA în handler; Redis + insert condiționat. | v2 tier3 + HITL policy = destinație v2. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Nu NeMo în acest worker; pragul bounce este în `email.ts` (monitor). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Nu NeMo în acest worker; pragul bounce este în `email.ts` (monitor). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu enfilează direct `human:*` / `hitl:*`. | v2. | — |
 | 11 | Micro-OODA | OBSERVE date din job + Redis; ACT scriere Redis / DB condiționat. | v2 OODA generic. | — |
 | 12 | Tier + de-escaladare | Procesare fără throw în calea fericită. | v2. | — |

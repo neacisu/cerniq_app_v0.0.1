@@ -52,7 +52,7 @@ Muchia **`default`** plasează traseul **human-notification-send** sub agregatul
 ## Limite și reconcilieri
 
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
-- Muchiile `dependency` către neuroni **ops** (backup, metrics, pipeline, rapoarte) sunt **topologie planificată**; capetele țintă au în majoritate **gap runtime** — vezi contractele E3 din folderul `neurons/E3/`.
+- Muchiile `dependency` către neuroni **ops** (backup, metrics, pipeline, rapoarte) sunt **topologie planificată**; capetele de destinație au în majoritate **gap runtime** — vezi contractele E3 din folderul `neurons/E3/`.
 
 ## Sursă canonică
 

@@ -4,7 +4,7 @@ Același conținut ca **Checklist DOD** din planul «Contracte neuroni v2» (pun
 
 ## 0. Research individual
 
-Parcurgeți pașii din schema [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md) și secțiunea *Research individual per neuron* din plan: v2 integral → catalog → registry → cod (coada concretă) → teste → ADR ca țintă.
+Parcurgeți pașii din schema [`_CONTRACT_SCHEMA.md`](_CONTRACT_SCHEMA.md) și secțiunea *Research individual per neuron* din plan: v2 integral → catalog → registry → cod (coada concretă) → teste → ADR ca destinație documentată.
 
 ## 1. Bloc v2
 

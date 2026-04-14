@@ -41,13 +41,13 @@ Anonimizarea jurnalului audit este dependentă în graf de traseul alertei „co
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `audit:data:anonymize` (J47).
+- **Runtime (ADR-0001):** sursă — gap; destinație — `audit:data:anonymize` (J47).
 - **Semantic (ADR-0002):** `e4:audit:data-anonymize` — catalog; vezi contract neuron pentru nealiniere span.
 - **Planificare:** v2 §7 — `alert-internal-contract-signed` → `audit-data-anonymize`.
 
 ## Limite și reconcilieri
 
-- Sursă planificare fără coadă dedicată vs țintă cu coadă canonică — contracte neuroni.
+- Sursă planificare fără coadă dedicată vs destinație cu coadă canonică — contracte neuroni.
 
 ## Sursă canonică
 

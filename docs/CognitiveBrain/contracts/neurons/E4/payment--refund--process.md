@@ -48,14 +48,14 @@ Procesare rambursare aprobată: încărcare `gold_refunds`, verificare status `A
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Runtime: `revolut:refund:process` (`queue-registry.ts` ~L358). Catalog: `e4:revolut:refund-process`. Graf v2: `payment:refund:process` (L6369). | v2 L6359 + L6369 — reconciliere explicită între etichetă și implementare. | Două string-uri de coadă; operatorul trebuie să folosească constanta registry. |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 4, swimlane `payment-processing` (~L2267–2268). | v2: E4, `cash`, `payment-processing`. | — |
 | 3 | Rol declarat | A4: eligibilitate, Revolut API, idempotency `request_id` (fișier ~L4–12, ~L100+). | v2 L6366–6367 — „creare refund entry + notificare client”. | „Notificare client” poate fi în ramuri ulterioare webhook — verificat per apelant. |
 | 4 | NeuronType + SOFAI | `PerceptionNeuron` în catalog. | v2 L6360 — PerceptionNeuron. | — |
 | 5 | Criticitate | `HIGH` în catalog (~L2270). | v2 L6363 — HIGH. | — |
-| 6 | Înveliș telemetrie | A4 **nu** folosește `withCognitiveSpan` în fișierul citit. | v2 L6374 — `cognitive.e4.revolut.refund-process`. | Span OTel: țintă v2; implementare span în A4 neobservată la audit. |
+| 6 | Înveliș telemetrie | A4 **nu** folosește `withCognitiveSpan` în fișierul citit. | v2 L6374 — `cognitive.e4.revolut.refund-process`. | Span OTel: destinație v2; implementare span în A4 neobservată la audit. |
 | 7 | Înveliș politică | Validări deterministe status refund / comandă / sumă (A4). | v2 L6372 — HITL on anomaly, prag0,80. | Legătura prag0,80 → cod A4: neexplicită în fișier. |
 | 8 | Rutare model (dacă AI) | **N/A** | Non-AI. | — |
 | 9 | Guardrails | Set status comenzi eligibile `REFUND_ELIGIBLE_ORDER_STATUSES` (A4 ~L29–35). | — | — |

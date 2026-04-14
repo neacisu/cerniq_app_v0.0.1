@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-orchestrator-advance` | [`../../../neurons/E1/pipeline--orchestrator--advance.md`](../../../neurons/E1/pipeline--orchestrator--advance.md). **Runtime:** `pipeline:orchestrate` (`QUEUES.PIPELINE_ORCHESTRATE`, `queue-registry.ts` ~L83). |
-| Țintă | `pipeline-monitor-health` | [`../../../neurons/E1/pipeline--monitor--health.md`](../../../neurons/E1/pipeline--monitor--health.md). **Runtime:** capabilitate «health» în cadrul cozii **`pipeline:monitor`** (`QUEUES.PIPELINE_MONITOR`, ~L86), nu coadă `pipeline:monitor:health`. |
+| Destinație (graf) | `pipeline-monitor-health` | [`../../../neurons/E1/pipeline--monitor--health.md`](../../../neurons/E1/pipeline--monitor--health.md). **Runtime:** capabilitate «health» în cadrul cozii **`pipeline:monitor`** (`QUEUES.PIPELINE_MONITOR`, ~L86), nu coadă `pipeline:monitor:health`. |
 
 ## Tip muchie (export)
 

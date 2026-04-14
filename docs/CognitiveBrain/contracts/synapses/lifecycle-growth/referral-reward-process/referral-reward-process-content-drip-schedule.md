@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-reward-process` → `content-drip-schedule`.
-- **Runtime:** sursă — lanț E30/E31; țintă — vezi neuron `content-drip-schedule`.
+- **Runtime:** sursă — lanț E30/E31; destinație — vezi neuron `content-drip-schedule`.
 
 ## Limite și reconcilieri
 

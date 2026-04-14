@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi neuron țintă și registry pentru coada de normalizare email.
+- **Runtime (ADR-0001):** vezi neuron destinație și registry pentru coada de normalizare email.
 - **Semantic (ADR-0002):** `e1:normalize:email` sau echivalent din catalog — în contract neuron.
 - **Planificare:** v2 §7 — `bronze-ingest-csv-parser` → `silver-norm-email`.
 

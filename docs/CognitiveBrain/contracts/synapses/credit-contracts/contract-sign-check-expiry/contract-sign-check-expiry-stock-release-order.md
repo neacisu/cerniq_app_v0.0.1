@@ -41,7 +41,7 @@ Traseul **contract-sign-check-expiry** depinde în planificare de **eliberarea r
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă pentru coadă și idempotență.
+- **Runtime (ADR-0001):** vezi contract neuron destinație pentru coadă și idempotență.
 - **Semantic (ADR-0002):** E4 ↔ E3 stoc (rezervări).
 - **Planificare:** v2 §7 — `contract-sign-check-expiry` → `stock-release-order`.
 

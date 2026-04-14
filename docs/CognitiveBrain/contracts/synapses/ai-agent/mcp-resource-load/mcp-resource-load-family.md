@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `mcp-resource-load` | Traseu în graf; **Matrix** + registry: coada **`mcp:resource:load`**, contract [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md). **Runtime (ADR-0001):** `QUEUES.E3_MCP_RESOURCE_LOAD` în `workers/shared/src/queue-registry.ts` (ex. L329). |
-| Țintă | `e3-ai-core` | Nod agregat E3 / familie **ai-core** în planificare; nu este o singură coadă BullMQ. Nu există un contract neuron unic pentru eticheta de graf `e3-ai-core`. |
+| Destinație (graf) | `e3-ai-core` | Nod agregat E3 / familie **ai-core** în planificare; nu este o singură coadă BullMQ. Nu există un contract neuron unic pentru eticheta de graf `e3-ai-core`. |
 
 ## Tip muchie (export)
 

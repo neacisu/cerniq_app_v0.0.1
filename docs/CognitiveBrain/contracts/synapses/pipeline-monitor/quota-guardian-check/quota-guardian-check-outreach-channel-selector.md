@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `quota-guardian-check` → `outreach-channel-selector`.
-- **Semantic:** sursă **quota** **E2** (matrice rând **97**); țintă **E2** rând **89**.
+- **Semantic:** sursă **quota** **E2** (matrice rând **97**); destinație **E2** rând **89**.
 - **Runtime:** vezi contractele neuron.
 
 ## Limite și reconcilieri

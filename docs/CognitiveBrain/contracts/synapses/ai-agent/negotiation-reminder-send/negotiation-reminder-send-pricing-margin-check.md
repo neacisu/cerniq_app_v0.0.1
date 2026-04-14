@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_NEGOTIATION_REMINDER_SEND` → `QUEUES.E3_PRICING_MARGIN_CHECK`; vezi `workers/shared/src/queue-registry.ts`.
-- **Semantic:** contracte neuron sursă și țintă.
+- **Semantic:** contracte neuron sursă și destinație.
 - **Planificare:** muchie **`dependency`**: `negotiation-reminder-send` precede `pricing-margin-check` în export.
 
 ## Limite și reconcilieri

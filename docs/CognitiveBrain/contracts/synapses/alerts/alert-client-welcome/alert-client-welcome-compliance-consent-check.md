@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-welcome` | **Matrix:** `alert:client:welcome` — [`../../../neurons/E5/alert--client--welcome.md`](../../../neurons/E5/alert--client--welcome.md). **Gap** registry pentru coada granulară. |
-| Țintă | `compliance-consent-check` | **Matrix:** `compliance:consent:check` — [`../../../neurons/E5/compliance--consent--check.md`](../../../neurons/E5/compliance--consent--check.md). **Mapare runtime:** echivalent principal **`compliance:gdpr:check`** (K56, `E5_COMPLIANCE_GDPR_CHECK`) — **fără** echivalență 1:1 cu numele v2. |
+| Destinație (graf) | `compliance-consent-check` | **Matrix:** `compliance:consent:check` — [`../../../neurons/E5/compliance--consent--check.md`](../../../neurons/E5/compliance--consent--check.md). **Mapare runtime:** echivalent principal **`compliance:gdpr:check`** (K56, `E5_COMPLIANCE_GDPR_CHECK`) — **fără** echivalență 1:1 cu numele v2. |
 
 ## Tip muchie (export)
 

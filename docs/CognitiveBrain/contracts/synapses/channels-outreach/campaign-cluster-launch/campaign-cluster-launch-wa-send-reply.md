@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** vezi `queue-registry.ts` pentru cozi WA și notele din [`../../../neurons/E5/wa--send--reply.md`](../../../neurons/E5/wa--send--reply.md).
-- **Semantic (ADR-0002):** conform contractului neuron țintă.
+- **Semantic (ADR-0002):** conform contractului neuron destinație.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

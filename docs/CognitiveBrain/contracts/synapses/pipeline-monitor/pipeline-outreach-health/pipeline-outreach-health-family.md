@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `pipeline-outreach-health` | Traseu în graf; [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md). **v2 / matrice:** `pipeline:outreach:health`. **Runtime (ADR-0001):** `pipeline:outreach:health` (`QUEUES.PIPELINE_OUTREACH_HEALTH`, `workers/shared/src/queue-registry.ts` ~L182). |
-| Țintă | `e2-monitoring` | Nod agregat **familie monitoring** E2 în planificare; **nu** este o singură coadă executabilă; analog [`../../alerts/alert-bounce-high/alert-bounce-high-family.md`](../../alerts/alert-bounce-high/alert-bounce-high-family.md) — vezi neuroni E2 monitoring în catalog. |
+| Destinație (graf) | `e2-monitoring` | Nod agregat **familie monitoring** E2 în planificare; **nu** este o singură coadă executabilă; analog [`../../alerts/alert-bounce-high/alert-bounce-high-family.md`](../../alerts/alert-bounce-high/alert-bounce-high-family.md) — vezi neuroni E2 monitoring în catalog. |
 
 ## Tip muchie (export)
 

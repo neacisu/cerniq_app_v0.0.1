@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `ai-intent-classify` | [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md). **Runtime:** `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify` (`queue-registry.ts` L323); Matrix leagă și `e2:ai:intent-classify`. |
+| Destinație (graf) | `ai-intent-classify` | [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md). **Runtime:** `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify` (`queue-registry.ts` L323); Matrix leagă și `e2:ai:intent-classify`. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Clasificarea intenției este dependentă în graf de traseul `search-rerank-cros
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `intent:classify`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `intent:classify`.
 - **Semantic (ADR-0002):** contract E2 + legături Matrix E3; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-intent-classify`.
 

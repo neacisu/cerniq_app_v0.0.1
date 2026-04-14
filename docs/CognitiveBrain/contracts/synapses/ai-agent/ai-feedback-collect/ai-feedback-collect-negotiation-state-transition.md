@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă și țintă aliniabile la [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) și la `workers/shared/src/queue-registry.ts` (`E3_FEEDBACK_COLLECT`, `E3_NEGOTIATION_STATE_TRANSITION`).
+- **Runtime:** sursă și destinație aliniabile la [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) și la `workers/shared/src/queue-registry.ts` (`E3_FEEDBACK_COLLECT`, `E3_NEGOTIATION_STATE_TRANSITION`).
 - **Semantic:** `nodeKey` / swimlane — din `cognitive-node-catalog.ts` și contractele neuron.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-feedback-collect` precede `negotiation-state-transition`. Fără afirmații despre automatul de stări din export.
 

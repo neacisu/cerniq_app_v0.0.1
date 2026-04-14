@@ -41,13 +41,13 @@ Verificarea de conformitate legată de consent (nod `compliance-consent-check` �
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap/apropiere campaign-trigger; țintă nominală v2 — `compliance:consent:check`; execuție apropiată — `compliance:gdpr:check` (K56).
-- **Semantic (ADR-0002):** `e5:compliance:gdpr-check` — vezi catalog și contract neuron țintă.
+- **Runtime (ADR-0001):** sursă — gap/apropiere campaign-trigger; destinație nominală v2 — `compliance:consent:check`; execuție apropiată — `compliance:gdpr:check` (K56).
+- **Semantic (ADR-0002):** `e5:compliance:gdpr-check` — vezi catalog și contract neuron destinație.
 - **Planificare:** v2 §7 — `alert-internal-campaign-launched` → `compliance-consent-check`.
 
 ## Limite și reconcilieri
 
-- Nume v2 `compliance:consent:check` vs coadă `compliance:gdpr:check` — explicit în contractul neuron țintă.
+- Nume v2 `compliance:consent:check` vs coadă `compliance:gdpr:check` — explicit în contractul neuron destinație.
 
 ## Sursă canonică
 

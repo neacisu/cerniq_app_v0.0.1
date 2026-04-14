@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `quota-business-hours-check` → `outreach-channel-selector`.
-- **Semantic:** sursă **familie quota** / **E2**; țintă **orchestrator** / **E2** — vezi matrice.
+- **Semantic:** sursă **familie quota** / **E2**; destinație **orchestrator** / **E2** — vezi matrice.
 - **Runtime:** vezi contractele neuron; gate-ul de business hours (worker scheduler) poate **reîncadra** trimiterea către `targetQueue` fără ca graful să encodeze acel mecanism.
 
 ## Limite și reconcilieri

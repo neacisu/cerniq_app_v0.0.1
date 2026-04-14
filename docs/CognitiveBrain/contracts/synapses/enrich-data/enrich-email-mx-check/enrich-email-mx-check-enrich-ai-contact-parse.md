@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **MX-check (plan)** și 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă — gap documentat; țintă — ADR ai-enrichment + `ai:structure:xai` ca apropiere în neuron.
+- **Runtime:** sursă — gap documentat; destinație — ADR ai-enrichment + `ai:structure:xai` ca apropiere în neuron.
 - **Planificare:** topologie v2 §7.
 
 ## Limite și reconcilieri

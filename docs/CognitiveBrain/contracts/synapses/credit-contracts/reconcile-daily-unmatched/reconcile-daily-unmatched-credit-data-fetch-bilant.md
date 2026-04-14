@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-daily-unmat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / planificare:** vezi secțiunile anterioare din traseu pentru sursă; țintă standard credit.
+- **Runtime / planificare:** vezi secțiunile anterioare din traseu pentru sursă; destinație standard credit.
 
 ## Limite și reconcilieri
 

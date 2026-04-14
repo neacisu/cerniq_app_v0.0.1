@@ -36,7 +36,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** pentru `hitl:task:call-client`. Implementat separat: `hitl:task:resolve` (registry L501). | v2 coadă L7062. | L7068 — nereconciliat. |
 | 2 | Etapă, familie, swimlane | K52: etapă 4, swimlane catalog `human-oversight-e4` pentru `hitl:task:resolve`. | v2 familie `hitl`, swimlane `hitl` în metrică (L7066). | — |

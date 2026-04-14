@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:limit:release", …)` (L37–39). | v2 `cognitive.credit.release.order` (L6807). | Span cu `:` vs catalog `limit-release`. |
 | 7 | Înveliș politică | Idempotency early return (d21 L10). | v2 L6805. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Tranzacții SQL explicite în procesor. | NeMo țintă. | — |
+| 9 | Guardrails | Tranzacții SQL explicite în procesor. | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6805. | — |
 | 11 | Micro-OODA | Eveniment plată/anulare → eliberare limită. | v2 L6803. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6798). | — |

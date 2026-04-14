@@ -45,20 +45,20 @@
 | 3 | Rol declarat | **Lipsă handler**; spec: verificare sănătate (overview L492). | Ops generic (L5381–5383). | — |
 | 4 | NeuronType + SOFAI | **Neconectat.** | `AutonomicNeuron`. | — |
 | 5 | Criticitate | **Neconectat.** | `MEDIUM` (L5379). | — |
-| 6 | Înveliș telemetrie | **Lipsă** worker. | `cognitive.pipeline.ai-sales.health` (L5389). | Doar țintă. |
+| 6 | Înveliș telemetrie | **Lipsă** worker. | `cognitive.pipeline.ai-sales.health` (L5389). | Doar destinație documentată. |
 | 7 | Înveliș politică | **Lipsă.** | Tier 4; policy L5387. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | Non-AI (L5386). | — |
 | 9 | Guardrails | **Lipsă.** | ADR-0007. | — |
 | 10 | Escaladare HITL | **Lipsă.** | L5387. | ADR-0008. |
 | 11 | Micro-OODA | **Lipsă.** | L5385. | — |
 | 12 | Tier + de-escaladare | **Lipsă.** | Tier 4 (L5380). | — |
-| 13 | Stack | **Neaplicabil** până la worker. | BullMQ țintă. | — |
+| 13 | Stack | **Neaplicabil** până la worker. | BullMQ — destinație v2. | — |
 
 ### Mapare OTel
 
 - **v2:** `cognitive.pipeline.ai-sales.health`.
 - **Cod:** `withCognitiveSpan` — convenție atribute reale la implementare.
-- **Stare:** **țintă** (2026-04-11).
+- **Stare:** **destinație** (2026-04-11).
 
 ---
 *Generator inițial:* înlocuit prin audit manual.

@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** B3 / H1 pentru țintă — [`../../../neurons/E1/silver--norm--phone-e164.md`](../../../neurons/E1/silver--norm--phone-e164.md); sursă ingest HTML — gap în neuron.
+- **Runtime (ADR-0001):** B3 / H1 pentru destinație — [`../../../neurons/E1/silver--norm--phone-e164.md`](../../../neurons/E1/silver--norm--phone-e164.md); sursă ingest HTML — gap în neuron.
 - **Semantic (ADR-0002):** normalizare telefon E.164.
 - **Planificare:** v2 §7 — `bronze-ingest-html-scraper` → `silver-norm-phone-e164`.
 

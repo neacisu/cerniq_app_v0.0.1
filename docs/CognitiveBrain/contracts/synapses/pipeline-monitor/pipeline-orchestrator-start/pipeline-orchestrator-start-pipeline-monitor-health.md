@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-orchestrator-start` | [`../../../neurons/E1/pipeline--orchestrator--start.md`](../../../neurons/E1/pipeline--orchestrator--start.md). **Runtime:** `pipeline:orchestrate` (`QUEUES.PIPELINE_ORCHESTRATE`, `queue-registry.ts` ~L83). |
-| Țintă | `pipeline-monitor-health` | [`../../../neurons/E1/pipeline--monitor--health.md`](../../../neurons/E1/pipeline--monitor--health.md). **Runtime:** `pipeline:monitor` (capabilitate health în procesorul monitor). |
+| Destinație (graf) | `pipeline-monitor-health` | [`../../../neurons/E1/pipeline--monitor--health.md`](../../../neurons/E1/pipeline--monitor--health.md). **Runtime:** `pipeline:monitor` (capabilitate health în procesorul monitor). |
 
 ## Tip muchie (export)
 
@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Vezi [`pipeline-orchestrator-advance-pipeline-monitor-health.md`](../pipeline-orchestrator-advance/pipeline-orchestrator-advance-pipeline-monitor-health.md) pentru aceeași țintă graf și aceeași tensiune slug vs coadă.
+- Vezi [`pipeline-orchestrator-advance-pipeline-monitor-health.md`](../pipeline-orchestrator-advance/pipeline-orchestrator-advance-pipeline-monitor-health.md) pentru aceeași destinație (graf) și aceeași tensiune slug vs coadă.
 
 ## Sursă canonică
 

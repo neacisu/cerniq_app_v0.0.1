@@ -41,7 +41,7 @@ Dependența declară în graf că **procesarea rambursării** este ordonată can
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / semantic:** vezi contracte; tensiuni slug vs `limit-release` în neuron țintă.
+- **Runtime / semantic:** vezi contracte; tensiuni slug vs `limit-release` în neuron destinație.
 
 ## Limite și reconcilieri
 

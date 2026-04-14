@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | Fabrică worker + `withCognitiveSpan` dacă `tenantId` valid (`factory.ts` L90–107). | v2: `cognitive.e3.mcp.tool-register`. | — |
 | 7 | Înveliș politică | Sursă unică `fsm_state_allowed_tools`; listă goală → `[]` (`l67` L13–14, L71–88). | v2: Tier3; text HITL cu încredere — neaplicabil direct. | — |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2 Non-AI. | — |
-| 9 | Guardrails | Filtrare `filterMcpTools`; fără NeMo. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Filtrare `filterMcpTools`; fără NeMo. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în L67. | ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE — job + stare FSM; ORIENT — query DB; DECIDE — filtru; ACT — `SET` Redis (`l67` L66–104). | v2 OODA generic (enrichment/cache) — aproximare. | v2 menționează „API call”; aici DB+Redis. |
 | 12 | Tier + de-escaladare | — | v2 Tier 3. | — |

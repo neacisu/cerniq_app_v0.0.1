@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-overdue-che
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** vezi mapare expirare în neuron țintă.
+- **Runtime:** vezi mapare expirare în neuron destinație.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

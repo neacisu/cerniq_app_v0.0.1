@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** autoritatea pentru coadă este contractul neuron țintă + `queue-registry.ts`.
+- **Runtime (ADR-0001):** autoritatea pentru coadă este contractul neuron destinație + `queue-registry.ts`.
 - **Semantic (ADR-0002):** vezi catalog în contract neuron.
 - **Planificare:** dependență declarativă.
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-tool-register` | **Coadă:** `mcp:tool:register` — [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md); **Registry:** `E3_MCP_TOOL_REGISTER`. |
-| Țintă | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` — [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** la audit; muchia rămâne **export-grounded**. |
+| Destinație (graf) | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` — [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** la audit; muchia rămâne **export-grounded**. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența leagă înregistrarea tool-urilor MCP de generarea rezumatului de negociere în graf. v2: **„sinapsă canonică de pipeline”**. Sursa este operațională (procesor L67 în contractul neuron); ținta poate lipsi ca worker dedicat — vezi contractul neuron țintă.
+Dependența leagă înregistrarea tool-urilor MCP de generarea rezumatului de negociere în graf. v2: **„sinapsă canonică de pipeline”**. Sursa este operațională (procesor L67 în contractul neuron); ținta poate lipsi ca worker dedicat — vezi contractul neuron destinație.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -47,7 +47,7 @@ Dependența leagă înregistrarea tool-urilor MCP de generarea rezumatului de ne
 
 ## Limite și reconcilieri
 
-- Asimetria sursă/țintă este explicită; nu se estompează.
+- Asimetria sursă/destinație este explicită; nu se estompează.
 
 ## Sursă canonică
 

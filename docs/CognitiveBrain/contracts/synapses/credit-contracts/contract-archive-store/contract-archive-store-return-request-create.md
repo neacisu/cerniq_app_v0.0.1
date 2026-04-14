@@ -41,8 +41,8 @@ Dependență de planificare: **contract-archive-store** → **`return-request-cr
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă pentru cozi efective.
-- **Semantic (ADR-0002):** E3 arhivare → E4 flux retur (vezi neuron țintă).
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație pentru cozi efective.
+- **Semantic (ADR-0002):** E3 arhivare → E4 flux retur (vezi neuron destinație).
 - **Planificare:** `contract-archive-store` → `return-request-create`.
 
 ## Limite și reconcilieri

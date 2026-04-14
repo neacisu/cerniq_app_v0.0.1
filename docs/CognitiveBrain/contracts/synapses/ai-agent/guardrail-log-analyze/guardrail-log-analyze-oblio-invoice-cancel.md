@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** contractul neuron marchează lipsă handler / `QUEUES` la audit; muchia = **planificare**. |
-| Țintă | `oblio-invoice-cancel` | **Matrix:** `oblio:invoice:cancel` → [`../../../neurons/E3/oblio--invoice--cancel.md`](../../../neurons/E3/oblio--invoice--cancel.md). **Registry:** `E3_OBLIO_INVOICE_CANCEL` → `oblio:invoice:cancel`. |
+| Destinație (graf) | `oblio-invoice-cancel` | **Matrix:** `oblio:invoice:cancel` → [`../../../neurons/E3/oblio--invoice--cancel.md`](../../../neurons/E3/oblio--invoice--cancel.md). **Registry:** `E3_OBLIO_INVOICE_CANCEL` → `oblio:invoice:cancel`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară în planificare că **`oblio-invoice-cancel`** este legat canonic de traseul **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; nu precizează cum analiza logurilor declanșează sau condiționează anularea facturii. Nodul **țintă** (`oblio:invoice:cancel`) este în registry; sursa rămâne supusă gap-ului din contractul neuron.
+Muchia **dependency** declară în planificare că **`oblio-invoice-cancel`** este legat canonic de traseul **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; nu precizează cum analiza logurilor declanșează sau condiționează anularea facturii. Nodul **destinație** (`oblio:invoice:cancel`) este în registry; sursa rămâne supusă gap-ului din contractul neuron.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -47,7 +47,7 @@ Muchia **dependency** declară în planificare că **`oblio-invoice-cancel`** es
 
 ## Limite și reconcilieri
 
-- Detalii fiscale — contractul neuron țintă; muchia nu le substituie.
+- Detalii fiscale — contractul neuron destinație; muchia nu le substituie.
 
 ## Sursă canonică
 

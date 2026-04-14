@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-price-check` | Coadă executabilă **`guardrail:price:check`** (`QUEUES.E3_GUARDRAIL_PRICE_CHECK`) — [`../../../neurons/E3/guardrail--price--check.md`](../../../neurons/E3/guardrail--price--check.md). |
-| Țintă | `oblio-invoice-create` | Coadă executabilă **`oblio:invoice:create`** (`QUEUES.E3_OBLIO_INVOICE_CREATE`) — [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). |
+| Destinație (graf) | `oblio-invoice-create` | Coadă executabilă **`oblio:invoice:create`** (`QUEUES.E3_OBLIO_INVOICE_CREATE`) — [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_PRICE_CHECK`; `E3_OBLIO_INVOICE_CREATE`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:invoice-create` / `oblio:invoice:create` — „Emitere factură finală în Oblio după confirmare client” (~L1871–1877), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:invoice-create` / `oblio:invoice:create` — „Emitere factură finală în Oblio după confirmare client” (~L1871–1877), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-price-check` → `oblio-invoice-create`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

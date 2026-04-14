@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:profile:create", …)` (L36–38). | v2 `cognitive.e4.credit.profile-create` (L6785). | Triplu stil: catalog cu **`-`**, span cu **`:`** între segmente, v2 cu **`.`** — risc atribute catalog lipsă. |
 | 7 | Înveliș politică | — | v2 L6783. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Upsert idempotent pe (tenantId, clientId) (c13 L15). | NeMo țintă. | — |
+| 9 | Guardrails | Upsert idempotent pe (tenantId, clientId) (c13 L15). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6783. | — |
 | 11 | Micro-OODA | Orchestrare Flow → copii paraleli → C17. | v2 L6781. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6775). | — |

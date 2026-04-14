@@ -47,7 +47,7 @@ Traseul **enrich-ai-contact-parse** depinde în planificare de **rezoluție enti
 
 ## Limite și reconcilieri
 
-- Nu confunda „entity-resolve” din graf cu o coadă omologă în registry — dovadă în contractul țintă.
+- Nu confunda „entity-resolve” din graf cu o coadă omologă în registry — dovadă în contractul destinație.
 
 ## Sursă canonică
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursă `product:chunk`.
-- **Semantic (ADR-0002):** vezi contract țintă.
+- **Semantic (ADR-0002):** vezi contract destinație.
 - **Planificare:** chunk → feedback.
 
 ## Limite și reconcilieri

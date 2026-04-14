@@ -41,7 +41,7 @@ Traseul **bronze-ingest-pdf-extractor** depinde în planificare de **construire 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** ingest PDF (graf) vs cozi **E5** pentru job-uri graf — vezi contract țintă.
+- **Runtime (ADR-0001):** ingest PDF (graf) vs cozi **E5** pentru job-uri graf — vezi contract destinație.
 - **Semantic (ADR-0002):** v2 plasează operații graf în **E5** — vezi catalog în contract neuron.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `graph-build-full`.
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-agent-orchestrate` | Coadă canonică **`ai:agent:orchestrate`** — [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). |
-| Țintă | `negotiation-expire-check` | Coadă canonică **`negotiation:expire:check`** — [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). |
+| Destinație (graf) | `negotiation-expire-check` | Coadă canonică **`negotiation:expire:check`** — [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). |
 
 ## Tip muchie (export)
 

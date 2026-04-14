@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-welcome` | **Matrix:** `alert:client:welcome` — [`../../../neurons/E5/alert--client--welcome.md`](../../../neurons/E5/alert--client--welcome.md). **Gap** registry pentru coada granulară. |
-| Țintă | `compliance-audit-generate` | **Matrix:** `compliance:audit:generate` — [`../../../neurons/E5/compliance--audit--generate.md`](../../../neurons/E5/compliance--audit--generate.md). **Repo:** fără coadă/worker cu acest literal; mapare deschisă către K56–K58 — vezi contractul neuron. |
+| Destinație (graf) | `compliance-audit-generate` | **Matrix:** `compliance:audit:generate` — [`../../../neurons/E5/compliance--audit--generate.md`](../../../neurons/E5/compliance--audit--generate.md). **Repo:** fără coadă/worker cu acest literal; mapare deschisă către K56–K58 — vezi contractul neuron. |
 
 ## Tip muchie (export)
 

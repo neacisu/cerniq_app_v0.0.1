@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; țintă: `QUEUES.ALERT_PHONE_BANNED` → `alert:phone:banned` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E2/alert--phone--banned.md`](../../../neurons/E2/alert--phone--banned.md).
+- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; destinație: `QUEUES.ALERT_PHONE_BANNED` → `alert:phone:banned` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E2/alert--phone--banned.md`](../../../neurons/E2/alert--phone--banned.md).
 - **Semantic:** `nodeKey` / swimlane — `cognitive-node-catalog.ts` + contractele neuron.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-intent-classify` precede `alert-phone-banned`; v2 confirmă doar „sinapsă canonică de pipeline”, fără semantica operațională suplimentară în registru.
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `oblio-stock-sync` | **Matrix:** `oblio:stock:sync` → [`../../../neurons/E3/oblio--stock--sync.md`](../../../neurons/E3/oblio--stock--sync.md). **Registry:** `E3_OBLIO_STOCK_SYNC` → `oblio:stock:sync`. |
+| Destinație (graf) | `oblio-stock-sync` | **Matrix:** `oblio:stock:sync` → [`../../../neurons/E3/oblio--stock--sync.md`](../../../neurons/E3/oblio--stock--sync.md). **Registry:** `E3_OBLIO_STOCK_SYNC` → `oblio:stock:sync`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă **`oblio-stock-sync`** de **`guardrail-log-analyze`** în planificare. v2: **„sinapsă canonică de pipeline”**; nu explică cum sincronizarea stocului se raportează la analiza logurilor guardrail. Nodul **țintă** este în registry; sursa are gap documentat în contractul neuron.
+Muchia **dependency** leagă **`oblio-stock-sync`** de **`guardrail-log-analyze`** în planificare. v2: **„sinapsă canonică de pipeline”**; nu explică cum sincronizarea stocului se raportează la analiza logurilor guardrail. Nodul **destinație** este în registry; sursa are gap documentat în contractul neuron.
 
 ## Semantica confirmată (registru v2 §7)
 

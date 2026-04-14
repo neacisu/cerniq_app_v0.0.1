@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap registry:** vezi contractul neuron (lipsă `QUEUES` / handler la audit). |
-| Țintă | `document-pdf-generate` | **Matrix:** `document:pdf:generate` → [`../../../neurons/E3/document--pdf--generate.md`](../../../neurons/E3/document--pdf--generate.md). **Registry:** `document:pdf:generate`. |
+| Destinație (graf) | `document-pdf-generate` | **Matrix:** `document:pdf:generate` → [`../../../neurons/E3/document--pdf--generate.md`](../../../neurons/E3/document--pdf--generate.md). **Registry:** `document:pdf:generate`. |
 
 ## Tip muchie (export)
 

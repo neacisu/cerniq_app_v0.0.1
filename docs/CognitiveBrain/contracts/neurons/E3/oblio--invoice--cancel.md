@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` (fabrică partajată). | v2: `cognitive.e3.oblio.invoice-cancel` (L4941). | **Parțial aliniat** — `cognitive.nodeKey` vs span v2. |
 | 7 | Înveliș politică | HITL obligatoriu faza 1; fără `approvalRef` nu se apelează Oblio (`g42` L52–86). | v2 Tier 3, HITL la anomalii (L4931–4939). | Implementarea cere HITL **întotdeauna** înainte de cancel — mai strict decât «on anomaly» din v2. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2 Non-AI. | — |
-| 9 | Guardrails | Verificări `documentType` / `status`; constrângeri menționate în antet (`g42` L10–14, L112–118). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Verificări `documentType` / `status`; constrângeri menționate în antet (`g42` L10–14, L112–118). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | `hitl:escalate` + `type: invoice_cancel_approval` + callback (`g42` L54–74). | ADR-0008; v2 politică HITL (L4939). | Comportamentul callback-ului după aprobare (cine re-enqueue cu `approvalRef`) = în afara fișierului G42. |
 | 11 | Micro-OODA | OBSERVE — job + DB invoice; ORIENT — faze approval; DECIDE — pending vs exec; ACT — API stub + DB + audit (`g42` L47–189). | v2 OODA send/execute (L4937). | — |
 | 12 | Tier + de-escaladare | Fără praguri «confidence» în cod. | v2 Tier 3 (L4931). | — |

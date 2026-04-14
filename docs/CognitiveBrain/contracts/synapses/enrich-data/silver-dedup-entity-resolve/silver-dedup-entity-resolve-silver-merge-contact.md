@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `silver-dedup-entity-resolve` → `silver-merge-contact`.
-- **Runtime (ADR-0001):** sursă — `dedup:exact`; țintă — gap documentat — vezi neuronii.
+- **Runtime (ADR-0001):** sursă — `dedup:exact`; destinație — gap documentat — vezi neuronii.
 - **Semantic (ADR-0002):** E1 — vezi `NEURON_MATRIX.csv` (coloana semantică pentru merge contact goală la audit neuron).
 
 ## Limite și reconcilieri

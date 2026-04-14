@@ -43,7 +43,7 @@ Dependența **`dependency`** reflectă faptul că, în planul exportat, traseul 
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Potrivire semantică posibilă spre `ai:structure:xai` pentru țintă — doar unde documentează contractul neuron, nu aici. |
+| **Runtime (ADR-0001)** | Potrivire semantică posibilă spre `ai:structure:xai` pentru destinație — doar unde documentează contractul neuron, nu aici. |
 | **Semantic (ADR-0002)** | E1, familii `enrichment` / `ai-enrichment`. |
 | **Planificare** | v2 §7 — muchie canonică de pipeline. |
 

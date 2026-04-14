@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `oblio-webhook-process` → `channel-email-send`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L142**; țintă `channel:email:send` la **L130**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L142**; **Destinație (coadă):** `channel:email:send` la **L130**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | **Gap runtime (documentat):** coada **`guardrail:stock:verify`** nu apare în `workers/shared/src/queue-registry.ts`; vezi [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md). Rând [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv): `queue_in_registry` = `no`. |
-| Țintă | `einvoice-archive-download` | Coadă executabilă **`einvoice:archive:download`** (`QUEUES.E3_EINVOICE_ARCHIVE_DOWNLOAD`) — [`../../../neurons/E3/einvoice--archive--download.md`](../../../neurons/E3/einvoice--archive--download.md). |
+| Destinație (graf) | `einvoice-archive-download` | Coadă executabilă **`einvoice:archive:download`** (`QUEUES.E3_EINVOICE_ARCHIVE_DOWNLOAD`) — [`../../../neurons/E3/einvoice--archive--download.md`](../../../neurons/E3/einvoice--archive--download.md). |
 
 ## Tip muchie (export)
 
@@ -42,9 +42,9 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`; `E3_EINVOICE_ARCHIVE_DOWNLOAD`.
-- **Semantic (ADR-0002):** țintă — `e3:einvoice:archive-download` / `einvoice:archive:download` — „Descărcare arhivă ZIP cu XML eFactura validat…” (~L1945–1951), AutonomicNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:einvoice:archive-download` / `einvoice:archive:download` — „Descărcare arhivă ZIP cu XML eFactura validat…” (~L1945–1951), AutonomicNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-stock-verify` → `einvoice-archive-download`.
-- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada țintă (`queue_in_registry` = `yes` în CSV).
+- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada destinație (`queue_in_registry` = `yes` în CSV).
 
 ## Limite și reconcilieri
 

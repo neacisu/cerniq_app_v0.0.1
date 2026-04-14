@@ -42,7 +42,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | ��intă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **v2_queue** `enrich:email:discovery`; literal **lipsă** în registry. Runtime: **`discover:email:hunter`**, catalog **`e1:discover:email-hunter`**. | v2 vs catalog. | v2 §2.4 până la unificare nume. |
 | 2 | Etapă, familie, swimlane | E1; worker enrichment; swimlane catalog **`enrichment-external`**. | v2 E1 enrichment; metrică v2 `swimlane="enrichment"`. | Diferență etichetă swimlane v2 vs catalog. |

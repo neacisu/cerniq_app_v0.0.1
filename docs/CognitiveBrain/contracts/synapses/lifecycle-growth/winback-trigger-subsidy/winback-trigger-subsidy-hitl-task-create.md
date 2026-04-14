@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-trigger-subsidy` → `hitl-task-create`.
-- **Runtime:** țintă — `hitl--task--create.md` documentează gap posibil în registry.
+- **Runtime:** destinație — `hitl--task--create.md` documentează gap posibil în registry.
 
 ## Limite și reconcilieri
 

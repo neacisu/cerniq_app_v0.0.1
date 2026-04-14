@@ -43,7 +43,7 @@ Selecție clauze contractuale după `riskTier` (mapare fixă L2099 în comentari
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Runtime `contract:clauses:select`; graf `contract:clause:assemble`. Catalog `e4:contract:clauses-select`. | v2 L6482. | Trei denumiri pentru același pas din pipeline. |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 4, `contract-execution`. | v2: E4, `contracts`. | Swimlane v2 L6487 `contracts` vs catalog `contract-execution`. |

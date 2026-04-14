@@ -41,7 +41,7 @@ Traseul **association-territory-infer** depinde în planificare de **hartă teri
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** reconciliere obligatorie în neuroni (sursă cu gap literal; țintă cu coadă din registry).
+- **Runtime (ADR-0001):** reconciliere obligatorie în neuroni (sursă cu gap literal; destinație cu coadă din registry).
 - **Semantic (ADR-0002):** E5 geo — vezi contracte.
 - **Planificare:** v2 §7 — `association-territory-infer` → `geo-territory-map`.
 

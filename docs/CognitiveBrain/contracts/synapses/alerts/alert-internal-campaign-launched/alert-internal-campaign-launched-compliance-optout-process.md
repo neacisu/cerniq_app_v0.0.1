@@ -41,13 +41,13 @@ Procesarea opt-out declarată în graf (`compliance-optout-process`) este depend
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap/apropiere campaign-trigger; țintă — gap `compliance:optout:process`.
+- **Runtime (ADR-0001):** sursă — gap/apropiere campaign-trigger; destinație — gap `compliance:optout:process`.
 - **Semantic (ADR-0002):** fără `nodeKey` dedicat în catalog pentru coada v2; vezi contract neuron.
 - **Planificare:** v2 §7 — `alert-internal-campaign-launched` → `compliance-optout-process`.
 
 ## Limite și reconcilieri
 
-- Opt-out dispersat în outreach vs nod unic în graf — vezi contract neuron țintă.
+- Opt-out dispersat în outreach vs nod unic în graf — vezi contract neuron destinație.
 
 ## Sursă canonică
 

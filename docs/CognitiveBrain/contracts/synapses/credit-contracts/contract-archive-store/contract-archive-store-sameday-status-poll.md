@@ -41,13 +41,13 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E3 arhivare → E4 SameDay status.
 - **Planificare:** `contract-archive-store` → `sameday-status-poll`.
 
 ## Limite și reconcilieri
 
-- Dependența este declarativă; comportamentul poll în runtime — vezi neuron țintă și cod.
+- Dependența este declarativă; comportamentul poll în runtime — vezi neuron destinație și cod.
 - Fără completări fictive pentru payload sau retry.
 
 ## Sursă canonică

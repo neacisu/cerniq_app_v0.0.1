@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Etapa **E2** pentru țintă vs sursă plasată în **E5** în neuron: vezi contractele neuron fără a completa din export.
+- Etapa **E2** pentru destinație vs sursă plasată în **E5** în neuron: vezi contractele neuron fără a completa din export.
 
 ## Sursă canonică
 

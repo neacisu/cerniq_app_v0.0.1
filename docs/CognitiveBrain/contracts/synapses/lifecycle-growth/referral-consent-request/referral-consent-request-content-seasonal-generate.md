@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Conținut sezonier — semantica în neuronul țintă.
+- Conținut sezonier — semantica în neuronul destinație.
 
 ## Sursă canonică
 

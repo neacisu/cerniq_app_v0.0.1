@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-session-manage` | **Coadă:** `mcp:session:manage` — [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md); **Registry:** `E3_MCP_SESSION_MANAGE`. |
-| Țintă | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` — [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** la audit pentru coada literală; muchia rămâne **export-grounded**. |
+| Destinație (graf) | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` — [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** la audit pentru coada literală; muchia rămâne **export-grounded**. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența leagă managementul sesiunii MCP de nodul de generare rezumat negociere în graf. v2: **„sinapsă canonică de pipeline”**. Sursa este operațională (procesor L68 în contractul neuron); ținta poate lipsi ca worker dedicat — vezi contractul neuron țintă. Nu se afirmă flux de date între cozi din export.
+Dependența leagă managementul sesiunii MCP de nodul de generare rezumat negociere în graf. v2: **„sinapsă canonică de pipeline”**. Sursa este operațională (procesor L68 în contractul neuron); ținta poate lipsi ca worker dedicat — vezi contractul neuron destinație. Nu se afirmă flux de date între cozi din export.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -47,7 +47,7 @@ Dependența leagă managementul sesiunii MCP de nodul de generare rezumat negoci
 
 ## Limite și reconcilieri
 
-- Asimetria runtime sursă/țintă este explicită; nu se estompează în text.
+- Asimetria runtime sursă/destinație este explicită; nu se estompează în text.
 
 ## Sursă canonică
 

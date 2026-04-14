@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `oblio-invoice-create` | **Matrix:** `oblio:invoice:create` → [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). **Registry:** `E3_OBLIO_INVOICE_CREATE` → `oblio:invoice:create`. |
+| Destinație (graf) | `oblio-invoice-create` | **Matrix:** `oblio:invoice:create` → [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). **Registry:** `E3_OBLIO_INVOICE_CREATE` → `oblio:invoice:create`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă **`oblio-invoice-create`** de **`guardrail-log-analyze`** în graf. v2: **„sinapsă canonică de pipeline”**; nu explică legătura dintre analiza logurilor și emiterea facturii. Nodul **țintă** are coadă în registry; sursa — gap documentat.
+Muchia **dependency** leagă **`oblio-invoice-create`** de **`guardrail-log-analyze`** în graf. v2: **„sinapsă canonică de pipeline”**; nu explică legătura dintre analiza logurilor și emiterea facturii. Nodul **destinație** are coadă în registry; sursa — gap documentat.
 
 ## Semantica confirmată (registru v2 §7)
 

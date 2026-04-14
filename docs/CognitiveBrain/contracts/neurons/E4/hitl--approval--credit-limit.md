@@ -39,7 +39,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Catalog `e4:hitl:credit-limit`; coadă `hitl:approval:credit-limit`; registry L495; `index.ts` L533. | v2 L6918. | — |
 | 2 | Etapă, familie, swimlane | Catalog swimlane `human-oversight-e4` (L2693). | Idem v2 (L6911). | — |
@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:hitl:credit:limit", …)` (L149) → span **`cognitive:e4:hitl:credit:limit`**. Catalog **`e4:hitl:credit-limit`**. | v2 `cognitive.e4.hitl.credit-limit` (L6923). | Primul argument ≠ `nodeKey` catalog → atribute catalog posibil lipsă pe span. |
 | 7 | Înveliș politică | `approvalService.createTask`; fără Cedar în fișier. | HITL mandatory, SLA 2h (v2 L6921). | SLA cod: `priority: "high"` + `slaHours: 4` în metadata (L170–180) vs v2 „2h” — documentat în plan K49. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Validare flux approval service. | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Validare flux approval service. | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | Task creat în `approval_tasks`; K53 pentru SLA breach (plan K53). | v2 L6921. | — |
 | 11 | Micro-OODA | Job → createTask → metrică `e4HitlTasksCreatedTotal` (L184–188). | v2 L6919. | LangGraph în v2: neverificat în K49. |
 | 12 | Tier + de-escaladare | — | Tier 2 (v2 L6913). | — |

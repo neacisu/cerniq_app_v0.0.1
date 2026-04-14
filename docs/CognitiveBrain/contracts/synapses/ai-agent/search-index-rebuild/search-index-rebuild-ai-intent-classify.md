@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Încrucișare E3/E2 pe țintă: nu presupunem un singur worker fără contract neuron.
+- Încrucișare E3/E2 pe destinație: nu presupunem un singur worker fără contract neuron.
 
 ## Sursă canonică
 

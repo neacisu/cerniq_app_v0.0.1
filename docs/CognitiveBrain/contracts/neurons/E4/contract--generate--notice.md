@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**țintă (graf v2):** generare act / notificare în fluxul contractual. **Stare Cerniq:** fără worker BullMQ sau `nodeKey` mapat la acest literal în sursele citite; notificările operaționale pot fi în alte cozi (ex. alerte) — **neconectat** fără dovezi suplimentare.
+**Destinație (graf v2):** generare act / notificare în fluxul contractual. **Stare Cerniq:** fără worker BullMQ sau `nodeKey` mapat la acest literal în sursele citite; notificările operaționale pot fi în alte cozi (ex. alerte) — **neconectat** fără dovezi suplimentare.
 
 ## Surse audit
 
@@ -40,7 +40,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap:** fără coadă/registry/catalog pentru `contract:generate:notice`. | v2 L6526. | Implementare viitoare sau mapare semantică nedocumentată în cod. |
 | 2 | Etapă, familie, swimlane | — | v2: E4, `contracts`; swimlane `contracts` în metrică L6531. | — |

@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**țintă conceptuală (graf):** raportare / colectare zilnică a plăților fără potrivire, spre escaladare. **Implementare Cerniq (dovadă):** nu există literal `reconcile:daily:unmatched` în registry; fluxul „no match” duce la B8 apoi B9 cu `reason: "unmatched"` când nu există candidați fuzzy (`b8-payment-reconcile-fuzzy.ts`, teste în `b-workers.test.ts`).
+**Destinație conceptuală (graf):** raportare / colectare zilnică a plăților fără potrivire, spre escaladare. **Implementare Cerniq (dovadă):** nu există literal `reconcile:daily:unmatched` în registry; fluxul „no match” duce la B8 apoi B9 cu `reason: "unmatched"` când nu există candidați fuzzy (`b8-payment-reconcile-fuzzy.ts`, teste în `b-workers.test.ts`).
 
 ## Surse audit
 
@@ -43,7 +43,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap registry:** fără coadă cu acest nume. `nodeKey` catalog: **lipsă** pentru `reconcile:daily:unmatched`. | v2 L6391 — etichetă graf. | Contractul păstrează eticheta v2; runtime folosește alt mecanism (B9). |
 | 2 | Etapă, familie, swimlane | B9: swimlane implicit `payment-processing` (aceeași familie cash ca restul plăților). | v2: E4, `cash`; metrică v2 L6395 menționează swimlane `cash` — posibilă nealiniere la catalog. | — |

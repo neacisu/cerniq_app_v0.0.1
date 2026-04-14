@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `product:embed`; țintă — vezi contract.
+- **Runtime (ADR-0001):** sursă `product:embed`; destinație — vezi contract.
 - **Semantic (ADR-0002):** product-search vs ai-core.
 - **Planificare:** embed → agent-generate.
 

@@ -41,8 +41,8 @@ Dependența declară în graf că **procesarea rambursării** (nod plan `payment
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă **`revolut:refund:process`**; țintă **`credit:check:order`** — ambele verificabile în registry dacă incluse.
-- **Semantic (ADR-0002):** `e4:revolut:refund-process` vs catalog țintă — vezi contracte neuron.
+- **Runtime (ADR-0001):** sursă executabilă **`revolut:refund:process`**; destinație **`credit:check:order`** — ambele verificabile în registry dacă incluse.
+- **Semantic (ADR-0002):** `e4:revolut:refund-process` vs catalog destinație — vezi contracte neuron.
 - **Planificare:** dependență cash/refund → credit.
 
 ## Limite și reconcilieri

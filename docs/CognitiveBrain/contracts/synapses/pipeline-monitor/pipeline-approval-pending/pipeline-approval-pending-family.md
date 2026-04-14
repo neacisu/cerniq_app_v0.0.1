@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `pipeline-approval-pending` | Traseu în graf; [`../../../neurons/E1/pipeline--approval--pending.md`](../../../neurons/E1/pipeline--approval--pending.md). **v2 / matrice:** coadă canonică `pipeline:approval:pending`. **Runtime (ADR-0001):** contractul neuron documentează **gap** — **nu** există literal `pipeline:approval:pending` în `workers/shared/src/queue-registry.ts`; starea «pending approvals» este modelată în Postgres și cozi HITL auxiliare (`hitl:escalate`, `hitl:resume`). |
-| Țintă | `e1-hitl` | Nod agregat **familie HITL** E1 în planificare; **nu** este o singură coadă executabilă; vezi [`../../../adr/families/e1/hitl.md`](../../../adr/families/e1/hitl.md) și neuroni `hitl:*` din catalog. |
+| Destinație (graf) | `e1-hitl` | Nod agregat **familie HITL** E1 în planificare; **nu** este o singură coadă executabilă; vezi [`../../../adr/families/e1/hitl.md`](../../../adr/families/e1/hitl.md) și neuroni `hitl:*` din catalog. |
 
 ## Tip muchie (export)
 

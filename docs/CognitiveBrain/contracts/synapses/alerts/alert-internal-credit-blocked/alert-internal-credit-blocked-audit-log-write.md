@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă cu gap vs J45 `concurrency: 1` — vezi contractul țintă.
+- **Runtime (ADR-0001):** sursă cu gap vs J45 `concurrency: 1` — vezi contractul destinație.
 - **Semantic (ADR-0002):** alerts vs audit.
 - **Planificare:** dependență declarativă.
 

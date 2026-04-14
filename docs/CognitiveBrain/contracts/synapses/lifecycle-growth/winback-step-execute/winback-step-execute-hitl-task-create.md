@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-step-execute` → `hitl-task-create`.
-- **Runtime:** sursă — F33; țintă — vezi `hitl--task--create.md` (gap posibil în registry).
+- **Runtime:** sursă — F33; destinație — vezi `hitl--task--create.md` (gap posibil în registry).
 
 ## Limite și reconcilieri
 
-- **Graf vs cod:** muchia există în planificare; implementarea cozii `hitl:task:create` **nu** este afirmată din export — vezi contractul țintă.
+- **Graf vs cod:** muchia există în planificare; implementarea cozii `hitl:task:create` **nu** este afirmată din export — vezi contractul destinație.
 
 ## Sursă canonică
 

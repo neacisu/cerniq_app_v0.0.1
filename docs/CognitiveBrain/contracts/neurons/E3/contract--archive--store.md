@@ -48,7 +48,7 @@ Arhivare documente fiscale Oblio cu lanț hash SHA-256 (`fiscal_audit_trail`), r
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă: `document:archive:store`. `nodeKey`: `e3:document:archive-store`. v2 etichetă: `contract:archive:store`. | v2 L6450, L6460. | Dublă denumire coadă (contract vs document). |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 3, swimlane `fiscal-execution`. Worker în pachet `e3-ai-sales`. | v2: E3, familie `contracts`, swimlane `fiscal-execution`. | — |
@@ -62,7 +62,7 @@ Arhivare documente fiscale Oblio cu lanț hash SHA-256 (`fiscal_audit_trail`), r
 | 10 | Escaladare HITL | Neobservat în i55; erori → throw. | v2 L6463. | — |
 | 11 | Micro-OODA | Verificare document → hash → scriere audit (i55). | v2 L6461. | — |
 | 12 | Tier + de-escaladare | Fără prag încredere. | v2 Tier 3. | — |
-| 13 | Stack v2 §2.3 (subset) | BullMQ E3, Drizzle, crypto `node:crypto`. | Obiect storage: țintă (comentariu i55). | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ E3, Drizzle, crypto `node:crypto`. | Obiect storage: destinație documentată (comentariu i55). | — |
 
 ### Mapare OTel
 

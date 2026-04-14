@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_NEGOTIATION_EXPIRE_CHECK` → `QUEUES.E3_PRICING_MARGIN_CHECK`; vezi `workers/shared/src/queue-registry.ts` și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
-- **Semantic:** contracte neuron sursă și țintă (linkuri în tabel).
+- **Semantic:** contracte neuron sursă și destinație (linkuri în tabel).
 - **Planificare:** muchie **`dependency`**: `negotiation-expire-check` precede `pricing-margin-check` în export; fără semantica operațională suplimentară în v2.
 
 ## Limite și reconcilieri

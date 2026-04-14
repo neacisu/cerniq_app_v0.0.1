@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `mcp-resource-load` | **Coadă:** `mcp:resource:load` — [`../../../neurons/E3/mcp--resource--load.md`](../../../neurons/E3/mcp--resource--load.md); **Registry:** `E3_MCP_RESOURCE_LOAD`. |
-| Țintă | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` — [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** la audit (fără coadă în registry / implementare verificată acolo); muchia rămâne **export-grounded** pentru topologie. |
+| Destinație (graf) | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` — [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** la audit (fără coadă în registry / implementare verificată acolo); muchia rămâne **export-grounded** pentru topologie. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența leagă în planificare încărcarea resurselor MCP de generarea rezumatului de negociere. v2: **„sinapsă canonică de pipeline”**. Sursa este operațională în sensul contractului neuron (procesor L66); ținta poate **lipsi** ca execuție sub `negotiation:summary:generate` — vezi contractul neuron țintă. Nu se deduce flux end-to-end din export.
+Dependența leagă în planificare încărcarea resurselor MCP de generarea rezumatului de negociere. v2: **„sinapsă canonică de pipeline”**. Sursa este operațională în sensul contractului neuron (procesor L66); ținta poate **lipsi** ca execuție sub `negotiation:summary:generate` — vezi contractul neuron destinație. Nu se deduce flux end-to-end din export.
 
 ## Semantica confirmată (registru v2 §7)
 

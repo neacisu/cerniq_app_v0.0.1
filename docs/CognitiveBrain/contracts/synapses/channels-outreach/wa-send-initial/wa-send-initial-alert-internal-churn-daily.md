@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă WA per-telefon; țintă — evidență E5.
+- **Runtime (ADR-0001):** sursă WA per-telefon; destinație — evidență E5.
 - **Semantic (ADR-0002):** alertă E5.
 - **Planificare:** export-grounded.
 

@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan` via `createWorker` (`factory.ts`). | v2: `cognitive.e3.document.email-send` (L4816). | **Parțial aliniat** — `cognitive.nodeKey` vs span v2 (ADR-0003). |
 | 7 | Înveliș politică | Validare strictă email; throw pe invalid (`i52` L53–55). | v2: Tier 3, HITL la anomalii (L4806, L4814). | Fără scor încredere în I52. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | Regex email; payload Resend explicit. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Regex email; payload Resend explicit. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în I52. | v2 / ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE — job; ORIENT — validare + atașamente; DECIDE — continuă sau throw; ACT — Resend (`i52` L46–94). | v2 OODA generic (L4812). | — |
 | 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 3 (L4806). | — |

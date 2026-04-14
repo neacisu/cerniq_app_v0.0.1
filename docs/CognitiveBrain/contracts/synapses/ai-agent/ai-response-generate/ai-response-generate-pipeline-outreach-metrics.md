@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Contract sursă:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md). |
-| Țintă | `pipeline-outreach-metrics` | **Matrix:** `pipeline:outreach:metrics` (E2, `monitoring`) → [`../../../neurons/E2/pipeline--outreach--metrics.md`](../../../neurons/E2/pipeline--outreach--metrics.md). **Registry:** `PIPELINE_OUTREACH_METRICS` → `pipeline:outreach:metrics`. |
+| Destinație (graf) | `pipeline-outreach-metrics` | **Matrix:** `pipeline:outreach:metrics` (E2, `monitoring`) → [`../../../neurons/E2/pipeline--outreach--metrics.md`](../../../neurons/E2/pipeline--outreach--metrics.md). **Registry:** `PIPELINE_OUTREACH_METRICS` → `pipeline:outreach:metrics`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară în planificare că **`pipeline-outreach-metrics`** este legat canonic de traseul **`ai-response-generate`**. v2 redă **„sinapsă canonică de pipeline”**; nu enumeră metrici, dimensiuni sau surse de date. Agregarea metricilor în outreach este documentată în contractul E2 țintă; muchia rămâne **dovadă de topologie exportată**, nu schemă de evenimente.
+Muchia **dependency** declară în planificare că **`pipeline-outreach-metrics`** este legat canonic de traseul **`ai-response-generate`**. v2 redă **„sinapsă canonică de pipeline”**; nu enumeră metrici, dimensiuni sau surse de date. Agregarea metricilor în outreach este documentată în contractul neuronului E2 de destinație; muchia rămâne **dovadă de topologie exportată**, nu schemă de evenimente.
 
 ## Semantica confirmată (registru v2 §7)
 

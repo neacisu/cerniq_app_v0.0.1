@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `mcp-tool-register` | [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md). **Runtime:** `mcp:tool:register` (`QUEUES.E3_MCP_TOOL_REGISTER`, `queue-registry.ts` L330). |
+| Destinație (graf) | `mcp-tool-register` | [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md). **Runtime:** `mcp:tool:register` (`QUEUES.E3_MCP_TOOL_REGISTER`, `queue-registry.ts` L330). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `search:query:rewrite` → `mcp:tool:register`.
-- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:mcp:tool-register` (contract neuron țintă).
+- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:mcp:tool-register` (contract neuron destinație).
 - **Planificare:** v2 §7 — `search-query-understand` → `mcp-tool-register`.
 
 ## Limite și reconcilieri

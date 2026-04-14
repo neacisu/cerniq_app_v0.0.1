@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; țintă: `QUEUES.PIPELINE_OUTREACH_HEALTH` → `pipeline:outreach:health` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md).
+- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; destinație: `QUEUES.PIPELINE_OUTREACH_HEALTH` → `pipeline:outreach:health` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E2/pipeline--outreach--health.md`](../../../neurons/E2/pipeline--outreach--health.md).
 - **Semantic:** `nodeKey` / swimlane — `cognitive-node-catalog.ts` + contractele neuron.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-intent-classify` precede `pipeline-outreach-health`; v2 confirmă doar „sinapsă canonică de pipeline”, fără semantica operațională suplimentară în registru.
 

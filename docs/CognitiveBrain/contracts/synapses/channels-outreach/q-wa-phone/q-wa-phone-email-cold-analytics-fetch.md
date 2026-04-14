@@ -41,7 +41,7 @@ Traseul **WA (generic în graf)** depinde de **fetch analytics** pentru cold ema
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** detalii coadă pentru analytics — contract neuron țintă și registry.
+- **Runtime (ADR-0001):** detalii coadă pentru analytics — contract neuron destinație și registry.
 - **Semantic (ADR-0002):** legătură planificată WA → analitică cold email.
 - **Planificare:** v2 §7 — `q-wa-phone` → `email-cold-analytics-fetch`.
 

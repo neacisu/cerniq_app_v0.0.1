@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ambele cozi apar în `queue-registry.ts` — vezi contracte neuron.
-- **Semantic (ADR-0002):** familie `email-cold` (sursă) → familie `email-warm` (țintă) în v2 antete neuron.
+- **Semantic (ADR-0002):** familie `email-cold` (sursă) → familie `email-warm` (destinație) în v2 antete neuron.
 - **Planificare:** `q-email-cold` → `email-warm-document`.
 
 ## Limite și reconcilieri

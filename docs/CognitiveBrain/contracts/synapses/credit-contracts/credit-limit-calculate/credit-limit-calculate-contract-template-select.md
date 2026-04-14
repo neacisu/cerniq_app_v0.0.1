@@ -41,13 +41,13 @@ Traseul **credit-limit-calculate** (în v2: calcul limită de credit; criticitat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă — cozi distincte unde sunt declarate în registry.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație — cozi distincte unde sunt declarate în registry.
 - **Semantic (ADR-0002):** `e4:credit:limit-calculate` ↔ etapa contracte E4 pentru selecție șablon — vezi catalog în contracte.
 - **Planificare:** v2 §7 — `credit-limit-calculate` → `contract-template-select`.
 
 ## Limite și reconcilieri
 
-- Reconciliere denumiri coadă la țintă: obligatoriu [`../../../neurons/E4/contract--template--select.md`](../../../neurons/E4/contract--template--select.md).
+- Reconciliere denumiri coadă la destinație: obligatoriu [`../../../neurons/E4/contract--template--select.md`](../../../neurons/E4/contract--template--select.md).
 - Praguri HITL și SLA din v2 neuron **nu** se extrapolează ca atribute ale acestei muchii — vezi contract sursă.
 
 ## Sursă canonică

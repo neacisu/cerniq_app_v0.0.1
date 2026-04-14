@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `silver-merge-company` | **Contract:** [`../../../neurons/E1/silver--merge--company.md`](../../../neurons/E1/silver--merge--company.md). **Runtime (ADR-0001):** gap pentru literal v2 — vezi neuron (`pipeline:promote:bronze-silver`, `ai:merge:xai`). |
-| Destinație (graf) | `silver-quality-completeness` | **Contract:** [`../../../neurons/E1/silver--quality--completeness.md`](../../../neurons/E1/silver--quality--completeness.md). E1 — vezi [`../../../../adr/families/e1/merge.md`](../../../../adr/families/e1/merge.md) și contractul neuronului țintă. |
+| Destinație (graf) | `silver-quality-completeness` | **Contract:** [`../../../neurons/E1/silver--quality--completeness.md`](../../../neurons/E1/silver--quality--completeness.md). E1 — vezi [`../../../../adr/families/e1/merge.md`](../../../../adr/families/e1/merge.md) și contractul neuronului destinație. |
 
 ## Tip muchie (export)
 
@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `silver-merge-company` → `silver-quality-completeness`.
 - **Runtime (ADR-0001):** sursă — vezi gap în neuron; ținta — vezi neuronul de calitate.
-- **Semantic (ADR-0002):** E1 — vezi catalog pentru `nodeKey`-ul neuronului țintă.
+- **Semantic (ADR-0002):** E1 — vezi catalog pentru `nodeKey`-ul neuronului destinație.
 
 ## Limite și reconcilieri
 

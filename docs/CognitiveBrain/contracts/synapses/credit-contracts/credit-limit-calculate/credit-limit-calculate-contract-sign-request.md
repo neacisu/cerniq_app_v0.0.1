@@ -41,13 +41,13 @@ Traseul **credit-limit-calculate** depinde în planificare de **cererea de semna
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 credit ↔ E4 semnătură cerere.
 - **Planificare:** v2 §7 — `credit-limit-calculate` → `contract-sign-request`.
 
 ## Limite și reconcilieri
 
-- Integrarea DocuSign și identitățile semnatarilor sunt în contractul neuron țintă, nu în registrul sinapsei.
+- Integrarea DocuSign și identitățile semnatarilor sunt în contractul neuron destinație, nu în registrul sinapsei.
 
 ## Sursă canonică
 

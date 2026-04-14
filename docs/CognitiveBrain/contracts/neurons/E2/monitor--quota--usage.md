@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + span condiționat. | Span v2. | — |
 | 7 | Înveliș politică | Insert/upsert `outreach_daily_stats`; quarantine separat pe scor. | v2 tier4. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Prag reputație `REPUTATION_QUARANTINE_THRESHOLD` în `phone-monitoring.ts`. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Prag reputație `REPUTATION_QUARANTINE_THRESHOLD` în `phone-monitoring.ts`. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Quarantine enfilează altă coadă, nu HITL direct. | v2. | — |
 | 11 | Micro-OODA | OBSERVE DB; ACT upsert sau scor + quarantine. | v2. | — |
 | 12 | Tier + de-escaladare | Ramuri separate fără throw în calea fericită. | v2. | — |

@@ -43,7 +43,7 @@ Muchia **`dependency`** reflectă ordonarea în **planificare** între traseul �
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi distribuirea semnalului de insolvență în contractul sursă; pentru țintă vezi absența literalului în registry. |
+| **Runtime (ADR-0001)** | Vezi distribuirea semnalului de insolvență în contractul sursă; pentru destinație vezi absența literalului în registry. |
 | **Semantic (ADR-0002)** | E1 — instrumentare conform ADR familii. |
 | **Planificare** | v2 §7 — capetele și `dependency` ca în export. |
 

@@ -43,8 +43,8 @@
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Cozi efective: vezi `queue-registry.ts` prin contractele celor doi neuroni (sursă: gap pentru `graph:full:built_at`; țintă: `cluster:implicit:detect`). |
-| **Semantic (ADR-0002)** | În catalog apare `e5:cluster:implicit-detect`; în graf apare `geo-cluster-analyze` — reconciliere în contractul țintă. |
+| **Runtime (ADR-0001)** | Cozi efective: vezi `queue-registry.ts` prin contractele celor doi neuroni (sursă: gap pentru `graph:full:built_at`; destinație: `cluster:implicit:detect`). |
+| **Semantic (ADR-0002)** | În catalog apare `e5:cluster:implicit-detect`; în graf apare `geo-cluster-analyze` — reconciliere în contractul destinație. |
 | **Planificare (export)** | v2 §7 — `graph-full-built-at` → `geo-cluster-analyze`, tip `dependency`. |
 
 ## Traseu și vecini

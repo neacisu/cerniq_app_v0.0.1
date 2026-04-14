@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | `e5:geo:territory-calculate` (L38). | v2 `cognitive.geo.territory.map` (L8184). | — |
 | 7 | Înveliș politică | — | v2 L8180–8181. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | GEOMETRY vs GEOGRAPHY (antet C17 L10–11). | NeMo țintă. | — |
+| 9 | Guardrails | GEOMETRY vs GEOGRAPHY (antet C17 L10–11). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8181. | — |
 | 11 | Micro-OODA | Membri cluster → hull → persistență. | v2 L8176. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8175). | — |

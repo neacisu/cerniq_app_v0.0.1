@@ -41,7 +41,7 @@ Traseul **bronze-ingest-pdf-extractor** depinde în planificare de **îmbogăți
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă fără coadă literală comună; ținta în **E5** — vezi registry în contract neuron țintă.
+- **Runtime (ADR-0001):** sursă fără coadă literală comună; ținta în **E5** — vezi registry în contract neuron destinație.
 - **Semantic (ADR-0002):** ingest PDF (etichetă graf) ↔ swimlane asociații/Termene — vezi catalog.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `association-enrich-termene`.
 

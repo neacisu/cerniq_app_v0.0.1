@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-response-generate` | **Planificare:** traseu `ai-agent-response-generate`. **Matrix:** `ai:agent:response-generate` → [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** **`ai:e3:response:generate`**; vezi reconcilierea în contractul sursă. |
-| Țintă | `negotiation-state-transition` | **Matrix:** `negotiation:state:transition` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). **Registry:** `E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition`. |
+| Destinație (graf) | `negotiation-state-transition` | **Matrix:** `negotiation:state:transition` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). **Registry:** `E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition`. |
 
 ## Tip muchie (export)
 

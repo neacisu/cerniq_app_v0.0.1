@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | `e5:graph:build-relationships` (d20 L184). | v2 `cognitive.graph.build.full` (L8338). | — |
 | 7 | Înveliș politică | — | v2 L8336–8337. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Logică SQL/graph în D20 (fișier citit parțial). | NeMo țintă. | — |
+| 9 | Guardrails | Logică SQL/graph în D20 (fișier citit parțial). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8337. | — |
 | 11 | Micro-OODA | Persistență muchii → input pentru D21/D22. | v2 L8334. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8329). | — |

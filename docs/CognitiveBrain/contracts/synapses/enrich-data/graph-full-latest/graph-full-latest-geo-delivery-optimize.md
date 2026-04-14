@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-delivery-optimi
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi `queue-registry.ts` și contractele sursă/țintă. |
+| **Runtime (ADR-0001)** | Vezi `queue-registry.ts` și contractele sursă/destinație. |
 | **Semantic (ADR-0002)** | Detalii în contractul `geo--delivery--optimize`. |
 | **Planificare (export)** | v2 §7 — `graph-full-latest` → `geo-delivery-optimize`, tip `dependency`. |
 

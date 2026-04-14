@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `nurturing-loyalty-achieved` → `feedback-sentiment-analyze`.
-- **Runtime (ADR-0001):** sursă E5; țintă **E2** — vezi contractul țintă și registry.
+- **Runtime (ADR-0001):** sursă E5; destinație **E2** — vezi contractul destinație și registry.
 - **Semantic (ADR-0002):** traversare **E5 → E2** — documentată explicit; vezi ADR `lifecycle` și etapa E2.
 
 ## Limite și reconcilieri

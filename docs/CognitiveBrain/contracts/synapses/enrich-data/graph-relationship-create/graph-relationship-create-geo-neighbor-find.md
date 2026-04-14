@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `graph-relationship-create` → `geo-neighbor-find`.
-- **Runtime (ADR-0001):** E5 — vezi neuronii sursă și țintă.
+- **Runtime (ADR-0001):** E5 — vezi neuronii sursă și destinație.
 - **Semantic (ADR-0002):** vezi catalog pentru `nodeKey`-uri.
 
 ## Limite și reconcilieri

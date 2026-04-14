@@ -39,7 +39,7 @@ Alertă internă agregată churn zilnic (graf). **Cod:** fără coadă BullMQ cu
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** coadă runtime. | v2 L7460. | — |
 | 2 | Etapă, familie, swimlane | — | v2 E5. | — |

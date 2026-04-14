@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | — | v2: `cognitive.ai.prompt.optimize`. | Fără `withCognitiveSpan` pentru coadă inexistentă. |
 | 7 | Înveliș politică | — | v2: Tier 3, HITL la anomalie încredere. | — |
 | 8 | Rutare model (dacă AI) | — | v2: QwQ + SGLang + fallback. | Fără cod LLM dedicat acestei cozi. |
-| 9 | Guardrails | — | v2 / ADR-0007 țintă. | — |
+| 9 | Guardrails | — | v2 / ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | — | v2: SLA 4h; ADR-0008. | — |
 | 11 | Micro-OODA | — | v2: OODA cu LLM ORIENT/DECIDE. | Nu mapat la flux BullMQ în repo. |
 | 12 | Tier + de-escaladare | — | v2 Tier 3. | — |

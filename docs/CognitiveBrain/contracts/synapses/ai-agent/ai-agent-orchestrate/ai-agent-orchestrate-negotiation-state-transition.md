@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-agent-orchestrate` | Coadă canonică **`ai:agent:orchestrate`** — [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). |
-| Țintă | `negotiation-state-transition` | Coadă canonică **`negotiation:state:transition`** — [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). |
+| Destinație (graf) | `negotiation-state-transition` | Coadă canonică **`negotiation:state:transition`** — [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). |
 
 ## Tip muchie (export)
 

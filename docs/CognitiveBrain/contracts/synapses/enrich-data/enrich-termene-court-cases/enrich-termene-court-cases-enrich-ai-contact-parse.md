@@ -43,7 +43,7 @@
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Contract neuron sursă: `court-cases` v2 ↔ `enrich:termene:dosare` în registry. Contract neuron țintă: fără literal `enrich:ai:contact-parse` în registry. |
+| **Runtime (ADR-0001)** | Contract neuron sursă: `court-cases` v2 ↔ `enrich:termene:dosare` în registry. Contract neuron destinație: fără literal `enrich:ai:contact-parse` în registry. |
 | **Semantic (ADR-0002)** | E1 — ambele capete în strat enrichment / AI conform v2. |
 | **Planificare** | v2 §7 — `dependency` explicită. |
 

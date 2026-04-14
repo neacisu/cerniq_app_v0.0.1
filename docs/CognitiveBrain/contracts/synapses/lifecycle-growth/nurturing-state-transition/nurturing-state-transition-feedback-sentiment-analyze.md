@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `nurturing-state-transition` → `feedback-sentiment-analyze`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L311**; țintă `feedback:sentiment:analyze` la **L274** (fișier), etapă **E2**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L311**; **Destinație (coadă):** `feedback:sentiment:analyze` la **L274** (fișier), etapă **E2**.
 - **Runtime:** vezi neuronii; nu inferăm ordinea joburilor BullMQ din singurul export.
 
 ## Limite și reconcilieri

@@ -41,7 +41,7 @@ Traseul **credit-profile-create** depinde în planificare de **asamblarea clauze
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** credit E4 ↔ contracte E4 (asamblare clauze).
 - **Planificare:** v2 §7 — `credit-profile-create` → `contract-clause-assemble`.
 

@@ -39,7 +39,7 @@ Notificare internă lansare campanie (graf). **Cod:** nu există coadă cu acest
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf: `alert:internal:campaign-launched`. Runtime apropiat: `alerts:campaign:trigger`. | v2 L7438. | Mapare semantică, nu egalitate. |
 | 2 | Etapă, familie, swimlane | — | v2 E5 `alerts`. | — |

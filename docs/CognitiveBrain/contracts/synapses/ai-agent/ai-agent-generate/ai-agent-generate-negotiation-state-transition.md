@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-generate` | **Planificare:** traseu `ai-agent-generate`. **Matrix:** `ai:agent:generate` → [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). Contractul neuron: **neconciliat** cu handler dedicat și intrare registry pentru coada literală; nu extrapola comportament din numele traseului. |
-| Țintă | `negotiation-state-transition` | **Matrix:** `negotiation:state:transition` → [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). **Registry:** `E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition`. **Catalog:** perechi documentate în contractul neuron. |
+| Destinație (graf) | `negotiation-state-transition` | **Matrix:** `negotiation:state:transition` → [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). **Registry:** `E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition`. **Catalog:** perechi documentate în contractul neuron. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia declară o **dependency** de la `ai-agent-generate` către `negotiation-state-transition`: în planificare, evoluția stării negocierii este un pas plasat în relație canonică cu traseul de generare agent. Textul v2 pentru sinapsă rămâne la **„sinapsă canonică de pipeline”** — fără enumerare de stări (`PROPOSAL`, `NEGOTIATION`, etc.) sau trigger-e în export. Semantica detaliată a tranzițiilor aparține contractului neuron țintă și implementării; această pagină nu o completează din presupuneri.
+Muchia declară o **dependency** de la `ai-agent-generate` către `negotiation-state-transition`: în planificare, evoluția stării negocierii este un pas plasat în relație canonică cu traseul de generare agent. Textul v2 pentru sinapsă rămâne la **„sinapsă canonică de pipeline”** — fără enumerare de stări (`PROPOSAL`, `NEGOTIATION`, etc.) sau trigger-e în export. Semantica detaliată a tranzițiilor aparține contractului neuron destinație și implementării; această pagină nu o completează din presupuneri.
 
 ## Semantica confirmată (registru v2 §7)
 

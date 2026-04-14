@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-daily-unmat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** **dublu gap** posibil (sursă + țintă) — ambele capete necesită contracte neuron.
+- **Runtime:** **dublu gap** posibil (sursă + destinație) — ambele capete necesită contracte neuron.
 - **Planificare:** muchie structurală export-grounded.
 
 ## Limite și reconcilieri

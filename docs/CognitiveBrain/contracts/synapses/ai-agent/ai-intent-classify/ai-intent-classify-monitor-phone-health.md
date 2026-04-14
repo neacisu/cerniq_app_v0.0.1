@@ -37,7 +37,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; țintă: `QUEUES.MONITOR_PHONE_HEALTH` → `monitor:phone:health` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E2/monitor--phone--health.md`](../../../neurons/E2/monitor--phone--health.md).
+- **Runtime:** sursă: `QUEUES.E3_INTENT_CLASSIFY` → `intent:classify`; destinație: `QUEUES.MONITOR_PHONE_HEALTH` → `monitor:phone:health` (`workers/shared/src/queue-registry.ts`). Matrice + contracte: [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv), [`../../../neurons/E2/ai--intent--classify.md`](../../../neurons/E2/ai--intent--classify.md), [`../../../neurons/E2/monitor--phone--health.md`](../../../neurons/E2/monitor--phone--health.md).
 - **Semantic:** `nodeKey` / swimlane — `cognitive-node-catalog.ts` + contractele neuron.
 - **Planificare:** muchie **`dependency`**: în graful exportat, `ai-intent-classify` precede `monitor-phone-health`; v2 confirmă doar „sinapsă canonică de pipeline”, fără semantica operațională suplimentară în registru.
 

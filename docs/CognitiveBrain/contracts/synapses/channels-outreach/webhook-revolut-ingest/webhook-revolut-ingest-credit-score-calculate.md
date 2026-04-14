@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **ingest Revolut** și **cal
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / Semantic:** E4 cash — vezi contract țintă pentru intrări/ieșiri.
+- **Runtime / Semantic:** E4 cash — vezi contract destinație pentru intrări/ieșiri.
 - **Planificare:** `dependency`.
 
 ## Limite și reconcilieri

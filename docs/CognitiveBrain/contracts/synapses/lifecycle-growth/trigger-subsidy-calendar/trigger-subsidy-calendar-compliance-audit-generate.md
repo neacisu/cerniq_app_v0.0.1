@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `trigger-subsidy-calendar` → `compliance-audit-generate`.
-- **Runtime:** sursă — J54; țintă — vezi neuron `compliance-audit-generate` și registry.
+- **Runtime:** sursă — J54; destinație — vezi neuron `compliance-audit-generate` și registry.
 
 ## Limite și reconcilieri
 
-- Muchia exprimă **topologie planificată**; legătura operațională exactă (cine enque-uiește pe coada țintă) **nu** este în exportul v2 citit — vezi codul workerilor.
+- Muchia exprimă **topologie planificată**; legătura operațională exactă (cine enque-uiește pe coada destinație) **nu** este în exportul v2 citit — vezi codul workerilor.
 
 ## Sursă canonică
 

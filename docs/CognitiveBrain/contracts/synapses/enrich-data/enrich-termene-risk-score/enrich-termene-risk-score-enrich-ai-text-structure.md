@@ -22,7 +22,7 @@
 
 ## Scop muchie în pipeline (export-grounded)
 
-Dependența **`dependency`** conectează traseul «risk-score» de **enrich-ai-text-structure** în graful planificat: structurarea AI este inclusă în același desen topologic cu nodul de risc Termene. Execuția (ex. mapare la J1) este în contractele neuron țintă, nu dedusă din sinapsă.
+Dependența **`dependency`** conectează traseul «risk-score» de **enrich-ai-text-structure** în graful planificat: structurarea AI este inclusă în același desen topologic cu nodul de risc Termene. Execuția (ex. mapare la J1) este în contractele neuron destinație, nu dedusă din sinapsă.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -43,7 +43,7 @@ Dependența **`dependency`** conectează traseul «risk-score» de **enrich-ai-t
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Risc Termene: coadă `enrich:termene:risk`. Structurare: posibil `ai:structure:xai` — vezi contract țintă. |
+| **Runtime (ADR-0001)** | Risc Termene: coadă `enrich:termene:risk`. Structurare: posibil `ai:structure:xai` — vezi contract destinație. |
 | **Semantic (ADR-0002)** | E1. |
 | **Planificare** | v2 §7 — muchie canonică de pipeline. |
 

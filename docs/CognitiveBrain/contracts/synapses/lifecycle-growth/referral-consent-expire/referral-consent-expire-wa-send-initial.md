@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-consent-expire` → `wa-send-initial`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; țintă `wa:send:initial` la **L115** (E2) și **L268** (E5) în fișier — duplicate.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; **Destinație (coadă):** `wa:send:initial` la **L115** (E2) și **L268** (E5) în fișier — duplicate.
 - **Runtime:** vezi neuronii; **nu** alegem o singură coadă din muchie.
 
 ## Limite și reconcilieri

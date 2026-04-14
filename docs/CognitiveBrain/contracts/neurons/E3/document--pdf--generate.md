@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2: `cognitive.e3.document.pdf-generate` (L4841). | **Parțial aliniat.** |
 | 7 | Înveliș politică | Throw dacă document lipsă sau series/number goale (`i51` L63–72). | v2: Tier 3, HITL (L4831, L4839). | — |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | Validare tenant + `oblioDocuments` row; tip document INVOICE/PROFORMA/CREDIT_NOTE (`i51` L74–75). | ADR-0007 — țintă. | — |
+| 9 | Guardrails | Validare tenant + `oblioDocuments` row; tip document INVOICE/PROFORMA/CREDIT_NOTE (`i51` L74–75). | ADR-0007 — destinație documentată. | — |
 | 10 | Escaladare HITL | Nu în I51. | v2 / ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE — job + DB; ORIENT — tip document; DECIDE — link; ACT — download PDF (`i51` L46–100). | v2 OODA generic (L4837). | ACT = integrare Oblio, nu „emitere” locală. |
 | 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 3 (L4831). | — |

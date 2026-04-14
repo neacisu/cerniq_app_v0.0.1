@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `mcp-tool-register` | [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md). **Runtime:** `mcp:tool:register` (`QUEUES.E3_MCP_TOOL_REGISTER`, `queue-registry.ts` L330). |
+| Destinație (graf) | `mcp-tool-register` | [`../../../neurons/E3/mcp--tool--register.md`](../../../neurons/E3/mcp--tool--register.md). **Runtime:** `mcp:tool:register` (`QUEUES.E3_MCP_TOOL_REGISTER`, `queue-registry.ts` L330). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `mcp:tool:register`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `mcp:tool:register`.
 - **Semantic (ADR-0002):** `e3:mcp:tool-register`; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `mcp-tool-register`.
 

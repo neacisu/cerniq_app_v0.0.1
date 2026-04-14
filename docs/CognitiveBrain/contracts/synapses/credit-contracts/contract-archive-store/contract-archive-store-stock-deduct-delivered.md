@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Neuronii E4 pentru stoc pot indica echivalente E3 sau gap-uri — nu generaliza fără contractul țintă.
+- Neuronii E4 pentru stoc pot indica echivalente E3 sau gap-uri — nu generaliza fără contractul destinație.
 - Fără completări fictive pentru payload sau retry.
 
 ## Sursă canonică

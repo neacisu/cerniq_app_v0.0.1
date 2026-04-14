@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_PRICING_COMPETITOR_CHECK` → `QUEUES.E3_STOCK_RESERVE_CREATE` — `workers/shared/src/queue-registry.ts`; [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) (familii `pricing` și `stock`).
-- **Semantic:** contracte neuron sursă și țintă; posibile legături încrucișate de etapă în catalog — verificați `cognitive-node-catalog.ts` per `nodeKey`.
+- **Semantic:** contracte neuron sursă și destinație; posibile legături încrucișate de etapă în catalog — verificați `cognitive-node-catalog.ts` per `nodeKey`.
 - **Planificare:** muchie **`dependency`**: `pricing-competitor-check` precede `stock-reserve-create` în export; v2 confirmă doar „sinapsă canonică de pipeline”.
 
 ## Limite și reconcilieri

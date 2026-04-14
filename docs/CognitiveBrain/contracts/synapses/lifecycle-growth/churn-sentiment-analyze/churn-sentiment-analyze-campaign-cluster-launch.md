@@ -43,7 +43,7 @@ Muchia **`dependency`** ordonează **churn-sentiment-analyze** față de **campa
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: vezi catalog `e2:ai:sentiment-analyze` în contract E2. Pentru țintă: gap posibil pentru `campaign:cluster:launch` — vezi contract E5. |
+| **Runtime (ADR-0001)** | Sursă: vezi catalog `e2:ai:sentiment-analyze` în contract E2. Pentru destinație: gap posibil pentru `campaign:cluster:launch` — vezi contract E5. |
 | **Semantic (ADR-0002)** | Capete în foldere **E2** vs **E5** — reconciliere prin graf, nu presupunere de co-locare worker. |
 | **Planificare** | v2 §7 — `dependency`. |
 

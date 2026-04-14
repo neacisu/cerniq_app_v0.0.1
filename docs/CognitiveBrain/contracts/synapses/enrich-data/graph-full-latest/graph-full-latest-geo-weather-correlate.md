@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-weather-correlate`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”; corelația meteo în contractul țintă.
+Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-weather-correlate`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”; corelația meteo în contractul destinație.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-full-latest`** de **`geo-weather-correla
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
 | **Semantic (ADR-0002)** | Vezi `geo--weather--correlate`. |
 | **Planificare (export)** | v2 §7 — `graph-full-latest` → `geo-weather-correlate`, tip `dependency`. |
 

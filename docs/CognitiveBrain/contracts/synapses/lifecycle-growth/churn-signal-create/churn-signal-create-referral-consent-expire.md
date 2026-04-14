@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `churn-signal-create` → `referral-consent-expire`.
-- **Runtime (ADR-0001):** E5 — vezi neuronii sursă și țintă.
+- **Runtime (ADR-0001):** E5 — vezi neuronii sursă și destinație.
 - **Semantic (ADR-0002):** vezi catalog.
 
 ## Limite și reconcilieri

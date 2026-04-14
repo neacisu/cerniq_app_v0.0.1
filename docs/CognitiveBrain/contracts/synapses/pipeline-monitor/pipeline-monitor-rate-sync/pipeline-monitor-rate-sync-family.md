@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `pipeline-monitor-rate-sync` | Traseu în graf; [`../../../neurons/E1/pipeline--monitor--rate-sync.md`](../../../neurons/E1/pipeline--monitor--rate-sync.md). **v2 / matrice:** `pipeline:monitor:rate-sync`. **Runtime (ADR-0001):** aceeași coadă `pipeline:monitor` ca și «health»; secțiunea «rate/backlog» în `p3-pipeline-monitor.ts` (gauge `queueDepth` din `queueRegistry`) — vezi contractul neuron. |
-| Țintă | `e1-monitor` | Nod agregat **familie monitor** E1; **nu** este o singură coadă executabilă; [`../../../adr/families/e1/monitor.md`](../../../adr/families/e1/monitor.md). |
+| Destinație (graf) | `e1-monitor` | Nod agregat **familie monitor** E1; **nu** este o singură coadă executabilă; [`../../../adr/families/e1/monitor.md`](../../../adr/families/e1/monitor.md). |
 
 ## Tip muchie (export)
 

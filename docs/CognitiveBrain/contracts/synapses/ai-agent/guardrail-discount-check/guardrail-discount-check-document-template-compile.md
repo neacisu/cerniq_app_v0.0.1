@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `document-template-compile` | **Matrix:** `document:template:compile` → [`../../../neurons/E3/document--template--compile.md`](../../../neurons/E3/document--template--compile.md). **Registry:** `E3_DOCUMENT_TEMPLATE_COMPILE` → `document:template:compile`. |
+| Destinație (graf) | `document-template-compile` | **Matrix:** `document:template:compile` → [`../../../neurons/E3/document--template--compile.md`](../../../neurons/E3/document--template--compile.md). **Registry:** `E3_DOCUMENT_TEMPLATE_COMPILE` → `document:template:compile`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară că **`document-template-compile`** este canonic legat de **`guardrail-discount-check`**. v2: **„sinapsă canonică de pipeline”**; fără detalii despre șabloane, variabile sau condiții de blocare. Implementarea compilării șablonului este în contractul neuron țintă.
+Muchia **dependency** declară că **`document-template-compile`** este canonic legat de **`guardrail-discount-check`**. v2: **„sinapsă canonică de pipeline”**; fără detalii despre șabloane, variabile sau condiții de blocare. Implementarea compilării șablonului este în contractul neuron destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-deduct-delivered` → `alert-internal-return-received`.
-- **Semantic:** vezi matrice rând **193** și contractul neuron țintă.
+- **Semantic:** vezi matrice rând **193** și contractul neuron destinație.
 
 ## Sursă canonică
 

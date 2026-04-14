@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** F33 vs sesiune MCP.
-- **Semantic (ADR-0002):** vezi contracte sursă/țintă.
+- **Semantic (ADR-0002):** vezi contracte sursă/destinație.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

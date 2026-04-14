@@ -44,7 +44,7 @@
 | 6 | Înveliș telemetrie | OTel span-uri pe worker-ii D*; **fără** span numit `graph.full.metrics`. | v2 `cognitive.graph.full.metrics` (L8473). | — |
 | 7 | Înveliș politică | — | v2 L8471–8472. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | — | NeMo țintă. | — |
+| 9 | Guardrails | — | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8472. | — |
 | 11 | Micro-OODA | — | v2 L8469. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8464). | — |

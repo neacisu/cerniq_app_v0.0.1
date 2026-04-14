@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:data:fetch-bilant", …)` (L39–41). | v2 `cognitive.e4.credit.data-fetch-bilant` (L6691). | **Span vs catalog:** aceeași tensiune `:` (span) vs `-` (`nodeKey`). |
 | 7 | Înveliș politică | — | v2 L6689. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Integrare Termene deterministă în procesor. | NeMo țintă. | — |
+| 9 | Guardrails | Integrare Termene deterministă în procesor. | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6689. | — |
 | 11 | Micro-OODA | Child paralel în Flow C13 → date pentru C17. | v2 L6687. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6681). | — |

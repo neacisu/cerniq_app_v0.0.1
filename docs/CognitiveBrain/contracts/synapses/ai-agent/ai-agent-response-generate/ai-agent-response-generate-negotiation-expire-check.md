@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-response-generate` | **Planificare:** traseu `ai-agent-response-generate`. **Matrix:** `ai:agent:response-generate` → [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** worker pe **`ai:e3:response:generate`** (`QUEUES.E3_AI_RESPONSE_GENERATE`); v2/Matrix folosesc alt literal pentru același neuron — vezi contractul sursă. |
-| Țintă | `negotiation-expire-check` | **Matrix:** `negotiation:expire:check` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK` → `negotiation:expire:check`. |
+| Destinație (graf) | `negotiation-expire-check` | **Matrix:** `negotiation:expire:check` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK` → `negotiation:expire:check`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia de tip **dependency** declară în graful exportat că traseul `ai-agent-response-generate` este legat canonic în pipeline de `negotiation-expire-check`. Descrierea confirmată în v2 este generică (**„sinapsă canonică de pipeline”**): exportul nu precizează cum se propagă contextul între generarea/post-procesarea răspunsului agent (C15) și verificarea TTL/expirării negocierilor (D23). În cod, neuronul țintă este documentat ca job D23 cu logică SQL și enfileuire către `negotiation:abandon:process` — aceste detalii apar în contractul neuron țintă, **nu** în registrul sinapsei v2.
+Muchia de tip **dependency** declară în graful exportat că traseul `ai-agent-response-generate` este legat canonic în pipeline de `negotiation-expire-check`. Descrierea confirmată în v2 este generică (**„sinapsă canonică de pipeline”**): exportul nu precizează cum se propagă contextul între generarea/post-procesarea răspunsului agent (C15) și verificarea TTL/expirării negocierilor (D23). În cod, neuronul destinație este documentat ca job D23 cu logică SQL și enfileuire către `negotiation:abandon:process` — aceste detalii apar în contractul neuron destinație, **nu** în registrul sinapsei v2.
 
 ## Semantica confirmată (registru v2 §7)
 

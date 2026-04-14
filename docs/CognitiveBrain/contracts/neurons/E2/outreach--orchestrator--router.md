@@ -2,7 +2,7 @@
 
 # Neuron `outreach:orchestrator:router`
 
-> **Status:** audit manual **2026-04-11**. Worker subțire: redirecționează către o coadă țintă dinamică (`targetQueue`) cu payload propagat.
+> **Status:** audit manual **2026-04-11**. Worker subțire: redirecționează către o coadă destinație dinamică (`targetQueue`) cu payload propagat.
 
 ## Metadata
 
@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` fără `withCognitiveSpan` explicit în procesor. | Span v2. | **Limită:** `job.data` router are `targetQueue` + `payload`; `tenantId` poate fi doar în `payload`. `buildCognitiveContextFromJob` verifică `data.tenantId` la rădăcină → **`withCognitiveSpan` din fabrică poate fi ocolit** (L105–106 `factory.ts`) pentru job-uri fără `tenantId` top-level. |
 | 7 | Înveliș politică | Nicio politică suplimentară în router. | v2 tier 2. | — |
 | 8 | Rutare model (dacă AI) | N/A | v2 LLM — neimplementat. | N/A |
-| 9 | Guardrails | Doar `ensureJobDataCorrelationId`. | ADR-0007 țintă. | `targetQueue` nevalidat în acest fișier. |
+| 9 | Guardrails | Doar `ensureJobDataCorrelationId`. | ADR-0007 — destinație. | `targetQueue` nevalidat în acest fișier. |
 | 10 | Escaladare HITL | Nu. | v2. | — |
 | 11 | Micro-OODA | OBSERVE: citire job; DECIDE: implicit forward; ACT: `q.add`. | v2 OODA complet — simplificat în cod. | — |
 | 12 | Tier + de-escaladare | Eșec `add`/Redis → excepție. | v2. | — |

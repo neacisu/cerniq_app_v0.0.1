@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:limit:calculate", …)` (L43–45). | v2 `cognitive.e4.credit.limit-calculate` (L6760). | **Span vs catalog:** `limit:calculate` în span vs `limit-calculate` în `nodeKey`. |
 | 7 | Înveliș politică | HITL prin `approvalService` (c18). | v2 HITL obligatoriu acțiuni ireversibile (L6758). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Prag `HITL_THRESHOLD_RON` din engine (import L23–27). | NeMo țintă. | — |
+| 9 | Guardrails | Prag `HITL_THRESHOLD_RON` din engine (import L23–27). | NeMo destinație. | — |
 | 10 | Escaladare HITL | Task aprobare în cod (c18). | v2 L6758. | — |
 | 11 | Micro-OODA | Scor + tier → limită → persistare + opțional HITL. | v2 L6756. | — |
 | 12 | Tier + de-escaladare | — | Tier 2 (L6750). | — |

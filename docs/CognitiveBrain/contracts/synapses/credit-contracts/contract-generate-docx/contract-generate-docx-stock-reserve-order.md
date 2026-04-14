@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- Muchia nu afirmă existența cozii literale `stock:reserve:order` în `QUEUES` fără contractul țintă.
+- Muchia nu afirmă existența cozii literale `stock:reserve:order` în `QUEUES` fără contractul destinație.
 
 ## Sursă canonică
 

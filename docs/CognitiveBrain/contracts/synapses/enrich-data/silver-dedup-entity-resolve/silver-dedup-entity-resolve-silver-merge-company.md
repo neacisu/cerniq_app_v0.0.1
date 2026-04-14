@@ -48,7 +48,7 @@
 ## Limite și reconcilieri
 
 - **Sursă:** `silver:dedup:entity-resolve` vs **`dedup:exact`**.
-- **Țintă:** `silver:merge:company` **fără** coadă 1:1 în registry — vezi neuronul țintă.
+- **Țintă:** `silver:merge:company` **fără** coadă 1:1 în registry — vezi neuronul destinație.
 
 ## Sursă canonică
 

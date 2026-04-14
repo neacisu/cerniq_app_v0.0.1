@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-erp` → `guardrail-log-analyze`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L176**; țintă `guardrail:log:analyze` la **L144**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L176**; **Destinație (coadă):** `guardrail:log:analyze` la **L144**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

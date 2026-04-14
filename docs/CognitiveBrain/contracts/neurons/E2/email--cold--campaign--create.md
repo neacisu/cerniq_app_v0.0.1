@@ -50,7 +50,7 @@
 | 6 | Înveliș telemetrie | `createWorker` → `cognitive:e2:email:cold-campaign-create` când `tenantId` lipsește din payload, instrumentarea cognitivă poate ocoli procesorul (`factory.ts` L105–106); **payload-ul curent** al jobului are doar `name` / `daily_sending_limit` — **fără** `tenantId` în tipul din `extra-dispatch.ts` L47. | v2: span `cognitive.e2.email.cold-campaign-create`. | Risc: span cognitiv cu context incomplet dacă nu există `tenantId` pe job. |
 | 7 | Înveliș politică | **Fără** Cedar/OPA; retry la erori HTTP prin client Instantly. | v2: HITL la eșecuri repetate, SLA 8h. | Mapare SLA/HITL: neobservată în procesor. |
 | 8 | Rutare model (dacă AI) | N/A. | Non-AI. | — |
-| 9 | Guardrails | Validare erori HTTP în `InstantlyClient`; **fără** NeMo. | ADR-0007. | NeMo: țintă. |
+| 9 | Guardrails | Validare erori HTTP în `InstantlyClient`; **fără** NeMo. | ADR-0007. | NeMo: destinație documentată. |
 | 10 | Escaladare HITL | **Nu** enfilează `human:*`. | v2: HITL după 3+ erori. | — |
 | 11 | Micro-OODA | Observe (body job), Act (POST `/campaign`). | v2 OODA detaliat. | Pași ORIENT/DECIDE expliciți: minimali în cod. |
 | 12 | Tier + de-escaladare | Eșec → excepție + retry BullMQ. | v2 Tier 4. | — |

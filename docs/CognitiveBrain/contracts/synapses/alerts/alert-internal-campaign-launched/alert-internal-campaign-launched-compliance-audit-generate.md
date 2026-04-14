@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap/apropiere `alerts:campaign:trigger`; țintă — gap `compliance:audit:generate`.
-- **Semantic (ADR-0002):** `e5:compliance:*` vs neuronțintă — vezi contracte.
+- **Runtime (ADR-0001):** sursă — gap/apropiere `alerts:campaign:trigger`; destinație — gap `compliance:audit:generate`.
+- **Semantic (ADR-0002):** `e5:compliance:*` vs neuron destinație — vezi contracte.
 - **Planificare:** v2 §7 — `alert-internal-campaign-launched` → `compliance-audit-generate`.
 
 ## Limite și reconcilieri

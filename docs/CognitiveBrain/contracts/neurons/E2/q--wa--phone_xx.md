@@ -54,7 +54,7 @@
 ### Mapare OTel
 
 - **v2:** `cognitive.q.wa.phone_XX`.
-- **Cod:** telemetrie per **`q:wa:phone-NN`**; mapare agregată „XX” = **țintă documentară**, implementare = N instanțe.
+- **Cod:** telemetrie per **`q:wa:phone-NN`**; mapare agregată „XX” = **destinație documentară**, implementare = N instanțe.
 
 ---
 *Generator inițial:* înlocuit prin audit manual.

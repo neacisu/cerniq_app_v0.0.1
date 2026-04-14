@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-agent-orchestrate` | [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). **Runtime:** `ai:agent:orchestrate` (`QUEUES.E3_AI_AGENT_ORCHESTRATE`, `queue-registry.ts` L228). |
+| Destinație (graf) | `ai-agent-orchestrate` | [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). **Runtime:** `ai:agent:orchestrate` (`QUEUES.E3_AI_AGENT_ORCHESTRATE`, `queue-registry.ts` L228). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `search:query:rewrite` → `ai:agent:orchestrate`.
-- **Semantic (ADR-0002):** `e3:search:query-rewrite`; țintă — `e3:ai:agent-orchestrate` (catalog — contract neuron).
+- **Semantic (ADR-0002):** `e3:search:query-rewrite`; destinație — `e3:ai:agent-orchestrate` (catalog — contract neuron).
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-agent-orchestrate`.
 
 ## Limite și reconcilieri

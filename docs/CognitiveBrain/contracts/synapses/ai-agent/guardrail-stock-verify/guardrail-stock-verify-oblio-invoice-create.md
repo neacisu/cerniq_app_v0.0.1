@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | **Gap runtime (documentat):** coada **`guardrail:stock:verify`** nu apare în `workers/shared/src/queue-registry.ts`; vezi [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md). Rând [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv): `queue_in_registry` = `no`. |
-| Țintă | `oblio-invoice-create` | Coadă executabilă **`oblio:invoice:create`** (`QUEUES.E3_OBLIO_INVOICE_CREATE`) — [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). |
+| Destinație (graf) | `oblio-invoice-create` | Coadă executabilă **`oblio:invoice:create`** (`QUEUES.E3_OBLIO_INVOICE_CREATE`) — [`../../../neurons/E3/oblio--invoice--create.md`](../../../neurons/E3/oblio--invoice--create.md). |
 
 ## Tip muchie (export)
 
@@ -42,9 +42,9 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`; `E3_OBLIO_INVOICE_CREATE`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:invoice-create` / `oblio:invoice:create` — „Emitere factură finală în Oblio după confirmare client” (~L1871–1877), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:invoice-create` / `oblio:invoice:create` — „Emitere factură finală în Oblio după confirmare client” (~L1871–1877), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-stock-verify` → `oblio-invoice-create`.
-- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada țintă (`queue_in_registry` = `yes` în CSV).
+- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada destinație (`queue_in_registry` = `yes` în CSV).
 
 ## Limite și reconcilieri
 

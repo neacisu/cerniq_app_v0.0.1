@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **`dependency`** leagă în planificare **`graph-full-built-at`** de **`geo-territory-map`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Nu se afirmă din export sursa hărților teritoriale, rezoluția sau formatul — acestea țin de contractul neuron țintă și de branch.
+Muchia **`dependency`** leagă în planificare **`graph-full-built-at`** de **`geo-territory-map`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Nu se afirmă din export sursa hărților teritoriale, rezoluția sau formatul — acestea țin de contractul neuron destinație și de branch.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -44,7 +44,7 @@ Muchia **`dependency`** leagă în planificare **`graph-full-built-at`** de **`g
 | Autoritate | Observație |
 | --- | --- |
 | **Runtime (ADR-0001)** | Vezi `queue-registry.ts` prin `geo--territory--map` și gap sursă în `graph--full--built_at`. |
-| **Semantic (ADR-0002)** | `e5:geo:territory-calculate` sau echivalent din contract țintă — nu duplicat aici. |
+| **Semantic (ADR-0002)** | `e5:geo:territory-calculate` sau echivalent din contract destinație — nu duplicat aici. |
 | **Planificare (export)** | v2 §7 — `graph-full-built-at` → `geo-territory-map`, tip `dependency`. |
 
 ## Traseu și vecini

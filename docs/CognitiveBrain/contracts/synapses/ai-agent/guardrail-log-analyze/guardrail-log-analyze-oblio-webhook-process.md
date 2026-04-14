@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `oblio-webhook-process` | **Matrix:** `oblio:webhook:process` → [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). **Registry:** `E3_OBLIO_WEBHOOK_PROCESS` → `oblio:webhook:process`. |
+| Destinație (graf) | `oblio-webhook-process` | **Matrix:** `oblio:webhook:process` → [`../../../neurons/E3/oblio--webhook--process.md`](../../../neurons/E3/oblio--webhook--process.md). **Registry:** `E3_OBLIO_WEBHOOK_PROCESS` → `oblio:webhook:process`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară că **`oblio-webhook-process`** este canonic legat de **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; nu enumeră tipuri de evenimente webhook. Nodul **țintă** este executabil în registry; sursa rămâne sub gap-ul documentat în contractul neuron.
+Muchia **dependency** declară că **`oblio-webhook-process`** este canonic legat de **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; nu enumeră tipuri de evenimente webhook. Nodul **destinație** este executabil în registry; sursa rămâne sub gap-ul documentat în contractul neuron.
 
 ## Semantica confirmată (registru v2 §7)
 

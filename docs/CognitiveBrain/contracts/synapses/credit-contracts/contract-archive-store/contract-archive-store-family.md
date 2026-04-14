@@ -13,7 +13,7 @@
 
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
-| Sursă | `contract-archive-store` | Traseu arhivare documente; [`../../../neurons/E3/contract--archive--store.md`](../../../neurons/E3/contract--archive--store.md). **Reconciliere:** v2_queue graf `contract:archive:store` → **runtime** `document:archive:store`, **Semantic (ADR-0002):** `e3:document:archive-store` — etapă **E3** în contractul neuron (atenție la tensiune cu agregatul țintă E4 din graf). |
+| Sursă | `contract-archive-store` | Traseu arhivare documente; [`../../../neurons/E3/contract--archive--store.md`](../../../neurons/E3/contract--archive--store.md). **Reconciliere:** v2_queue graf `contract:archive:store` → **runtime** `document:archive:store`, **Semantic (ADR-0002):** `e3:document:archive-store` — etapă **E3** în contractul neuron (atenție la tensiune cu agregatul destinație E4 din graf). |
 | Destinație (graf) | `e4-contracts` | Agregat familie **contracts** (planificare E4); [`../../../../adr/families/e4/contracts.md`](../../../../adr/families/e4/contracts.md); v2 `ADR-FAMILY-e4-contracts`. Nu este o singură coadă executabilă. |
 
 ## Tip muchie (export)

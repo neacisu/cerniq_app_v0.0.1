@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Reconciliere:** contractul neuron marchează **gap runtime** (lipsă din `queue-registry.ts` la audit); muchia exprimă **planificare**, nu execuție confirmată pe această coadă. |
-| Țintă | `document-email-send` | **Matrix:** `document:email:send` → [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). **Registry:** `document:email:send`. |
+| Destinație (graf) | `document-email-send` | **Matrix:** `document:email:send` → [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). **Registry:** `document:email:send`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară în graf că **`document-email-send`** depinde canonic de traseul **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; nu descrie cum analiza logurilor precede sau validează trimiterea e-mail. Nodul **țintă** este executabil în registry; **sursa** rămâne supusă gap-ului documentat în contractul neuron.
+Muchia **dependency** declară în graf că **`document-email-send`** depinde canonic de traseul **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; nu descrie cum analiza logurilor precede sau validează trimiterea e-mail. Nodul **destinație** este executabil în registry; **sursa** rămâne supusă gap-ului documentat în contractul neuron.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -47,7 +47,7 @@ Muchia **dependency** declară în graf că **`document-email-send`** depinde ca
 
 ## Limite și reconcilieri
 
-- **Asimetrie runtime:** capăt țintă confirmat în registry vs sursă ne-reconciliată — nu se echivalează automat cu lanț BullMQ real.
+- **Asimetrie runtime:** capăt destinație confirmat în registry vs sursă ne-reconciliată — nu se echivalează automat cu lanț BullMQ real.
 
 ## Sursă canonică
 

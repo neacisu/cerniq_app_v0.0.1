@@ -51,11 +51,11 @@
 | 4 | NeuronType + SOFAI | Pentru cozile care poartă semnalul: `ToolNeuron` în catalog; System1 (reactiv) conform v2 §2.1. | v2 ToolNeuron pentru mx-check. | Neuronul v2 nu are tip în catalog (gap). |
 | 5 | Criticitate | Catalog pentru hunter-verify / zerobounce: **MEDIUM**; v2 mx-check: **MEDIUM**. | v2. | — |
 | 6 | Înveliș telemetrie | Spanuri reale: **`e1:discover:email-hunter-verify`**, **`e1:discover:email-zerobounce`** (`withCognitiveSpan`). v2 plan: **`cognitive.enrich.email.mx-check`**. | ADR-0003. | Migrare denumiri; fără span dedicat «mx-check». |
-| 7 | Înveliș politică | `callExternalApi` pentru providerii `hunter` și `zerobounce`; rate limit / circuit breaker pentru provideri în `worker-shared` (nu re-auditat fișier cu fișier în acest todo). | v2 tier 4. | OPA: țintă ADR-0007. |
+| 7 | Înveliș politică | `callExternalApi` pentru providerii `hunter` și `zerobounce`; rate limit / circuit breaker pentru provideri în `worker-shared` (nu re-auditat fișier cu fișier în acest todo). | v2 tier 4. | OPA: destinație ADR-0007. |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
 | 9 | Guardrails | Validare email înainte de apel Hunter (~L41–45 `g2-hunter-verifier.ts`); erori API → excepții. | ADR-0007. | — |
 | 10 | Escaladare HITL | Fără HITL în procesoarele citate. | ADR-0008. | — |
-| 11 | Micro-OODA | Job → API validate → câmp MX în payload → persistare metadata. Neo4j GraphRAG: țintă ADR-0005 dacă lipsește client. | v2 OODA generic. | — |
+| 11 | Micro-OODA | Job → API validate → câmp MX în payload → persistare metadata. Neo4j GraphRAG: destinație ADR-0005 dacă lipsește client. | v2 OODA generic. | — |
 | 12 | Tier + de-escaladare | Eșec: throw după log în procesoare. | v2 trigger-e. | Fără test unitar care izoleze doar câmpul MX. |
 | 13 | Stack v2 §2.3 (subset) | BullMQ, HTTP către Hunter/ZeroBounce, Postgres, Redis. | v2. | — |
 

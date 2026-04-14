@@ -41,7 +41,7 @@ Traseul **credit-check-order** depinde în planificare de **cererea de semnare D
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** D19 sursă vs G34 țintă — vezi contracte.
+- **Runtime (ADR-0001):** D19 sursă vs G34 destinație — vezi contracte.
 - **Semantic (ADR-0002):** credit E4 ↔ DocuSign send E4.
 - **Planificare:** v2 §7 — `credit-check-order` → `contract-sign-request`.
 

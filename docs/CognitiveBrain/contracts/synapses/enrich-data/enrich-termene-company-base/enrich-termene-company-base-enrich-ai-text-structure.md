@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `enrich-termene-company-base` | Contract: [`../../../neurons/E1/enrich--termene--company-base.md`](../../../neurons/E1/enrich--termene--company-base.md). **v2_queue:** `enrich:termene:company-base`. |
-| Destinație (graf) | `enrich-ai-text-structure` | Contract: [`../../../neurons/E1/enrich--ai--text-structure.md`](../../../neurons/E1/enrich--ai--text-structure.md). **v2_queue:** `enrich:ai:text-structure`. Reconciliere graf vs `ai:structure:xai`: discuție în contractul țintă și [`../../../adr/families/e1/ai-enrichment.md`](../../../adr/families/e1/ai-enrichment.md). |
+| Destinație (graf) | `enrich-ai-text-structure` | Contract: [`../../../neurons/E1/enrich--ai--text-structure.md`](../../../neurons/E1/enrich--ai--text-structure.md). **v2_queue:** `enrich:ai:text-structure`. Reconciliere graf vs `ai:structure:xai`: discuție în contractul destinație și [`../../../adr/families/e1/ai-enrichment.md`](../../../adr/families/e1/ai-enrichment.md). |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie în pipeline (export-grounded)
 
-Muchia **`dependency`** conectează în planificare traseul Termene «company-base» de traseul **enrich-ai-text-structure** (structurare text / date neuniforme → structură în sensul v2). Interpretarea operațională exactă (ex. apel J1) **nu** face parte din câmpurile sinapsei exportate; rămâne în contractul neuron țintă.
+Muchia **`dependency`** conectează în planificare traseul Termene «company-base» de traseul **enrich-ai-text-structure** (structurare text / date neuniforme → structură în sensul v2). Interpretarea operațională exactă (ex. apel J1) **nu** face parte din câmpurile sinapsei exportate; rămâne în contractul neuron destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

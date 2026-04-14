@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-trigger-weather` → `hitl-task-create`.
-- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron sursă și țintă.
+- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron sursă și destinație.
 
 ## Limite și reconcilieri
 
-- **E5 sursă → E5 țintă HITL:** ambele contracte sunt sub etapa E5; execuția concretă rămâne sub incidenta registry și a handlerilor citați în neuroni.
+- **E5 sursă → E5 destinație HITL:** ambele contracte sunt sub etapa E5; execuția concretă rămâne sub incidenta registry și a handlerilor citați în neuroni.
 
 ## Sursă canonică
 

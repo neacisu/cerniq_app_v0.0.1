@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | Traseu în graf; **coada intenționată** `guardrail:stock:verify` — [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md) documentează absența din `workers/shared/src/queue-registry.ts` și din `cognitive-node-catalog.ts` (gap față de `guardrail:sku:validate`). Rând CSV: `queue_in_registry` = `no`. |
-| Țintă | `e3-guardrails` | Agregat de **familie** E3 în planificare (etichetă de graf), nu o singură coadă; swimlane semantic `guardrails` / neuroni Guardrail din etapa 3. Fără fișier neuron unic pentru etichetă — mapare prin catalog și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
+| Destinație (graf) | `e3-guardrails` | Agregat de **familie** E3 în planificare (etichetă de graf), nu o singură coadă; swimlane semantic `guardrails` / neuroni Guardrail din etapa 3. Fără fișier neuron unic pentru etichetă — mapare prin catalog și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
 
 ## Tip muchie (export)
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursa are coadă în registry; ținta — vezi dovezi/gap în [`return--process--stock.md`](../../../neurons/E4/return--process--stock.md).
-- **Semantic (ADR-0002):** E3 fiscal-docs → E4 logistics/retur (conform antetelor neuron țintă).
+- **Semantic (ADR-0002):** E3 fiscal-docs → E4 logistics/retur (conform antetelor neuron destinație).
 - **Planificare:** `contract-archive-store` → `return-process-stock`.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-tool-execute` | **Planificare:** traseu `ai-tool-execute`. **Matrix:** `ai:tool:execute` → [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Gap registry/handler** pentru coada literală la audit; parsare/execuție tool în fluxul C14 — nu interpreta „sursa” ca job BullMQ `ai:tool:execute` fără reconciliere. |
-| Țintă | `negotiation-expire-check` | **Matrix:** `negotiation:expire:check` → [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK` → `negotiation:expire:check`. **Catalog:** `negotiation:expire:check` / `e3:negotiation:expire-check` (vezi contract neuron). |
+| Destinație (graf) | `negotiation-expire-check` | **Matrix:** `negotiation:expire:check` → [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK` → `negotiation:expire:check`. **Catalog:** `negotiation:expire:check` / `e3:negotiation:expire-check` (vezi contract neuron). |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** plasează în graf traseul de execuție tool în relație canonică cu `negotiation-expire-check`. Descrierea v2 este **„sinapsă canonică de pipeline”** — fără detaliu despre date sau ordinea scheduler-ului. În cod, neuronul țintă (D23) verifică TTL și enfilează abandon — vezi contractul țintă; legătura cu „tool execute” din v2 nu este expusă ca payload în export.
+Muchia **dependency** plasează în graf traseul de execuție tool în relație canonică cu `negotiation-expire-check`. Descrierea v2 este **„sinapsă canonică de pipeline”** — fără detaliu despre date sau ordinea scheduler-ului. În cod, neuronul destinație (D23) verifică TTL și enfilează abandon — vezi contractul destinație; legătura cu „tool execute” din v2 nu este expusă ca payload în export.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -42,7 +42,7 @@ Muchia **dependency** plasează în graf traseul de execuție tool în relație 
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ținta este documentată cu registry + worker în contractul neuron; sursa rămâne cu **gap** față de registry — vezi [`ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md).
-- **Semantic (ADR-0002):** pentru țintă, perechi din catalog; pentru sursă, lipsă potrivire la auditul din contract neuron.
+- **Semantic (ADR-0002):** pentru destinație, perechi din catalog; pentru sursă, lipsă potrivire la auditul din contract neuron.
 - **Planificare:** dependență structurală în graf, distinctă de „același mesaj de coadă” între capete.
 
 ## Limite și reconcilieri

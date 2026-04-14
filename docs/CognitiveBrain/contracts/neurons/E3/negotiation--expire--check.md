@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.negotiation.expire-check` (L5229). | **Parțial aliniat**. |
 | 7 | Înveliș politică | Filtru SQL explicit + tenant opțional (`d23` L29–31, L54). | v2 Tier 3 (L5219). | — |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
-| 9 | Guardrails | Exclude rânduri fără TTL match; fără NeMo. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Exclude rânduri fără TTL match; fără NeMo. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în D23. | v2 (L5227). | — |
 | 11 | Micro-OODA | OBSERVE — DB; ORIENT — TTL; ACT — enqueue abandon (`d23` L33–79). | v2 poll/alert (L5225). | OODA v2 generic; implementare = scan SQL + jobs. |
 | 12 | Tier + de-escaladare | Fără în D23. | v2 Tier 3 (L5219). | — |

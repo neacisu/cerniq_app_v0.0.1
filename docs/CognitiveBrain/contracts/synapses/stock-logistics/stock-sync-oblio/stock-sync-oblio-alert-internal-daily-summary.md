@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-sync-oblio` → `alert-internal-daily-summary`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; țintă `alert:internal:daily-summary` la **L190** (`queue_in_registry` = `no` — vezi contract neuron).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L243**; **Destinație (coadă):** `alert:internal:daily-summary` la **L190** (`queue_in_registry` = `no` — vezi contract neuron).
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

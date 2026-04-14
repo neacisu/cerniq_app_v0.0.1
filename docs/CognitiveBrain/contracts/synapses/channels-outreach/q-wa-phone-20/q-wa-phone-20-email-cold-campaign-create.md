@@ -41,7 +41,7 @@ Traseul **WA linia 20** depinde în planificare de **crearea campaniei cold emai
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** orchestrare multi-canal E2.
 - **Planificare:** v2 §7 — `q-wa-phone-20` → `email-cold-campaign-create`.
 

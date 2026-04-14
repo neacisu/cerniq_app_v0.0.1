@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-shipped` | **Matrix:** `alert:client:shipped` — [`../../../neurons/E4/alert--client--shipped.md`](../../../neurons/E4/alert--client--shipped.md). **Gap** registry pentru coada granulară; procesorii generici de alertă scriu în audit prin `createAlertProcessor` (vezi contractul neuron). |
-| Țintă | `audit-log-write` | **Coadă:** `audit:log:write` — [`../../../neurons/E4/audit--log--write.md`](../../../neurons/E4/audit--log--write.md). **Registry:** `QUEUES.E4_AUDIT_LOG_WRITE` (`queue-registry.ts`, ex. L481). |
+| Destinație (graf) | `audit-log-write` | **Coadă:** `audit:log:write` — [`../../../neurons/E4/audit--log--write.md`](../../../neurons/E4/audit--log--write.md). **Registry:** `QUEUES.E4_AUDIT_LOG_WRITE` (`queue-registry.ts`, ex. L481). |
 
 ## Tip muchie (export)
 

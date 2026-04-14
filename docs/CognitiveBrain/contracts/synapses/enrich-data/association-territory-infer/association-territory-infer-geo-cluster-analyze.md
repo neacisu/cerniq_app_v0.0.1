@@ -41,7 +41,7 @@ Traseul **association-territory-infer** depinde în planificare de **analiză cl
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă și țintă au mapări în contractele neuron (inclusiv denumiri cozi).
+- **Runtime (ADR-0001):** sursă și destinație au mapări în contractele neuron (inclusiv denumiri cozi).
 - **Semantic (ADR-0002):** E5 geo / graph-community — vezi cataloage în neuroni.
 - **Planificare:** v2 §7 — `association-territory-infer` → `geo-cluster-analyze`.
 

@@ -41,7 +41,7 @@ Traseul **bronze-ingest-pdf-extractor** depinde în planificare de **detecție c
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** ingest PDF (graf) ↔ detecție comunități E5.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `graph-community-detect`.
 

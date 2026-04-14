@@ -40,7 +40,7 @@ Declanșator meteo în sensul grafului winback; în cod este pipeline de **alert
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf winback vs cozi `alerts:*`. | v2 L9215. | — |
 | 2 | Etapă, familie, swimlane | Catalog J52/J53: `alerts-weather`. | v2 E5 `winback`. | — |

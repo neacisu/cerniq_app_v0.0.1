@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `geo-delivery-optimize` → `nurturing-engagement-track`.
-- **Runtime / semantic:** vezi neuronii; ținta **`nurturing:engagement:track`** are **gap** de coadă literală în registry — vezi contractul țintă.
+- **Runtime / semantic:** vezi neuronii; ținta **`nurturing:engagement:track`** are **gap** de coadă literală în registry — vezi contractul destinație.
 
 ## Limite și reconcilieri
 
-- Mapare operațională pentru țintă: vezi [`../../../neurons/E5/nurturing--engagement--track.md`](../../../neurons/E5/nurturing--engagement--track.md).
+- Mapare operațională pentru destinație: vezi [`../../../neurons/E5/nurturing--engagement--track.md`](../../../neurons/E5/nurturing--engagement--track.md).
 
 ## Sursă canonică
 

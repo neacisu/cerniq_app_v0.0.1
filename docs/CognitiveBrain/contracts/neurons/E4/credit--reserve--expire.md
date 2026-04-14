@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:reservation:expire", …)` (L19–21). | v2 `cognitive.credit.reserve.expire` (L6829). | **Triplu gap:** span **`e4:reservation:expire`** nu apare în catalog; catalog folosește **`e4:pipeline:reservation-expire`**. |
 | 7 | Înveliș politică | Concurrency 1 pe worker (index L315–318). | v2 L6827. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Batch limit 200 (L37). | NeMo țintă. | — |
+| 9 | Guardrails | Batch limit 200 (L37). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6827. | — |
 | 11 | Micro-OODA | Scan expirări → update status + decrement utilizat. | v2 L6825. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6820). | — |

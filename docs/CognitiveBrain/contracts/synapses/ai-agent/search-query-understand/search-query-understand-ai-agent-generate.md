@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | **Matrix** + [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-agent-generate` | [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). **Runtime:** la auditul documentat în contract, **fără** intrare `ai:agent:generate` în `QUEUES`; flux efectiv mapat conceptual la C14/C15 — vezi neuron. |
+| Destinație (graf) | `ai-agent-generate` | [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). **Runtime:** la auditul documentat în contract, **fără** intrare `ai:agent:generate` în `QUEUES`; flux efectiv mapat conceptual la C14/C15 — vezi neuron. |
 
 ## Tip muchie (export)
 
@@ -41,14 +41,14 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă ancorată la `search:query:rewrite`; țintă — gap pentru `ai:agent:generate` în registry la contractul neuron.
-- **Semantic (ADR-0002):** sursă — `e3:search:query-rewrite`; țintă — fără `nodeKey` stabil pentru `ai:agent:generate` în catalog (contract neuron).
+- **Runtime (ADR-0001):** sursă ancorată la `search:query:rewrite`; destinație — gap pentru `ai:agent:generate` în registry la contractul neuron.
+- **Semantic (ADR-0002):** sursă — `e3:search:query-rewrite`; destinație — fără `nodeKey` stabil pentru `ai:agent:generate` în catalog (contract neuron).
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-agent-generate`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `search:query:understand`; `ai:agent:generate` (`queue_in_registry` = `no`).
 
 ## Limite și reconcilieri
 
-- Graf ↔ registry pe capătul `ai-agent-generate`: vezi contractul neuronului țintă.
+- Graf ↔ registry pe capătul `ai-agent-generate`: vezi contractul neuronului destinație.
 - Slug-uri graf (`-`) vs cozi (`:`).
 
 ## Sursă canonică

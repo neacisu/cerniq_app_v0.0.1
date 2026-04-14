@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Matrix:** `ai:response:generate` (E3) → [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md). **Runtime:** `ai:e3:response:generate` (E3) și/sau `ai:response:generate` (E2 outreach) — **reconciliere obligatorie**; v2 nu spune care ramură alimentează muchia. |
-| Țintă | `alert-bounce-high` | **Matrix:** `alert:bounce:high` (E2, `monitoring`) → [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). **Registry:** `ALERT_BOUNCE_HIGH` → `alert:bounce:high`. |
+| Destinație (graf) | `alert-bounce-high` | **Matrix:** `alert:bounce:high` (E2, `monitoring`) → [`../../../neurons/E2/alert--bounce--high.md`](../../../neurons/E2/alert--bounce--high.md). **Registry:** `ALERT_BOUNCE_HIGH` → `alert:bounce:high`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** plasează în graf, în pipeline canonic, **`alert-bounce-high`** ca dependent de traseul **`ai-response-generate`**. v2 confirmă doar **„sinapsă canonică de pipeline”**; nu există în export mecanismul de propagare (ex. același job, același tenant). În cod, alerta de bounce este documentată ca flux E2 (monitor deliverability → prag bounce → coada `alert:bounce:high`) — vezi contractul țintă; legătura cu generarea răspunsului AI rămâne **planificare topologică**, nu dovadă din registrul sinapsei că sursa enfilează direct **ținta**.
+Muchia **dependency** plasează în graf, în pipeline canonic, **`alert-bounce-high`** ca dependent de traseul **`ai-response-generate`**. v2 confirmă doar **„sinapsă canonică de pipeline”**; nu există în export mecanismul de propagare (ex. același job, același tenant). În cod, alerta de bounce este documentată ca flux E2 (monitor deliverability → prag bounce → coada `alert:bounce:high`) — vezi contractul destinație; legătura cu generarea răspunsului AI rămâne **planificare topologică**, nu dovadă din registrul sinapsei că sursa enfilează direct **ținta**.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -48,7 +48,7 @@ Muchia **dependency** plasează în graf, în pipeline canonic, **`alert-bounce-
 ## Limite și reconcilieri
 
 - Slug graf vs cozi cu `:` — mapare prin Matrix + `queue-registry.ts`, fără presupuneri despre payload muchie.
-- Divergențe de payload observate în contractul neuron țintă (ex. câmpuri alertă) **nu** se extrapolează ca fiind „ale sinapsei” din v2.
+- Divergențe de payload observate în contractul neuron destinație (ex. câmpuri alertă) **nu** se extrapolează ca fiind „ale sinapsei” din v2.
 
 ## Sursă canonică
 

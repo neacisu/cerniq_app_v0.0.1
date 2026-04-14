@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | Traseu în graf; [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md) documentează **gap** în `workers/shared/src/queue-registry.ts` și în catalog la auditul din contract; **distinct** de `search:rrf:fuse` (B10). |
-| Țintă | `e3-product-search` | Nod agregat **familie product-search** în planificare; nu este o singură coadă executabilă sau un `nodeKey` unic echivalent în catalog. |
+| Destinație (graf) | `e3-product-search` | Nod agregat **familie product-search** în planificare; nu este o singură coadă executabilă sau un `nodeKey` unic echivalent în catalog. |
 
 ## Tip muchie (export)
 

@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-v2 clasifică muchia drept **„sinapsă canonică de pipeline”** între **asignarea lead-ului** și **clasificarea intenției** în modelul de planificare. Semnificația operațională exactă (cine enfilează, după ce eveniment) **nu** este codificată în câmpurile exportului sinapsei; se sprijină pe contractele neuron sursă/țintă și pe cod.
+v2 clasifică muchia drept **„sinapsă canonică de pipeline”** între **asignarea lead-ului** și **clasificarea intenției** în modelul de planificare. Semnificația operațională exactă (cine enfilează, după ce eveniment) **nu** este codificată în câmpurile exportului sinapsei; se sprijină pe contractele neuron sursă/destinație și pe cod.
 
 ## Semantica confirmată (registru v2 §7)
 

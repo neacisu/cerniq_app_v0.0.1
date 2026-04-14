@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** capăt sursă = cozi WA per-telefon; țintă = vezi evidența E5 din neuron.
+- **Runtime (ADR-0001):** capăt sursă = cozi WA per-telefon; destinație = vezi evidența E5 din neuron.
 - **Semantic (ADR-0002):** `NEURON_MATRIX.csv` — rând alert client referral-reward.
 - **Planificare:** muchie structurală WA inițial → alertă.
 

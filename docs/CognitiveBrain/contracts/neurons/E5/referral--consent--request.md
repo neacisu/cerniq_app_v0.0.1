@@ -44,7 +44,7 @@ După detectare referral (E25), cerere de consimțământ către referrer, înre
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă + catalog + span `e5:referral:consent-request`. | v2 L8970. | — |
 | 2 | Etapă, familie, swimlane | Etapa 5, `referral-management`. | v2 E5 `referral`. | — |

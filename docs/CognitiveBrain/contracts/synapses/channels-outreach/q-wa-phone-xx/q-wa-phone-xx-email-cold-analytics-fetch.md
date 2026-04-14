@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** vezi registry pentru ambele familii de cozi.
-- **Semantic (ADR-0002):** contracte neuron sursă/țintă.
+- **Semantic (ADR-0002):** contracte neuron sursă/destinație.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

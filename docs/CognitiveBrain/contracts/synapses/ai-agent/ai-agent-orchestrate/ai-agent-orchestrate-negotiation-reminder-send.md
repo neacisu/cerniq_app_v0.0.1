@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-agent-orchestrate` | Coadă canonică **`ai:agent:orchestrate`** — [`../../../neurons/E3/ai--agent--orchestrate.md`](../../../neurons/E3/ai--agent--orchestrate.md). |
-| Țintă | `negotiation-reminder-send` | Coadă canonică **`negotiation:reminder:send`** — [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). |
+| Destinație (graf) | `negotiation-reminder-send` | Coadă canonică **`negotiation:reminder:send`** — [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). |
 
 ## Tip muchie (export)
 
@@ -27,7 +27,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **`dependency`** plasează `ai-agent-orchestrate` înaintea `negotiation-reminder-send` în topologia planificată: proiectarea cere ca orchestrarea agentului să preceadă (în sens de dependență de graf) pasul de trimitere a memento-urilor de negociere. Registrul §7 nu specifică payload, retry sau legătura directă între procesorul cozii sursă și producătorul cozii țintă.
+Muchia **`dependency`** plasează `ai-agent-orchestrate` înaintea `negotiation-reminder-send` în topologia planificată: proiectarea cere ca orchestrarea agentului să preceadă (în sens de dependență de graf) pasul de trimitere a memento-urilor de negociere. Registrul §7 nu specifică payload, retry sau legătura directă între procesorul cozii sursă și producătorul cozii destinație.
 
 ## Statusuri de evidență (conservative, din sursă canonică)
 

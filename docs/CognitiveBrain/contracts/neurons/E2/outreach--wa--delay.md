@@ -34,7 +34,7 @@
 
 ## N/A pe criterii
 
-- **Rând 6–12 (parțial):** fără handler runtime — multe celule devin «țintă v2 / spec» vs «lipsă în cod».
+- **Rând 6–12 (parțial):** fără handler runtime — multe celule devin «destinație v2 / spec» vs «lipsă în cod».
 
 ## Tabel self-aware (13 criterii)
 

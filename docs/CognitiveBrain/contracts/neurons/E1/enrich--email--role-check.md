@@ -44,7 +44,7 @@
 | 4 | NeuronType + SOFAI | `ToolNeuron`; System1 per v2 §2.1. | v2. | — |
 | 5 | Criticitate | **MEDIUM**. | v2. | — |
 | 6 | Înveliș telemetrie | **`withCognitiveSpan("e1:discover:email-hunter-verify", …)`** (`g2-hunter-verifier.ts` ~L19–21). v2: `cognitive.enrich.email.role-check`. | ADR-0003. | Migrare denumiri. |
-| 7 | Înveliș politică | Provider `hunter` + validare email minimă. | v2 tier 4. | OPA: țintă. |
+| 7 | Înveliș politică | Provider `hunter` + validare email minimă. | v2 tier 4. | OPA: destinație documentată. |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
 | 9 | Guardrails | Email fără `@` → `invalid_email` (~L41–45). | ADR-0007. | — |
 | 10 | Escaladare HITL | Fără HITL în procesor. | ADR-0008. | — |

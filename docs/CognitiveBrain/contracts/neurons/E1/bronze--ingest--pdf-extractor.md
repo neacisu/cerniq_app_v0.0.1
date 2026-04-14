@@ -45,7 +45,7 @@
 | 3 | Rol declarat | v2: ingest Bronze PDF. Cod E1: **lipsă**. | v2. | — |
 | 4 | NeuronType + SOFAI | v2: `SensoryNeuron`. Cod: **neinstanțiat** E1. | v2. | — |
 | 5 | Criticitate | v2: `MEDIUM`. Cod E1: neaplicabil ca unitate. | v2. | — |
-| 6 | Înveliș telemetrie | **Fără** `withCognitiveSpan` pentru acest `v2_queue` în E1. | ADR-0003. | Doar țintă până la implementare. |
+| 6 | Înveliș telemetrie | **Fără** `withCognitiveSpan` pentru acest `v2_queue` în E1. | ADR-0003. | Doar destinație documentată până la implementare. |
 | 7 | Înveliș politică | Neuron dedicat: lipsă. | v2 Tier 4. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
 | 9 | Guardrails | Neuron E1 dedicat: lipsă. | ADR-0007. | — |
@@ -58,7 +58,7 @@
 
 - **v2:** `cognitive.bronze.ingest.pdf-extractor`.
 - **Cod (E1):** **lipsă** handler → fără `cognitive.nodeKey` operațional pentru acest `v2_queue` la E1.
-- **Stare:** **doar țintă** / gap documentat pentru E1.
+- **Stare:** **doar destinație documentată** / gap documentat pentru E1.
 
 ### Semnale înrudite (nu înlocuiesc neuronul E1 v2)
 

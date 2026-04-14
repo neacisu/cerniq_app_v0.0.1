@@ -50,7 +50,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` (factory). | v2: `cognitive.e3.channel.whatsapp-send` (L4791). | **Parțial aliniat** — ADR-0003 / `cognitive.nodeKey`. |
 | 7 | Înveliș politică | Blackout + validări deterministe; fără Cedar. | v2: Tier 3, HITL la anomalii încredere (L4781, L4789). | **Decalaj:** J59 nu calculează „confidence”; comentariu quota 200/zi — neimplementat ca logică explicită în J59 (L14–17). |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | E.164, blackout, mesaj gol blocat (`j59` L79–100). | ADR-0007 țintă. | — |
+| 9 | Guardrails | E.164, blackout, mesaj gol blocat (`j59` L79–100). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în J59; HITL în J58 dacă fără contact. | v2 politică HITL (L4789). | Escaladare înainte de J59 pe fluxul handover. |
 | 11 | Micro-OODA | OBSERVE — job; ORIENT — validări; DECIDE — queue sau skip; ACT — `add` pe `document:whatsapp:send` (`j59` L69–131). | v2 OODA send/defer (L4787). | ACT = enqueue, nu apel HTTP final în acest neuron. |
 | 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 3 (L4781). | — |

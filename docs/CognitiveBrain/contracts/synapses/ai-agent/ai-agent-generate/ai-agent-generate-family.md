@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `ai-agent-generate` | Nod de familie/traseu în graf. În **Matrix** apare coada literală `ai:agent:generate` (E3, `ai-core`) cu contract [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). Acel contract documentează **gap față de runtime**: la auditul din 2026-04-11, coada **nu** era în `queue-registry.ts` și fluxul efectiv E3 este descris ca `ai:context:build` → `ai:agent:orchestrate` → `ai:e3:response:generate`. Graful rămâne sursa pentru **topologie planificată**; execuția trebuie reconciliată separat. |
-| Țintă | `e3-ai-core` | Nod de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core` pentru neuroni E3. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă agregată de graf. |
+| Destinație (graf) | `e3-ai-core` | Nod de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core` pentru neuroni E3. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă agregată de graf. |
 
 ## Tip muchie (export)
 

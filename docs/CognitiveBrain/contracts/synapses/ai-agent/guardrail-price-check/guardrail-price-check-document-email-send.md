@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-price-check` | Coadă executabilă **`guardrail:price:check`** (`QUEUES.E3_GUARDRAIL_PRICE_CHECK`) — [`../../../neurons/E3/guardrail--price--check.md`](../../../neurons/E3/guardrail--price--check.md). |
-| Țintă | `document-email-send` | Coadă executabilă **`document:email:send`** (`QUEUES.E3_DOCUMENT_EMAIL_SEND`) — [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). |
+| Destinație (graf) | `document-email-send` | Coadă executabilă **`document:email:send`** (`QUEUES.E3_DOCUMENT_EMAIL_SEND`) — [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_PRICE_CHECK`; `E3_DOCUMENT_EMAIL_SEND` — ambele în blocul cozilor E3 fiscal-docs / guardrails din `queue-registry.ts`.
-- **Semantic (ADR-0002):** sursă — guardrail preț determinist (~L2152–2159); țintă — `e3:document:email-send` / `document:email:send` — „Trimitere document fiscal/comercial via email…” (~L1974–1979), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** sursă — guardrail preț determinist (~L2152–2159); destinație — `e3:document:email-send` / `document:email:send` — „Trimitere document fiscal/comercial via email…” (~L1974–1979), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-price-check` → `document-email-send`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes` pentru ambele cozi.
 

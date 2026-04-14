@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Etapa **E2** pentru țintă vs traseu **lifecycle-growth** / sursă **E5**: reconciliere prin contracte neuron, fără inferențe suplimentare din export.
+- Etapa **E2** pentru destinație vs traseu **lifecycle-growth** / sursă **E5**: reconciliere prin contracte neuron, fără inferențe suplimentare din export.
 
 ## Sursă canonică
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `trigger-subsidy-calendar` → `compliance-data-anonymize`.
-- **Runtime:** ținta în registry este **`audit:data:anonymize`** (E4), nu literal `compliance:data:anonymize` — vezi contractul neuronului țintă.
+- **Runtime:** ținta în registry este **`audit:data:anonymize`** (E4), nu literal `compliance:data:anonymize` — vezi contractul neuronului destinație.
 
 ## Limite și reconcilieri
 

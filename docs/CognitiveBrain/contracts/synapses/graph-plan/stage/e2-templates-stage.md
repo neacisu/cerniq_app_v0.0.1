@@ -15,7 +15,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `e2-templates` | Etichetă **swimlane / subgraf** în planificare; **nu** este prin ea însăși un `v2_queue` unic. **Necesită reconciliere graf ↔** [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **/ contracte neuroni / registry** pentru fiecare neuron concret din swimlane. |
-| Țintă | `e2` | Nod **agregat etapă** E2 în export; fără rând dedicat „coadă `e2`” în matrice. |
+| Destinație (graf) | `e2` | Nod **agregat etapă** E2 în export; fără rând dedicat „coadă `e2`” în matrice. |
 
 ## Tip muchie (export)
 
@@ -52,7 +52,7 @@
 
 ## Interpretare etichetă sursă (graf; fără runtime inventat)
 
-`e2-templates` indică swimlane-ul de **șabloane** (mesaje, conținut reutilizabil — interpretare din slug) în **E2**. Muchia `*-stage` nu enumeră versiuni de template sau canale țintă.
+`e2-templates` indică swimlane-ul de **șabloane** (mesaje, conținut reutilizabil — interpretare din slug) în **E2**. Muchia `*-stage` nu enumeră versiuni de template sau canale vizate.
 
 ## Sursă canonică
 

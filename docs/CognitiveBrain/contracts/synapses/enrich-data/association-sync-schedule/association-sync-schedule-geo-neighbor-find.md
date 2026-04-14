@@ -41,7 +41,7 @@ Traseul **association-sync-schedule** depinde în planificare de **găsire vecin
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** conform neuronului țintă și registry.
+- **Runtime (ADR-0001):** conform neuronului destinație și registry.
 - **Semantic (ADR-0002):** familie geo E5 — vezi catalog în contract neuron.
 - **Planificare:** v2 §7 — `association-sync-schedule` → `geo-neighbor-find`.
 

@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `audit-compliance-check` → `hitl-task-resolve`.
 - **Runtime (ADR-0001):** ținta **`hitl:task:resolve`** — vezi [`hitl--task--resolve.md`](../../../neurons/E4/hitl--task--resolve.md) și `QUEUES.E4_HITL_TASK_RESOLVE` în registry.
-- **Semantic (ADR-0002):** vezi catalogul citat în contractul țintă.
+- **Semantic (ADR-0002):** vezi catalogul citat în contractul destinație.
 
 ## Limite și reconcilieri
 

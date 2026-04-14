@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă; țintă `ai:agent:orchestrate` — vezi registry.
+- **Runtime (ADR-0001):** sursă executabilă; **Destinație (coadă):** `ai:agent:orchestrate` — vezi registry.
 - **Semantic (ADR-0002):** product-search vs ai-core.
 - **Planificare:** dependență declarativă în export.
 

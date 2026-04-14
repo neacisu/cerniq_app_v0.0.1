@@ -40,7 +40,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf `response:process` vs `consent:confirm`. | v2 L9102. | Denumire abstractizată în v2. |
 | 2 | Etapă, familie, swimlane | ReflexNeuron, `referral-management` (catalog E27). | v2 E5. | — |

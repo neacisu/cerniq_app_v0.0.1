@@ -42,7 +42,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap E4:** fără `stock:reserve:order` în registry. **E3:** `stock:reserve:create`, `e3:stock:reserve-create`. | v2 L7347. | Denumire comandă vs rezervare create. |
 | 2 | Etapă, familie, swimlane | Implementare în **E3** stock; v2 plasează eticheta în **E4** logistics. | v2: E4, `logistics`. | Nealiniere etapă între graf și pachetul worker. |
@@ -61,7 +61,7 @@
 ### Mapare OTel
 
 - **v2:** `cognitive.stock.reserve.order`.
-- **Cod:** fără span dedicat pentru eticheta graf;țintă aliniere: instrumentare pe `e3:stock:reserve-create` dacă se unifică denumirile.
+- **Cod:** fără span dedicat pentru eticheta graf; destinație aliniere: instrumentare pe `e3:stock:reserve-create` dacă se unifică denumirile.
 
 ---
 *Audit manual 2026-04-13.*

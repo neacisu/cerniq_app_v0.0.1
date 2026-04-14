@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** WA vs `q:email:warm` — distincte.
-- **Semantic (ADR-0002):** contractul neuron țintă plasează neuronul în familia documentată acolo (vezi metadata din [`../../../neurons/E2/q--email--warm.md`](../../../neurons/E2/q--email--warm.md)).
+- **Semantic (ADR-0002):** contractul neuron destinație plasează neuronul în familia documentată acolo (vezi metadata din [`../../../neurons/E2/q--email--warm.md`](../../../neurons/E2/q--email--warm.md)).
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `enrich-ai-industry-classify` | **Contract:** [`../../../neurons/E1/enrich--ai--industry-classify.md`](../../../neurons/E1/enrich--ai--industry-classify.md). **Runtime (ADR-0001):** v2 `enrich:ai:industry-classify` fără coadă literală în registry — vezi contract și ADR ai-enrichment. |
-| Destinație (graf) | `silver-dedup-entity-resolve` | **Contract (neuron):** [`../../../neurons/E1/silver--dedup--entity-resolve.md`](../../../neurons/E1/silver--dedup--entity-resolve.md). **Traseu sinapse:** [`../silver-dedup-entity-resolve/`](../silver-dedup-entity-resolve/). **Runtime:** vezi contractul țintă (`dedup:exact` vs etichetă v2). **ADR:** [`../../../adr/families/e1/dedup.md`](../../../adr/families/e1/dedup.md). |
+| Destinație (graf) | `silver-dedup-entity-resolve` | **Contract (neuron):** [`../../../neurons/E1/silver--dedup--entity-resolve.md`](../../../neurons/E1/silver--dedup--entity-resolve.md). **Traseu sinapse:** [`../silver-dedup-entity-resolve/`](../silver-dedup-entity-resolve/). **Runtime:** vezi contractul destinație (`dedup:exact` vs etichetă v2). **ADR:** [`../../../adr/families/e1/dedup.md`](../../../adr/families/e1/dedup.md). |
 
 ## Tip muchie (export)
 

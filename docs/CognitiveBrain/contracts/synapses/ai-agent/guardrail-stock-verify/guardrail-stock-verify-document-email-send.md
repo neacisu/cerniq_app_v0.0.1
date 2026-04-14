@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | **Gap runtime (documentat):** coada **`guardrail:stock:verify`** nu apare în `workers/shared/src/queue-registry.ts`; vezi [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md). Rând [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv): `queue_in_registry` = `no`. |
-| Țintă | `document-email-send` | Coadă executabilă **`document:email:send`** (`QUEUES.E3_DOCUMENT_EMAIL_SEND`) — [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). |
+| Destinație (graf) | `document-email-send` | Coadă executabilă **`document:email:send`** (`QUEUES.E3_DOCUMENT_EMAIL_SEND`) — [`../../../neurons/E3/document--email--send.md`](../../../neurons/E3/document--email--send.md). |
 
 ## Tip muchie (export)
 
@@ -41,10 +41,10 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`. **Capătul țintă** **`document:email:send`** — `QUEUES.E3_DOCUMENT_EMAIL_SEND` în `queue-registry.ts` (bloc E3 documente).
-- **Semantic (ADR-0002):** sursă — **fără** intrare catalog pentru `guardrail:stock:verify` (contract neuron); țintă — `e3:document:email-send` / `document:email:send` — „Trimitere document fiscal/comercial via email…” (~L1974–1979), MotorNeuron, `fiscal-execution`.
+- **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`. **Capătul destinație** **`document:email:send`** — `QUEUES.E3_DOCUMENT_EMAIL_SEND` în `queue-registry.ts` (bloc E3 documente).
+- **Semantic (ADR-0002):** sursă — **fără** intrare catalog pentru `guardrail:stock:verify` (contract neuron); destinație — `e3:document:email-send` / `document:email:send` — „Trimitere document fiscal/comercial via email…” (~L1974–1979), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 — `guardrail-stock-verify` → `document-email-send`.
-- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada țintă (`queue_in_registry` = `yes` în CSV).
+- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada destinație (`queue_in_registry` = `yes` în CSV).
 
 ## Limite și reconcilieri
 

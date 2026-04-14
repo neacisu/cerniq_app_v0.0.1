@@ -41,14 +41,14 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă neexecutabilă în repo la audit; țintă — vezi gap în contract neuron.
+- **Runtime (ADR-0001):** sursă neexecutabilă în repo la audit; destinație — vezi gap în contract neuron.
 - **Semantic (ADR-0002):** product-search (etichetă) vs ai-core.
 - **Planificare:** dependență declarativă product-search → agent-generate.
 
 ## Limite și reconcilieri
 
 - Cross-domain **product-search** → **ai-core**: muchia este planificare, nu dovadă de mesaj unic între cozi.
-- **Dublu gap:** sursă și țintă pot lipsi din registry; nu presupunem execuție.
+- **Dublu gap:** sursă și destinație pot lipsi din registry; nu presupunem execuție.
 
 ## Sursă canonică
 

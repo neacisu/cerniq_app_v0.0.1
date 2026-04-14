@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e1:ingest:webhook", …)` → `cognitive:e1:ingest:webhook`. **Fără** span `cognitive.bronze.ingest.json-parser`. | ADR-0003. | Nealinat literal v2. |
 | 7 | Înveliș politică | Semnătură, timestamp, max payload (~L30–51 în A3). | v2 Tier 4; audit. | Parser v2 dedicat: lipsă. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Validări deterministe în A3; NeMo **țintă** ADR-0007. | v2. | — |
+| 9 | Guardrails | Validări deterministe în A3; NeMo **destinație** ADR-0007. | v2. | — |
 | 10 | Escaladare HITL | Webhook: fără legătură directă citită cu `hitl:*` în A3. | ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE: payload + headers; ORIENT: validări; DECIDE: accept; ACT: inserții bronze (flux A3). | v2 OODA ingest. | Mapare parțială. |
 | 12 | Tier + de-escaladare | Fără prag «încredere» în A3 la audit. | v2 §2.2. | — |

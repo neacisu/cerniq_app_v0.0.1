@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** vezi registry.
-- **Semantic (ADR-0002):** vezi metadata din contractul țintă.
+- **Semantic (ADR-0002):** vezi metadata din contractul destinație.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

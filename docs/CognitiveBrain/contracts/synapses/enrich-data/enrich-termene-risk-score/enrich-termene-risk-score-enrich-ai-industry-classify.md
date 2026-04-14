@@ -43,7 +43,7 @@ Muchia **`dependency`** plasează traseul riscului Termene în raport de **enric
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: vezi `enrich:termene:risk`. Pentru țintă: vezi contract neuron și ADR ai-enrichment. |
+| **Runtime (ADR-0001)** | Sursă: vezi `enrich:termene:risk`. Pentru destinație: vezi contract neuron și ADR ai-enrichment. |
 | **Semantic (ADR-0002)** | E1. |
 | **Planificare** | v2 §7 — capete și `dependency` conform exportului. |
 

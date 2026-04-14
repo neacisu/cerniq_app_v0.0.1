@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **descoperire email** ș
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă Hunter; țintă — prefix `enrich:ai:*` vs `ai:*` (ADR).
+- **Runtime:** sursă Hunter; destinație — prefix `enrich:ai:*` vs `ai:*` (ADR).
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

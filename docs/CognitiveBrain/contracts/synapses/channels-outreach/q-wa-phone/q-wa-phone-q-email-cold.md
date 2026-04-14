@@ -41,7 +41,7 @@ Traseul **WA generic** depinde în planificare de **coada / neuronul cold email*
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă abstractă `q-wa-phone_` vs cozi `q:wa:phone-NN`; țintă `q:email:cold` documentată.
+- **Runtime (ADR-0001):** sursă abstractă `q-wa-phone_` vs cozi `q:wa:phone-NN`; **Destinație (coadă):** `q:email:cold` documentată.
 - **Semantic (ADR-0002):** ambele familii E2 (whatsapp vs email-cold) — vezi v2 și catalog.
 - **Planificare:** v2 §7 — `q-wa-phone` → `q-email-cold`.
 

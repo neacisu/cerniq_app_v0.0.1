@@ -49,11 +49,11 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan` când `tenantId` în job (`factory.ts` L90–107). | v2 span: `cognitive.e3.feedback.collect`. | Nume span export vs `cognitive.nodeKey`: verificare runtime (ADR-0003). |
 | 7 | Înveliș politică | Fără Cedar/OPA în K65; validare numerică NPS 1–5 (`FeedbackInputSchema`, `k65` L46–54). | v2: Tier 4, HITL la eșecuri repetate. | Logică HITL „3+ erori”: nu în K65. |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi secțiunea N/A. | v2: vllm-fast / fallback — **nu** în cod K65. | — |
-| 9 | Guardrails | Validare **Zod** pe payload (`k65` L46–64); fără NeMo/scan LLM. | ADR-0007 țintă (NeMo etc.). | — |
+| 9 | Guardrails | Validare **Zod** pe payload (`k65` L46–64); fără NeMo/scan LLM. | ADR-0007 — destinație (NeMo etc.). | — |
 | 10 | Escaladare HITL | Nu în K65. | v2 / ADR-0008 — motor transversal. | — |
-| 11 | Micro-OODA | **În cod:** OBSERVE — `job.data`; ORIENT/DECIDE — `parse` Zod; ACT — insert + `AVG(nps)` (`k65` L64–107). Fără model stochastic. | v2 OODA generic + **Model routing** — parțial doar ca țintă. | — |
+| 11 | Micro-OODA | **În cod:** OBSERVE — `job.data`; ORIENT/DECIDE — `parse` Zod; ACT — insert + `AVG(nps)` (`k65` L64–107). Fără model stochastic. | v2 OODA generic + **Model routing** — parțial doar ca destinație documentată. | — |
 | 12 | Tier + de-escaladare | Fără prag încredere sau tier în K65. | v2 Tier 4. | — |
-| 13 | Stack (subset) | BullMQ, Zod, Drizzle/Postgres (`goldNegotiationFeedback`). | v2 §2.3. | Kafka/SGLang: țintă v2, nefolosite în K65. |
+| 13 | Stack (subset) | BullMQ, Zod, Drizzle/Postgres (`goldNegotiationFeedback`). | v2 §2.3. | Kafka/SGLang: destinație v2, nefolosite în K65. |
 
 ### Mapare OTel
 

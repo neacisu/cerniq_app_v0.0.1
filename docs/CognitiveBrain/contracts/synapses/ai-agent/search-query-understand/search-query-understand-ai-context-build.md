@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-context-build` | [`../../../neurons/E3/ai--context--build.md`](../../../neurons/E3/ai--context--build.md). **Runtime:** `ai:context:build` (`QUEUES.E3_AI_CONTEXT_BUILD`, `queue-registry.ts` L227). |
+| Destinație (graf) | `ai-context-build` | [`../../../neurons/E3/ai--context--build.md`](../../../neurons/E3/ai--context--build.md). **Runtime:** `ai:context:build` (`QUEUES.E3_AI_CONTEXT_BUILD`, `queue-registry.ts` L227). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `search:query:rewrite` → `ai:context:build`.
-- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:ai:context-build` (contract neuron țintă).
+- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:ai:context-build` (contract neuron destinație).
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-context-build`.
 
 ## Limite și reconcilieri

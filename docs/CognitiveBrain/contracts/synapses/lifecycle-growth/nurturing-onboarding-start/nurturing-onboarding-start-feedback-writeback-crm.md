@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `nurturing-onboarding-start` → `feedback-writeback-crm`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L309**; țintă `feedback:writeback:crm` la **L275** (fișier).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L309**; **Destinație (coadă):** `feedback:writeback:crm` la **L275** (fișier).
 - **Runtime:** vezi neuronii; nu inferăm ordinea joburilor BullMQ din singurul export.
 
 ## Limite și reconcilieri

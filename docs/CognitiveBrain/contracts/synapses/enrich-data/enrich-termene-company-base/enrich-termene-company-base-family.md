@@ -49,7 +49,7 @@ Muchia **`default`** plasează traseul **enrich-termene-company-base** sub agreg
 | --- | --- |
 | **Runtime (ADR-0001)** | `enrich:termene:company-base` (v2) vs absență în `queue-registry.ts` — vezi contract sursă și [`../../../adr/families/e1/enrichment.md`](../../../adr/families/e1/enrichment.md). |
 | **Semantic (ADR-0002)** | Nod catalog / etapă E1 pentru Termene: potriviri parțiale; [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — intrare `enrich:termene:company-base` la **L33** (fișier). |
-| **Planificare (export)** | v2 §7 — sursă `enrich-termene-company-base` → țintă `e1-enrichment`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `enrich-termene-company-base` → destinație `e1-enrichment`, tip `default`. |
 
 ## Limite și reconcilieri
 

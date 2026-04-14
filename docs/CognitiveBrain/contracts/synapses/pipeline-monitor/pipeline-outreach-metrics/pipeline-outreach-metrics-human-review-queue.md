@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `pipeline-outreach-metrics` → `human-review-queue`.
-- **Semantic:** sursă șițintă **E2** în matrice.
+- **Semantic:** sursă și destinație **E2** în matrice.
 - **Runtime:** vezi contractele neuron; ordinea efectivă a joburilor cere dovezi suplimentare din cod.
 
 ## Limite și reconcilieri

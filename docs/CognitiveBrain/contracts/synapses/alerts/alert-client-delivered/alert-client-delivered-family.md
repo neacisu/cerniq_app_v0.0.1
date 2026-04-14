@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `alert-client-delivered` | Traseu în graf; **Matrix:** coadă v2 `alert:client:delivered` (E4, `alerts`) — [`../../../neurons/E4/alert--client--delivered.md`](../../../neurons/E4/alert--client--delivered.md). Contractul neuron: **gap** față de registry pentru coada granulară; în runtime apar cozi generice `alert:payment` … `alert:dispatch` (`QUEUES.E4_ALERT_*` în `workers/shared/src/queue-registry.ts`, ex. L463–473). |
-| Țintă | `e4-alerts` | Nod agregat de familie **alerts** E4 în planificare; nu este o singură coadă BullMQ și nu există contract neuron unic pentru această etichetă. |
+| Destinație (graf) | `e4-alerts` | Nod agregat de familie **alerts** E4 în planificare; nu este o singură coadă BullMQ și nu există contract neuron unic pentru această etichetă. |
 
 ## Tip muchie (export)
 

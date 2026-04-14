@@ -49,7 +49,7 @@
 | 3 | Rol declarat | v2: enrichment extern geo. Cod: nomenclator + `codSiruta` silver din ANAF; **fără** serviciu «lookup» SIRUTA izolat. | v2 operational text (generic). | — |
 | 4 | NeuronType + SOFAI | v2: `ToolNeuron`. Cod: **neinstanțiat** ca neuron. | v2. | — |
 | 5 | Criticitate | v2: `MEDIUM`. Cod: neaplicabil ca unitate runtime. | v2. | — |
-| 6 | Înveliș telemetrie | **Fără** `withCognitiveSpan` pentru acest `v2_queue`. Span v2: `cognitive.enrich.geo.siruta-lookup`. | ADR-0003. | OTel doar țintă până la implementare. |
+| 6 | Înveliș telemetrie | **Fără** `withCognitiveSpan` pentru acest `v2_queue`. Span v2: `cognitive.enrich.geo.siruta-lookup`. | ADR-0003. | OTel doar destinație documentată până la implementare. |
 | 7 | Înveliș politică | N/A neuron dedicat; ANAF promotion folosește reguli proprii (în afara scope-ului acestui contract). | v2 tier 4. | — |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
 | 9 | Guardrails | Neuron dedicat: lipsă. | ADR-0007. | — |
@@ -62,7 +62,7 @@
 
 - **v2 / plan:** `cognitive.enrich.geo.siruta-lookup`.
 - **Cod:** **lipsă** handler → fără `cognitive.nodeKey` operațional pentru acest `v2_queue`.
-- **Stare:** **doar țintă** (sau gap documentat) până la implementare / migrare registry.
+- **Stare:** **doar destinație documentată** (sau gap documentat) până la implementare / migrare registry.
 
 ### Semnale înrudite (nu înlocuiesc neuronul v2)
 

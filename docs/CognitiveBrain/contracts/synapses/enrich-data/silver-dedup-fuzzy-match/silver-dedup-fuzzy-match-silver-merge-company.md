@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `silver-dedup-fuzzy-match` → `silver-merge-company`.
-- **Runtime (ADR-0001):** sursă mapată; țintă cu gap — vezi neuronii.
+- **Runtime (ADR-0001):** sursă mapată; destinație cu gap — vezi neuronii.
 - **Semantic (ADR-0002):** E1 — vezi `NEURON_MATRIX.csv`.
 
 ## Limite și reconcilieri

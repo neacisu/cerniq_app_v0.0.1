@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **reply WA** și **pauză ca
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / Semantic:** contract țintă.
+- **Runtime / Semantic:** contract destinație.
 - **Planificare:** `dependency`.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `ai-agent-response-generate` | [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** coada E3 folosită în flux este `ai:e3:response:generate` (`QUEUES.E3_AI_RESPONSE_GENERATE`, `queue-registry.ts` L230); **nu** literal `ai:agent:response-generate`. |
+| Destinație (graf) | `ai-agent-response-generate` | [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** coada E3 folosită în flux este `ai:e3:response:generate` (`QUEUES.E3_AI_RESPONSE_GENERATE`, `queue-registry.ts` L230); **nu** literal `ai:agent:response-generate`. |
 
 ## Tip muchie (export)
 
@@ -41,8 +41,8 @@ Dependență de planificare între rerank (etichetă graf) și generarea răspun
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă executabilă `ai:e3:response:generate`.
-- **Semantic (ADR-0002):** vezi contract neuron țintă / Matrix; sursă neconectată în catalog.
+- **Runtime (ADR-0001):** sursă — gap; destinație executabilă `ai:e3:response:generate`.
+- **Semantic (ADR-0002):** vezi contract neuron destinație / Matrix; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-agent-response-generate`.
 
 ## Limite și reconcilieri

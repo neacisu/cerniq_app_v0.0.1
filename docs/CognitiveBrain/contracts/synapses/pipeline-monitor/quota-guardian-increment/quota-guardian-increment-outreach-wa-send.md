@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `quota-guardian-increment` → `outreach-wa-send`.
 - **Semantic:** ambele **E2**.
-- **Runtime:** sursa are mapare registry în matrice; pentru țintă vezi gap — vezi contracte neuron.
+- **Runtime:** sursa are mapare registry în matrice; pentru destinație vezi gap — vezi contracte neuron.
 
 ## Sursă canonică
 

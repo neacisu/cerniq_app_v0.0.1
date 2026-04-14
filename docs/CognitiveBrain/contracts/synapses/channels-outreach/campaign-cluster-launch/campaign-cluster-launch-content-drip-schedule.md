@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** ținta are coadă în registry; sursa poate fi neconectată — vezi contract neuron `campaign--cluster--launch`.
-- **Semantic (ADR-0002):** E5 referral (sursă planificată) vs E5 content-drip (țintă).
+- **Semantic (ADR-0002):** E5 referral (sursă planificată) vs E5 content-drip (destinație).
 - **Planificare:** dependență declarativă `campaign-cluster-launch` → `content-drip-schedule`.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `pipeline-orchestrator-advance` | Traseu în graf; [`../../../neurons/E1/pipeline--orchestrator--advance.md`](../../../neurons/E1/pipeline--orchestrator--advance.md). **v2 / matrice:** `pipeline:orchestrator:advance`. **Runtime (ADR-0001):** **`pipeline:orchestrate`** (`QUEUES.PIPELINE_ORCHESTRATE`, `workers/shared/src/queue-registry.ts` ~L83); semantica «advance» = etape `post_enrichment` / `post_scoring` în procesorul comun — vezi contractul neuron. |
-| Țintă | `e1-orchestrator` | Nod agregat **familie orchestrator** E1 în planificare; **nu** este o singură coadă executabilă; [`../../../adr/families/e1/orchestrator.md`](../../../adr/families/e1/orchestrator.md). |
+| Destinație (graf) | `e1-orchestrator` | Nod agregat **familie orchestrator** E1 în planificare; **nu** este o singură coadă executabilă; [`../../../adr/families/e1/orchestrator.md`](../../../adr/families/e1/orchestrator.md). |
 
 ## Tip muchie (export)
 

@@ -41,7 +41,7 @@ Traseul **procesare contract semnat** depinde în planificare de **procesarea re
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** cozi — din contractele neuron sursă și țintă.
+- **Runtime (ADR-0001):** cozi — din contractele neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 `contracts` ↔ E4 `logistics`.
 - **Planificare:** v2 §7 — `contract-sign-complete` → `return-process-stock`.
 

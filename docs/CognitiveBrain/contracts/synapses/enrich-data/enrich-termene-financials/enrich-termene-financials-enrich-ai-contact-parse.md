@@ -43,7 +43,7 @@ Dependența leagă în **planificare** traseul «financials» (indicatori financ
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: vezi unificarea cu `enrich:termene:balance` în contract neuron. Pentru țintă: fără literal `enrich:ai:contact-parse` în registry. |
+| **Runtime (ADR-0001)** | Sursă: vezi unificarea cu `enrich:termene:balance` în contract neuron. Pentru destinație: fără literal `enrich:ai:contact-parse` în registry. |
 | **Semantic (ADR-0002)** | E1 — familii v2 `enrichment` / `ai-enrichment`. |
 | **Planificare** | v2 §7 — `dependency` explicită. |
 

@@ -40,7 +40,7 @@ v2 separă „prepare” de „send”; în cod, outreach-ul post-GDPR este un s
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Graf granular vs coadă `referral:outreach:prospect`. | v2 L9058. | Granularitate v2 ≠ atomicitate cod. |
 | 2 | Etapă, familie, swimlane | MotorNeuron, `referral-management` (catalog E28). | v2 E5 `referral`. | — |

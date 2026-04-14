@@ -52,7 +52,7 @@ Ingestie webhook Revolut: idempotency Redis `SET NX EX 86400` pe `eventId`, INSE
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Runtime + catalog: `revolut:webhook:ingest`. Graf v2: `webhook:revolut:ingest`. | v2 L6435. | Două convenții de denumire pentru aceeași capabilitate. |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 4, `payment-processing`. | v2: E4, `cash`. | — |
@@ -71,7 +71,7 @@ Ingestie webhook Revolut: idempotency Redis `SET NX EX 86400` pe `eventId`, INSE
 ### Mapare OTel
 
 - **v2 (graf):** `cognitive.webhook.revolut.ingest`.
-- **Catalog — țintă aliniată cod:** span `cognitive:e4:revolut:webhook-ingest` (pattern `cognitive:${nodeKey}` cu `nodeKey` din catalog cu cratimă).
+- **Catalog — destinație aliniată cod:** span `cognitive:e4:revolut:webhook-ingest` (pattern `cognitive:${nodeKey}` cu `nodeKey` din catalog cu cratimă).
 - **Cod A1:** fără `withCognitiveSpan`; atribute `cognitive.nodeKey` din helper **neaplicate** pe acest processor.
 
 ---

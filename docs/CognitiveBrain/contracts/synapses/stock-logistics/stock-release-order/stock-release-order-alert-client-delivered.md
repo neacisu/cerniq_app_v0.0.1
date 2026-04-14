@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-release-order` → `alert-client-delivered`.
-- **Semantic:** vezi matrice rând **180** și contractul neuron țintă.
+- **Semantic:** vezi matrice rând **180** și contractul neuron destinație.
 
 ## Sursă canonică
 

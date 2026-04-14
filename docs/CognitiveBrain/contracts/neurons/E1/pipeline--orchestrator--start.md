@@ -40,7 +40,7 @@
 | 5 | Criticitate | Catalog `e1:pipeline:orchestrate`: `CRITICAL` (~L901–905). v2 antet orchestrator: `HIGH`. | v2. | **Divergență** criticitate catalog vs v2. |
 | 6 | Înveliș telemetrie | `cognitive:e1:pipeline:orchestrate`. | `cognitive.pipeline.orchestrator.start`. | Sub-neuron v2 fără span. |
 | 7 | Înveliș politică | v2 Tier 3; cod determinist fără OPA citit. | v2. | — |
-| 8 | Rutare model (dacă AI) | **În P1:** **N/A** — fără apel LLM în `p1-orchestrate.ts` la audit; enfilează `ai:structure:xai` separat. v2 menționează rutare LLM pentru orchestrator — **țintă / divergență**. | v2 §2.3 rutare. | Limită evidență: v2 vs cod. |
+| 8 | Rutare model (dacă AI) | **În P1:** **N/A** — fără apel LLM în `p1-orchestrate.ts` la audit; enfilează `ai:structure:xai` separat. v2 menționează rutare LLM pentru orchestrator — **destinație documentată / divergență**. | v2 §2.3 rutare. | Limită evidență: v2 vs cod. |
 | 9 | Guardrails | Zod `orchestratorJobDataSchema`; metrici `silverEnrichmentErrorsTotal`. | ADR-0007. | — |
 | 10 | Escaladare HITL | Nu direct în P1 citit. | ADR-0008. | — |
 | 11 | Micro-OODA | Stage `post_validation` observă snapshot companie → decide cozi. | v2 OODA. | — |

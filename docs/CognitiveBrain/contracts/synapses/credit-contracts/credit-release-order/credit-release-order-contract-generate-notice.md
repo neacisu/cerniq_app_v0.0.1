@@ -41,7 +41,7 @@ Traseul **credit-release-order** depinde în planificare de **generarea de notif
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** credit E4 ↔ notificări contract E4.
 - **Planificare:** v2 §7 — `credit-release-order` → `contract-generate-notice`.
 

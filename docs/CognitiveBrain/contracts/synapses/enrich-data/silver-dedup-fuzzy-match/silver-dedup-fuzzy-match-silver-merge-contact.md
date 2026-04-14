@@ -42,12 +42,12 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `silver-dedup-fuzzy-match` → `silver-merge-contact`.
-- **Runtime (ADR-0001):** sursă — `dedup:fuzzy`; țintă — gap — vezi neuronii.
+- **Runtime (ADR-0001):** sursă — `dedup:fuzzy`; destinație — gap — vezi neuronii.
 - **Semantic (ADR-0002):** E1 — vezi `NEURON_MATRIX.csv`.
 
 ## Limite și reconcilieri
 
-- **Țintă:** fără `nodeKey` operațional dedicat la audit neuron — vezi contractul țintă.
+- **Țintă:** fără `nodeKey` operațional dedicat la audit neuron — vezi contractul destinație.
 
 ## Sursă canonică
 

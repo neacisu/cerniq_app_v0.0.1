@@ -47,7 +47,7 @@
 
 ## Limite și reconcilieri
 
-- **Destinație:** unele trasee `enrich-*` au **gap** sau mapări parțiale față de registry — **necesită reconciliere graf ↔ registry** pe neuronul țintă.
+- **Destinație:** unele trasee `enrich-*` au **gap** sau mapări parțiale față de registry — **necesită reconciliere graf ↔ registry** pe neuronul destinație.
 
 ## Sursă canonică
 

@@ -41,13 +41,13 @@ Traseul **enrich-ai-contact-parse** depinde în planificare de **deduplicare fuz
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă pentru mapare `silver:dedup:*` vs `dedup:*`.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație pentru mapare `silver:dedup:*` vs `dedup:*`.
 - **Semantic (ADR-0002):** AI enrichment (graf) ↔ dedup fuzzy E1.
 - **Planificare:** v2 §7 — `enrich-ai-contact-parse` → `silver-dedup-fuzzy-match`.
 
 ## Limite și reconcilieri
 
-- Politica de fuzzy matching și impactul asupra CRM sunt în contract neuron țintă.
+- Politica de fuzzy matching și impactul asupra CRM sunt în contract neuron destinație.
 
 ## Sursă canonică
 

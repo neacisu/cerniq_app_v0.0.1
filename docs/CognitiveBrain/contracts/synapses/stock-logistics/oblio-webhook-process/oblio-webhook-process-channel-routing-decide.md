@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `oblio-webhook-process` → `channel-routing-decide`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L142**; țintă `channel:routing:decide` la **L131** (`catalog_nodekey_v2` gol — vezi contract neuron).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L142**; **Destinație (coadă):** `channel:routing:decide` la **L131** (`catalog_nodekey_v2` gol — vezi contract neuron).
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

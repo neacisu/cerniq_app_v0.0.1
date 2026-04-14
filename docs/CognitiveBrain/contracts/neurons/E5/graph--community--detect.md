@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | `e5:community:detect-leiden` (L67). | v2 `cognitive.graph.community.detect` (L8407). | — |
 | 7 | Înveliș politică | — | v2 L8405–8406. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Timeout/subprocess în antet D21 (Plan §X în fișier). | NeMo țintă. | — |
+| 9 | Guardrails | Timeout/subprocess în antet D21 (Plan §X în fișier). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8406. | — |
 | 11 | Micro-OODA | Graph JSON → Leiden → persistență comunități. | v2 L8403. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8398). | — |

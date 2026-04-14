@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `nurturing-engagement-track` → `feedback-conversation-analyze`.
-- **Runtime (ADR-0001):** vezi neuroni sursă și țintă.
+- **Runtime (ADR-0001):** vezi neuroni sursă și destinație.
 - **Semantic (ADR-0002):** E5 — vezi catalog.
 
 ## Limite și reconcilieri

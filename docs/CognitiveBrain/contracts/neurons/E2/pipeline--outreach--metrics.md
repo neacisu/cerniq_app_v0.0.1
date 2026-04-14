@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + span condiționat. | Span v2. | — |
 | 7 | Înveliș politică | Rutare + audit + citire agregată DB. | v2 tier4. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | `concurrency: 10` pe worker merge. | ADR-0007 țintă. | — |
+| 9 | Guardrails | `concurrency: 10` pe worker merge. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu direct. | v2. | — |
 | 11 | Micro-OODA | OBSERVE formă payload; ACT una din trei căi. | v2. | — |
 | 12 | Tier + de-escaladare | Health returnează obiect JSON fără throw în calea citită. | v2. | — |

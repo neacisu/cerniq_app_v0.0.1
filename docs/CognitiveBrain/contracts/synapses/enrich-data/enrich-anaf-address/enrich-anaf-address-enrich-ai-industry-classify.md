@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În planificare, **enrich-anaf-address** depinde de **enrich-ai-industry-classify**. v2: **„sinapsă canonică de pipeline”**. Contractul neuron țintă notează **lipsă** implementării izolate cu coada v2 și **aproximări semantice** (ex. J1, L4) — muchia rămâne ancorată în **topologia grafului**, nu în aceste potriviri.
+În planificare, **enrich-anaf-address** depinde de **enrich-ai-industry-classify**. v2: **„sinapsă canonică de pipeline”**. Contractul neuron destinație notează **lipsă** implementării izolate cu coada v2 și **aproximări semantice** (ex. J1, L4) — muchia rămâne ancorată în **topologia grafului**, nu în aceste potriviri.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -41,13 +41,13 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi neuron țintă — fără `enrich:ai:industry-classify` literal în registry.
+- **Runtime (ADR-0001):** vezi neuron destinație — fără `enrich:ai:industry-classify` literal în registry.
 - **Semantic (ADR-0002):** AI enrichment E1 — catalog / ADR.
 - **Planificare:** v2 §7 — `enrich-anaf-address` → `enrich-ai-industry-classify`.
 
 ## Limite și reconcilieri
 
-- Nu confunda această muchie cu extragerea CAEN din D0 ANAF full; neuronul țintă discută explicit despre **decalaj** față de v2.
+- Nu confunda această muchie cu extragerea CAEN din D0 ANAF full; neuronul destinație discută explicit despre **decalaj** față de v2.
 
 ## Sursă canonică
 

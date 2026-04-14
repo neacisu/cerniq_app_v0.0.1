@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-reserve-create` → `guardrail-log-analyze`.
-- **Semantic:** sursă E3 stock; țintă guardrail E3 — matrice rând **144**.
+- **Semantic:** sursă E3 stock; destinație guardrail E3 — matrice rând **144**.
 
 ## Sursă canonică
 

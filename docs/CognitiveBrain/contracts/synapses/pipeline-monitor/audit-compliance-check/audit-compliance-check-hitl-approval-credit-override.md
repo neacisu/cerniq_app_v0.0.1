@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `audit-compliance-check` → `hitl-approval-credit-override`.
-- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron sursă și țintă.
+- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron sursă și destinație.
 
 ## Limite și reconcilieri
 
-- **Fan-out HITL:** același traseu sursă are mai multe muchii `dependency` către aprobări / task-uri distincte; fiecare fișier izolează o singură pereche sursă–țintă din v2.
+- **Fan-out HITL:** același traseu sursă are mai multe muchii `dependency` către aprobări / task-uri distincte; fiecare fișier izolează o singură pereche sursă–destinație din v2.
 
 ## Sursă canonică
 

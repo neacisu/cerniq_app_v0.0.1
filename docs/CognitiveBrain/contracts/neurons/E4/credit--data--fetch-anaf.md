@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:data:fetch-anaf", …)` (L41–43). | v2 `cognitive.e4.credit.data-fetch-anaf` (L6666). | **Span vs catalog:** segmente `data:fetch` în span vs `data-fetch` în `nodeKey` — posibil lookup catalog incomplet. |
 | 7 | Înveliș politică | — | HITL anomalii v2 (L6664). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | `sanitizeCui` (import L17). | NeMo țintă. | — |
+| 9 | Guardrails | `sanitizeCui` (import L17). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6664. | — |
 | 11 | Micro-OODA | Child job → persistare componentă scor → C17 agregă. | v2 L6662. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6656). | — |

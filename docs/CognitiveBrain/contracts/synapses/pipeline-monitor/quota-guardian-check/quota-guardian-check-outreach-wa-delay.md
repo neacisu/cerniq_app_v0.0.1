@@ -43,11 +43,11 @@
 
 - **Planificare:** v2 §7 — `quota-guardian-check` → `outreach-wa-delay`.
 - **Semantic:** ambele **E2**.
-- **Runtime:** reconciliere parțială pentru țintă — vezi neuron `outreach--wa--delay.md`.
+- **Runtime:** reconciliere parțială pentru destinație — vezi neuron `outreach--wa--delay.md`.
 
 ## Limite și reconcilieri
 
-- Muchia din graf nu echivalează cu o mapare completă registry/catalog pentru **țintă**; vezi matrice.
+- Muchia din graf nu echivalează cu o mapare completă registry/catalog pentru **destinație**; vezi matrice.
 
 ## Sursă canonică
 

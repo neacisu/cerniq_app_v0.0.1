@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `mcp-session-manage` | [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md). **Runtime:** `mcp:session:manage` (`QUEUES.E3_MCP_SESSION_MANAGE`, `queue-registry.ts` L331). |
+| Destinație (graf) | `mcp-session-manage` | [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md). **Runtime:** `mcp:session:manage` (`QUEUES.E3_MCP_SESSION_MANAGE`, `queue-registry.ts` L331). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `search:query:rewrite` → `mcp:session:manage`.
-- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:mcp:session-manage` (contract neuron țintă).
+- **Semantic (ADR-0002):** `e3:search:query-rewrite`; `e3:mcp:session-manage` (contract neuron destinație).
 - **Planificare:** v2 §7 — `search-query-understand` → `mcp-session-manage`.
 
 ## Limite și reconcilieri

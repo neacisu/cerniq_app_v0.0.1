@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **descoperire email** ș
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime / semantic:** vezi contracte; țintă fără coadă v2 literală în registry.
+- **Runtime / semantic:** vezi contracte; destinație fără coadă v2 literală în registry.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

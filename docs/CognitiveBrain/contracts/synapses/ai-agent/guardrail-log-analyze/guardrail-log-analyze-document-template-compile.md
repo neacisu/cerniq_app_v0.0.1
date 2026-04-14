@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `document-template-compile` | **Matrix:** `document:template:compile` → [`../../../neurons/E3/document--template--compile.md`](../../../neurons/E3/document--template--compile.md). **Registry:** `document:template:compile`. |
+| Destinație (graf) | `document-template-compile` | **Matrix:** `document:template:compile` → [`../../../neurons/E3/document--template--compile.md`](../../../neurons/E3/document--template--compile.md). **Registry:** `document:template:compile`. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Muchia **dependency** declară că **`document-template-compile`** este canonic 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** `E3_DOCUMENT_TEMPLATE_COMPILE` pentru țintă. Sursa: vezi gap.
+- **Runtime (ADR-0001):** `E3_DOCUMENT_TEMPLATE_COMPILE` pentru destinație. Sursa: vezi gap.
 - **Semantic (ADR-0002):** `e3:document:template-compile`.
 - **Planificare:** dependență guardrail-log-analyze → compilare șablon.
 

@@ -17,7 +17,7 @@
 
 ## Scop în context real
 
-**v2 (dup2):** neuron operațional E5, `ProceduralNeuron`, criticitate MEDIUM, tier 4, non-AI, spanțintă `cognitive.email.cold.add-to-campaign` — descriere generică „familia content”. **Repo:** căutare în `workers/e5-nurturing` (și restul workerilor E5) **fără** referințe la `q:email:cold`, `EMAIL_COLD` sau `email:cold:add-to-campaign` la auditul din 2026-04-11. **Concluzie:** instanța E5 este **etichetă de graf / registru semantic v2**, nu un al doilea binar de procesare; înrolarea lead în campanie Instantly este **doar** în `createEmailColdSenderWorker` (E2). Orice job pe `q:email:cold` este procesat de workerul **outreach** cu `registerCognitiveWorkerEtapa(2)`.
+**v2 (dup2):** neuron operațional E5, `ProceduralNeuron`, criticitate MEDIUM, tier 4, non-AI, span destinație `cognitive.email.cold.add-to-campaign` — descriere generică „familia content”. **Repo:** căutare în `workers/e5-nurturing` (și restul workerilor E5) **fără** referințe la `q:email:cold`, `EMAIL_COLD` sau `email:cold:add-to-campaign` la auditul din 2026-04-11. **Concluzie:** instanța E5 este **etichetă de graf / registru semantic v2**, nu un al doilea binar de procesare; înrolarea lead în campanie Instantly este **doar** în `createEmailColdSenderWorker` (E2). Orice job pe `q:email:cold` este procesat de workerul **outreach** cu `registerCognitiveWorkerEtapa(2)`.
 
 ## Surse audit
 

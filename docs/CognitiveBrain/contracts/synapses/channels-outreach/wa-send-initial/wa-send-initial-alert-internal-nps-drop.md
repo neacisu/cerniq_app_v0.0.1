@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă cozi WA; țintă — E5.
+- **Runtime (ADR-0001):** sursă cozi WA; destinație — E5.
 - **Semantic (ADR-0002):** `NEURON_MATRIX.csv` — alert internal nps-drop.
 - **Planificare:** export-grounded.
 

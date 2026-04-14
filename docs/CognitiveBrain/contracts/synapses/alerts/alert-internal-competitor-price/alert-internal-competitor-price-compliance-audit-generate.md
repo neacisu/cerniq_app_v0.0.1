@@ -41,7 +41,7 @@ Generarea auditului de conformitate este dependentă în graf de traseul alertei
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — gap `compliance:audit:generate`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — gap `compliance:audit:generate`.
 - **Semantic (ADR-0002):** vezi contracte neuroni.
 - **Planificare:** v2 §7 — `alert-internal-competitor-price` → `compliance-audit-generate`.
 

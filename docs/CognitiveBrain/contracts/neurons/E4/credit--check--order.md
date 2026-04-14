@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:limit:check", …)` (L35–37). Catalog `e4:credit:limit-check`. | v2 `cognitive.credit.check.order` (L6641). | **Span vs catalog:** procesorul folosește `:` în segmente; `nodeKey` catalog folosește `-` — posibil fără atribute din catalog. |
 | 7 | Înveliș politică | Comportament WARN la respingere (L8–14). | HITL anomalii v2 (L6639). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Determinist SQL + metrici `e4CreditLimitChecksTotal` (import L20). | NeMo țintă. | — |
+| 9 | Guardrails | Determinist SQL + metrici `e4CreditLimitChecksTotal` (import L20). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6639. | — |
 | 11 | Micro-OODA | Profil → decizie APPROVED/REJECTED → coadă D20 condiționat. | v2 L6637. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6632). | — |

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-check` | Coadă executabilă **`guardrail:stock:check`** (`QUEUES.E3_GUARDRAIL_STOCK_CHECK`) — [`../../../neurons/E3/guardrail--stock--check.md`](../../../neurons/E3/guardrail--stock--check.md). |
-| Țintă | `oblio-invoice-cancel` | Coadă executabilă **`oblio:invoice:cancel`** (`QUEUES.E3_OBLIO_INVOICE_CANCEL`) — [`../../../neurons/E3/oblio--invoice--cancel.md`](../../../neurons/E3/oblio--invoice--cancel.md). |
+| Destinație (graf) | `oblio-invoice-cancel` | Coadă executabilă **`oblio:invoice:cancel`** (`QUEUES.E3_OBLIO_INVOICE_CANCEL`) — [`../../../neurons/E3/oblio--invoice--cancel.md`](../../../neurons/E3/oblio--invoice--cancel.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_STOCK_CHECK`; `E3_OBLIO_INVOICE_CANCEL`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:invoice-cancel` / `oblio:invoice:cancel` — „Anulare factură în Oblio la abandon sau stornare” (~L1880–1886), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:invoice-cancel` / `oblio:invoice:cancel` — „Anulare factură în Oblio la abandon sau stornare” (~L1880–1886), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-stock-check-oblio-invoice-cancel`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

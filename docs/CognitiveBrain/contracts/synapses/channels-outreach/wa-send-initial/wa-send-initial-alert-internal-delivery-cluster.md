@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă WA; țintă E5 — vezi evidență.
+- **Runtime (ADR-0001):** sursă WA; destinație E5 — vezi evidență.
 - **Semantic (ADR-0002):** alertă internă E5.
 - **Planificare:** structurală.
 

@@ -41,7 +41,7 @@ Traseul **contract-sign-complete** depinde în planificare de **poll-ul statusul
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** E4 logistică.
 - **Planificare:** v2 §7 — `contract-sign-complete` → `sameday-status-poll`.
 

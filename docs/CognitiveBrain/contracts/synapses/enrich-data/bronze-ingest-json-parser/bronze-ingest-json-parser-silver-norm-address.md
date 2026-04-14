@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă fără coadă literală v2 vs **`normalize:address`** la țintă — reconciliere în contracte.
+- **Runtime (ADR-0001):** sursă fără coadă literală v2 vs **`normalize:address`** la destinație — reconciliere în contracte.
 - **Semantic (ADR-0002):** ingest E1 (etichetă graf) ↔ `e1:normalize:address` — vezi catalog în contracte.
 - **Planificare:** v2 §7 — `bronze-ingest-json-parser` → `silver-norm-address`.
 

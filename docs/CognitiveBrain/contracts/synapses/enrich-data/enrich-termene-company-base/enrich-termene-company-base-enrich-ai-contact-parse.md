@@ -22,7 +22,7 @@
 
 ## Scop muchie în pipeline (export-grounded)
 
-În **planificare**, muchia **`dependency`** ordonează topologic traseul Termene «company-base» în raport cu traseul **enrich-ai-contact-parse** (structurare / parsare contact din date neuniforme în modelul v2). **Nu** afirmăm shape de mesaj sau ordinea efectivă de execuție în cod: exportul **nu** encodează payload. **Dovadă runtime** pentru capetele muchiei: contractele neuron (sursă cu gap Termene; țintă cu mapare discutată spre `ai:structure:xai`).
+În **planificare**, muchia **`dependency`** ordonează topologic traseul Termene «company-base» în raport cu traseul **enrich-ai-contact-parse** (structurare / parsare contact din date neuniforme în modelul v2). **Nu** afirmăm shape de mesaj sau ordinea efectivă de execuție în cod: exportul **nu** encodează payload. **Dovadă runtime** pentru capetele muchiei: contractele neuron (sursă cu gap Termene; destinație cu mapare discutată spre `ai:structure:xai`).
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -43,7 +43,7 @@
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Contract neuron sursă: fără `enrich:termene:company-base` în registry. Contract neuron țintă: fără `enrich:ai:contact-parse` literal în registry. |
+| **Runtime (ADR-0001)** | Contract neuron sursă: fără `enrich:termene:company-base` în registry. Contract neuron destinație: fără `enrich:ai:contact-parse` literal în registry. |
 | **Semantic (ADR-0002)** | E1 enrichment vs E1 AI — ambele sub orchestrarea E1; detalii în ADR familii. |
 | **Planificare** | v2 §7 — `enrich-termene-company-base` → `enrich-ai-contact-parse`, `dependency`. |
 

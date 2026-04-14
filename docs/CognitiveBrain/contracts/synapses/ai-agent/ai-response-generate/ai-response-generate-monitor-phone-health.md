@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Contract sursă:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md). |
-| Țintă | `monitor-phone-health` | **Matrix:** `monitor:phone:health` (E2, `monitoring`) → [`../../../neurons/E2/monitor--phone--health.md`](../../../neurons/E2/monitor--phone--health.md). **Registry:** `MONITOR_PHONE_HEALTH` → `monitor:phone:health`. |
+| Destinație (graf) | `monitor-phone-health` | **Matrix:** `monitor:phone:health` (E2, `monitoring`) → [`../../../neurons/E2/monitor--phone--health.md`](../../../neurons/E2/monitor--phone--health.md). **Registry:** `MONITOR_PHONE_HEALTH` → `monitor:phone:health`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară că **`monitor-phone-health`** este canonic plasat în pipeline după / în legătură cu **`ai-response-generate`**. v2 redă doar **„sinapsă canonică de pipeline”**; nu specifică metrici, praguri sau legătura cu canalele telefonice folosite la generarea răspunsurilor. Detaliile sunt în contractul E2 țintă.
+Muchia **dependency** declară că **`monitor-phone-health`** este canonic plasat în pipeline după / în legătură cu **`ai-response-generate`**. v2 redă doar **„sinapsă canonică de pipeline”**; nu specifică metrici, praguri sau legătura cu canalele telefonice folosite la generarea răspunsurilor. Detaliile sunt în contractul neuronului E2 de destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

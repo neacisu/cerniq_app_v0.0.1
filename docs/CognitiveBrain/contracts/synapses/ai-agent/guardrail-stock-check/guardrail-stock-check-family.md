@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-check` | Traseu în graf; runtime: coadă executabilă **`guardrail:stock:check`** (`QUEUES.E3_GUARDRAIL_STOCK_CHECK`, `workers/shared/src/queue-registry.ts`, ADR-0001) — [`../../../neurons/E3/guardrail--stock--check.md`](../../../neurons/E3/guardrail--stock--check.md). |
-| Țintă | `e3-guardrails` | Agregat de **familie** E3 în planificare (etichetă de graf), nu o singură coadă; swimlane semantic `guardrails` / neuroni Guardrail din etapa 3. Fără fișier neuron unic pentru etichetă — mapare prin catalog și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
+| Destinație (graf) | `e3-guardrails` | Agregat de **familie** E3 în planificare (etichetă de graf), nu o singură coadă; swimlane semantic `guardrails` / neuroni Guardrail din etapa 3. Fără fișier neuron unic pentru etichetă — mapare prin catalog și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
 
 ## Tip muchie (export)
 

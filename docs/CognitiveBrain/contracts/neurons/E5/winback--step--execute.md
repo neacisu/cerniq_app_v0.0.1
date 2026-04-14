@@ -42,7 +42,7 @@ Execută pasul curent al campaniei (înregistrare acțiune, delay-uri între pa�
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă + span + catalog concordante. | v2 L9171. | — |
 | 2 | Etapă, familie, swimlane | Etapa 5, `winback-campaigns`. | v2 E5 `winback`. | — |

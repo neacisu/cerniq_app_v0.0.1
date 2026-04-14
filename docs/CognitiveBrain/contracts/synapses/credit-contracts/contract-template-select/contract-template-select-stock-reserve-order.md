@@ -41,7 +41,7 @@ Traseul **contract-template-select** depinde în planificare de **rezervarea sto
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** E4 logistică ↔ E3 rezervări.
 - **Planificare:** v2 §7 — `contract-template-select` → `stock-reserve-order`.
 

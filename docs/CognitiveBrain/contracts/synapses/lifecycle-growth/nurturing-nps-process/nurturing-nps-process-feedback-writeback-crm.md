@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `nurturing-nps-process` → `feedback-writeback-crm`.
-- **Runtime (ADR-0001):** vezi neuroni sursă și țintă.
+- **Runtime (ADR-0001):** vezi neuroni sursă și destinație.
 - **Semantic (ADR-0002):** contract E5; mapare semantică în CSV poate indica orchestrator E2 — **necesită reconciliere** în neuron.
 
 ## Limite și reconcilieri

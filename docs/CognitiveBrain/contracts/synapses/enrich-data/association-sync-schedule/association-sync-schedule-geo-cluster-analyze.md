@@ -48,7 +48,7 @@
 ## Limite și reconcilieri
 
 - Sursa `association-sync-schedule` are gap runtime documentat în neuron; muchia rămâne valabilă ca **topologie plan exportat**.
-- Numele nodului țintă din graf trebuie dereferențiat prin [`../../../neurons/E5/geo--cluster--analyze.md`](../../../neurons/E5/geo--cluster--analyze.md) pentru execuție.
+- Numele nodului destinație din graf trebuie dereferențiat prin [`../../../neurons/E5/geo--cluster--analyze.md`](../../../neurons/E5/geo--cluster--analyze.md) pentru execuție.
 
 ## Sursă canonică
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `geo-territory-map` → `nurturing-state-transition`.
-- **Runtime (ADR-0001):** sursă E5 geo; țintă **E2** — vezi contractul țintă pentru cozi.
+- **Runtime (ADR-0001):** sursă E5 geo; destinație **E2** — vezi contractul destinație pentru cozi.
 - **Semantic (ADR-0002):** traversare etape **E5 → E2** pe muchie — **necesită reconciliere** explicită în operație (nu echivalare automată).
 
 ## Limite și reconcilieri

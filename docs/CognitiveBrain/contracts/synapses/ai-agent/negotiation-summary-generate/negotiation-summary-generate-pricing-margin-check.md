@@ -37,13 +37,13 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă: `QUEUES.E3_PRICING_MARGIN_CHECK`; sursă: fără `QUEUES.*` dovedit — contract neuron.
-- **Semantic:** țintă: `e3:pricing:margin-check` (vezi catalog); sursă: nu inventați `nodeKey`.
+- **Runtime:** destinație: `QUEUES.E3_PRICING_MARGIN_CHECK`; sursă: fără `QUEUES.*` dovedit — contract neuron.
+- **Semantic:** destinație: `e3:pricing:margin-check` (vezi catalog); sursă: nu inventați `nodeKey`.
 - **Planificare:** muchie **`dependency`**: `negotiation-summary-generate` precede `pricing-margin-check` în export.
 
 ## Limite și reconcilieri
 
-- Sursă: nod **planificat** vs **coadă înregistrată** — distincție obligatorie. Pentru **țintă**: slug ↔ **`pricing:margin:check`**. Fără presupuneri despre payload (absent din export).
+- Sursă: nod **planificat** vs **coadă înregistrată** — distincție obligatorie. Pentru **destinație**: slug ↔ **`pricing:margin:check`**. Fără presupuneri despre payload (absent din export).
 
 ## Sursă canonică
 

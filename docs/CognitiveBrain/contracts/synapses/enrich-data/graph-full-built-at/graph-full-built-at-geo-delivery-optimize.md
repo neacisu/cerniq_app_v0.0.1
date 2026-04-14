@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În graful exportat, muchia **`dependency`** leagă **`graph-full-built-at`** de **`geo-delivery-optimize`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Exportul nu precizează parametri de optimizare, constrângeri sau payload; detaliile aparțin implementării și contractului neuron țintă, nu acestui registru de muchie.
+În graful exportat, muchia **`dependency`** leagă **`graph-full-built-at`** de **`geo-delivery-optimize`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Exportul nu precizează parametri de optimizare, constrângeri sau payload; detaliile aparțin implementării și contractului neuron destinație, nu acestui registru de muchie.
 
 ## Semantica confirmată (registru v2 §7)
 

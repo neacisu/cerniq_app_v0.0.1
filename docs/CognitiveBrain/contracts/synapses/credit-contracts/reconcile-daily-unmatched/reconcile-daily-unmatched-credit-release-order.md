@@ -41,12 +41,12 @@ Dependența declară în graf ordonare canonică între **`reconcile-daily-unmat
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă în registry; sursă — reconciliere.
+- **Runtime:** destinație în registry; sursă — reconciliere.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri
 
-- Vezi tensiuni slug vs `limit-release` în neuron țintă.
+- Vezi tensiuni slug vs `limit-release` în neuron destinație.
 
 ## Sursă canonică
 

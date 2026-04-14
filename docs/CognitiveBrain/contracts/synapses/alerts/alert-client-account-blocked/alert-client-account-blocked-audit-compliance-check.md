@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `alert-client-account-blocked` | [`../../../neurons/E4/alert--client--account-blocked.md`](../../../neurons/E4/alert--client--account-blocked.md). **Runtime:** **gap** — `alert:client:account-blocked` nu apare în `queue-registry.ts` la auditul documentat; vezi cozi generice E4 în contract. |
-| Țintă | `audit-compliance-check` | [`../../../neurons/E4/audit--compliance--check.md`](../../../neurons/E4/audit--compliance--check.md). **Runtime:** **gap** pentru coada v2 `audit:compliance:check`; implementare apropiată: `audit:chain:verify` (`QUEUES.E4_AUDIT_CHAIN_VERIFY`, `queue-registry.ts` L483) — **nu** echivalență 1:1; vezi contract neuron. |
+| Destinație (graf) | `audit-compliance-check` | [`../../../neurons/E4/audit--compliance--check.md`](../../../neurons/E4/audit--compliance--check.md). **Runtime:** **gap** pentru coada v2 `audit:compliance:check`; implementare apropiată: `audit:chain:verify` (`QUEUES.E4_AUDIT_CHAIN_VERIFY`, `queue-registry.ts` L483) — **nu** echivalență 1:1; vezi contract neuron. |
 
 ## Tip muchie (export)
 
@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă granulară — gap; țintă nominală v2 — gap; apropiere documentată: J46 `audit:chain:verify`.
-- **Semantic (ADR-0002):** `e4:audit:chain-verify` vs `audit:compliance:check` — contract neuron țintă.
+- **Runtime (ADR-0001):** sursă granulară — gap; destinație nominală v2 — gap; apropiere documentată: J46 `audit:chain:verify`.
+- **Semantic (ADR-0002):** `e4:audit:chain-verify` vs `audit:compliance:check` — contract neuron destinație.
 - **Planificare:** v2 §7 — `alert-client-account-blocked` → `audit-compliance-check`.
 
 ## Limite și reconcilieri

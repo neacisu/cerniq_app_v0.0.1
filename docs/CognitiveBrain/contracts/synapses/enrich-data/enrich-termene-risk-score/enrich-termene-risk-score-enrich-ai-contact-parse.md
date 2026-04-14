@@ -43,7 +43,7 @@ Dependența leagă în **graf** traseul scorului de risc Termene de **enrich-ai-
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: `enrich:termene:risk` în registry vs `risk-score` v2. Pentru țintă: fără literal `enrich:ai:contact-parse` în registry. |
+| **Runtime (ADR-0001)** | Sursă: `enrich:termene:risk` în registry vs `risk-score` v2. Pentru destinație: fără literal `enrich:ai:contact-parse` în registry. |
 | **Semantic (ADR-0002)** | E1 — familii `enrichment` / `ai-enrichment`. |
 | **Planificare** | v2 §7 — `dependency`. |
 

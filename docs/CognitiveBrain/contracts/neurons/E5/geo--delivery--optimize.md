@@ -47,11 +47,11 @@
 | 6 | Înveliș telemetrie | Span **`e5:geo:proximity-calculate`** (c15 L56); **`e5:geo:catchment-build`** (c19 L47). | v2 `cognitive.geo.delivery.optimize` (L8140). | OTel v2 ≠ span-uri C15/C19. |
 | 7 | Înveliș politică | Logică worker; fără Cedar/OPA în fișierele citite. | v2 Tier 4, fără HITL obligatoriu (L8131–8138). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | PostGIS + formule în antet C15. | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | PostGIS + formule în antet C15. | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | — | v2 L8138. | — |
 | 11 | Micro-OODA | DB → scoruri / poligoane; fără rută livrare explicită. | v2 OODA (L8136). | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8131). | — |
-| 13 | Stack v2 §2.3 (subset) | BullMQ + Drizzle + PostGIS. | v2 §2.3 țintă platformă. | — |
+| 13 | Stack v2 §2.3 (subset) | BullMQ + Drizzle + PostGIS. | v2 §2.3 — destinație platformă. | — |
 
 ### Mapare OTel
 

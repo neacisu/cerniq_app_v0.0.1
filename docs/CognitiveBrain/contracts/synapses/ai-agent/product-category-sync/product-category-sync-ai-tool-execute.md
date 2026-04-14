@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă executabilă; țintă — vezi gap în contract neuron.
-- **Semantic (ADR-0002):** fără `nodeKey` stabil pentru țintă la audit.
+- **Runtime (ADR-0001):** sursă executabilă; destinație — vezi gap în contract neuron.
+- **Semantic (ADR-0002):** fără `nodeKey` stabil pentru destinație la audit.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

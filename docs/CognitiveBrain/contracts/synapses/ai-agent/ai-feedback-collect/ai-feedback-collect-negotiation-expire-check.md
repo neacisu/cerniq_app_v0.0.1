@@ -43,7 +43,7 @@
 
 ## Limite și reconcilieri
 
-- Slug-uri graf vs cozi: `ai-feedback-collect` ↔ **`feedback:collect`** (sursă); `negotiation-expire-check` ↔ **`negotiation:expire:check`** (țintă). Fără presupuneri despre payload acolo unde exportul nu îl definește.
+- Slug-uri graf vs cozi: `ai-feedback-collect` ↔ **`feedback:collect`** (sursă); `negotiation-expire-check` ↔ **`negotiation:expire:check`** (destinație). Fără presupuneri despre payload acolo unde exportul nu îl definește.
 
 ## Sursă canonică
 

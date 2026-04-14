@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_NEGOTIATION_STATE_TRANSITION` → `QUEUES.E3_PRICING_DISCOUNT_CALCULATE`; `queue-registry.ts`.
-- **Semantic:** contracte neuron sursă și țintă.
+- **Semantic:** contracte neuron sursă și destinație.
 - **Planificare:** muchie **`dependency`** în topologia exportată.
 
 ## Limite și reconcilieri

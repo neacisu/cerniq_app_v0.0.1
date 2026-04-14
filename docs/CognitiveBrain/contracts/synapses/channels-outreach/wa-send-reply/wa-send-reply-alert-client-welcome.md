@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între **reply WA (planificare)** �
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă E2/outreach; țintă E5 — vezi `queue-registry` pentru cozi alertă.
+- **Runtime (ADR-0001):** sursă E2/outreach; destinație E5 — vezi `queue-registry` pentru cozi alertă.
 - **Semantic (ADR-0002):** vezi `nodeKey` în contracte.
 - **Planificare:** `dependency`.
 

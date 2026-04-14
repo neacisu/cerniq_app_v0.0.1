@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-trigger-subsidy` → `hitl-dashboard-metrics`.
-- **Runtime:** sursă — vezi `winback--trigger--subsidy.md`; țintă — `hitl--dashboard--metrics.md`.
+- **Runtime:** sursă — vezi `winback--trigger--subsidy.md`; destinație — `hitl--dashboard--metrics.md`.
 
 ## Limite și reconcilieri
 

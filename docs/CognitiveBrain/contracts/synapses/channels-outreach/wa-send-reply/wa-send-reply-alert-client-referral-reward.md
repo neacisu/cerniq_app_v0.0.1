@@ -41,7 +41,7 @@ v2: **„sinapsă canonică de pipeline”** între fluxul **reply WA (planifica
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** E2 (sursă în model) → E5 (țintă alertă) — etape diferite; validare în registry + contracte.
+- **Runtime:** E2 (sursă în model) → E5 (destinație alertă) — etape diferite; validare în registry + contracte.
 - **Semantic:** `whatsapp` vs familia alertelor client — catalog.
 - **Planificare:** dependență declarativă `dependency`.
 

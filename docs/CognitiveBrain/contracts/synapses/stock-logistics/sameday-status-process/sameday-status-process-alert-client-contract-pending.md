@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `sameday-status-process` → `alert-client-contract-pending`.
-- **Semantic:** vezi matrice rând **178** și contractul neuron țintă.
+- **Semantic:** vezi matrice rând **178** și contractul neuron destinație.
 
 ## Sursă canonică
 

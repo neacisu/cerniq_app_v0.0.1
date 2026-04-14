@@ -39,7 +39,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Catalog `e4:hitl:payment-investigation`; coadă `hitl:investigation:payment`; registry L499. | v2 L7040. | — |
 | 2 | Etapă, familie, swimlane | Catalog `human-oversight-e4` (L2711). | v2 L7033. | — |

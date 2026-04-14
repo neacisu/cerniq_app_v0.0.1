@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `content-drip-send` → `alert-client-referral-reward`.
-- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron pentru sursă și țintă; reconcilieri slug graf ↔ cozi — în neuron, nu inferate aici.
+- **Runtime (ADR-0001) / Semantic (ADR-0002):** vezi contractele neuron pentru sursă și destinație; reconcilieri slug graf ↔ cozi — în neuron, nu inferate aici.
 
 ## Limite și reconcilieri
 

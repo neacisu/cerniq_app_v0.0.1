@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `email-cold-add-to-campaign` | **Contract:** [`../../../neurons/E2/email--cold--add-to-campaign.md`](../../../neurons/E2/email--cold--add-to-campaign.md). **Runtime:** `q:email:cold` — vezi contract neuron. |
-| Destinație (graf) | `alert-client-referral-reward` | **Contract:** [`../../../neurons/E5/alert--client--referral-reward.md`](../../../neurons/E5/alert--client--referral-reward.md). **Runtime / semantic:** vezi contract neuron țintă + registry. |
+| Destinație (graf) | `alert-client-referral-reward` | **Contract:** [`../../../neurons/E5/alert--client--referral-reward.md`](../../../neurons/E5/alert--client--referral-reward.md). **Runtime / semantic:** vezi contract neuron destinație + registry. |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@ Fluxul **cold add-to-campaign** este legat în planificare de **alerta recompens
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** E2 cold email vs alertă E5 — cozi distincte; legătura efectivă nu e în câmpurile sinapsei.
-- **Semantic (ADR-0002):** vezi contractele neuron sursă/țintă.
+- **Semantic (ADR-0002):** vezi contractele neuron sursă/destinație.
 - **Planificare:** dependență declarativă.
 
 ## Limite și reconcilieri

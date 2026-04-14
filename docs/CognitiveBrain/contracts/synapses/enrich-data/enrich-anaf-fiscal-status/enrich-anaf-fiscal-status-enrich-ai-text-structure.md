@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** apropiere `ai:structure:xai` — neuron țintă.
+- **Runtime (ADR-0001):** apropiere `ai:structure:xai` — neuron destinație.
 - **Semantic (ADR-0002):** vezi catalog.
 - **Planificare:** v2 §7 — `enrich-anaf-fiscal-status` → `enrich-ai-text-structure`.
 

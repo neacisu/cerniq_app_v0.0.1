@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursă `product:embed`.
-- **Semantic (ADR-0002):** vezi contract țintă.
+- **Semantic (ADR-0002):** vezi contract destinație.
 - **Planificare:** embed → feedback.
 
 ## Limite și reconcilieri

@@ -41,7 +41,7 @@ Traseul **association-sync-schedule** depinde în planificare de **hartă terito
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi neuron țintă și registry.
+- **Runtime (ADR-0001):** vezi neuron destinație și registry.
 - **Semantic (ADR-0002):** geo E5 — contract neuron.
 - **Planificare:** v2 §7 — `association-sync-schedule` → `geo-territory-map`.
 

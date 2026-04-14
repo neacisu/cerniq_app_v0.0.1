@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `alert-client-contract-pending` | [`../../../neurons/E4/alert--client--contract-pending.md`](../../../neurons/E4/alert--client--contract-pending.md). **Runtime:** **gap** granular în `queue-registry.ts` la auditul documentat. |
-| Țintă | `audit-log-write` | [`../../../neurons/E4/audit--log--write.md`](../../../neurons/E4/audit--log--write.md). **Runtime:** `audit:log:write` (`QUEUES.E4_AUDIT_LOG_WRITE`, `queue-registry.ts` L481). |
+| Destinație (graf) | `audit-log-write` | [`../../../neurons/E4/audit--log--write.md`](../../../neurons/E4/audit--log--write.md). **Runtime:** `audit:log:write` (`QUEUES.E4_AUDIT_LOG_WRITE`, `queue-registry.ts` L481). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Scrierea în jurnalul de audit este planificată ca dependentă de traseul alert
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap granular; țintă — `audit:log:write`.
+- **Runtime (ADR-0001):** sursă — gap granular; destinație — `audit:log:write`.
 - **Semantic (ADR-0002):** `e4:audit:log-write`.
 - **Planificare:** v2 §7 — `alert-client-contract-pending` → `audit-log-write`.
 

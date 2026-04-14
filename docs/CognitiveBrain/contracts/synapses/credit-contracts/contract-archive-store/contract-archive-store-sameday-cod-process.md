@@ -41,13 +41,13 @@ Dependență de planificare: **contract-archive-store** → **`sameday-cod-proce
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E3 arhivare → E4 SameDay COD.
 - **Planificare:** `contract-archive-store` → `sameday-cod-process`.
 
 ## Limite și reconcilieri
 
-- Muchia nu implică automat implementare completă a cozii țintă — vezi gap-uri în contract neuron dacă există.
+- Muchia nu implică automat implementare completă a cozii destinație — vezi gap-uri în contract neuron dacă există.
 - Fără presupuneri despre payload sau retry.
 
 ## Sursă canonică

@@ -16,7 +16,7 @@
 
 ## Scop în context real
 
-**v2** (L6079–L6098): alertă internă contract semnat; OTel țintă `cognitive.alert.internal.contract-signed`. **Repo:** același strat I39–I44 ca în `i-alert-workers.ts` (audit `gold_audit_logs_etapa4`, `e4AlertsDispatchedTotal`); fără coadă BullMQ cu numele v2.
+**v2** (L6079–L6098): alertă internă contract semnat; OTel destinație `cognitive.alert.internal.contract-signed`. **Repo:** același strat I39–I44 ca în `i-alert-workers.ts` (audit `gold_audit_logs_etapa4`, `e4AlertsDispatchedTotal`); fără coadă BullMQ cu numele v2.
 
 ## Surse audit
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `document-whatsapp-send` | **Matrix:** `document:whatsapp:send` → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Registry:** `document:whatsapp:send`. |
+| Destinație (graf) | `document-whatsapp-send` | **Matrix:** `document:whatsapp:send` → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Registry:** `document:whatsapp:send`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** plasează traseul/nodul planificat **`document-whatsapp-send`** în dependență față de **`guardrail-discount-check`**. v2: **„sinapsă canonică de pipeline”**. În repo, trimiterea document WhatsApp este documentată ca **stub** cu posibile decalaje de payload — vezi contractul țintă; muchia nu afirmă că guardrail-ul „aprobă” efectiv trimiterea.
+Muchia **dependency** plasează traseul/nodul planificat **`document-whatsapp-send`** în dependență față de **`guardrail-discount-check`**. v2: **„sinapsă canonică de pipeline”**. În repo, trimiterea document WhatsApp este documentată ca **stub** cu posibile decalaje de payload — vezi contractul destinație; muchia nu afirmă că guardrail-ul „aprobă” efectiv trimiterea.
 
 ## Semantica confirmată (registru v2 §7)
 

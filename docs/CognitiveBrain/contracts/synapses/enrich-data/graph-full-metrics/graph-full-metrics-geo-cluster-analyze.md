@@ -43,8 +43,8 @@ Muchia **`dependency`** leagă **`graph-full-metrics`** de **`geo-cluster-analyz
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
-| **Semantic (ADR-0002)** | Catalog `e5:cluster:implicit-detect` vs nod graf `geo-cluster-analyze` — în contract țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
+| **Semantic (ADR-0002)** | Catalog `e5:cluster:implicit-detect` vs nod graf `geo-cluster-analyze` — în contract destinație. |
 | **Planificare (export)** | v2 §7 — `graph-full-metrics` → `geo-cluster-analyze`, tip `dependency`. |
 
 ## Traseu și vecini

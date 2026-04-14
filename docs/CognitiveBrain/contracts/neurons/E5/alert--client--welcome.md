@@ -39,7 +39,7 @@ Alertă / mesaj de bun venit către client — definit în graf; **fără** hand
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** registry/catalog pentru literal. | v2 L7416. | — |
 | 2 | Etapă, familie, swimlane | — | v2 E5, `alerts`. | — |

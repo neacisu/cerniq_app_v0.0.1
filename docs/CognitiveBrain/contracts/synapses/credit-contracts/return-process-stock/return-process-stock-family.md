@@ -52,7 +52,7 @@ Muchia **`default`** plasează traseul **return-process-stock** sub agregatul **
 ## Limite și reconcilieri
 
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
-- Muchiile din alte foldere care au cațintă `return-process-stock` (ex. pași contract) sunt sinapse **distincte** în v2 §7 — nu le confunda cu manifestul de familie.
+- Muchiile din alte foldere care au ca destinație `return-process-stock` (ex. pași contract) sunt sinapse **distincte** în v2 §7 — nu le confunda cu manifestul de familie.
 - Slug graf `return-process-stock` vs literal registry: **necesită reconciliere graf ↔ registry** — vezi neuron.
 
 ## Sursă canonică

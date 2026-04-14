@@ -62,8 +62,8 @@
 | 3 | Rol declarat | v2: enrichment extern (text generic). Cod: F1 = «date firmă ONRC» agregate; nu extracție «capital» izolată. | Cortex premotor (v2). | Structura exactă a JSON ONRC (chei capital) ne-citată în cod. |
 | 4 | NeuronType + SOFAI | v2: `ToolNeuron`. Catalog (pentru `enrich:onrc:data`): `ToolNeuron`. | v2 §2.1. | Neuron v2 neinstanțiat. |
 | 5 | Criticitate | v2: `MEDIUM`. Catalog (`enrich:onrc:data`): `HIGH` — **divergență** față de piesa runtime ce ar putea purta date de capital în blob. | v2. | — |
-| 6 | Înveliș telemetrie | **Fără** span pentru `enrich:onrc:capital`. F1 folosește `withCognitiveSpan("e1:enrich:onrc-data", …)` — alt `nodeKey` decât span v2 `cognitive.enrich.onrc.capital`. | ADR-0003; `withCognitiveSpan` în `workers/shared/src/cognitive-helpers.ts`. | OTel v2 pentru coada `capital` rămâne țintă / gap. |
-| 7 | Înveliș politică | F1: fără Cedar/OPA în handler; erori propagate; `callExternalApi` + circuit breaker `onrc` în shared. | v2 tier 4; ADR-0007 țintă. | Politică fină per-neuron: doar ce reiese din cod citat. |
+| 6 | Înveliș telemetrie | **Fără** span pentru `enrich:onrc:capital`. F1 folosește `withCognitiveSpan("e1:enrich:onrc-data", …)` — alt `nodeKey` decât span v2 `cognitive.enrich.onrc.capital`. | ADR-0003; `withCognitiveSpan` în `workers/shared/src/cognitive-helpers.ts`. | OTel v2 pentru coada `capital` rămâne destinație documentată / gap. |
+| 7 | Înveliș politică | F1: fără Cedar/OPA în handler; erori propagate; `callExternalApi` + circuit breaker `onrc` în shared. | v2 tier 4; ADR-0007 — destinație. | Politică fină per-neuron: doar ce reiese din cod citat. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
 | 9 | Guardrails | F1: validare CUI (`sanitizeCui`), sanitizare nr. reg. com.; fără NeMo în acest fișier. | ADR-0007. | — |
 | 10 | Escaladare HITL | F1: fără enqueue `human:*` / `hitl:*`. | ADR-0008. | — |

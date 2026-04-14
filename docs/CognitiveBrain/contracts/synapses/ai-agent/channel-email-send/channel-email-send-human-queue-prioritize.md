@@ -37,8 +37,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă ancorată în registry; **țintă:** fără coadă canonică dovedită sub numele `human:queue:prioritize` — vezi contractul neuron.
-- **Semantic:** sursă: contract channel email; țintă: fără intrare catalog demonstrată pentru această coadă la auditul din contract.
+- **Runtime:** sursă ancorată în registry; **Destinație:** fără coadă canonică dovedită sub numele `human:queue:prioritize` — vezi contractul neuron.
+- **Semantic:** sursă: contract channel email; destinație: fără intrare catalog demonstrată pentru această coadă la auditul din contract.
 - **Planificare:** muchie **`dependency`**: `channel-email-send` precede `human-queue-prioritize` în graful exportat; v2 nu detaliază prioritizarea în registru.
 
 ## Limite și reconcilieri

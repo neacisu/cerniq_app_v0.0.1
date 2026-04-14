@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Nod traseu în graf; runtime: coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE` în `workers/shared/src/queue-registry.ts`, ADR-0001) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `e2-ai-analysis` | Agregat de **familie / nucleu** E2 în planificare (etichetă de graf), nu o singură coadă BullMQ; swimlane semantic `ai-analysis` pentru neuroni E2 din același palier. Nu există un singur `contracts/neurons/...` pentru această etichetă — mapare prin catalog și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
+| Destinație (graf) | `e2-ai-analysis` | Agregat de **familie / nucleu** E2 în planificare (etichetă de graf), nu o singură coadă BullMQ; swimlane semantic `ai-analysis` pentru neuroni E2 din același palier. Nu există un singur `contracts/neurons/...` pentru această etichetă — mapare prin catalog și [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv). |
 
 ## Tip muchie (export)
 

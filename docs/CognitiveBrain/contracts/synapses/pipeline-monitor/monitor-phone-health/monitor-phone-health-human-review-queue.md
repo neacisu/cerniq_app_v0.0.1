@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `monitor-phone-health` → `human-review-queue`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L85**; țintă `human:review:queue` la **L76**.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L85**; **Destinație (coadă):** `human:review:queue` la **L76**.
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

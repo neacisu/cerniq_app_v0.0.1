@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | **Gap runtime (documentat):** coada **`guardrail:stock:verify`** nu apare în `workers/shared/src/queue-registry.ts`; vezi [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md). Rând [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv): `queue_in_registry` = `no`. |
-| Țintă | `document-whatsapp-send` | Coadă executabilă **`document:whatsapp:send`** (`QUEUES.E3_DOCUMENT_WHATSAPP_SEND`) — [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). |
+| Destinație (graf) | `document-whatsapp-send` | Coadă executabilă **`document:whatsapp:send`** (`QUEUES.E3_DOCUMENT_WHATSAPP_SEND`) — [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). |
 
 ## Tip muchie (export)
 
@@ -42,9 +42,9 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`; `E3_DOCUMENT_WHATSAPP_SEND`.
-- **Semantic (ADR-0002):** țintă — `e3:document:whatsapp-send` / `document:whatsapp:send` — „Trimitere document via WhatsApp Business API…” (~L1983–1989), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:document:whatsapp-send` / `document:whatsapp:send` — „Trimitere document via WhatsApp Business API…” (~L1983–1989), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-stock-verify-document-whatsapp-send`.
-- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada țintă (`queue_in_registry` = `yes` în CSV).
+- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada destinație (`queue_in_registry` = `yes` în CSV).
 
 ## Limite și reconcilieri
 

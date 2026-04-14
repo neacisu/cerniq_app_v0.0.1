@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | Traseu în graf; **Matrix** + contract [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime (ADR-0001):** execuția ancorată la coada **`search:query:rewrite`** (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `workers/shared/src/queue-registry.ts` L214), nu la literalul `search:query:understand` — reconciliere explicită în contractul neuron. |
-| Țintă | `e3-product-search` | Nod agregat **familie product-search** în planificare; nu este o singură coadă executabilă sau un `nodeKey` unic echivalent în catalog. |
+| Destinație (graf) | `e3-product-search` | Nod agregat **familie product-search** în planificare; nu este o singură coadă executabilă sau un `nodeKey` unic echivalent în catalog. |
 
 ## Tip muchie (export)
 

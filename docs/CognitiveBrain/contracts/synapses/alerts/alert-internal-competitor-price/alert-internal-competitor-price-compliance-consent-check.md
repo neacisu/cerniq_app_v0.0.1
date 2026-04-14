@@ -41,13 +41,13 @@ Verificarea consent/GDPR din perspectiva planificării este dependentă de trase
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă nominală v2 vs `compliance:gdpr:check`.
+- **Runtime (ADR-0001):** sursă — gap; destinație nominală v2 vs `compliance:gdpr:check`.
 - **Semantic (ADR-0002):** `e5:compliance:gdpr-check` — catalog.
 - **Planificare:** v2 §7 — `alert-internal-competitor-price` → `compliance-consent-check`.
 
 ## Limite și reconcilieri
 
-- Nume v2 vs coadă K56 — contract neuron țintă.
+- Nume v2 vs coadă K56 — contract neuron destinație.
 
 ## Sursă canonică
 

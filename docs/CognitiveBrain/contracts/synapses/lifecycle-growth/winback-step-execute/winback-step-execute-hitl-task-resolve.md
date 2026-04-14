@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-step-execute` → `hitl-task-resolve`.
-- **Runtime:** sursă — F33 (E5); țintă — **`hitl:task:resolve`** (E4, K52) — vezi `hitl--task--resolve.md`.
+- **Runtime:** sursă — F33 (E5); destinație — **`hitl:task:resolve`** (E4, K52) — vezi `hitl--task--resolve.md`.
 
 ## Limite și reconcilieri
 
-- **E5 (sursă) vs E4 (țintă):** muchia este din exportul de graf; etapele runtime reale pot diferi — documentat în contractul neuronului țintă.
+- **E5 (sursă) vs E4 (destinație):** muchia este din exportul de graf; etapele runtime reale pot diferi — documentat în contractul neuronului destinație.
 
 ## Sursă canonică
 

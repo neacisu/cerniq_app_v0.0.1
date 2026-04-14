@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `oblio-stock-sync` | **Matrix:** `oblio:stock:sync` → [`../../../neurons/E3/oblio--stock--sync.md`](../../../neurons/E3/oblio--stock--sync.md). **Registry:** `E3_OBLIO_STOCK_SYNC` → `oblio:stock:sync`. |
+| Destinație (graf) | `oblio-stock-sync` | **Matrix:** `oblio:stock:sync` → [`../../../neurons/E3/oblio--stock--sync.md`](../../../neurons/E3/oblio--stock--sync.md). **Registry:** `E3_OBLIO_STOCK_SYNC` → `oblio:stock:sync`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă **`oblio-stock-sync`** de **`guardrail-discount-check`** în planificare. v2: **„sinapsă canonică de pipeline”**; nu explică legătura dintre verificarea discount și sincronizarea stocului Oblio. Implementarea este în contractul țintă.
+Muchia **dependency** leagă **`oblio-stock-sync`** de **`guardrail-discount-check`** în planificare. v2: **„sinapsă canonică de pipeline”**; nu explică legătura dintre verificarea discount și sincronizarea stocului Oblio. Implementarea este în contractul destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

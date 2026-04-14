@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `association-enrich-termene` → `geo-cluster-analyze`.
-- **Runtime (ADR-0001):** sursă și țintă pot avea **nume de coadă diferite** față de slug-urile graf — vezi ambele neuroni.
+- **Runtime (ADR-0001):** sursă și destinație pot avea **nume de coadă diferite** față de slug-urile graf — vezi ambele neuroni.
 - **Semantic (ADR-0002):** E5 graph-community / geo — vezi contracte neuron și [`../../../../adr/families/e5/geo.md`](../../../../adr/families/e5/geo.md).
 
 ## Limite și reconcilieri

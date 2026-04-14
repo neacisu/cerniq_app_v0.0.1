@@ -42,11 +42,11 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `content-drip-schedule` → `alert-client-referral-reward`.
-- **Runtime / semantic:** vezi neuronii sursă și țintă; **nu** echivala slug-ul graf (`alert-client-*`) cu numele fișierului neuron fără mapare explicită de mai sus.
+- **Runtime / semantic:** vezi neuronii sursă și destinație; **nu** echivala slug-ul graf (`alert-client-*`) cu numele fișierului neuron fără mapare explicită de mai sus.
 
 ## Limite și reconcilieri
 
-- Semantica alertei și cozile asociate — în contractul neuronului țintă, nu deduse din muchie.
+- Semantica alertei și cozile asociate — în contractul neuronului destinație, nu deduse din muchie.
 
 ## Sursă canonică
 

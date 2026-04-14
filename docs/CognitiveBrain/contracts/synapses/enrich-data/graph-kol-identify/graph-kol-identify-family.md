@@ -53,7 +53,7 @@ Muchie planificată **Bronze → acest nod:** [`../bronze-ingest-pdf-extractor/b
 | --- | --- |
 | **Runtime (ADR-0001)** | `kol:identify` în registry — vezi ADR `graph-community` și [`../../../neurons/E5/graph--kol--identify.md`](../../../neurons/E5/graph--kol--identify.md). |
 | **Semantic (ADR-0002)** | **NEURON_MATRIX.csv** — `graph:kol:identify` / `e5:kol:identify` (coloane populate); detalii în [`../../../neurons/E5/graph--kol--identify.md`](../../../neurons/E5/graph--kol--identify.md). |
-| **Planificare (export)** | v2 §7 — sursă `graph-kol-identify` → țintă `e5-graph-community`, tip `default`. |
+| **Planificare (export)** | v2 §7 — sursă `graph-kol-identify` → destinație `e5-graph-community`, tip `default`. |
 
 ## Limite și reconcilieri
 

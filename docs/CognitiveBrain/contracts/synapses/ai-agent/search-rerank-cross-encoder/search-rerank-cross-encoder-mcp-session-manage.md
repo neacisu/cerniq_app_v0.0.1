@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `mcp-session-manage` | [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md). **Runtime:** `mcp:session:manage` (`QUEUES.E3_MCP_SESSION_MANAGE`, `queue-registry.ts` L331). |
+| Destinație (graf) | `mcp-session-manage` | [`../../../neurons/E3/mcp--session--manage.md`](../../../neurons/E3/mcp--session--manage.md). **Runtime:** `mcp:session:manage` (`QUEUES.E3_MCP_SESSION_MANAGE`, `queue-registry.ts` L331). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Gestionarea sesiunii MCP depinde în graf de traseul rerank cross-encoder. Expor
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `mcp:session:manage`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `mcp:session:manage`.
 - **Semantic (ADR-0002):** `e3:mcp:session-manage`; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `mcp-session-manage`.
 

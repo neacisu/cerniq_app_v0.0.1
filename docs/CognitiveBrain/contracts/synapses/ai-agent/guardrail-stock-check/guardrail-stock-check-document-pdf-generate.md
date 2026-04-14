@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-check` | Coadă executabilă **`guardrail:stock:check`** (`QUEUES.E3_GUARDRAIL_STOCK_CHECK`) — [`../../../neurons/E3/guardrail--stock--check.md`](../../../neurons/E3/guardrail--stock--check.md). |
-| Țintă | `document-pdf-generate` | Coadă executabilă **`document:pdf:generate`** (`QUEUES.E3_DOCUMENT_PDF_GENERATE`) — [`../../../neurons/E3/document--pdf--generate.md`](../../../neurons/E3/document--pdf--generate.md). |
+| Destinație (graf) | `document-pdf-generate` | Coadă executabilă **`document:pdf:generate`** (`QUEUES.E3_DOCUMENT_PDF_GENERATE`) — [`../../../neurons/E3/document--pdf--generate.md`](../../../neurons/E3/document--pdf--generate.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_STOCK_CHECK`; `E3_DOCUMENT_PDF_GENERATE`.
-- **Semantic (ADR-0002):** țintă — `e3:document:pdf-generate` / `document:pdf:generate` — „Generare PDF ofertă/proformă/factură din template Handlebars…” (~L1965–1971), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:document:pdf-generate` / `document:pdf:generate` — „Generare PDF ofertă/proformă/factură din template Handlebars…” (~L1965–1971), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-stock-check-document-pdf-generate`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — ambele cozi, `queue_in_registry` = `yes`.
 

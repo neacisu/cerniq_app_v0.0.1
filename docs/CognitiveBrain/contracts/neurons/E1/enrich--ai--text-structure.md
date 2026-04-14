@@ -66,9 +66,9 @@ Nu s-a marcat **N/A** pe rânduri întregi: toate criteriile primesc fie dovezi 
 | 6 | Înveliș telemetrie | Span `cognitive:e1:ai:structure-infraq`; nu `cognitive.enrich.ai.text-structure` din v2. Atribute catalog condiționate de `getNodeByKey` — cheie greșită în J1. | v2 naming OTel. | Migrare necesară (nodeKey + span). |
 | 7 | Înveliș politică | Prag 0.7 + validare CUI; HITL cu expirare 48h (`j1-grok-structuring.ts`). Fără OPA. | v2 Tier 3, prag 0.80, SLA 4h. | Praguri/SLA diferite. |
 | 8 | Rutare model (dacă AI) | `infraqStructuredJson` + `Qwen/QwQ-32B-AWQ` + lanț frontier (`infraq-structured-json.ts`, `llm-client.ts`). | v2 QwQ + SGLang + fallback încredere. | SGLang ca text nu apare în implementarea citită. |
-| 9 | Guardrails | Validări deterministe CUI; fără NeMo în J1 citit. | v2 + ADR-0007. | NeMo țintă. |
+| 9 | Guardrails | Validări deterministe CUI; fără NeMo în J1 citit. | v2 + ADR-0007. | NeMo destinație. |
 | 10 | Escaladare HITL | `createHitlApprovalTask` pentru cazuri sub prag (`j1-grok-structuring.ts` L32–45). | v2 anomalii încredere. | — |
-| 11 | Micro-OODA | **Observe:** `rawData` job. **Orient:** LLM structurat. **Decide:** `canAutoApply`. **Act:** scriere silver + log / HITL. **Neo4j GraphRAG:** lipsă în codul citit. | v2 OODA + GraphRAG țintă. | — |
+| 11 | Micro-OODA | **Observe:** `rawData` job. **Orient:** LLM structurat. **Decide:** `canAutoApply`. **Act:** scriere silver + log / HITL. **Neo4j GraphRAG:** lipsă în codul citit. | v2 OODA + GraphRAG — destinație v2. | — |
 | 12 | Tier + de-escaladare | HITL când sub prag încredere / CUI invalid; fără trigger2σ explicit. | v2 §2.2. | Invariante parțiale în cod. |
 | 13 | Stack v2 §2.3 (subset) | BullMQ, worker enrichment, infraq reasoning, OTel helper. | v2 stack complet. | Kafka/SGLang/Neo4j neaudit aici. |
 

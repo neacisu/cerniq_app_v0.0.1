@@ -41,7 +41,7 @@ Dependența declară în graf că **procesarea rambursării** precede sau este o
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă Revolut refund; țintă credit ANAF.
+- **Runtime (ADR-0001):** sursă Revolut refund; destinație credit ANAF.
 - **Semantic (ADR-0002):** vezi catalog pentru ambele capete.
 - **Planificare:** topologie v2 §7.
 

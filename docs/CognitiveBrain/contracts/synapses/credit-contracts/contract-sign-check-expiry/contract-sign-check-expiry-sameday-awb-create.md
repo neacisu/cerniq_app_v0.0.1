@@ -41,7 +41,7 @@ Traseul **contract-sign-check-expiry** depinde în planificare de **crearea AWB 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă și registry.
+- **Runtime (ADR-0001):** vezi contract neuron destinație și registry.
 - **Semantic (ADR-0002):** E4 logistică — Sameday.
 - **Planificare:** v2 §7 — `contract-sign-check-expiry` → `sameday-awb-create`.
 

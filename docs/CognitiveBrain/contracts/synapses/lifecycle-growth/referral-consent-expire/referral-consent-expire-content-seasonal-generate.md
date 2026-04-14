@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-consent-expire` → `content-seasonal-generate`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; țintă `content:seasonal:generate` la **L266** (fișier).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; **Destinație (coadă):** `content:seasonal:generate` la **L266** (fișier).
 - **Runtime:** vezi neuronii.
 
 ## Limite și reconcilieri

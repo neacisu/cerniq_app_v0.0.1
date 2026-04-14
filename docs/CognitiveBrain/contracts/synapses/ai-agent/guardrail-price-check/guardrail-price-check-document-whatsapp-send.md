@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-price-check` | Coadă executabilă **`guardrail:price:check`** (`QUEUES.E3_GUARDRAIL_PRICE_CHECK`) — [`../../../neurons/E3/guardrail--price--check.md`](../../../neurons/E3/guardrail--price--check.md). |
-| Țintă | `document-whatsapp-send` | Coadă executabilă **`document:whatsapp:send`** (`QUEUES.E3_DOCUMENT_WHATSAPP_SEND`) — [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). |
+| Destinație (graf) | `document-whatsapp-send` | Coadă executabilă **`document:whatsapp:send`** (`QUEUES.E3_DOCUMENT_WHATSAPP_SEND`) — [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_PRICE_CHECK`; `E3_DOCUMENT_WHATSAPP_SEND`.
-- **Semantic (ADR-0002):** țintă — `e3:document:whatsapp-send` / `document:whatsapp:send` — „Trimitere document via WhatsApp Business API…” (~L1983–1989), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:document:whatsapp-send` / `document:whatsapp:send` — „Trimitere document via WhatsApp Business API…” (~L1983–1989), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-price-check-document-whatsapp-send`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

@@ -41,8 +41,8 @@ Verificarea de conformitate audit este dependentă în graf de traseul alertei i
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă granulară — gap; țintă nominală v2 — gap; apropiere: `audit:chain:verify`.
-- **Semantic (ADR-0002):** `e4:audit:chain-verify` — vezi contract neuron țintă.
+- **Runtime (ADR-0001):** sursă granulară — gap; destinație nominală v2 — gap; apropiere: `audit:chain:verify`.
+- **Semantic (ADR-0002):** `e4:audit:chain-verify` — vezi contract neuron destinație.
 - **Planificare:** v2 §7 — `alert-internal-contract-signed` → `audit-compliance-check`.
 
 ## Limite și reconcilieri

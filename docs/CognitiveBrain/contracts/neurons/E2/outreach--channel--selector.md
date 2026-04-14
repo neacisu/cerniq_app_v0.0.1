@@ -42,13 +42,13 @@
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **`e2:outreach:channel-selector`**, coadă `outreach:channel:selector`. | v2. | — |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 2, `pipeline-control`. | v2 orchestrator. | — |
-| 3 | Rol declarat | Alegere canal + coadă țintă după reguli și consimțământ. | v2 (SMS în text catalog — **nu** în ramuri cod). | SMS: doar țintă documentară. |
+| 3 | Rol declarat | Alegere canal + coadă destinație după reguli și consimțământ. | v2 (SMS în text catalog — **nu** în ramuri cod). | SMS: doar destinație documentară. |
 | 4 | NeuronType + SOFAI | Catalog: `RulesNeuron`. | v2. | — |
 | 5 | Criticitate | Catalog / v2: `HIGH`. | v2. | — |
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e2:outreach:channel-selector")` (L462) + strat `createWorker`. | Span v2. | Posibil span dublu imbricat cu fabrica — guard în `cognitive-helpers`. |
 | 7 | Înveliș politică | Porți GDPR în SQL; fără Cedar. | v2 tier3. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Throw dacă toate canalele blocate sau nicio rută. | ADR-0059, ADR-0007 țintă. | — |
+| 9 | Guardrails | Throw dacă toate canalele blocate sau nicio rută. | ADR-0059, ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu direct. | v2. | — |
 | 11 | Micro-OODA | OBSERVE DB; ORIENT reguli; DECIDE canal; ACT return struct. | v2. | — |
 | 12 | Tier + de-escaladare | Eșec → throw (retry BullMQ). | v2. | — |

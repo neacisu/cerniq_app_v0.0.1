@@ -45,7 +45,7 @@
 | 6 | Înveliș telemetrie | Span C16: `cognitive:e4:credit:data:fetch-bpi`. | v2 `cognitive.credit.data.fetch-insolventa` (L6735). | Fără span dedicat insolvență. |
 | 7 | Înveliș politică | — | v2 L6733. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Aceleași ca C16 (client Termene, validări). | NeMo țintă. | — |
+| 9 | Guardrails | Aceleași ca C16 (client Termene, validări). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6733. | — |
 | 11 | Micro-OODA | Componentă scor din date BPI → C17. | v2 L6731. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6726). | — |

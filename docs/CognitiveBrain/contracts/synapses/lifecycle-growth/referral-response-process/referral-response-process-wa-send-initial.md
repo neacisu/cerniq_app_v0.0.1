@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-response-process` → `wa-send-initial`.
-- **Runtime:** sursă — E27; țintă — vezi neuron `wa-send-initial`.
+- **Runtime:** sursă — E27; destinație — vezi neuron `wa-send-initial`.
 
 ## Limite și reconcilieri
 

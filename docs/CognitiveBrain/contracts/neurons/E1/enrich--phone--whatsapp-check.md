@@ -45,7 +45,7 @@
 | 3 | Rol declarat | v2: enrichment extern (generic). Cod: **lipsă** serviciu dedicat «whatsapp-check». | v2. | — |
 | 4 | NeuronType + SOFAI | v2: `ToolNeuron`. Cod: neinstanțiat. | v2. | — |
 | 5 | Criticitate | v2: `MEDIUM`. Cod: neaplicabil. | v2. | — |
-| 6 | Înveliș telemetrie | Fără `withCognitiveSpan` pentru acest `v2_queue`. | v2 span dedicat. | Doar țintă / gap. |
+| 6 | Înveliș telemetrie | Fără `withCognitiveSpan` pentru acest `v2_queue`. | v2 span dedicat. | Doar destinație documentată / gap. |
 | 7 | Înveliș politică | N/A neuron dedicat. | v2 tier 4. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
 | 9 | Guardrails | N/A neuron dedicat. | ADR-0007. | — |
@@ -58,7 +58,7 @@
 
 - **v2:** `cognitive.enrich.phone.whatsapp-check`.
 - **Cod:** **lipsă** handler E1 → fără `cognitive.nodeKey` operațional pentru acest neuron.
-- **Stare:** **doar țintă** până la implementare sau rescriere v2.
+- **Stare:** **doar destinație documentată** până la implementare sau rescriere v2.
 
 ---
 *Generator:* `docs/CognitiveBrain/scripts/generate_neuron_contracts_from_v2.py`

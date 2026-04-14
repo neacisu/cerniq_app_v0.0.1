@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-path-find`** de **`geo-weather-correlate
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
 | **Semantic (ADR-0002)** | Vezi `geo--weather--correlate`. |
 | **Planificare (export)** | v2 §7 — `graph-path-find` → `geo-weather-correlate`, tip `dependency`. |
 

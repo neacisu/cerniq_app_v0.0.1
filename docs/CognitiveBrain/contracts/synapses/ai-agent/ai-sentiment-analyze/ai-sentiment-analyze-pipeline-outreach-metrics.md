@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `pipeline-outreach-metrics` | Coadă executabilă **`pipeline:outreach:metrics`** (`QUEUES.PIPELINE_OUTREACH_METRICS`) — [`../../../neurons/E2/pipeline--outreach--metrics.md`](../../../neurons/E2/pipeline--outreach--metrics.md). |
+| Destinație (graf) | `pipeline-outreach-metrics` | Coadă executabilă **`pipeline:outreach:metrics`** (`QUEUES.PIPELINE_OUTREACH_METRICS`) — [`../../../neurons/E2/pipeline--outreach--metrics.md`](../../../neurons/E2/pipeline--outreach--metrics.md). |
 
 ## Tip muchie (export)
 

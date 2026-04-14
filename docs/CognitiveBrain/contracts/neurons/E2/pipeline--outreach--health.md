@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + span condiționat; dedup poate lipsi `tenantId` în unele payload-uri — verificare la runtime. | Span v2. | `EventDeduplicateJobData` include `tenantId`; cleanup include `tenantId?`. |
 | 7 | Înveliș politică | Redis NX + EX pentru idempotență; cleanup PG. | v2 tier3. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | `concurrency: 50` pe worker merge. | ADR-0007 țintă. | — |
+| 9 | Guardrails | `concurrency: 50` pe worker merge. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu. | v2. | — |
 | 11 | Micro-OODA | OBSERVE câmpuri job; ACT dedup sau ștergere. | v2. | — |
 | 12 | Tier + de-escaladare | Cleanup returnează `{ deleted }`. | v2. | — |

@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | Span literal **`e5:association:member:match`** (L279) — două puncte în `member:match`. Catalog `nodeKey` **`e5:association:member-match`** (L3133). | v2 `cognitive.association.members.link` (L8250). | **Span ≠ nodeKey** (coloană `:` vs `-`). |
 | 7 | Înveliș politică | — | v2 L8248–8249. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Prag Jaccard 0.45 (`g41` L15). | NeMo țintă. | — |
+| 9 | Guardrails | Prag Jaccard 0.45 (`g41` L15). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8248. | — |
 | 11 | Micro-OODA | Match → poate declanșa G42 (acoperire). | v2 L8246. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8241). | — |

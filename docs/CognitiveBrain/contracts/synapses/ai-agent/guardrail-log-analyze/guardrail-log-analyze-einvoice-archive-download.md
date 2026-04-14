@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `einvoice-archive-download` | **Matrix:** `einvoice:archive:download` → [`../../../neurons/E3/einvoice--archive--download.md`](../../../neurons/E3/einvoice--archive--download.md). **Registry:** `einvoice:archive:download`. |
+| Destinație (graf) | `einvoice-archive-download` | **Matrix:** `einvoice:archive:download` → [`../../../neurons/E3/einvoice--archive--download.md`](../../../neurons/E3/einvoice--archive--download.md). **Registry:** `einvoice:archive:download`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă **`einvoice-archive-download`** de **`guardrail-log-analyze`** în planificare. v2: **„sinapsă canonică de pipeline”**; nu explică legătura cu SPV/arhivă. Nodul **țintă** este în registry; **sursa** necesită reconciliere graf ↔ cod.
+Muchia **dependency** leagă **`einvoice-archive-download`** de **`guardrail-log-analyze`** în planificare. v2: **„sinapsă canonică de pipeline”**; nu explică legătura cu SPV/arhivă. Nodul **destinație** este în registry; **sursa** necesită reconciliere graf ↔ cod.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -41,13 +41,13 @@ Muchia **dependency** leagă **`einvoice-archive-download`** de **`guardrail-log
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** `E3_EINVOICE_ARCHIVE_DOWNLOAD` pentru țintă.
+- **Runtime (ADR-0001):** `E3_EINVOICE_ARCHIVE_DOWNLOAD` pentru destinație.
 - **Semantic (ADR-0002):** `e3:einvoice:archive-download`.
 - **Planificare:** dependență guardrail-log-analyze → arhivă e-Factură.
 
 ## Limite și reconcilieri
 
-- Fără presupuneri despre fluxul ANAF; contract neuron țintă.
+- Fără presupuneri despre fluxul ANAF; contract neuron destinație.
 
 ## Sursă canonică
 

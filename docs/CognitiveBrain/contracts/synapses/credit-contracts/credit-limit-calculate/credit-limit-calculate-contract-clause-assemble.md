@@ -41,7 +41,7 @@ Traseul **credit-limit-calculate** depinde în planificare de **asamblarea clauz
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 limită credit ↔ E4 contracte (asamblare clauze).
 - **Planificare:** v2 §7 — `credit-limit-calculate` → `contract-clause-assemble`.
 

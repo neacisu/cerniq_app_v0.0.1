@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară în graf o ordonare canonică între `ai-prompt-optimize` și `negotiation-state-transition`. v2 oferă doar eticheta **„sinapsă canonică de pipeline”**; nu descrie mecanismul FSM sau transferul de stare. Comportamentul tranzițiilor este în contractul neuron țintă și în workerii mapați acolo, nu în sinapsa din §7.
+Muchia **dependency** declară în graf o ordonare canonică între `ai-prompt-optimize` și `negotiation-state-transition`. v2 oferă doar eticheta **„sinapsă canonică de pipeline”**; nu descrie mecanismul FSM sau transferul de stare. Comportamentul tranzițiilor este în contractul neuron destinație și în workerii mapați acolo, nu în sinapsa din §7.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -47,7 +47,7 @@ Muchia **dependency** declară în graf o ordonare canonică între `ai-prompt-o
 
 ## Limite și reconcilieri
 
-- Fără presupuneri despre enfileuire directă BullMQ între sursă și țintă; muchia exprimă **topologie planificată**.
+- Fără presupuneri despre enfileuire directă BullMQ între sursă și destinație; muchia exprimă **topologie planificată**.
 - Reconcilierea sursei cu un worker real este pas separat de validarea acestui contract sinaptic.
 
 ## Sursă canonică

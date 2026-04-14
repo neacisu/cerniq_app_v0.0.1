@@ -40,7 +40,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | ��intă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **v2_queue** `bronze:ingest:csv-parser`. **Catalog:** `nodeKey` `e1:ingest:csv`, `queueName` `ingest:csv`. **Registry:** `QUEUES.INGEST_CSV`. Literal `bronze:ingest:csv-parser` **lipsă** în TS la audit. | v2 canonic §6. | Migrare denumiri opțională (cutover). |
 | 2 | Etapă, familie, swimlane | E1; procesor în `workers/enrichment`. **Catalog swimlane:** `data-ingest` (nu «ingest» din metrica v2). | v2 E1, familie `ingest`, swimlane ingest în exemplu metrică. | — |
@@ -48,12 +48,12 @@
 | 4 | NeuronType + SOFAI | Catalog: `SensoryNeuron`. v2: `SensoryNeuron`. Clasificare SOFAI: raportată ca în v2 §2.1 (Non-AI / senzorial). | v2. | — |
 | 5 | Criticitate | Catalog: `MEDIUM`. v2: `MEDIUM`. | v2. | — |
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e1:ingest:csv", …)` → span `cognitive:e1:ingest:csv` + atribute din catalog (`a1-csv-parser.ts` ~L603–626; `cognitive-helpers.ts` ~L215–234). | v2: `cognitive.bronze.ingest.csv-parser`. | Nume span diferit de string-ul v2; **migrare planificată** dacă se unifică convenția. |
-| 7 | Înveliș politică | Tier/încredere: v2 Tier 4; **fără** Cedar/OPA în A1 la audit. Integritate: `ensureFileIntegrity` când există `fileHash` în metadata (~L65–90). | v2 §2.2; audit log 90 zile (țintă operațională). | Politici fine: parțial în cod (hash), restțintă. |
+| 7 | Înveliș politică | Tier/încredere: v2 Tier 4; **fără** Cedar/OPA în A1 la audit. Integritate: `ensureFileIntegrity` când există `fileHash` în metadata (~L65–90). | v2 §2.2; audit log 90 zile (destinație operațională). | Politici fine: parțial în cod (hash), rest — destinație documentată. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Parsare deterministă (Papa); verificare SHA-256 opțională; metrici `jobErrors` / `jobDuration` în procesor. NeMo: **țintă** ADR-0007. | v2 fără HITL obligatoriu. | — |
+| 9 | Guardrails | Parsare deterministă (Papa); verificare SHA-256 opțională; metrici `jobErrors` / `jobDuration` în procesor. NeMo: **destinație** ADR-0007. | v2 fără HITL obligatoriu. | — |
 | 10 | Escaladare HITL | A1 **nu** enfilează direct cozi `human:*`/`hitl:*` în fișierul citit; escaladare transversală posibilă în alte straturi (ADR-0008). | v2 fără HITL obligatoriu pentru ingest. | — |
 | 11 | Micro-OODA | OBSERVE: job + fișier/conținut. ORIENT: encoding, mapping coloane. DECIDE: accept/reject rânduri. ACT: `insertBronzeRows` + trigger downstream în `ingest-utils`. | v2 OODA generic ingest. | — |
-| 12 | Tier + de-escaladare | **Fără** prag explicit «încredere < 0.80» sau «2σ» în `a1-csv-parser.ts` la audit; retry/stalled = comportament BullMQ implicit. | v2 §2.2 trigger-e ca țintă arhitecturală. | Invarianți de încredere: **fără** dovadă în A1. |
+| 12 | Tier + de-escaladare | **Fără** prag explicit «încredere < 0.80» sau «2σ» în `a1-csv-parser.ts` la audit; retry/stalled = comportament BullMQ implicit. | v2 §2.2 trigger-e ca destinație arhitecturală. | Invarianți de încredere: **fără** dovadă în A1. |
 | 13 | Stack v2 §2.3 (subset) | BullMQ (`ingest:csv`), Redis, Postgres (`bronze_import_batches`, inserții bronze), PapaParse, API Fastify (`imports-bronze.ts`). | v2 §2.3 + ADR-uri. | — |
 
 ### Mapare OTel

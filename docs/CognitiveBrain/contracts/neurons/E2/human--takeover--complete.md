@@ -49,7 +49,7 @@
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
 | 9 | Guardrails | Rezoluție persistată + audit trail. | ADR-0007. | — |
 | 10 | Escaladare HITL | Închide ciclul takeover; nu enfilează alt task HITL aici. | v2. | — |
-| 11 | Micro-OODA | Update review → update journey → audit. | v2 LangGraph/UI — **nu** în cod. | LangGraph: **țintă v2**. |
+| 11 | Micro-OODA | Update review → update journey → audit. | v2 LangGraph/UI — **nu** în cod. | LangGraph: **destinație v2**. |
 | 12 | Tier + de-escaladare | Eșec dur la inconsistențe DB. | v2. | — |
 | 13 | Stack | BullMQ, Postgres. | v2 §2.3. | — |
 

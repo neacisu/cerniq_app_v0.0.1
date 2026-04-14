@@ -43,7 +43,7 @@ Muchia **`dependency`** leagă **`graph-full-metrics`** de **`geo-weather-correl
 
 | Autoritate | Observație |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contractele sursă și țintă. |
+| **Runtime (ADR-0001)** | Vezi contractele sursă și destinație. |
 | **Semantic (ADR-0002)** | Vezi `geo--weather--correlate`. |
 | **Planificare (export)** | v2 §7 — `graph-full-metrics` → `geo-weather-correlate`, tip `dependency`. |
 

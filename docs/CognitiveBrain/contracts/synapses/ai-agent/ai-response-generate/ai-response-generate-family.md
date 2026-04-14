@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** nod de traseu în graf. **Matrix:** `ai:response:generate` (E3, familie v2 `ai-analysis`) → [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md). **Runtime (ADR-0001):** același concept apare pe **două** cozi: **`ai:e3:response:generate`** (E3 ai-sales, C15) și **`ai:response:generate`** (E2 outreach + intrare catalog); nu există o mapare 1:1 între nodul de graf și un singur nume BullMQ — vezi tabelul self-aware din contractul neuron. |
-| Țintă | `e2-ai-analysis` | Nod **agregat** de planificare pentru familia / swimlane-ul de analiză AI în E2 în topologia exportată, nu o singură coadă executabilă și nu un fișier unic `contracts/neurons/...`. Pentru neuroni concreți din zona semantică E2 legată de analiză AI, folosiți [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) (etapă E2, coloane familie/swimlane). |
+| Destinație (graf) | `e2-ai-analysis` | Nod **agregat** de planificare pentru familia / swimlane-ul de analiză AI în E2 în topologia exportată, nu o singură coadă executabilă și nu un fișier unic `contracts/neurons/...`. Pentru neuroni concreți din zona semantică E2 legată de analiză AI, folosiți [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) (etapă E2, coloane familie/swimlane). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Muchia **default** leagă traseul `ai-response-generate` de agregatul `e2-ai-ana
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001, `workers/shared/src/queue-registry.ts`):** pentru sursă, **`E3_AI_RESPONSE_GENERATE`** → `ai:e3:response:generate` și **`AI_RESPONSE_GENERATE`** → `ai:response:generate` — **ambele** documentate în contractul neuron; a nu le confunda. Nodul **țintă** din graf (`e2-ai-analysis`) nu este o cheie din registry.
+- **Runtime (ADR-0001, `workers/shared/src/queue-registry.ts`):** pentru sursă, **`E3_AI_RESPONSE_GENERATE`** → `ai:e3:response:generate` și **`AI_RESPONSE_GENERATE`** → `ai:response:generate` — **ambele** documentate în contractul neuron; a nu le confunda. Nodul **destinație** din graf (`e2-ai-analysis`) nu este o cheie din registry.
 - **Semantic (ADR-0002, `packages/shared/src/cognitive-node-catalog.ts`):** `e3:ai:response-generate` și `e2:ai:response-generate` folosesc `queueName` **`ai:response:generate`** în catalog; registry-ul E3 folosește încă **`ai:e3:response:generate`** — decalaj documentat în contractul neuron.
 - **Planificare:** muchie de specializare a familiei; nu implică automat o singură unitate de deploy sau un singur consumator de coadă.
 

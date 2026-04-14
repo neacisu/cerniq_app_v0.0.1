@@ -41,7 +41,7 @@ Traseul **enrich-ai-industry-classify** depinde în planificare de **deduplicare
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** clasificare industrie (graf) ↔ dedup fuzzy E1.
 - **Planificare:** v2 §7 — `enrich-ai-industry-classify` → `silver-dedup-fuzzy-match`.
 

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-response-process` → `content-seasonal-generate`.
-- **Runtime:** sursă — E27; țintă — vezi neuron `content-seasonal-generate`.
+- **Runtime:** sursă — E27; destinație — vezi neuron `content-seasonal-generate`.
 
 ## Limite și reconcilieri
 

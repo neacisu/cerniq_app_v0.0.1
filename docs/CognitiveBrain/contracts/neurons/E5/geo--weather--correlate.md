@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `e5:alert:weather-monitor` / `e5:alert:weather-match`. | v2 `cognitive.geo.weather.correlate` (L8206). | Prefix `alert` vs `geo` în OTel. |
 | 7 | Înveliș politică | — | v2 L8203–8204. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Severități YELLOW+ (J52 L24–25); `judet` schema (J53 antet). | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Severități YELLOW+ (J52 L24–25); `judet` schema (J53 antet). | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | — | v2 L8204. | — |
 | 11 | Micro-OODA | Monitor → match → enqueue. | v2 L8200. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8197). | — |

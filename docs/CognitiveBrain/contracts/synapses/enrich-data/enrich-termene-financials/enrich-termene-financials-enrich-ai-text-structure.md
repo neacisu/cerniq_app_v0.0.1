@@ -22,7 +22,7 @@
 
 ## Scop muchie în pipeline (export-grounded)
 
-În **graf**, traseul «financials» depinde de **enrich-ai-text-structure**: planificarea include structurarea AI a textului sau datelor neuniforme în același macro-flux cu îmbogățirea financiară etichetată astfel în v2. Execuția concretă (ex. J1) se tratează în contractele neuron țintă, nu aici.
+În **graf**, traseul «financials» depinde de **enrich-ai-text-structure**: planificarea include structurarea AI a textului sau datelor neuniforme în același macro-flux cu îmbogățirea financiară etichetată astfel în v2. Execuția concretă (ex. J1) se tratează în contractele neuron destinație, nu aici.
 
 ## Semantica confirmată (registru v2 §7)
 

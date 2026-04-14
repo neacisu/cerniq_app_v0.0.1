@@ -41,7 +41,7 @@ Dependența declară în graf că **procesarea rambursării** este ordonată can
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă Revolut refund; țintă hold — registry + neuron.
+- **Runtime:** sursă Revolut refund; destinație hold — registry + neuron.
 - **Planificare:** dependență structurală.
 
 ## Limite și reconcilieri

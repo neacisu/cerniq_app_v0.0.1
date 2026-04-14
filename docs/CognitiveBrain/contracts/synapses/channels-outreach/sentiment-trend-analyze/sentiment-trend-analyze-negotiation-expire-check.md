@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** E3 sursă vs E3 țintă — vezi cozi în contractele neuron.
+- **Runtime (ADR-0001):** E3 sursă vs E3 destinație — vezi cozi în contractele neuron.
 - **Semantic (ADR-0002):** vezi catalog în fișierele neuron.
 - **Planificare:** dependență declarativă.
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-response-generate` | **Planificare:** traseu `ai-agent-response-generate`. **Matrix:** `ai:agent:response-generate` → [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** **`ai:e3:response:generate`**; literalul Matrix/v2 diferă — vezi contractul sursă. |
-| ��intă | `negotiation-reminder-send` | **Matrix:** `negotiation:reminder:send` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). **Registry:** `E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send`. |
+| Destinație (graf) | `negotiation-reminder-send` | **Matrix:** `negotiation:reminder:send` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). **Registry:** `E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** plasează `negotiation-reminder-send` în dependență canonică față de traseul `ai-agent-response-generate` în graful exportat. v2 confirmă doar formula **„sinapsă canonică de pipeline”**; nu există în export schema de mesaj sau semantica exactă a declanșării reminderelor față de pasul de răspuns. Comportamentul operațional al neuronului țintă (dacă este implementat) trebuie citit din contractul [`negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md), nu dedus din muchie.
+Muchia **dependency** plasează `negotiation-reminder-send` în dependență canonică față de traseul `ai-agent-response-generate` în graful exportat. v2 confirmă doar formula **„sinapsă canonică de pipeline”**; nu există în export schema de mesaj sau semantica exactă a declanșării reminderelor față de pasul de răspuns. Comportamentul operațional al neuronului destinație (dacă este implementat) trebuie citit din contractul [`negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md), nu dedus din muchie.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -48,7 +48,7 @@ Muchia **dependency** plasează `negotiation-reminder-send` în dependență can
 ## Limite și reconcilieri
 
 - Fără invenție payload/retry/safety/telemetrie peste textul v2.
-- Orice gap în contractul neuron țintă rămâne **explicit** acolo; muchia sinaptică nu îl „rezolvă”.
+- Orice gap în contractul neuron destinație rămâne **explicit** acolo; muchia sinaptică nu îl „rezolvă”.
 
 ## Sursă canonică
 

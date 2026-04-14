@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **subvenții APIA** și 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă partajată `agri:apia`; țintă — ADR ai-enrichment.
+- **Runtime:** sursă partajată `agri:apia`; destinație — ADR ai-enrichment.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

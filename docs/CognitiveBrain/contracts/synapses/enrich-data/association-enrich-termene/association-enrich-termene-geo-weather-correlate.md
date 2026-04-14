@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `association-enrich-termene` → `geo-weather-correlate`.
 - **Runtime (ADR-0001):** vezi mapările din [`geo--weather--correlate.md`](../../../neurons/E5/geo--weather--correlate.md) și sursa.
-- **Semantic (ADR-0002):** E5 geo — vezi neuron țintă.
+- **Semantic (ADR-0002):** E5 geo — vezi neuron destinație.
 
 ## Limite și reconcilieri
 

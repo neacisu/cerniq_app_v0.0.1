@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.oblio.proforma-create` (L4991). | **Parțial aliniat**. |
 | 7 | Înveliș politică | Validări stare + items non-goale (`g39` L59–102). | v2 Tier 3, HITL la anomalii (L4981, L4989). | Fără HITL explicit în G39. |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
-| 9 | Guardrails | `CLOSING`, items, TVA 19% fix (`g39` L34–35, L113–119). | ADR-0007 țintă. | TVA fix poate diverge de politici tenant. |
+| 9 | Guardrails | `CLOSING`, items, TVA 19% fix (`g39` L34–35, L113–119). | ADR-0007 — destinație. | TVA fix poate diverge de politici tenant. |
 | 10 | Escaladare HITL | Nu în G39. | v2 politică HITL (L4989). | — |
 | 11 | Micro-OODA | OBSERVE — negociere/items; ORIENT — reguli sume; DECIDE — throw vs create; ACT — stub + insert + tranziție + audit (`g39` L55–224). | v2 OODA (L4987). | — |
 | 12 | Tier + de-escaladare | Fără praguri încredere în cod. | v2 Tier 3 (L4981). | — |

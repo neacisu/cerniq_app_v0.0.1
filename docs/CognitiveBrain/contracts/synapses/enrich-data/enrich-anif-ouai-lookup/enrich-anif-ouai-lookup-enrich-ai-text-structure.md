@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **OUAI** și **structura
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă `agri:ouai`; țintă — vezi neuron + registry pentru `ai:structure:xai`.
+- **Runtime:** sursă `agri:ouai`; destinație — vezi neuron + registry pentru `ai:structure:xai`.
 - **Planificare:** dependență structurală export-grounded.
 
 ## Limite și reconcilieri

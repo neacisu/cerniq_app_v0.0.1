@@ -46,7 +46,7 @@
 | 6 | Înveliș telemetrie | `e5:centrality:calculate` (d22 L77). | v2 **`cognitive.e5.centrality.calculate`** (L8363). | v2 folosește prefix `e5` în segmente OTel. |
 | 7 | Înveliș politică | — | v2 HITL la eșecuri repetate (L8361). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | — | NeMo țintă. | — |
+| 9 | Guardrails | — | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8361. | — |
 | 11 | Micro-OODA | Output `topNodes` pentru D23 (d22 antet citit în d23). | v2 L8359. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8353). | — |

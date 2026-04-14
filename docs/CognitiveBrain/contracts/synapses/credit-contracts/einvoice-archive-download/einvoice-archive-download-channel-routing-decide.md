@@ -41,13 +41,13 @@ Dependența declară în graf că **descărcarea arhivei e-Factura** precede sau
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă = **`einvoice:archive:download`**; țintă executabilă = **`channel:route:decide`** (nu literalul `channel:routing:decide` ca nume de coadă în worker fără verificare).
+- **Runtime (ADR-0001):** sursă = **`einvoice:archive:download`**; destinație executabilă = **`channel:route:decide`** (nu literalul `channel:routing:decide` ca nume de coadă în worker fără verificare).
 - **Semantic (ADR-0002):** `e3:einvoice:archive-download` vs `e3:channel:route-decide` — vezi catalog în contractele neuron.
 - **Planificare:** nod graf `channel-routing-decide` ↔ v2 `channel:routing:decide` ↔ runtime `channel:route:decide`.
 
 ## Limite și reconcilieri
 
-- Triplă denumire lațintă — pentru **execuție** prevală `queue-registry.ts` și [`channel--routing--decide.md`](../../../neurons/E3/channel--routing--decide.md).
+- Triplă denumire (graf / v2 / runtime) — pentru **execuție** prevală `queue-registry.ts` și [`channel--routing--decide.md`](../../../neurons/E3/channel--routing--decide.md).
 - Vezi ADR familie [`../../../../adr/families/e3/channels.md`](../../../../adr/families/e3/channels.md).
 
 ## Sursă canonică

@@ -42,8 +42,8 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `association-members-link` → `geo-neighbor-find`.
-- **Runtime (ADR-0001):** vezi neuroni sursă și țintă.
-- **Semantic (ADR-0002):** E5 geo — vezi neuron țintă.
+- **Runtime (ADR-0001):** vezi neuroni sursă și destinație.
+- **Semantic (ADR-0002):** E5 geo — vezi neuron destinație.
 
 ## Limite și reconcilieri
 

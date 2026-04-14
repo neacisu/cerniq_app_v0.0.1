@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-verify` | **Gap runtime (documentat):** coada **`guardrail:stock:verify`** nu apare în `workers/shared/src/queue-registry.ts`; vezi [`../../../neurons/E3/guardrail--stock--verify.md`](../../../neurons/E3/guardrail--stock--verify.md). Rând [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv): `queue_in_registry` = `no`. |
-| Țintă | `document-pdf-generate` | Coadă executabilă **`document:pdf:generate`** (`QUEUES.E3_DOCUMENT_PDF_GENERATE`) — [`../../../neurons/E3/document--pdf--generate.md`](../../../neurons/E3/document--pdf--generate.md). |
+| Destinație (graf) | `document-pdf-generate` | Coadă executabilă **`document:pdf:generate`** (`QUEUES.E3_DOCUMENT_PDF_GENERATE`) — [`../../../neurons/E3/document--pdf--generate.md`](../../../neurons/E3/document--pdf--generate.md). |
 
 ## Tip muchie (export)
 
@@ -42,9 +42,9 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** sursa **`guardrail:stock:verify`** nu are constantă în `QUEUES`; `E3_DOCUMENT_PDF_GENERATE`.
-- **Semantic (ADR-0002):** țintă — `e3:document:pdf-generate` / `document:pdf:generate` — „Generare PDF ofertă/proformă/factură din template Handlebars…” (~L1965–1971), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:document:pdf-generate` / `document:pdf:generate` — „Generare PDF ofertă/proformă/factură din template Handlebars…” (~L1965–1971), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-stock-verify-document-pdf-generate`.
-- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada țintă `queue_in_registry` = `yes`.
+- **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `guardrail:stock:verify` (`queue_in_registry` = `no`); coada destinație `queue_in_registry` = `yes`.
 
 ## Limite și reconcilieri
 

@@ -43,7 +43,7 @@ Dependența leagă analiza sentiment churn de **referral-consent-expire** în to
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Vezi contracte E2 (sursă) și E5 (țintă). |
+| **Runtime (ADR-0001)** | Vezi contracte E2 (sursă) și E5 (destinație). |
 | **Semantic (ADR-0002)** | Etape diferite posibile între capete — normal pentru muchii cross-traseu din export. |
 | **Planificare** | v2 §7. |
 

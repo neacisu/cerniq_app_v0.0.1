@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `sentiment-trend-analyze` | [`../../../neurons/E3/sentiment--trend--analyze.md`](../../../neurons/E3/sentiment--trend--analyze.md). **Runtime:** `sentiment:trend:analyze` (`QUEUES.E3_SENTIMENT_TREND_ANALYZE`, `queue-registry.ts` L325). |
+| Destinație (graf) | `sentiment-trend-analyze` | [`../../../neurons/E3/sentiment--trend--analyze.md`](../../../neurons/E3/sentiment--trend--analyze.md). **Runtime:** `sentiment:trend:analyze` (`QUEUES.E3_SENTIMENT_TREND_ANALYZE`, `queue-registry.ts` L325). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Analiza trendului de sentiment depinde în graf de traseul rerank cross-encoder.
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `sentiment:trend:analyze`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `sentiment:trend:analyze`.
 - **Semantic (ADR-0002):** `e3:sentiment:trend-analyze`; sursă neconectată în catalog.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `sentiment-trend-analyze`.
 

@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `product:chunk`; țintă E3 — vezi registry în contract neuron.
+- **Runtime (ADR-0001):** sursă `product:chunk`; destinație E3 — vezi registry în contract neuron.
 - **Semantic (ADR-0002):** decalaj posibil catalog vs registry — contract neuron.
 - **Planificare:** chunk → response-generate.
 

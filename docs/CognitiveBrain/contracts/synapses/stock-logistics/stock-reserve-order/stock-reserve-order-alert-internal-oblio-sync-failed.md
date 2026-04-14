@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `stock-reserve-order` → `alert-internal-oblio-sync-failed`.
-- **Semantic:** vezi matrice rând **192** și contractul neuron țintă.
+- **Semantic:** vezi matrice rând **192** și contractul neuron destinație.
 
 ## Sursă canonică
 

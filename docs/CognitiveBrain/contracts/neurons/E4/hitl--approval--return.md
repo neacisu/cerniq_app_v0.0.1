@@ -36,7 +36,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** — fără `nodeKey` / coadă runtime. | v2 `Confirmed queue field` (L6990). | L6996 — nereconciliat. |
 | 2 | Etapă, familie, swimlane | Neconectat. | E4 / `hitl` / metrică swimlane `hitl` (L6994). | — |

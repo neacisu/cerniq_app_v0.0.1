@@ -38,7 +38,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime:** `QUEUES.E3_NEGOTIATION_STATE_TRANSITION` → `QUEUES.E3_PRICING_COMPETITOR_CHECK`; `workers/shared/src/queue-registry.ts`; [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv).
-- **Semantic:** contracte neuron sursă și țintă.
+- **Semantic:** contracte neuron sursă și destinație.
 - **Planificare:** muchie **`dependency`**: `negotiation-state-transition` precede `pricing-competitor-check` în export.
 
 ## Limite și reconcilieri

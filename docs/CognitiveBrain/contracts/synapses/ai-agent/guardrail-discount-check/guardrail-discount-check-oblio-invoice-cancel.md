@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `oblio-invoice-cancel` | **Matrix:** `oblio:invoice:cancel` → [`../../../neurons/E3/oblio--invoice--cancel.md`](../../../neurons/E3/oblio--invoice--cancel.md). **Registry:** `E3_OBLIO_INVOICE_CANCEL` → `oblio:invoice:cancel`. |
+| Destinație (graf) | `oblio-invoice-cancel` | **Matrix:** `oblio:invoice:cancel` → [`../../../neurons/E3/oblio--invoice--cancel.md`](../../../neurons/E3/oblio--invoice--cancel.md). **Registry:** `E3_OBLIO_INVOICE_CANCEL` → `oblio:invoice:cancel`. |
 
 ## Tip muchie (export)
 
@@ -47,7 +47,7 @@ Muchia **dependency** declară în planificare că anularea facturii Oblio (`obl
 
 ## Limite și reconcilieri
 
-- Integrarea fiscală Oblio — vezi contractul țintă; muchia nu o descrie.
+- Integrarea fiscală Oblio — vezi contractul destinație; muchia nu o descrie.
 
 ## Sursă canonică
 

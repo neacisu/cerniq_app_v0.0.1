@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — cozi WA per-telefon; țintă — **`alerts:apia:seasonal`** (per contract neuron).
+- **Runtime (ADR-0001):** sursă — cozi WA per-telefon; destinație — **`alerts:apia:seasonal`** (per contract neuron).
 - **Semantic (ADR-0002):** `e5:alert:apia-seasonal` — vezi catalog.
 - **Planificare:** capete `wa-send-initial`, `trigger-subsidy-calendar`.
 

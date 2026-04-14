@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `sentiment-trend-analyze` | [`../../../neurons/E3/sentiment--trend--analyze.md`](../../../neurons/E3/sentiment--trend--analyze.md). **Runtime:** `sentiment:trend:analyze` (`QUEUES.E3_SENTIMENT_TREND_ANALYZE`, `queue-registry.ts` L325). |
+| Destinație (graf) | `sentiment-trend-analyze` | [`../../../neurons/E3/sentiment--trend--analyze.md`](../../../neurons/E3/sentiment--trend--analyze.md). **Runtime:** `sentiment:trend:analyze` (`QUEUES.E3_SENTIMENT_TREND_ANALYZE`, `queue-registry.ts` L325). |
 
 ## Tip muchie (export)
 

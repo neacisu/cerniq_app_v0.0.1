@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2 `cognitive.e3.negotiation.reminder-send` (L5254). | **Parțial aliniat**. |
 | 7 | Înveliș politică | Exclude `DEAD`/`PAID`/`INVOICED` (`d22` L47–48). | v2 Tier 4 (L5244). | — |
 | 8 | Rutare model (dacă AI) | D22 **nu** routează modele; pasează la altă coadă. | v2 Non-AI pentru acest neuron (L5251). | Lanțul downstream `ai:sentiment:analyze` = audit separat. |
-| 9 | Guardrails | Doar SQL stale + filtre stare. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Doar SQL stale + filtre stare. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în D22. | v2 (L5252). | — |
 | 11 | Micro-OODA | OBSERVE — stale rows; ACT — add jobs (`d22` L32–84). | v2 send/execute (L5250). | Implementare ≠ canal direct către lead. |
 | 12 | Tier + de-escaladare | Fără în D22. | v2 Tier 4 (L5244). | — |

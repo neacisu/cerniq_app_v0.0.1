@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-response-process` → `content-drip-schedule`.
-- **Runtime:** sursă — consimțământ referrer (E27); țintă — vezi neuron `content-drip-schedule` și registry.
+- **Runtime:** sursă — consimțământ referrer (E27); destinație — vezi neuron `content-drip-schedule` și registry.
 
 ## Limite și reconcilieri
 

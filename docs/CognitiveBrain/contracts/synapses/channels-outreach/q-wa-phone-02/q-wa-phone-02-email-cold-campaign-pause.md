@@ -41,7 +41,7 @@ Traseul **WA linia 02** depinde în planificare de **pauzarea campaniei cold ema
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație.
 - **Semantic (ADR-0002):** control campanie email în raport cu linia WA 02.
 - **Planificare:** v2 §7 — `q-wa-phone-02` → `email-cold-campaign-pause`.
 

@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **`dependency`** din export leagă **`graph-full-built-at`** de **`geo-neighbor-find`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Semantica „vecinătate” geografică sau de graf, precum și orice praguri, sunt **în afara** câmpurilor dovedite de export; vezi contractul neuron țintă și codul procesor.
+Muchia **`dependency`** din export leagă **`graph-full-built-at`** de **`geo-neighbor-find`**. **Descriere confirmată în v2:** „sinapsă canonică de pipeline”. Semantica „vecinătate” geografică sau de graf, precum și orice praguri, sunt **în afara** câmpurilor dovedite de export; vezi contractul neuron destinație și codul procesor.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -44,7 +44,7 @@ Muchia **`dependency`** din export leagă **`graph-full-built-at`** de **`geo-ne
 | Autoritate | Observație |
 | --- | --- |
 | **Runtime (ADR-0001)** | Vezi registry + contract `geo--neighbor--find`; sursă `graph:full:built_at` fără coadă dedicată în evidența neuron. |
-| **Semantic (ADR-0002)** | Aliniere `geo:neighbor:*` / `e5:geo:neighbor-identify` — din contractul țintă, fără extindere aici. |
+| **Semantic (ADR-0002)** | Aliniere `geo:neighbor:*` / `e5:geo:neighbor-identify` — din contractul destinație, fără extindere aici. |
 | **Planificare (export)** | v2 §7 — `graph-full-built-at` → `geo-neighbor-find`, tip `dependency`. |
 
 ## Traseu și vecini

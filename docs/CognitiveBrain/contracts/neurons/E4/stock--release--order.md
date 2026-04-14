@@ -41,7 +41,7 @@ Eliberare rezervă stoc (ex. anulare comandă) — în documentația de specific
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap literal graf.** Runtime: `stock:reserve:release`. | v2 L7325. | `release:order` vs `reserve:release`. |
 | 2 | Etapă, familie, swimlane | Worker E3; v2 E4. | v2 E4 `logistics`. | — |

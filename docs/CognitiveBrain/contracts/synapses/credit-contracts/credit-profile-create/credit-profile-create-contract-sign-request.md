@@ -41,13 +41,13 @@ Traseul **credit-profile-create** depinde în planificare de **inițierea cereri
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** credit E4 ↔ semnătură E4.
 - **Planificare:** v2 §7 — `credit-profile-create` → `contract-sign-request`.
 
 ## Limite și reconcilieri
 
-- Detaliile de integrare semnătură electronică rămân în contractul neuron țintă și în cod, nu în sinapsă.
+- Detaliile de integrare semnătură electronică rămân în contractul neuron destinație și în cod, nu în sinapsă.
 
 ## Sursă canonică
 

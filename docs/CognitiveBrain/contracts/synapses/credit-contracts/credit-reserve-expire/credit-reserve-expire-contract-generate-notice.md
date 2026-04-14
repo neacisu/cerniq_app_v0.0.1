@@ -41,7 +41,7 @@ Traseul **credit-reserve-expire** depinde în planificare de **generarea de noti
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** pipeline rezervări ↔ notificări E4.
 - **Planificare:** v2 §7 — `credit-reserve-expire` → `contract-generate-notice`.
 

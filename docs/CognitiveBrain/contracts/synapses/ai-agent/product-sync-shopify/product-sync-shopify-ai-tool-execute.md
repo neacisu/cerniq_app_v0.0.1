@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** gap sursă vs tool path — vezi contract țintă și C14.
+- **Runtime (ADR-0001):** gap sursă vs tool path — vezi contract destinație și C14.
 - **Semantic (ADR-0002):** product-search vs ai-core.
 - **Planificare:** dependență declarativă.
 

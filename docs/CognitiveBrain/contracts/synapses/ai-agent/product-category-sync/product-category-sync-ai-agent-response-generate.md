@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `product:category:sync`; țintă E3 — `ai:e3:response:generate` pentru C15 (vezi contract).
+- **Runtime (ADR-0001):** sursă `product:category:sync`; destinație E3 — `ai:e3:response:generate` pentru C15 (vezi contract).
 - **Semantic (ADR-0002):** posibil decalaj catalog `queueName` vs registry — documentat în contract neuron.
 - **Planificare:** product-search → response-generate (graf).
 

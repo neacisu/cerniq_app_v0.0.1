@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `alert-phone-banned` | Coadă executabilă **`alert:phone:banned`** (`QUEUES.ALERT_PHONE_BANNED`) — [`../../../neurons/E2/alert--phone--banned.md`](../../../neurons/E2/alert--phone--banned.md). |
+| Destinație (graf) | `alert-phone-banned` | Coadă executabilă **`alert:phone:banned`** (`QUEUES.ALERT_PHONE_BANNED`) — [`../../../neurons/E2/alert--phone--banned.md`](../../../neurons/E2/alert--phone--banned.md). |
 
 ## Tip muchie (export)
 

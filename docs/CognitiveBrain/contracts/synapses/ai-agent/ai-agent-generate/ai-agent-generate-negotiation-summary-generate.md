@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-generate` | **Planificare:** traseu `ai-agent-generate`. **Matrix:** `ai:agent:generate` → [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). Contractul neuron: **gap** registry/handler pentru coada literală; reconciliere cu cozile reale E3 înainte de a interpreta sursa ca job executabil sub acest nume. |
-| Țintă | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` → [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** — căutare cod pentru coada literală zero la audit; **fără** intrare în `queue-registry.ts` și fără potrivire în `cognitive-node-catalog.ts` la acel audit. Muchia rămâne **export-grounded** pentru topologie; execuția țintă necesită implementare sau mapare ulterioară. |
+| Destinație (graf) | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` → [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** — căutare cod pentru coada literală zero la audit; **fără** intrare în `queue-registry.ts` și fără potrivire în `cognitive-node-catalog.ts` la acel audit. Muchia rămâne **export-grounded** pentru topologie; implementarea destinației necesită implementare sau mapare ulterioară. |
 
 ## Tip muchie (export)
 

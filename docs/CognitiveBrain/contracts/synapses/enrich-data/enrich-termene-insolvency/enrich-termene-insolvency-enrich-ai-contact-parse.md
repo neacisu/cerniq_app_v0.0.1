@@ -43,7 +43,7 @@ Dependența leagă în **graf** traseul «insolvency» de **enrich-ai-contact-pa
 
 | Autoritate | Observație ancorată |
 | --- | --- |
-| **Runtime (ADR-0001)** | Sursă: fără coadă dedicată; semnale în alte procesoare (dosare, ANAF) — vezi contract neuron. Pentru țintă: fără literal `enrich:ai:contact-parse` în registry. |
+| **Runtime (ADR-0001)** | Sursă: fără coadă dedicată; semnale în alte procesoare (dosare, ANAF) — vezi contract neuron. Pentru destinație: fără literal `enrich:ai:contact-parse` în registry. |
 | **Semantic (ADR-0002)** | E1 — familii din v2 pentru ambele capete. |
 | **Planificare** | v2 §7 — `dependency`. |
 

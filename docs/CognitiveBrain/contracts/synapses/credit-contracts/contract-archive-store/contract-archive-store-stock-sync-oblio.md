@@ -41,7 +41,7 @@ Dependență de planificare: **contract-archive-store** → **`stock-sync-oblio`
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E3 arhivare → E4 sync stoc Oblio.
 - **Planificare:** `contract-archive-store` → `stock-sync-oblio`.
 

@@ -43,7 +43,7 @@
 
 - **Planificare:** v2 §7 — `quota-business-hours-check` → `outreach-wa-send`.
 - **Semantic:** ambele **E2**.
-- **Runtime:** pentru **țintă**, matricea indică **fără** mapare `queue_in_registry` pe rândul **95**; sursa **are** coadă în registry — vezi contractele neuron.
+- **Runtime:** pentru **destinație**, matricea indică **fără** mapare `queue_in_registry` pe rândul **95**; sursa **are** coadă în registry — vezi contractele neuron.
 
 ## Limite și reconcilieri
 

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-discount-check` | **Matrix:** `guardrail:discount:check` → [`../../../neurons/E3/guardrail--discount--check.md`](../../../neurons/E3/guardrail--discount--check.md). **Registry:** `guardrail:discount:check`. |
-| ��intă | `einvoice-archive-download` | **Matrix:** `einvoice:archive:download` → [`../../../neurons/E3/einvoice--archive--download.md`](../../../neurons/E3/einvoice--archive--download.md). **Registry:** `E3_EINVOICE_ARCHIVE_DOWNLOAD` → `einvoice:archive:download`. |
+| Destinație (graf) | `einvoice-archive-download` | **Matrix:** `einvoice:archive:download` → [`../../../neurons/E3/einvoice--archive--download.md`](../../../neurons/E3/einvoice--archive--download.md). **Registry:** `E3_EINVOICE_ARCHIVE_DOWNLOAD` → `einvoice:archive:download`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** leagă **`einvoice-archive-download`** de **`guardrail-discount-check`** în graful planificat. v2: **„sinapsă canonică de pipeline”**; nu explică legătura de business între verificarea discount și arhiva e-Factura. Operațiile SPV/arhivă sunt în contractul neuron țintă.
+Muchia **dependency** leagă **`einvoice-archive-download`** de **`guardrail-discount-check`** în graful planificat. v2: **„sinapsă canonică de pipeline”**; nu explică legătura de business între verificarea discount și arhiva e-Factura. Operațiile SPV/arhivă sunt în contractul neuron destinație.
 
 ## Semantica confirmată (registru v2 §7)
 
@@ -47,7 +47,7 @@ Muchia **dependency** leagă **`einvoice-archive-download`** de **`guardrail-dis
 
 ## Limite și reconcilieri
 
-- Fără completări despre fluxul ANAF/SPV; doar contract neuron țintă și cod.
+- Fără completări despre fluxul ANAF/SPV; doar contract neuron destinație și cod.
 
 ## Sursă canonică
 

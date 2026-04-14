@@ -41,7 +41,7 @@ Anonimizarea declarată în graf este dependentă de traseul alertei de preț co
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `audit:data:anonymize`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `audit:data:anonymize`.
 - **Semantic (ADR-0002):** `e4:audit:data-anonymize` — catalog.
 - **Planificare:** v2 §7 — `alert-internal-competitor-price` → `compliance-data-anonymize`.
 

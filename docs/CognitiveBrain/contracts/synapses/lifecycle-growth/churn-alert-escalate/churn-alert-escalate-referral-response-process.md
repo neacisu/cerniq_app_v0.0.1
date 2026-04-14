@@ -22,7 +22,7 @@
 
 ## Scop muchie în pipeline (export-grounded)
 
-Muchia **`dependency`** conectează escaladarea churn de **procesarea răspunsului referral** în graful exportat. Interpretare limitată la topologie; semantica răspunsului este în contractul țintă.
+Muchia **`dependency`** conectează escaladarea churn de **procesarea răspunsului referral** în graful exportat. Interpretare limitată la topologie; semantica răspunsului este în contractul destinație.
 
 ## Semantica confirmată (registru v2 §7)
 

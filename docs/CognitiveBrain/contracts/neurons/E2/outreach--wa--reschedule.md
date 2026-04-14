@@ -34,7 +34,7 @@
 
 ## N/A pe criterii
 
-- Similar `outreach:wa:delay`: fără runtime, rândurile tehnice sunt în mare parte țintă + limită evidență.
+- Similar `outreach:wa:delay`: fără runtime, rândurile tehnice sunt în mare parte destinație documentată + limită evidență.
 
 ## Tabel self-aware (13 criterii)
 

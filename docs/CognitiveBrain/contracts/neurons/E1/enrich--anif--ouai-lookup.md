@@ -51,10 +51,10 @@
 | 6 | Înveliș telemetrie | **`withCognitiveSpan("e1:agri:ouai", …)`** în `l2-ouai-membership.ts` (~L17–18). Nume v2 plan (`cognitive.enrich.anif.ouai-lookup`) ≠ primul argument span citit în cod. | ADR-0003; v2 OTel. | Migrare denumiri span ↔ v2. |
 | 7 | Înveliș politică | Fără Cedar/OPA în procesor; tier v2 «Tier 4»; persistare JSON + audit log. | v2 autonomy / guardrail text. | — |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
-| 9 | Guardrails | Fără NeMo în fișier; euristici regex + context geografic. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Fără NeMo în fișier; euristici regex + context geografic. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Fără `hitl:*` în acest procesor; cozi HITL transversale în registry separat. | ADR-0008. | — |
-| 11 | Micro-OODA | Citire job → semnale din metadata/adresă → decizie booleană → `jsonb_set` + log. | v2 OODA. | GraphRAG Neo4j: țintă ADR-0005, neinvocat aici. |
-| 12 | Tier + de-escaladare | Erori: `throw` după log fatal (~L102–114). Fără prag 0.80 în cod. | v2 tier/trigger. | Invarianți v2 doar ca țintă fără test dedicați coadă în audit. |
+| 11 | Micro-OODA | Citire job → semnale din metadata/adresă → decizie booleană → `jsonb_set` + log. | v2 OODA. | GraphRAG Neo4j: destinație ADR-0005, neinvocat aici. |
+| 12 | Tier + de-escaladare | Erori: `throw` după log fatal (~L102–114). Fără prag 0.80 în cod. | v2 tier/trigger. | Invarianți v2 doar ca destinație documentată fără test dedicați coadă în audit. |
 | 13 | Stack v2 §2.3 (subset) | BullMQ worker enrichment, Redis, Postgres (`silverCompanies`, `silverEnrichmentLog`). | v2 stack. | — |
 
 ### Mapare OTel

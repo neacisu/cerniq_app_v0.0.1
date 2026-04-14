@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În planificare, **bronze-dedup-hash-checker** depinde structural de **bronze-ingest-html-scraper**. v2: **„sinapsă canonică de pipeline”**. Interpretarea operațională a capătului **html-scraper** cere **contractul neuron țintă** — exportul sinapsei nu rezolvă gap-ul de implementare.
+În planificare, **bronze-dedup-hash-checker** depinde structural de **bronze-ingest-html-scraper**. v2: **„sinapsă canonică de pipeline”**. Interpretarea operațională a capătului **html-scraper** cere **contractul neuron destinație** — exportul sinapsei nu rezolvă gap-ul de implementare.
 
 ## Semantica confirmată (registru v2 §7)
 

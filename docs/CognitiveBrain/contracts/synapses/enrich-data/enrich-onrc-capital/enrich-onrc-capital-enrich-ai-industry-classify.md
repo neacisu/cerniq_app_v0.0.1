@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `enrich-onrc-capital` → `enrich-ai-industry-classify`.
-- **Runtime (ADR-0001):** vezi neuroni sursă și țintă.
+- **Runtime (ADR-0001):** vezi neuroni sursă și destinație.
 - **Semantic (ADR-0002):** E1 — vezi ADR `enrichment` și `ai-enrichment`.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-response-generate` | **Planificare:** traseu `ai-response-generate`. **Contract sursă:** [`../../../neurons/E3/ai--response--generate.md`](../../../neurons/E3/ai--response--generate.md). |
-| Țintă | `monitor-quota-usage` | **Matrix:** `monitor:quota:usage` (E2, `monitoring`) → [`../../../neurons/E2/monitor--quota--usage.md`](../../../neurons/E2/monitor--quota--usage.md). **Registry:** `MONITOR_QUOTA_USAGE` → `monitor:quota:usage`. |
+| Destinație (graf) | `monitor-quota-usage` | **Matrix:** `monitor:quota:usage` (E2, `monitoring`) → [`../../../neurons/E2/monitor--quota--usage.md`](../../../neurons/E2/monitor--quota--usage.md). **Registry:** `MONITOR_QUOTA_USAGE` → `monitor:quota:usage`. |
 
 ## Tip muchie (export)
 

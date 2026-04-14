@@ -48,7 +48,7 @@
 | 5 | Criticitate | Catalog / v2: `HIGH`. | v2. | — |
 | 6 | Înveliș telemetrie | `createWorker` + `createOutreachJobLogger`. | Span v2. | Calea WA apelează Lua fără a trece neapărat prin coada BullMQ `quota:guardian:check`. |
 | 7 | Înveliș politică | Reguli în Lua + timeout worker (opțiuni BullMQ). | v2 tier 3. | — |
-| 8 | Rutare model (dacă AI) | N/A | v2 OODA menționează NeMo — **țintă**, nu cod. | N/A |
+| 8 | Rutare model (dacă AI) | N/A | v2 OODA menționează NeMo — **destinație**, nu cod. | N/A |
 | 9 | Guardrails | Lua = sursa de adevăr pentru cotă/oră/status. | ADR-0056, ADR-0057 context. | — |
 | 10 | Escaladare HITL | Nu în acest worker. | v2. | — |
 | 11 | Micro-OODA | OBSERVE: Redis keys; ORIENT: reguli; DECIDE: JSON rezultat; ACT: return / metrică. | v2 (fără NeMo în cod). | — |

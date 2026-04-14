@@ -51,7 +51,7 @@ Muchia **`default`** leagă traseul **metrics-llm-usage-aggregate** de nucleul d
 
 ## Limite și reconcilieri
 
-- **Rol țintă (denumire):** v2 descrie neuronul ca agregare metrici legate de utilizare LLM, fără a impune din sinapsa `default` un contract de payload sau un handler; metrici similare pot exista pe alte căi în cod — vezi neuron.
+- **Rol destinație (denumire):** v2 descrie neuronul ca agregare metrici legate de utilizare LLM, fără a impune din sinapsa `default` un contract de payload sau un handler; metrici similare pot exista pe alte căi în cod — vezi neuron.
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
 
 ## Sursă canonică

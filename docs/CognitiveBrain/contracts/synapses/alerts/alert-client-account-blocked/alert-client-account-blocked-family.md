@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `alert-client-account-blocked` | Traseu în graf; [`../../../neurons/E4/alert--client--account-blocked.md`](../../../neurons/E4/alert--client--account-blocked.md) documentează **gap** pentru coada granulară `alert:client:account-blocked` în `queue-registry.ts` la auditul citit; infrastructură generică E4 `alert:*` în `i-alert-workers.ts`. |
-| Țintă | `e4-alerts` | Nod agregat **familie alerts** E4 în planificare; nu este o singură coadă; vezi `e4:alert:*` în catalog. |
+| Destinație (graf) | `e4-alerts` | Nod agregat **familie alerts** E4 în planificare; nu este o singură coadă; vezi `e4:alert:*` în catalog. |
 
 ## Tip muchie (export)
 

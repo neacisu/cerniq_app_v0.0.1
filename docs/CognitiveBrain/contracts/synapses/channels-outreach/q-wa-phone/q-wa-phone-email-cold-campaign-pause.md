@@ -41,7 +41,7 @@ Traseul **WA generic** depinde în planificare de **pauzarea campaniei cold emai
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă pentru mapare coadă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație pentru mapare coadă.
 - **Semantic (ADR-0002):** legătură planificată între familia WA și control campanie email.
 - **Planificare:** v2 §7 — `q-wa-phone` → `email-cold-campaign-pause`.
 

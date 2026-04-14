@@ -41,8 +41,8 @@ Anonimizarea datelor (nod `compliance-data-anonymize` în planificare) este depe
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap/apropiere campaign-trigger; țintă — `audit:data:anonymize` (J47).
-- **Semantic (ADR-0002):** `e4:audit:data-anonymize` — vezi catalog și contracte neuroni țintă.
+- **Runtime (ADR-0001):** sursă — gap/apropiere campaign-trigger; destinație — `audit:data:anonymize` (J47).
+- **Semantic (ADR-0002):** `e4:audit:data-anonymize` — vezi catalog și contracte neuroni destinație.
 - **Planificare:** v2 §7 — `alert-internal-campaign-launched` → `compliance-data-anonymize`.
 
 ## Limite și reconcilieri

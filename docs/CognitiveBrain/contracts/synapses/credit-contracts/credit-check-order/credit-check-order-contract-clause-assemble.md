@@ -41,7 +41,7 @@ Traseul **credit-check-order** depinde în planificare de **asamblarea clauzelor
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte neuron sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte neuron sursă și destinație.
 - **Semantic (ADR-0002):** E4 credit ↔ E4 contracts.
 - **Planificare:** v2 §7 — `credit-check-order` → `contract-clause-assemble`.
 

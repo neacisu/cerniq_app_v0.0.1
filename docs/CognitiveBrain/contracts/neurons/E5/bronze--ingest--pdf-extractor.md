@@ -48,7 +48,7 @@
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** coadă `bronze:ingest:pdf-extractor` în registry. PDF în E5: vezi E1 contract + `g37`/`g38`. | v2 L7570. | Instanță #2 păstrează eticheta v2. |
 | 2 | Etapă, familie, swimlane | Workerii PDF citați sunt E5 nurturing/asociații, nu „bronze” queue. | v2 E5 `association-ingest`. | — |

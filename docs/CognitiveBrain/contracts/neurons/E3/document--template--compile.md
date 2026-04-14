@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2: `cognitive.e3.document.template-compile` (L4866). | **Parțial aliniat.** |
 | 7 | Înveliș politică | Throw pe template necunoscut (`i54` L329–334). | v2: Tier 4, HITL la eșecuri repetate (L4856, L4864). | — |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | Registru finit de nume + Handlebars strict. | ADR-0007 țintă. | — |
+| 9 | Guardrails | Registru finit de nume + Handlebars strict. | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în I54. | v2 / ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE — `templateName` + variabile; ORIENT — lookup registry; DECIDE — valid; ACT — emit HTML (`i54` L325–345). | v2 OODA transformare deterministă (L4862). | Aliniat. |
 | 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 4 (L4856). | — |

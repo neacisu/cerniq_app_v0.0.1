@@ -2,7 +2,7 @@
 
 # Neuron `pipeline:ai-sales:cleanup`
 
-> **Status:** audit manual **2026-04-11**. **v2:** E3 / `ops`, mentenanță pipeline ai-sales (curățare date vechi — din etichetă graf), `AutonomicNeuron`, Non-AI, span `cognitive.pipeline.ai-sales.cleanup`. **Repo:** fără catalog/registry/worker pentru `pipeline:ai-sales:cleanup`; `rg` pe `*.ts`/`*.yml` în repo **fără** literal — **gap runtime**. Documentația `docs/specifications/Etapa 3/etapa3-workers-overview.md` menționează coada și cron (L494, L865) ca **țintă**, nu ca implementare verificată în `workers/`.
+> **Status:** audit manual **2026-04-11**. **v2:** E3 / `ops`, mentenanță pipeline ai-sales (curățare date vechi — din etichetă graf), `AutonomicNeuron`, Non-AI, span `cognitive.pipeline.ai-sales.cleanup`. **Repo:** fără catalog/registry/worker pentru `pipeline:ai-sales:cleanup`; `rg` pe `*.ts`/`*.yml` în repo **fără** literal — **gap runtime**. Documentația `docs/specifications/Etapa 3/etapa3-workers-overview.md` menționează coada și cron (L494, L865) ca **destinație**, nu ca implementare verificată în `workers/`.
 
 ## Metadata
 
@@ -45,20 +45,20 @@
 | 3 | Rol declarat | **Lipsă handler**; spec: curățare date vechi (overview L494). | Scop generic ops (L5359–5361). | Spec ≠ cod runtime. |
 | 4 | NeuronType + SOFAI | **Neconectat.** | `AutonomicNeuron` → System1. | — |
 | 5 | Criticitate | **Neconectat.** | `MEDIUM` (L5357). | — |
-| 6 | Înveliș telemetrie | **Lipsă** worker. | `cognitive.pipeline.ai-sales.cleanup` (L5367). | Doar țintă. |
+| 6 | Înveliș telemetrie | **Lipsă** worker. | `cognitive.pipeline.ai-sales.cleanup` (L5367). | Doar destinație documentată. |
 | 7 | Înveliș politică | **Lipsă.** | Tier 4; fără HITL obligatoriu (L5358, L5365). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | Non-AI (L5364). | — |
 | 9 | Guardrails | **Lipsă.** | ADR-0007. | — |
 | 10 | Escaladare HITL | **Lipsă** coadă. | v2 (L5365). | ADR-0008. |
 | 11 | Micro-OODA | **Lipsă** cod. | OODA (L5363). | — |
 | 12 | Tier + de-escaladare | **Lipsă.** | Tier 4 (L5358). | — |
-| 13 | Stack | **Neaplicabil** până la worker. | BullMQ țintă. | — |
+| 13 | Stack | **Neaplicabil** până la worker. | BullMQ — destinație v2. | — |
 
 ### Mapare OTel
 
 - **v2:** `cognitive.pipeline.ai-sales.cleanup`.
 - **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, etc.
-- **Stare 2026-04-11:** doar **țintă**.
+- **Stare 2026-04-11:** doar **destinație**.
 
 ---
 *Generator inițial:* înlocuit prin audit manual.

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `enrich-web-fetch` → `enrich-ai-contact-parse`.
-- **Runtime (ADR-0001):** sursă — gap documentat în neuron; ținta AI — vezi neuronul țintă.
+- **Runtime (ADR-0001):** sursă — gap documentat în neuron; ținta AI — vezi neuronul destinație.
 - **Semantic (ADR-0002):** E1 — vezi ADR `enrichment` și `ai-enrichment`.
 
 ## Limite și reconcilieri

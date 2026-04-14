@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-generate` | **Planificare:** traseu `ai-agent-generate`. **Matrix:** `ai:agent:generate` → [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). Contractul neuron: **gap registry / handler** pentru coada literală; flux efectiv E3 poate fi pe alte cozi — reconciliere obligatorie înainte de a interpreta „sursa” ca job BullMQ cu acest nume. |
-| Țintă | `negotiation-expire-check` | **Matrix:** `negotiation:expire:check` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK` → `negotiation:expire:check` (`queue-registry.ts`, vezi contract neuron). **Catalog:** `negotiation:expire:check` / `e3:negotiation:expire-check` (vezi contract neuron). |
+| Destinație (graf) | `negotiation-expire-check` | **Matrix:** `negotiation:expire:check` (E3, `negotiation`) → [`../../../neurons/E3/negotiation--expire--check.md`](../../../neurons/E3/negotiation--expire--check.md). **Registry:** `E3_NEGOTIATION_EXPIRE_CHECK` → `negotiation:expire:check` (`queue-registry.ts`, vezi contract neuron). **Catalog:** `negotiation:expire:check` / `e3:negotiation:expire-check` (vezi contract neuron). |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia de tip **dependency** declară în graful exportat că traseul `ai-agent-generate` precede sau este legat canonic de `negotiation-expire-check` în pipeline. Descrierea confirmată în v2 este generică (**„sinapsă canonică de pipeline”**): exportul nu precizează cum se propagă contextul între generarea agentului și verificarea TTL/expirării negocierilor. În cod, neuronul țintă este documentat ca job D23 cu logică SQL și enfileuire către `negotiation:abandon:process` — aceste detalii apar în contractul neuron țintă, **nu** în registrul sinapsei v2.
+Muchia de tip **dependency** declară în graful exportat că traseul `ai-agent-generate` precede sau este legat canonic de `negotiation-expire-check` în pipeline. Descrierea confirmată în v2 este generică (**„sinapsă canonică de pipeline”**): exportul nu precizează cum se propagă contextul între generarea agentului și verificarea TTL/expirării negocierilor. În cod, neuronul destinație este documentat ca job D23 cu logică SQL și enfileuire către `negotiation:abandon:process` — aceste detalii apar în contractul neuron destinație, **nu** în registrul sinapsei v2.
 
 ## Semantica confirmată (registru v2 §7)
 

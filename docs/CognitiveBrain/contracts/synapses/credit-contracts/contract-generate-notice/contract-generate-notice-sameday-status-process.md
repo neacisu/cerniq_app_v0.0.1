@@ -41,7 +41,7 @@ Dependență de planificare: **contract-generate-notice** → **`sameday-status-
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** graf notice → E4 SameDay procesare status.
 - **Planificare:** `contract-generate-notice` → `sameday-status-process`.
 

@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **subvenții APIA** și 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă `agri:apia`; țintă — apropiere `ai:structure:xai` documentată în neuron.
+- **Runtime:** sursă `agri:apia`; destinație — apropiere `ai:structure:xai` documentată în neuron.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

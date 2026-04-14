@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-tool-execute` | **Planificare:** traseu `ai-tool-execute`. **Matrix:** `ai:tool:execute` → [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Neconciliat** cu handler/coadă dedicată în registry la audit; vezi C14 în contractul neuron. |
-| Țintă | `negotiation-state-transition` | **Matrix:** `negotiation:state:transition` → [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). **Registry:** `E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition`. **Catalog:** perechi din contractul neuron. |
+| Destinație (graf) | `negotiation-state-transition` | **Matrix:** `negotiation:state:transition` → [`../../../neurons/E3/negotiation--state--transition.md`](../../../neurons/E3/negotiation--state--transition.md). **Registry:** `E3_NEGOTIATION_STATE_TRANSITION` → `negotiation:state:transition`. **Catalog:** perechi din contractul neuron. |
 
 ## Tip muchie (export)
 

@@ -47,7 +47,7 @@
 | 3 | Rol declarat | v2: enrichment extern generic. Cod: — | v2. | — |
 | 4 | NeuronType + SOFAI | v2: `ToolNeuron`. Cod: — | v2. | — |
 | 5 | Criticitate | v2: `MEDIUM`. Cod: neaplicabil. | v2. | — |
-| 6 | Înveliș telemetrie | Fără `withCognitiveSpan` pentru acest queue. | ADR-0003. | Doar țintă v2. |
+| 6 | Înveliș telemetrie | Fără `withCognitiveSpan` pentru acest queue. | ADR-0003. | Doar destinație v2. |
 | 7 | Înveliș politică | — | v2 tier 4. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
 | 9 | Guardrails | — | ADR-0007. | — |

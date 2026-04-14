@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** **reconciliere necesară** între eticheta graf `email-warm-send` și coada **`q:email:warm`** — vezi [`email--warm--send.md`](../../../neurons/E2/email--warm--send.md) și [`q--email--warm.md`](../../../neurons/E2/q--email--warm.md).
-- **Semantic (ADR-0002):** `e2:email:cold-send` (sursă) vs `e2:email:warm-send` (țintă operațională).
+- **Semantic (ADR-0002):** `e2:email:cold-send` (sursă) vs `e2:email:warm-send` (destinație operațională).
 - **Planificare:** `q-email-cold` → `email-warm-send`.
 
 ## Limite și reconcilieri

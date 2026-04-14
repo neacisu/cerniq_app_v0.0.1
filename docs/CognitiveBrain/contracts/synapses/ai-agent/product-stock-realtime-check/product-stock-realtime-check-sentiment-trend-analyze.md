@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** F33 vs analiză sentiment.
-- **Semantic (ADR-0002):** product-search vs metrici sentiment (contractul țintă).
+- **Semantic (ADR-0002):** product-search vs metrici sentiment (contractul destinație).
 - **Planificare:** dependență declarativă în graf.
 
 ## Limite și reconcilieri

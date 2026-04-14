@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă cu gap nominal vs țintă cu gap / mapare J46 — vezi contracte.
+- **Runtime (ADR-0001):** sursă cu gap nominal vs destinație cu gap / mapare J46 — vezi contracte.
 - **Semantic (ADR-0002):** familie `alerts` (E4) vs familie `audit` (E4) — etape distincte în catalog.
 - **Planificare:** dependență declarativă alerts -> audit în export.
 

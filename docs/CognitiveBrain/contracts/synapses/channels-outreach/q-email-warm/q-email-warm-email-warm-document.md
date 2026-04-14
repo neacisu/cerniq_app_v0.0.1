@@ -41,8 +41,8 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** două cozi distincte în registry — vezi contractele neuron sursă și țintă.
-- **Semantic (ADR-0002):** `e2:email:warm-send` (sursă canonică trimitere) și `e2:email:warm-document` / `email:warm:document` pentru țintă — vezi catalog.
+- **Runtime (ADR-0001):** două cozi distincte în registry — vezi contractele neuron sursă și destinație.
+- **Semantic (ADR-0002):** `e2:email:warm-send` (sursă canonică trimitere) și `e2:email:warm-document` / `email:warm:document` pentru destinație — vezi catalog.
 - **Planificare:** dependență declarativă `q-email-warm` → `email-warm-document`.
 
 ## Limite și reconcilieri

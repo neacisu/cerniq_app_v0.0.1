@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `guardrail-stock-check` | Coadă executabilă **`guardrail:stock:check`** (`QUEUES.E3_GUARDRAIL_STOCK_CHECK`) — [`../../../neurons/E3/guardrail--stock--check.md`](../../../neurons/E3/guardrail--stock--check.md). |
-| Țintă | `oblio-proforma-create` | Coadă executabilă **`oblio:proforma:create`** (`QUEUES.E3_OBLIO_PROFORMA_CREATE`) — [`../../../neurons/E3/oblio--proforma--create.md`](../../../neurons/E3/oblio--proforma--create.md). |
+| Destinație (graf) | `oblio-proforma-create` | Coadă executabilă **`oblio:proforma:create`** (`QUEUES.E3_OBLIO_PROFORMA_CREATE`) — [`../../../neurons/E3/oblio--proforma--create.md`](../../../neurons/E3/oblio--proforma--create.md). |
 
 ## Tip muchie (export)
 
@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Runtime (ADR-0001):** `E3_GUARDRAIL_STOCK_CHECK`; `E3_OBLIO_PROFORMA_CREATE`.
-- **Semantic (ADR-0002):** țintă — `e3:oblio:proforma-create` / `oblio:proforma:create` — „Creare proformă în Oblio la închidere negociere…” (~L1853–1859), MotorNeuron, `fiscal-execution`.
+- **Semantic (ADR-0002):** destinație (neuron) — `e3:oblio:proforma-create` / `oblio:proforma:create` — „Creare proformă în Oblio la închidere negociere…” (~L1853–1859), MotorNeuron, `fiscal-execution`.
 - **Planificare:** v2 §7 pentru `guardrail-stock-check-oblio-proforma-create`.
 - **Matrice:** [`../../../../NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) — `queue_in_registry` = `yes`.
 

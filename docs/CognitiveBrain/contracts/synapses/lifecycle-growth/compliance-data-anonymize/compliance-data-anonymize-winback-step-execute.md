@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `compliance-data-anonymize` → `winback-step-execute`.
-- **Runtime (ADR-0001):** E4 sursă / E5 țintă — vezi neuronii.
+- **Runtime (ADR-0001):** E4 sursă / E5 destinație — vezi neuronii.
 - **Semantic (ADR-0002):** vezi catalog.
 
 ## Limite și reconcilieri

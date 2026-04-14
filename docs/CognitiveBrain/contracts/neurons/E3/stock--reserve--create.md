@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | Span `cognitive:e3:stock:reserve-create` când `tenantId` în job (factory + helpers). | v2 `cognitive.e3.stock.reserve-create` (L5784). | Convenție puncte vs `cognitive:nodeKey`. |
 | 7 | Înveliș politică | Excepții oversell; fără OPA în fișierul procesor. | Tier 3; HITL anomalii (v2 L5774, L5782). | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | Logică tranzacțională deterministă + erori explicite la oversell. | NeMo țintă ADR-0007. | — |
+| 9 | Guardrails | Logică tranzacțională deterministă + erori explicite la oversell. | NeMo destinație ADR-0007. | — |
 | 10 | Escaladare HITL | — | v2 L5782. | — |
 | 11 | Micro-OODA | Payload → verificare stoc în tranzacție → insert rezervare. | v2 L5780. | — |
 | 12 | Tier + de-escaladare | TTL explicit per stare (f34 L40–46). | Tier 3 (v2 L5774). | — |

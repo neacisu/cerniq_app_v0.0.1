@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-tool-execute` | **Planificare:** traseu `ai-tool-execute`. **Matrix:** `ai:tool:execute` → [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). **Gap** registry/coadă dedicată la audit; execuție tool în fluxul orchestrării (C14), nu ca worker izolat cu acest `queueName`. |
-| Țintă | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` → [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** (fără cod/registry/catalog la audit); muchia rămâne **export-grounded** pentru topologie. |
+| Destinație (graf) | `negotiation-summary-generate` | **Matrix:** `negotiation:summary:generate` → [`../../../neurons/E3/negotiation--summary--generate.md`](../../../neurons/E3/negotiation--summary--generate.md). Contractul neuron: **gap runtime** (fără cod/registry/catalog la audit); muchia rămâne **export-grounded** pentru topologie. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependența poziționează traseul de execuție tool în raport cu generarea rezumatului de negociere. v2: **„sinapsă canonică de pipeline”** — fără conținut rezumat sau sursă date. **Ambele capete** au, în contractele neuron, gap sau nealiniere la runtime (sursă: C14 vs coadă v2; țintă: lipsă implementare coadă) — fluxul end-to-end nu se deduce din export; muchia servește **trasabilitate graf ↔ contracte**.
+Dependența poziționează traseul de execuție tool în raport cu generarea rezumatului de negociere. v2: **„sinapsă canonică de pipeline”** — fără conținut rezumat sau sursă date. **Ambele capete** au, în contractele neuron, gap sau nealiniere la runtime (sursă: C14 vs coadă v2; destinație: lipsă implementare coadă) — fluxul end-to-end nu se deduce din export; muchia servește **trasabilitate graf ↔ contracte**.
 
 ## Semantica confirmată (registru v2 §7)
 

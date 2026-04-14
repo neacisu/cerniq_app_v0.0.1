@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **MX-check** și **clasi
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă ne-reconciliată ca și coadă unică; țintă — fragmentată în J1/L4 per neuron.
+- **Runtime:** sursă ne-reconciliată ca și coadă unică; destinație — fragmentată în J1/L4 per neuron.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

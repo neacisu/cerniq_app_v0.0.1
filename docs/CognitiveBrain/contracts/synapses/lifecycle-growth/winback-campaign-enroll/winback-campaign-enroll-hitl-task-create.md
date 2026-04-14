@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `winback-campaign-enroll` → `hitl-task-create`.
-- **Runtime:** sursă — F32; țintă — neuronul documentează **absența** cozii `hitl:task:create` din registry (gap) — vezi fișier.
+- **Runtime:** sursă — F32; destinație — neuronul documentează **absența** cozii `hitl:task:create` din registry (gap) — vezi fișier.
 
 ## Limite și reconcilieri
 

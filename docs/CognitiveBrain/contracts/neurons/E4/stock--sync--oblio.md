@@ -47,7 +47,7 @@ Cron **\*/15** (înregistrat în `index.ts` E4): sincronizare stoc Oblio → `go
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă `stock:sync:oblio`; `nodeKey` catalog `e4:stock:sync-oblio`. | v2 L7362–7372. | — |
 | 2 | Etapă, familie, swimlane | Etapa 4, swimlane `logistics`. | v2 L7357–7365. | — |

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `ai-agent-generate` | **Planificare:** traseu `ai-agent-generate`. **Matrix:** `ai:agent:generate` → [`../../../neurons/E3/ai--agent--generate.md`](../../../neurons/E3/ai--agent--generate.md). Contractul neuron: **gap** handler/registry pentru coada literală v2; nu afirma execuție BullMQ sub acest nume fără reconciliere. |
-| Țintă | `negotiation-reminder-send` | **Matrix:** `negotiation:reminder:send` → [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). **Registry:** `E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send`. **Catalog:** perechi `negotiation:reminder:send` / `e3:negotiation:reminder-send` (vezi contract neuron). |
+| Destinație (graf) | `negotiation-reminder-send` | **Matrix:** `negotiation:reminder:send` → [`../../../neurons/E3/negotiation--reminder--send.md`](../../../neurons/E3/negotiation--reminder--send.md). **Registry:** `E3_NEGOTIATION_REMINDER_SEND` → `negotiation:reminder:send`. **Catalog:** perechi `negotiation:reminder:send` / `e3:negotiation:reminder-send` (vezi contract neuron). |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-În v2 §7, dependența leagă planificarea traseului de generare agent de nodul `negotiation-reminder-send`. Semantica exportată este **„sinapsă canonică de pipeline”** — adică existența unei legături structurale între acești pași în graf, fără schemă de mesaj sau ordine de scheduling în export. Din perspectivă business (interpretare conservatoare): planificarea spune că fluxul care include generarea comportamentului agentului este poziționat înainte sau în dependență față de trimiterea memento-urilor în negociere; mecanismul exact (cron, eveniment, coadă) este în contractul neuron țintă și în cod, nu în câmpurile sinapsei.
+În v2 §7, dependența leagă planificarea traseului de generare agent de nodul `negotiation-reminder-send`. Semantica exportată este **„sinapsă canonică de pipeline”** — adică existența unei legături structurale între acești pași în graf, fără schemă de mesaj sau ordine de scheduling în export. Din perspectivă business (interpretare conservatoare): planificarea spune că fluxul care include generarea comportamentului agentului este poziționat înainte sau în dependență față de trimiterea memento-urilor în negociere; mecanismul exact (cron, eveniment, coadă) este în contractul neuron destinație și în cod, nu în câmpurile sinapsei.
 
 ## Semantica confirmată (registru v2 §7)
 

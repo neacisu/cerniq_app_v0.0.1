@@ -51,7 +51,7 @@
 | 8 | Rutare model (dacă AI) | **Lanț mixt:** B7 apelează `fastChat` (L67–74); B10 este determinist. | v2 «Non-AI» pentru întreg blocul (L5687). | **v2 Non-AI** nu reflectă B7; contractul este agregat. |
 | 9 | Guardrails | `e3-llm-guard` în B7 (L45–50). | — | — |
 | 10 | Escaladare HITL | — | v2 L5688. | — |
-| 11 | Micro-OODA | Pipeline observat: rewrite → paralel vector/BM25 → fuse (fișiere B7–B10). | v2 L5686. | Neo4j în OODA v2 — **țintă** (L5686); fără client Neo4j citit în acești workeri. |
+| 11 | Micro-OODA | Pipeline observat: rewrite → paralel vector/BM25 → fuse (fișiere B7–B10). | v2 L5686. | Neo4j în OODA v2 — **destinație** (L5686); fără client Neo4j citit în acești workeri. |
 | 12 | Tier + de-escaladare | — | Tier 4 (L5681). | — |
 | 13 | Stack v2 §2.3 (subset) | BullMQ + pg (B8/B9) + LLM client (B7). | — | — |
 

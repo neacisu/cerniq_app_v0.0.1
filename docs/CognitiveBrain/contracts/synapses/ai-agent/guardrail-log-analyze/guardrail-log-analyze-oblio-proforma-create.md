@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `guardrail-log-analyze` | **Matrix:** `guardrail:log:analyze` → [`../../../neurons/E3/guardrail--log--analyze.md`](../../../neurons/E3/guardrail--log--analyze.md). **Gap runtime:** vezi contractul neuron. |
-| Țintă | `oblio-proforma-create` | **Matrix:** `oblio:proforma:create` → [`../../../neurons/E3/oblio--proforma--create.md`](../../../neurons/E3/oblio--proforma--create.md). **Registry:** `E3_OBLIO_PROFORMA_CREATE` → `oblio:proforma:create`. |
+| Destinație (graf) | `oblio-proforma-create` | **Matrix:** `oblio:proforma:create` → [`../../../neurons/E3/oblio--proforma--create.md`](../../../neurons/E3/oblio--proforma--create.md). **Registry:** `E3_OBLIO_PROFORMA_CREATE` → `oblio:proforma:create`. |
 
 ## Tip muchie (export)
 
@@ -22,7 +22,7 @@
 
 ## Scop muchie (export-grounded)
 
-Muchia **dependency** declară că **`oblio-proforma-create`** depinde canonic de **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; fără detalii despre proforma vs loguri. Nodul **țintă** este executabil în registry; sursa rămâne sub gap-ul documentat în contractul neuron.
+Muchia **dependency** declară că **`oblio-proforma-create`** depinde canonic de **`guardrail-log-analyze`**. v2: **„sinapsă canonică de pipeline”**; fără detalii despre proforma vs loguri. Nodul **destinație** este executabil în registry; sursa rămâne sub gap-ul documentat în contractul neuron.
 
 ## Semantica confirmată (registru v2 §7)
 

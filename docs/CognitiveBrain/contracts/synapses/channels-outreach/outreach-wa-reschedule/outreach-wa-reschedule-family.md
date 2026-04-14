@@ -45,7 +45,7 @@ Muchia **`default`** plasează traseul **reprogramare WA (planificat)** sub **`e
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** gap pentru coada sursă; agregat țintă fără mapare 1:1 la `QUEUES`.
+- **Runtime (ADR-0001):** gap pentru coada sursă; agregat destinație fără mapare 1:1 la `QUEUES`.
 - **Semantic (ADR-0002):** gap `nodeKey` pentru sursă — vezi matrice / contract neuron.
 - **Planificare:** v2 §7 — `outreach-wa-reschedule` → `e2-orchestrator`.
 

@@ -47,7 +47,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + span condiționat (`factory.ts`). | Span v2. | — |
 | 7 | Înveliș politică | Pauză campanie Instantly + alertă (vezi contract `alert:bounce:high` pentru forma job-ului alertă). | v2 tier4. | — |
 | 8 | Rutare model (dacă AI) | N/A | Non-AI. | N/A |
-| 9 | Guardrails | Prag `BOUNCE_THRESHOLD` fix 3% în cod. | ADR-0066, ADR-0007 țintă. | — |
+| 9 | Guardrails | Prag `BOUNCE_THRESHOLD` fix 3% în cod. | ADR-0066, ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu coadă `human:*` din acest worker. | v2. | — |
 | 11 | Micro-OODA | OBSERVE `communication_log`; DECIDE peste prag; ACT enfilează pause + alert. | v2. | — |
 | 12 | Tier + de-escaladare | Early return dacă nu există outbound în fereastră. | v2. | — |

@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-overdue-che
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă în registry; sursă — reconciliere overdue.
+- **Runtime:** destinație în registry; sursă — reconciliere overdue.
 - **Planificare:** topologie v2 §7.
 
 ## Limite și reconcilieri

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `ai-sentiment-analyze` | Coadă executabilă **`ai:sentiment:analyze`** (`QUEUES.AI_SENTIMENT_ANALYZE`, `workers/shared/src/queue-registry.ts`) — [`../../../neurons/E2/ai--sentiment--analyze.md`](../../../neurons/E2/ai--sentiment--analyze.md). |
-| Țintă | `alert-phone-offline` | Coadă executabilă **`alert:phone:offline`** (`QUEUES.ALERT_PHONE_OFFLINE`) — [`../../../neurons/E2/alert--phone--offline.md`](../../../neurons/E2/alert--phone--offline.md). |
+| Destinație (graf) | `alert-phone-offline` | Coadă executabilă **`alert:phone:offline`** (`QUEUES.ALERT_PHONE_OFFLINE`) — [`../../../neurons/E2/alert--phone--offline.md`](../../../neurons/E2/alert--phone--offline.md). |
 
 ## Tip muchie (export)
 

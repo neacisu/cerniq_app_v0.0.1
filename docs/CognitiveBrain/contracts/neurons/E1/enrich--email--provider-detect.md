@@ -47,7 +47,7 @@
 | 4 | NeuronType + SOFAI | `ToolNeuron` pe cozile de validare; System1 (reactiv) per v2 §2.1. | v2. | Tip pentru numele v2: gap catalog. |
 | 5 | Criticitate | **MEDIUM** (v2 + catalog cozi conexe). | v2. | — |
 | 6 | Înveliș telemetrie | `withCognitiveSpan` pe **`e1:discover:email-hunter-verify`** / **`e1:discover:email-zerobounce`**. v2: `cognitive.enrich.email.provider-detect`. | ADR-0003. | Migrare denumiri. |
-| 7 | Înveliș politică | Apeluri `hunter` / `zerobounce` prin `callExternalApi`; detalii rate-limit în `worker-shared`. | v2 tier 4. | OPA: țintă. |
+| 7 | Înveliș politică | Apeluri `hunter` / `zerobounce` prin `callExternalApi`; detalii rate-limit în `worker-shared`. | v2 tier 4. | OPA: destinație documentată. |
 | 8 | Rutare model (dacă AI) | **N/A**. | v2 Non-AI. | — |
 | 9 | Guardrails | Validare format email Hunter (~L41–45 `g2-hunter-verifier.ts`); erori API. | ADR-0007. | — |
 | 10 | Escaladare HITL | Fără HITL în fișierele citate. | ADR-0008. | — |

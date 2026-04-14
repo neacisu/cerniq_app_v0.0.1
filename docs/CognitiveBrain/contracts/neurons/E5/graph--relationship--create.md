@@ -45,7 +45,7 @@
 | 6 | Înveliș telemetrie | `e5:graph:build-relationships`. | v2 `cognitive.graph.relationship.create` (L8542). | — |
 | 7 | Înveliș politică | — | v2 L8540–8541. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | — | NeMo țintă. | — |
+| 9 | Guardrails | — | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L8541. | — |
 | 11 | Micro-OODA | Output folosit de pipeline Leiden/centralitate. | v2 L8538. | — |
 | 12 | Tier + de-escaladare | — | Tier 4 (L8533). | — |

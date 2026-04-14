@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `pipeline-orchestrator-advance` | [`../../../neurons/E1/pipeline--orchestrator--advance.md`](../../../neurons/E1/pipeline--orchestrator--advance.md). **Runtime:** `pipeline:orchestrate` (`QUEUES.PIPELINE_ORCHESTRATE`, `queue-registry.ts` ~L83). |
-| Țintă | `pipeline-monitor-rate-sync` | [`../../../neurons/E1/pipeline--monitor--rate-sync.md`](../../../neurons/E1/pipeline--monitor--rate-sync.md). **Runtime:** capabilitate «rate/backlog» în **`pipeline:monitor`**; fără coadă `pipeline:monitor:rate-sync`. |
+| Destinație (graf) | `pipeline-monitor-rate-sync` | [`../../../neurons/E1/pipeline--monitor--rate-sync.md`](../../../neurons/E1/pipeline--monitor--rate-sync.md). **Runtime:** capabilitate «rate/backlog» în **`pipeline:monitor`**; fără coadă `pipeline:monitor:rate-sync`. |
 
 ## Tip muchie (export)
 

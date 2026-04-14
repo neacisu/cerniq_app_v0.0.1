@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-consent-expire` → `content-drip-schedule`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; țintă `content:drip:schedule` la **L263** (fișier).
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; **Destinație (coadă):** `content:drip:schedule` la **L263** (fișier).
 - **Runtime:** vezi neuronii; sursa necesită reconciliere cod vs v2 conform contractului neuron.
 
 ## Limite și reconcilieri

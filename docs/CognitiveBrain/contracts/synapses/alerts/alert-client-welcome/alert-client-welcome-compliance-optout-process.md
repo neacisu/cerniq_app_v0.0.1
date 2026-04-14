@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `alert-client-welcome` | **Matrix:** `alert:client:welcome` — [`../../../neurons/E5/alert--client--welcome.md`](../../../neurons/E5/alert--client--welcome.md). **Gap** registry pentru coada granulară. |
-| Țintă | `compliance-optout-process` | **Matrix:** `compliance:optout:process` — [`../../../neurons/E5/compliance--optout--process.md`](../../../neurons/E5/compliance--optout--process.md). **Repo:** fără coadă/worker dedicat cu acest literal; comportamente înrudite în outreach (email/SMS/WA) — vezi contractul neuron. |
+| Destinație (graf) | `compliance-optout-process` | **Matrix:** `compliance:optout:process` — [`../../../neurons/E5/compliance--optout--process.md`](../../../neurons/E5/compliance--optout--process.md). **Repo:** fără coadă/worker dedicat cu acest literal; comportamente înrudite în outreach (email/SMS/WA) — vezi contractul neuron. |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Dependența plasează alertarea de **bun venit** în raport cu **procesarea opt-
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** **fără** mapare 1:1 în registry pentru țintă; sursă alertă — gap.
+- **Runtime (ADR-0001):** **fără** mapare 1:1 în registry pentru destinație; sursă alertă — gap.
 - **Semantic (ADR-0002):** span v2 `cognitive.compliance.optout.process` — vezi neuron.
 - **Planificare:** dependență structurală; implementarea este **necesită reconciliere graf ↔ cod**.
 

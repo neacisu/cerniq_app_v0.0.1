@@ -36,7 +36,7 @@
 | 5 | Criticitate | `MEDIUM`. | v2. | — |
 | 6 | Înveliș telemetrie | `cognitive:e1:score:completeness` (~L56–58). | `cognitive.silver.quality.completeness`. | — |
 | 7 | Înveliș politică | Tier 4 v2. | v2. | — |
-| 8 | Rutare model (dacă AI) | **N/A** în N1 la audit (fără apel LLM). v2 menționează vLLM — **țintă / divergență**. | v2. | Limită evidență v2 vs cod. |
+| 8 | Rutare model (dacă AI) | **N/A** în N1 la audit (fără apel LLM). v2 menționează vLLM — **destinație documentată / divergență**. | v2. | Limită evidență v2 vs cod. |
 | 9 | Guardrails | Clamp 0–100; persistare scor. | ADR-0007. | — |
 | 10 | Escaladare HITL | Nu direct în N1. | ADR-0008. | — |
 | 11 | Micro-OODA | Citire companie → ponderi → scor. | v2. | — |

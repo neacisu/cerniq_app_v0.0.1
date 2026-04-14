@@ -41,7 +41,7 @@ Muchia de tip **dependency** declară în graful exportat o legătură canonică
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă și țintă apar în registry la audit; fluxul job-to-job efectiv se verifică în workeri (vezi contractul sursă pentru downstream imediat).
+- **Runtime (ADR-0001):** sursă și destinație apar în registry la audit; fluxul job-to-job efectiv se verifică în workeri (vezi contractul sursă pentru downstream imediat).
 - **Semantic (ADR-0002):** `nodeKey`/swimlane — din catalog și contractele neuron.
 - **Planificare:** dependență declarată în graf între construirea contextului AI și tranziția de stare în negociere.
 

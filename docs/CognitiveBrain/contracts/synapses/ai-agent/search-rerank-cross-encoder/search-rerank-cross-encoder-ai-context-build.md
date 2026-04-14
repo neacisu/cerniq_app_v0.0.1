@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-rerank-cross-encoder` | [`../../../neurons/E3/search--rerank--cross-encoder.md`](../../../neurons/E3/search--rerank--cross-encoder.md). **Runtime:** **fără** `search:rerank:cross-encoder` în `queue-registry.ts` la auditul documentat. |
-| Țintă | `ai-context-build` | [`../../../neurons/E3/ai--context--build.md`](../../../neurons/E3/ai--context--build.md). **Runtime:** `ai:context:build` (`QUEUES.E3_AI_CONTEXT_BUILD`, `queue-registry.ts` L227). |
+| Destinație (graf) | `ai-context-build` | [`../../../neurons/E3/ai--context--build.md`](../../../neurons/E3/ai--context--build.md). **Runtime:** `ai:context:build` (`QUEUES.E3_AI_CONTEXT_BUILD`, `queue-registry.ts` L227). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă — gap; țintă — `ai:context:build`.
+- **Runtime (ADR-0001):** sursă — gap; destinație — `ai:context:build`.
 - **Semantic (ADR-0002):** `e3:ai:context-build`; sursă neconectată în catalog la auditul documentat.
 - **Planificare:** v2 §7 — `search-rerank-cross-encoder` → `ai-context-build`.
 

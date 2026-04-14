@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi `QUEUES.EMAIL_COLD_CAMPAIGN_PAUSE` în registry dacă este coada auditată în contractul țintă.
+- **Runtime (ADR-0001):** vezi `QUEUES.EMAIL_COLD_CAMPAIGN_PAUSE` în registry dacă este coada auditată în contractul destinație.
 - **Semantic (ADR-0002):** vezi catalog în contract neuron.
 - **Planificare:** dependență declarativă.
 

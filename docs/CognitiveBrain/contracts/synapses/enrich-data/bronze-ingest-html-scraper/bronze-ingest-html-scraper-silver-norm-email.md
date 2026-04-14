@@ -41,7 +41,7 @@
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** `normalize:email` pentru țintă; sursă — vezi neuron HTML scraper.
+- **Runtime (ADR-0001):** `normalize:email` pentru destinație; sursă — vezi neuron HTML scraper.
 - **Semantic (ADR-0002):** normalizare email — catalog.
 - **Planificare:** v2 §7 — `bronze-ingest-html-scraper` → `silver-norm-email`.
 

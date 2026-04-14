@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **MX-check** și **struc
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă — vezi hunter-verify/zerobounce în neuron; țintă — `ai:structure:xai` ca apropiere.
+- **Runtime:** sursă — vezi hunter-verify/zerobounce în neuron; destinație — `ai:structure:xai` ca apropiere.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

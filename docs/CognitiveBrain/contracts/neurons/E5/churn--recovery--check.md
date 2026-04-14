@@ -36,11 +36,11 @@ Verificare stare recuperare churn (graf). **Cod:** fără coadă dedicată în e
 
 ## N/A pe criterii
 
-- **8 — Rutare model:** țintă v2 fără handler → N/A implementare.
+- **8 — Rutare model:** destinație v2 fără handler → N/A implementare.
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | **Gap** runtime. | v2 L7661. | — |
 | 2 | Etapă, familie, swimlane | — | v2 E5. | — |

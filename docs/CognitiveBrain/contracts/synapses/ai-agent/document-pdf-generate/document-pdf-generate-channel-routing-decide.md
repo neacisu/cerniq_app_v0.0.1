@@ -41,7 +41,7 @@ Dependența leagă **obținerea PDF** de **decizia de rutare pe canal** (handove
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `document:pdf:generate`; țintă executabilă `channel:route:decide` — vezi contractul J58.
+- **Runtime (ADR-0001):** sursă `document:pdf:generate`; destinație executabilă `channel:route:decide` — vezi contractul J58.
 - **Semantic (ADR-0002):** `e3:channel:route-decide` — fără `channel:routing:decide` literal în catalog.
 - **Planificare:** dependență PDF → rutare canal.
 

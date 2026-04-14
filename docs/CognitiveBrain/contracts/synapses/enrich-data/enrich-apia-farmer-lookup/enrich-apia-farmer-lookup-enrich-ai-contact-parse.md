@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **date APIA (fermier)** 
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** sursă `agri:apia`; țintă — reconciliere `enrich:ai:*` per ADR.
+- **Runtime:** sursă `agri:apia`; destinație — reconciliere `enrich:ai:*` per ADR.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

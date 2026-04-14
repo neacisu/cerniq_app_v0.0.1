@@ -44,20 +44,20 @@
 | 3 | Rol declarat | **Lipsă handler:** nu s-a găsit fișier worker care să implementeze raportul zilnic sub această coadă. | Scop operațional/cognitiv + analogie autonomică (v2 L5447–5449). | — |
 | 4 | NeuronType + SOFAI | **Neconectat:** fără `NeuronType` din catalog pentru această coadă. | v2 `AutonomicNeuron` → System1 (reactiv) conform clasificării SOFAI din v2 §2.1. | — |
 | 5 | Criticitate | **Neconectat** în cod. | `MEDIUM` (v2 L5445). | — |
-| 6 | Înveliș telemetrie | **Lipsă:** fără `withCognitiveSpan` / worker pentru coadă; nu se poate confirma maparea la atribute reale. | OTel span v2: `cognitive.report.daily.generate` (L5455). | Doar țintă până la implementare. |
-| 7 | Înveliș politică | **Lipsă** metadata job / praguri în cod pentru acest neuron. | Tier 4 (L5446); «No mandatory HITL. Audit log 90 days.» (L5453). | Cedar/OPA: țintă ADR-0007. |
+| 6 | Înveliș telemetrie | **Lipsă:** fără `withCognitiveSpan` / worker pentru coadă; nu se poate confirma maparea la atribute reale. | OTel span v2: `cognitive.report.daily.generate` (L5455). | Doar destinație documentată până la implementare. |
+| 7 | Înveliș politică | **Lipsă** metadata job / praguri în cod pentru acest neuron. | Tier 4 (L5446); «No mandatory HITL. Audit log 90 days.» (L5453). | Cedar/OPA: destinație ADR-0007. |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI (L5452). | — |
-| 9 | Guardrails | **Lipsă** implementare specifică în repo pentru acest queue. | NeMo / determinist — țintă ADR-0007. | — |
+| 9 | Guardrails | **Lipsă** implementare specifică în repo pentru acest queue. | NeMo / determinist — destinație ADR-0007. | — |
 | 10 | Escaladare HITL | **Lipsă** legătură runtime pentru această coadă. | v2 fără HITL obligatoriu pentru acest bloc (L5453). | ADR-0008 motor transversal. |
-| 11 | Micro-OODA | **Lipsă** cod care să materializeze OODA pentru această coadă. | OBSERVE/ORIENT/DECIDE/ACT (v2 L5451). | Neo4j GraphRAG în ORIENT: țintă v2/ADR dacă se extinde. |
+| 11 | Micro-OODA | **Lipsă** cod care să materializeze OODA pentru această coadă. | OBSERVE/ORIENT/DECIDE/ACT (v2 L5451). | Neo4j GraphRAG în ORIENT: destinație v2/ADR dacă se extinde. |
 | 12 | Tier + de-escaladare | **Lipsă** invarianți în cod (încredere, 2σ, etc.). | Tier 4 (v2 L5446). | — |
-| 13 | Stack v2 §2.3 (subset) | **Neaplicabil operațional** până la worker: BullMQ țintă pentru cozi job. | v2 §2.3 + ADR-uri stack. | Fără versiuni runtime deduse din acest neuron. |
+| 13 | Stack v2 §2.3 (subset) | **Neaplicabil operațional** până la worker: BullMQ — destinație pentru cozi job. | v2 §2.3 + ADR-uri stack. | Fără versiuni runtime deduse din acest neuron. |
 
 ### Mapare OTel
 
 - **v2 / plan:** `cognitive.report.daily.generate`; convenții ADR pot menționa `cognitive.neuron.*` / `cognitive.processing.stage`.
 - **Cod:** `withCognitiveSpan` — `cognitive.nodeKey`, `cognitive.neuronType`, `cognitive.swimlane`, `cognitive.etapa`, `cognitive.function` (`workers/shared/src/cognitive-helpers.ts`).
-- **Stare la 2026-04-11:** **doar țintă** — fără dovadă de worker/span pentru `report:daily:generate` în repo.
+- **Stare la 2026-04-11:** **doar destinație documentată** — fără dovadă de worker/span pentru `report:daily:generate` în repo.
 
 ---
 *Generator inițial:* înlocuit prin audit manual.

@@ -46,7 +46,7 @@
 
 ## Limite și reconcilieri
 
-- Semantica preț concurență — contract neuron țintă.
+- Semantica preț concurență — contract neuron destinație.
 
 ## Sursă canonică
 

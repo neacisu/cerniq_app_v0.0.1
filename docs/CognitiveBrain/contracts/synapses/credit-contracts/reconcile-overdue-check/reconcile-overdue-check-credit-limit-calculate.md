@@ -41,7 +41,7 @@ Dependența declară în graf ordonare canonică între **`reconcile-overdue-che
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime:** țintă în registry.
+- **Runtime:** destinație în registry.
 - **Planificare:** v2 §7.
 
 ## Limite și reconcilieri

@@ -42,7 +42,7 @@
 ## Mapare neuroni și triplă autoritate
 
 - **Planificare:** v2 §7 — `referral-consent-expire` → `email-cold-add-to-campaign`.
-- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; țintă `email:cold:add-to-campaign` apare ca **duplicate** la **L65** (E2) și **L267** (E5) în fișier — vezi ambele contracte pentru reconciliere.
+- **Semantic (ADR-0002):** sursă [`NEURON_MATRIX.csv`](../../../../NEURON_MATRIX.csv) **L313**; **Destinație (coadă):** `email:cold:add-to-campaign` apare ca **duplicate** la **L65** (E2) și **L267** (E5) în fișier — vezi ambele contracte pentru reconciliere.
 - **Runtime:** vezi neuronii; **nu** alegem o singură coadă din muchie.
 
 ## Limite și reconcilieri

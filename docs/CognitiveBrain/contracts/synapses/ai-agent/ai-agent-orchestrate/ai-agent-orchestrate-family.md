@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `ai-agent-orchestrate` | Nod de familie/traseu în graf; aliniere runtime: coadă executabilă **`ai:agent:orchestrate`** (constanta `QUEUES.E3_AI_AGENT_ORCHESTRATE` în `workers/shared/src/queue-registry.ts`, ADR-0001), vezi contractul neuron. |
-| Țintă | `e3-ai-core` | Nod de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core` pentru neuroni E3. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă de graf — maparea către `nodeKey`-uri concrete se face prin catalog și matrice. |
+| Destinație (graf) | `e3-ai-core` | Nod de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core` pentru neuroni E3. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă de graf — maparea către `nodeKey`-uri concrete se face prin catalog și matrice. |
 
 ## Tip muchie (export)
 

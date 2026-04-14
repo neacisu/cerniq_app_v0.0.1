@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `document-whatsapp-send` | **Matrix:** `document:whatsapp:send` (E3, `fiscal-docs`) → [`../../../neurons/E3/document--whatsapp--send.md`](../../../neurons/E3/document--whatsapp--send.md). **Registry:** `E3_DOCUMENT_WHATSAPP_SEND` → `document:whatsapp:send`. |
-| ��intă | `channel-email-send` | **Matrix:** `channel:email:send` (E3, `channels`) → [`../../../neurons/E3/channel--email--send.md`](../../../neurons/E3/channel--email--send.md). **Registry:** `E3_CHANNEL_EMAIL_SEND` → `channel:email:send`. |
+| Destinație (graf) | `channel-email-send` | **Matrix:** `channel:email:send` (E3, `channels`) → [`../../../neurons/E3/channel--email--send.md`](../../../neurons/E3/channel--email--send.md). **Registry:** `E3_CHANNEL_EMAIL_SEND` → `channel:email:send`. |
 
 ## Tip muchie (export)
 

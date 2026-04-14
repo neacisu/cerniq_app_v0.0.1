@@ -14,7 +14,7 @@
 | Rol | Nod în export | Interpretare |
 | --- | --- | --- |
 | Sursă | `ai-tool-execute` | Nod de familie/traseu în graf. În **Matrix** apare coada literală `ai:tool:execute` (E3, `ai-core`) cu contract [`../../../neurons/E3/ai--tool--execute.md`](../../../neurons/E3/ai--tool--execute.md). Contractul neuron documentează **gap față de runtime**: la auditul din 2026-04-11, `ai:tool:execute` **nu** era în `queue-registry.ts`, în `cognitive-node-catalog.ts` sau în `processors` din `main.ts`; execuția tool-urilor este descrisă ca flux în **C14** (parsare `<tool_call>`), fără job BullMQ dedicat cu acest nume. Graful rămâne sursa pentru **topologie planificată**; execuția trebuie reconciliată separat. |
-| Țintă | `e3-ai-core` | Nod agregat de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core`. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă de graf. |
+| Destinație (graf) | `e3-ai-core` | Nod agregat de **familie / nucleu** E3 în planificare, nu o singură coadă BullMQ; acoperă swimlane-ul semantic `ai-core`. Nu există un fișier `contracts/neurons/...` unic pentru această etichetă de graf. |
 
 ## Tip muchie (export)
 

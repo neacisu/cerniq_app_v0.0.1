@@ -49,7 +49,7 @@
 | 6 | Înveliș telemetrie | `createWorker` + `withCognitiveSpan`. | v2: `cognitive.e3.einvoice.archive-download` (L4916). | **Parțial aliniat** — `cognitive.nodeKey` vs span v2. |
 | 7 | Înveliș politică | Filtru strict VALIDATED + `validatedAt`; lanț audit (`h49` L52–65, L100–129). | v2: Tier 4, HITL la eșecuri repetate (L4906, L4914). | — |
 | 8 | Rutare model (dacă AI) | **N/A** — vezi N/A. | v2: Non-AI. | — |
-| 9 | Guardrails | Doar submissions validate; hash SHA-256 explicit (`h49` L10–13, L97–119). | ADR-0007 țintă. | — |
+| 9 | Guardrails | Doar submissions validate; hash SHA-256 explicit (`h49` L10–13, L97–119). | ADR-0007 — destinație. | — |
 | 10 | Escaladare HITL | Nu în H49. | v2 / ADR-0008. | — |
 | 11 | Micro-OODA | OBSERVE — submissions + docs; ORIENT — serie/număr; DECIDE — per item; ACT — download + audit insert (`h49` L52–132). | v2 OODA CRON/maintenance (L4912). | Aliniat ca sarcină de fundal. |
 | 12 | Tier + de-escaladare | Fără tier în cod. | v2 Tier 4 (L4906). | — |

@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `return-process-stock` | **Contract:** [`../../../neurons/E4/return--process--stock.md`](../../../neurons/E4/return--process--stock.md). **Runtime (ADR-0001):** vezi neuron — mapare v2 `return:process:stock` ↔ coadă implementată. |
-| Destinație (graf) | `alert-internal-daily-summary` | **Contract:** [`../../../neurons/E4/alert--internal--daily-summary.md`](../../../neurons/E4/alert--internal--daily-summary.md). Alerte granulare v2 vs cozi generice `alert:*`: vezi neuron țintă. |
+| Destinație (graf) | `alert-internal-daily-summary` | **Contract:** [`../../../neurons/E4/alert--internal--daily-summary.md`](../../../neurons/E4/alert--internal--daily-summary.md). Alerte granulare v2 vs cozi generice `alert:*`: vezi neuron destinație. |
 
 ## Tip muchie (export)
 

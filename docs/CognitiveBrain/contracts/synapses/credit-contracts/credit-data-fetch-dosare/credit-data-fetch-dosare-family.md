@@ -52,7 +52,7 @@ Muchia **`default`** plasează traseul **date dosare instanță (model graf)** (
 ## Limite și reconcilieri
 
 - Nu inventa payload / retry / safety / telemetrie pentru muchia `default`.
-- Nu confunda acest manifest cu sinapsele care au **țintă** `credit-data-fetch-dosare` din alte trasee (ex. plăți) — acelea sunt intrări distincte în v2 §7.
+- Nu confunda acest manifest cu sinapsele care au **destinație** `credit-data-fetch-dosare` din alte trasee (ex. plăți) — acelea sunt intrări distincte în v2 §7.
 
 ## Sursă canonică
 

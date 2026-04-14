@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime și contracte |
 | --- | --- | --- |
 | Sursă | `enrich-ai-text-structure` | **Contract:** [`../../../neurons/E1/enrich--ai--text-structure.md`](../../../neurons/E1/enrich--ai--text-structure.md). **Runtime (ADR-0001):** v2 `enrich:ai:text-structure` fără coadă literală în registry — vezi contract și ADR ai-enrichment. |
-| Destinație (graf) | `silver-dedup-entity-resolve` | **Contract (neuron):** [`../../../neurons/E1/silver--dedup--entity-resolve.md`](../../../neurons/E1/silver--dedup--entity-resolve.md). **Traseu sinapse:** [`../silver-dedup-entity-resolve/`](../silver-dedup-entity-resolve/). **Runtime:** vezi contract țintă. **ADR:** [`../../../adr/families/e1/dedup.md`](../../../adr/families/e1/dedup.md). |
+| Destinație (graf) | `silver-dedup-entity-resolve` | **Contract (neuron):** [`../../../neurons/E1/silver--dedup--entity-resolve.md`](../../../neurons/E1/silver--dedup--entity-resolve.md). **Traseu sinapse:** [`../silver-dedup-entity-resolve/`](../silver-dedup-entity-resolve/). **Runtime:** vezi contract destinație. **ADR:** [`../../../adr/families/e1/dedup.md`](../../../adr/families/e1/dedup.md). |
 
 ## Tip muchie (export)
 
@@ -41,7 +41,7 @@ Traseul **enrich-ai-text-structure** depinde în planificare de **rezoluție ent
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă — ambele cu decalaj v2 vs registry.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație — ambele cu decalaj v2 vs registry.
 - **Semantic (ADR-0002):** structurare AI (graf) ↔ dedup E1.
 - **Planificare:** v2 §7 — `enrich-ai-text-structure` → `silver-dedup-entity-resolve`.
 

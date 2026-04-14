@@ -41,7 +41,7 @@ Traseul **bronze-ingest-pdf-extractor** depinde în planificare de **legarea mem
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă (E5).
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație (E5).
 - **Semantic (ADR-0002):** ingest PDF (graf) ↔ legături membri asociație.
 - **Planificare:** v2 §7 — `bronze-ingest-pdf-extractor` → `association-members-link`.
 

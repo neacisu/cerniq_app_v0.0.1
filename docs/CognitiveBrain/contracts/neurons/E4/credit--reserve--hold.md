@@ -48,7 +48,7 @@
 | 6 | Înveliș telemetrie | `withCognitiveSpan("e4:credit:limit:reserve", …)` (L42–44). | v2 `cognitive.credit.reserve.hold` (L6851). | Span vs catalog `limit-reserve`. |
 | 7 | Înveliș politică | Idempotency job (d20 L8–9). | v2 L6849. | — |
 | 8 | Rutare model (dacă AI) | **N/A** | v2 Non-AI. | — |
-| 9 | Guardrails | TTL configurabil (d20 L28). | NeMo țintă. | — |
+| 9 | Guardrails | TTL configurabil (d20 L28). | NeMo destinație. | — |
 | 10 | Escaladare HITL | — | v2 L6849. | — |
 | 11 | Micro-OODA | După D19 APPROVED → rezervare fonduri. | v2 L6847. | — |
 | 12 | Tier + de-escaladare | — | Tier 3 (L6842). | — |

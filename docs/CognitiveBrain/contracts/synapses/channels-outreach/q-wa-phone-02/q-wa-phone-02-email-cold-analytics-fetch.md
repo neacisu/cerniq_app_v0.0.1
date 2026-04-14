@@ -41,7 +41,7 @@ Traseul **WA linia 02** depinde în planificare de **fetch analytics cold email*
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contract neuron țintă pentru coadă.
+- **Runtime (ADR-0001):** vezi contract neuron destinație pentru coadă.
 - **Semantic (ADR-0002):** legătură WA instanță 02 ↔ analitică email.
 - **Planificare:** v2 §7 — `q-wa-phone-02` → `email-cold-analytics-fetch`.
 

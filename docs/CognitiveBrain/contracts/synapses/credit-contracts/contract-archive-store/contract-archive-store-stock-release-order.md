@@ -41,13 +41,13 @@ Dependență de planificare: **contract-archive-store** → **`stock-release-ord
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** vezi contracte sursă și țintă.
+- **Runtime (ADR-0001):** vezi contracte sursă și destinație.
 - **Semantic (ADR-0002):** E3 arhivare → E4 eliberare stoc comandă.
 - **Planificare:** `contract-archive-store` → `stock-release-order`.
 
 ## Limite și reconcilieri
 
-- Reconcilierea cu cozi E3 (`stock:reserve:release` etc.) poate fi necesară — vezi neuron țintă.
+- Reconcilierea cu cozi E3 (`stock:reserve:release` etc.) poate fi necesară — vezi neuron destinație.
 - Fără presupuneri despre payload sau retry.
 
 ## Sursă canonică

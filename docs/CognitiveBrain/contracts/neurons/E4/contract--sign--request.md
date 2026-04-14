@@ -41,7 +41,7 @@ Citire PDF contract, creare envelope DocuSign cu semnatar ADMINISTRATOR, trimite
 
 ## Tabel self-aware (13 criterii)
 
-| # | Criteriu | În cod (dovadă) | țintă v2 / research | Limită evidență |
+| # | Criteriu | În cod (dovadă) | Țintă v2 / research | Limită evidență |
 | --- | --- | --- | --- | --- |
 | 1 | Identitate canonică | Coadă: `contract:docusign:send`. Catalog: `e4:contract:docusign-send`. Graf: `contract:sign:request`. | v2 L6592. | — |
 | 2 | Etapă, familie, swimlane | Catalog: etapa 4, `contract-execution`. | v2: E4, `contracts`. | — |

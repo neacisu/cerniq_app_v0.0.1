@@ -14,7 +14,7 @@
 | Rol | Nod în export | Mapare runtime (unde e clară) |
 | --- | --- | --- |
 | Sursă | `search-query-understand` | [`../../../neurons/E3/search--query--understand.md`](../../../neurons/E3/search--query--understand.md). **Runtime:** `search:query:rewrite` (`QUEUES.E3_SEARCH_QUERY_REWRITE`, `queue-registry.ts` L214). |
-| Țintă | `ai-agent-response-generate` | [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** coada E3 folosită în flux este `ai:e3:response:generate` (`QUEUES.E3_AI_RESPONSE_GENERATE`, `queue-registry.ts` L230); **nu** literal `ai:agent:response-generate` — vezi contract neuron și Matrix. |
+| Destinație (graf) | `ai-agent-response-generate` | [`../../../neurons/E3/ai--agent--response-generate.md`](../../../neurons/E3/ai--agent--response-generate.md). **Runtime:** coada E3 folosită în flux este `ai:e3:response:generate` (`QUEUES.E3_AI_RESPONSE_GENERATE`, `queue-registry.ts` L230); **nu** literal `ai:agent:response-generate` — vezi contract neuron și Matrix. |
 
 ## Tip muchie (export)
 
@@ -27,7 +27,7 @@
 
 ## Scop muchie (export-grounded)
 
-Dependență de planificare: generarea răspunsului agent (etichetă graf `ai-agent-response-generate`) este plasată după traseul `search-query-understand`. Mecanismul concret de coadă pentru E3 diferă de forma slug-ului din graf; reconcilierea este în contractul țintă, fără completări din acest contract.
+Dependență de planificare: generarea răspunsului agent (etichetă graf `ai-agent-response-generate`) este plasată după traseul `search-query-understand`. Mecanismul concret de coadă pentru E3 diferă de forma slug-ului din graf; reconcilierea este în contractul destinație, fără completări din acest contract.
 
 ## Statusuri de evidență (conservative, din sursă canonică)
 
@@ -41,8 +41,8 @@ Dependență de planificare: generarea răspunsului agent (etichetă graf `ai-ag
 
 ## Mapare neuroni și triplă autoritate
 
-- **Runtime (ADR-0001):** sursă `search:query:rewrite`; țintă executabilă `ai:e3:response:generate` (nu `ai:agent:response-generate` ca nume de coadă).
-- **Semantic (ADR-0002):** vezi `e3:ai:response-generate` în Matrix / contract neuron țintă.
+- **Runtime (ADR-0001):** sursă `search:query:rewrite`; destinație executabilă `ai:e3:response:generate` (nu `ai:agent:response-generate` ca nume de coadă).
+- **Semantic (ADR-0002):** vezi `e3:ai:response-generate` în Matrix / contract neuron destinație.
 - **Planificare:** v2 §7 — `search-query-understand` → `ai-agent-response-generate`.
 
 ## Limite și reconcilieri
